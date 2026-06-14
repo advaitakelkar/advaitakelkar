@@ -16,6 +16,16 @@ const sorted = [...allProjects].sort((a, b) => {
 
 const tagMap = Object.fromEntries(allTags.map(t => [t.id, t.data.name]));
 const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
+
+// Count projects per tag to find top 4
+const tagCounts: Record<string, number> = {};
+allProjects.forEach(p => {
+  (p.data.tags ?? []).forEach(t => {
+    tagCounts[t.id] = (tagCounts[t.id] || 0) + 1;
+  });
+});
+const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCounts[a.id] || 0));
+const tagsToShow = sortedTags.slice(0, 4);
 ---
 
 <PageLayout
@@ -60,11 +70,10 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
         </div>
         
         <div class="filter-group filter-group--tags">
-          <span class="filter-label text-muted">Tag</span>
-          <div class="tag-picker-container">
+          <div class="tag-picker-container" id="tag-picker-container">
             <div class="tag-picker" id="tag-picker">
               <button class="tag-picker-item is-active" data-filter="">All</button>
-              {allTags.map(tag => (
+              {tagsToShow.map(tag => (
                 <button class="tag-picker-item" data-filter={tag.id}>
                   {tag.data.name}
                 </button>
@@ -94,16 +103,26 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
           <a href={`/projects/${p.id}`} class="project-card__link">
             <!-- Left side: Details -->
             <div class="project-card__details">
-              <!-- Top: Category and Tags -->
+              <!-- Top: Collaborator, Tag, and Stacking Title -->
               <div class="project-card__top">
-                <span class="project-card__cat">
-                  {p.data.category ? catMap[p.data.category.id] : ''}
+                <span class="project-card__collab">
+                  {p.data.collaborator || 'Advaita Kelkar'}
                 </span>
-                {p.data.tags && p.data.tags.length > 0 && (
-                  <span class="project-card__tag-list text-muted">
-                    · {p.data.tags.map(t => tagMap[t.id] || t.id).join(', ')}
-                  </span>
-                )}
+                {(() => {
+                  const tagOrCat = (p.data.tags && p.data.tags.length > 0)
+                    ? (tagMap[p.data.tags[0].id] || p.data.tags[0].id)
+                    : (p.data.category ? catMap[p.data.category.id] : '');
+                  return tagOrCat ? (
+                    <>
+                      <span class="project-card__dot-sep">·</span>
+                      <span class="project-card__tag-cat">{tagOrCat}</span>
+                    </>
+                  ) : null;
+                })()}
+                <span class="project-card__stacked-title">
+                  <span class="project-card__dot-sep">·</span>
+                  <span class="stacked-name">{p.data.name}</span>
+                </span>
               </div>
 
               <!-- Middle: Title & Metadata -->
@@ -350,24 +369,17 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
   /* Tag horizontal scrollable picker */
   .tag-picker-container {
     flex: 1;
+    min-width: 0;
+    max-width: 100%;
     overflow-x: auto;
-    scrollbar-width: thin;
+    overflow-y: hidden;
+    scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
     padding-bottom: 2px;
   }
 
   .tag-picker-container::-webkit-scrollbar {
-    height: 3px;
-  }
-
-  .tag-picker-container::-webkit-scrollbar-track {
-    background: color-mix(in srgb, var(--_tokens---color--fg) 4%, transparent);
-    border-radius: 2px;
-  }
-
-  .tag-picker-container::-webkit-scrollbar-thumb {
-    background: color-mix(in srgb, var(--_tokens---color--fg) 20%, transparent);
-    border-radius: 2px;
+    display: none;
   }
 
   .tag-picker {
@@ -479,21 +491,84 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
   .project-card__top {
     display: flex;
     align-items: center;
-    gap: 8px;
-  }
-
-  .project-card__cat {
+    gap: 0;
     font-size: var(--_tokens---type--micro);
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--_tokens---color--muted);
+    min-height: 18px;
   }
 
-  .project-card__tag-list {
-    font-size: var(--_tokens---type--micro);
-    font-weight: 300;
+  .project-card__collab {
+    color: var(--_tokens---color--fg);
+    font-weight: 600;
+  }
+
+  .project-card__tag-cat {
     color: var(--_tokens---color--muted);
+  }
+
+  .project-card__dot-sep {
+    margin-inline: 8px;
+    color: color-mix(in srgb, var(--_tokens---color--fg) 25%, transparent);
+    font-weight: 300;
+  }
+
+  .project-card__stacked-title {
+    display: inline-flex;
+    align-items: center;
+    opacity: 0;
+    max-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                max-width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: translateX(10px);
+  }
+
+  .stacked-name {
+    color: var(--_tokens---color--fg);
+    font-weight: 700;
+  }
+
+  .project-card.is-stacked .project-card__stacked-title {
+    opacity: 1;
+    max-width: 500px;
+    transform: translateX(0);
+  }
+
+  /* Stacking transitions for other parts of the card */
+  .project-card__mid {
+    transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .project-card.is-stacked .project-card__mid {
+    opacity: 0;
+    transform: translateY(-8px);
+    pointer-events: none;
+  }
+
+  .project-card__bottom {
+    transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .project-card.is-stacked .project-card__bottom {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .project-card__img-wrap {
+    transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .project-card.is-stacked .project-card__img-wrap {
+    opacity: 0;
+    transform: scale(0.95);
+    pointer-events: none;
   }
 
   .project-card__title {
@@ -656,7 +731,7 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
   const paginationContainer = document.getElementById('projects-pagination');
 
   const catSelect = document.getElementById('cat-select') as HTMLSelectElement;
-  const tagPickerItems = document.querySelectorAll('#tag-picker .tag-picker-item');
+  const tagPicker = document.getElementById('tag-picker');
 
   let searchQuery = '';
   let activeCat = '';
@@ -778,16 +853,72 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
     applyFilter();
   });
 
-  // Tag scrollable picker click listeners
-  tagPickerItems.forEach(btn => {
-    btn.addEventListener('click', () => {
-      tagPickerItems.forEach(b => b.classList.remove('is-active'));
-      btn.classList.add('is-active');
-      activeTag = (btn as HTMLElement).dataset.filter ?? '';
-      currentPage = 1;
-      applyFilter();
+  // --- Infinite Loop Tag Scroll ---
+  const tagPickerContainer = document.getElementById('tag-picker-container');
+  if (tagPicker && tagPickerContainer) {
+    const items = Array.from(tagPicker.children);
+    if (items.length > 0) {
+      // Clone once before and once after
+      items.forEach(item => {
+        const clone = item.cloneNode(true);
+        tagPicker.appendChild(clone);
+      });
+      items.forEach(item => {
+        const clone = item.cloneNode(true);
+        tagPicker.insertBefore(clone, tagPicker.firstChild);
+      });
+
+      // Position scroll to start of original set
+      tagPickerContainer.scrollLeft = tagPicker.scrollWidth / 3;
+
+      tagPickerContainer.addEventListener('scroll', () => {
+        const oneSetWidth = tagPicker.scrollWidth / 3;
+        const scrollLeft = tagPickerContainer.scrollLeft;
+        if (scrollLeft >= oneSetWidth * 2) {
+          tagPickerContainer.scrollLeft = scrollLeft - oneSetWidth;
+        } else if (scrollLeft <= 0) {
+          tagPickerContainer.scrollLeft = scrollLeft + oneSetWidth;
+        }
+      }, { passive: true });
+    }
+  }
+
+  // Tag scrollable picker click listener using event delegation
+  tagPicker?.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest('.tag-picker-item');
+    if (!btn) return;
+
+    const filter = (btn as HTMLElement).dataset.filter ?? '';
+    activeTag = filter;
+    currentPage = 1;
+
+    // Sync active state across all buttons (original & clones)
+    tagPicker.querySelectorAll('.tag-picker-item').forEach(b => {
+      b.classList.toggle('is-active', (b as HTMLElement).dataset.filter === filter);
     });
+
+    applyFilter();
   });
+
+  // --- Scroll-Driven Card Stacking Title Animation ---
+  function handleCardStacking() {
+    const isMobile = window.innerWidth <= 768;
+    cards.forEach(card => {
+      if (card.hidden) return;
+      if (isMobile) {
+        card.classList.remove('is-stacked');
+        return;
+      }
+      const rect = card.getBoundingClientRect();
+      const computedTop = parseFloat(window.getComputedStyle(card).top);
+      // Stuck check: card rect.top meets its sticky top constraint
+      const isStacked = rect.top <= computedTop + 2;
+      card.classList.toggle('is-stacked', isStacked);
+    });
+  }
+
+  window.addEventListener('scroll', handleCardStacking, { passive: true });
+  window.addEventListener('resize', handleCardStacking, { passive: true });
 
   // Clear search and filters trigger
   clearBtn?.addEventListener('click', () => {
@@ -797,13 +928,14 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
     activeCat = '';
     activeTag = '';
     currentPage = 1;
-    // Reset tag picker active states
-    tagPickerItems.forEach(btn => {
+    // Reset tag picker active states (original and clones)
+    tagPicker?.querySelectorAll('.tag-picker-item').forEach(btn => {
       btn.classList.toggle('is-active', (btn as HTMLElement).dataset.filter === '');
     });
     applyFilter();
   });
 
-  // Initialize visibility
+  // Initialize visibility and card stacking state
   applyFilter();
+  handleCardStacking();
 </script>
