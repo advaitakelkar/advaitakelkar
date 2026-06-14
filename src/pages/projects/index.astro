@@ -25,7 +25,6 @@ allProjects.forEach(p => {
   });
 });
 const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCounts[a.id] || 0));
-const tagsToShow = sortedTags.slice(0, 4);
 ---
 
 <PageLayout
@@ -70,27 +69,30 @@ const tagsToShow = sortedTags.slice(0, 4);
         </div>
         
         <div class="filter-group filter-group--tags">
-          <div class="tag-scroll-nav">
-            <button class="tag-scroll-arrow tag-scroll-arrow--left" id="tag-scroll-left" aria-label="Scroll tags left" type="button">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
-                <polyline points="15 18 9 12 15 6"></polyline>
-              </svg>
-            </button>
-            <div class="tag-picker-container" id="tag-picker-container">
-              <div class="tag-picker" id="tag-picker">
-                <button class="tag-picker-item is-active" data-filter="">All</button>
-                {tagsToShow.map(tag => (
-                  <button class="tag-picker-item" data-filter={tag.id}>
-                    {tag.data.name}
-                  </button>
-                ))}
+          <div class="tag-picker-wrapper">
+            <button class="tag-picker-item is-active" data-filter="" id="all-tag-btn" type="button">All</button>
+            <span class="tag-picker-divider">|</span>
+            <div class="tag-scroll-nav">
+              <button class="tag-scroll-arrow tag-scroll-arrow--left" id="tag-scroll-left" aria-label="Scroll tags left" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+                  <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+              </button>
+              <div class="tag-picker-container" id="tag-picker-container">
+                <div class="tag-picker" id="tag-picker">
+                  {sortedTags.map(tag => (
+                    <button class="tag-picker-item" data-filter={tag.id} type="button">
+                      {tag.data.name}
+                    </button>
+                  ))}
+                </div>
               </div>
+              <button class="tag-scroll-arrow tag-scroll-arrow--right" id="tag-scroll-right" aria-label="Scroll tags right" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </button>
             </div>
-            <button class="tag-scroll-arrow tag-scroll-arrow--right" id="tag-scroll-right" aria-label="Scroll tags right" type="button">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
-                <polyline points="9 18 15 12 9 6"></polyline>
-              </svg>
-            </button>
           </div>
         </div>
       </div>
@@ -379,11 +381,27 @@ const tagsToShow = sortedTags.slice(0, 4);
   }
 
   /* Tag horizontal scrollable picker */
+  .tag-picker-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .tag-picker-divider {
+    color: color-mix(in srgb, var(--_tokens---color--fg) 15%, transparent);
+    font-weight: 300;
+    font-size: var(--_tokens---type--micro);
+    user-select: none;
+    flex-shrink: 0;
+  }
+
   .tag-scroll-nav {
     display: flex;
     align-items: center;
-    gap: 8px;
-    width: 100%;
+    gap: 4px;
+    flex: 1;
     min-width: 0;
   }
 
@@ -421,7 +439,7 @@ const tagsToShow = sortedTags.slice(0, 4);
   .tag-picker-container {
     flex: 1;
     min-width: 0;
-    max-width: 100%;
+    max-width: 420px;
     overflow-x: auto;
     overflow-y: hidden;
     scrollbar-width: none;
@@ -771,6 +789,9 @@ const tagsToShow = sortedTags.slice(0, 4);
     .project-card__details {
       padding-block: 0;
     }
+    .tag-picker-container {
+      max-width: 100%;
+    }
   }
 </style>
 
@@ -936,6 +957,19 @@ const tagsToShow = sortedTags.slice(0, 4);
   tagPickerContainer?.addEventListener('scroll', updateScrollArrows, { passive: true });
   window.addEventListener('resize', updateScrollArrows, { passive: true });
 
+  const allTagBtn = document.getElementById('all-tag-btn');
+
+  // Static All Tag button click listener
+  allTagBtn?.addEventListener('click', () => {
+    // Remove active state from all scrolling tag buttons
+    tagPicker?.querySelectorAll('.tag-picker-item').forEach(b => b.classList.remove('is-active'));
+    allTagBtn.classList.add('is-active');
+    activeTag = '';
+    currentPage = 1;
+    applyFilter();
+    setTimeout(updateScrollArrows, 50);
+  });
+
   // Tag scrollable picker click listener using event delegation
   tagPicker?.addEventListener('click', (e) => {
     const btn = (e.target as HTMLElement).closest('.tag-picker-item');
@@ -945,9 +979,10 @@ const tagsToShow = sortedTags.slice(0, 4);
     activeTag = filter;
     currentPage = 1;
 
-    // Set active state on clicked button
+    // Set active state on clicked button and remove from all others (including All tag button)
+    allTagBtn?.classList.remove('is-active');
     tagPicker.querySelectorAll('.tag-picker-item').forEach(b => {
-      b.classList.toggle('is-active', (b as HTMLElement).dataset.filter === filter);
+      b.classList.toggle('is-active', b === btn);
     });
 
     applyFilter();
@@ -983,9 +1018,10 @@ const tagsToShow = sortedTags.slice(0, 4);
     activeCat = '';
     activeTag = '';
     currentPage = 1;
-    // Reset tag picker active states (original and clones)
+    // Reset tag picker active states
+    allTagBtn?.classList.add('is-active');
     tagPicker?.querySelectorAll('.tag-picker-item').forEach(btn => {
-      btn.classList.toggle('is-active', (btn as HTMLElement).dataset.filter === '');
+      btn.classList.remove('is-active');
     });
     applyFilter();
     updateScrollArrows();
