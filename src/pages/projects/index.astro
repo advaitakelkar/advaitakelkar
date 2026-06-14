@@ -23,52 +23,54 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
   label="Projects"
 >
   <section class="projects-page">
-    <header class="projects-header">
-      <h1 class="projects-title">Projects</h1>
-      <p class="projects-count text-muted">{allProjects.length} of {allProjects.length} works</p>
-    </header>
+    <div class="projects-sticky-header">
+      <header class="projects-header">
+        <h1 class="projects-title">Projects</h1>
+        <p class="projects-count text-muted">{allProjects.length} of {allProjects.length} works</p>
+      </header>
 
-    <!-- Search bar matching home UI -->
-    <div class="projects-search-bar">
-      <input
-        type="search"
-        id="projects-search-input"
-        class="projects-search-input"
-        placeholder="Search projects by name, tag, location, client, status, year..."
-        autocomplete="off"
-        aria-label="Search projects"
-      />
-      <button class="projects-search-clear" id="projects-search-clear" type="button">@Clear All</button>
-    </div>
-
-    <!-- Filter bar with dropdown menus -->
-    <div class="filter-bar">
-      <div class="filter-group">
-        <span class="filter-label text-muted">Category</span>
-        <div class="filter-select-wrap">
-          <select id="cat-select" class="filter-select">
-            <option value="">All Categories</option>
-            {allCats.map(cat => (
-              <option value={cat.id}>{cat.data.displayName}</option>
-            ))}
-          </select>
-          <svg class="filter-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg>
-        </div>
+      <!-- Search bar matching home UI -->
+      <div class="projects-search-bar">
+        <input
+          type="search"
+          id="projects-search-input"
+          class="projects-search-input"
+          placeholder="Search projects by name, tag, location, client, status, year..."
+          autocomplete="off"
+          aria-label="Search projects"
+        />
+        <button class="projects-search-clear" id="projects-search-clear" type="button">@Clear All</button>
       </div>
-      <div class="filter-group">
-        <span class="filter-label text-muted">Tag</span>
-        <div class="filter-select-wrap">
-          <select id="tag-select" class="filter-select">
-            <option value="">All Tags</option>
-            {allTags.map(tag => (
-              <option value={tag.id}>{tag.data.name}</option>
-            ))}
-          </select>
-          <svg class="filter-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg>
+
+      <!-- Filter bar with dropdown and scrollable tag picker -->
+      <div class="filter-bar">
+        <div class="filter-group">
+          <span class="filter-label text-muted">Category</span>
+          <div class="filter-select-wrap">
+            <select id="cat-select" class="filter-select">
+              <option value="">All Categories</option>
+              {allCats.map(cat => (
+                <option value={cat.id}>{cat.data.displayName}</option>
+              ))}
+            </select>
+            <svg class="filter-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+        </div>
+        
+        <div class="filter-group filter-group--tags">
+          <span class="filter-label text-muted">Tag</span>
+          <div class="tag-picker-container">
+            <div class="tag-picker" id="tag-picker">
+              <button class="tag-picker-item is-active" data-filter="">All</button>
+              {allTags.map(tag => (
+                <button class="tag-picker-item" data-filter={tag.id}>
+                  {tag.data.name}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -90,14 +92,7 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
           data-tags={(p.data.tags ?? []).map(t => tagMap[t.id] || t.id).join(',')}
         >
           <a href={`/projects/${p.id}`} class="project-card__link">
-            <div class="project-card__img-wrap">
-              {p.data.coverImage ? (
-                <img src={p.data.coverImage} alt={p.data.name} loading="lazy" />
-              ) : (
-                <div class="project-card__placeholder" />
-              )}
-            </div>
-            
+            <!-- Left side: Details -->
             <div class="project-card__details">
               <!-- Top: Category and Tags -->
               <div class="project-card__top">
@@ -156,18 +151,29 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
                 </div>
               </div>
 
-              <!-- Bottom: Arrow & Small Intro (Intro is LAST) -->
+              <!-- Bottom: Small Intro (Intro is LAST) -->
               <div class="project-card__bottom">
                 {p.data.smallIntro && (
                   <p class="project-card__intro text-muted">{p.data.smallIntro}</p>
                 )}
-                <span class="project-card__arrow" aria-hidden="true">
-                  <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="square" stroke-linejoin="miter">
-                    <line x1="6" y1="18" x2="18" y2="6"></line>
-                    <polyline points="10 6 18 6 18 14"></polyline>
-                  </svg>
-                </span>
               </div>
+            </div>
+
+            <!-- Right side: Image -->
+            <div class="project-card__img-wrap">
+              {p.data.coverImage ? (
+                <img src={p.data.coverImage} alt={p.data.name} loading="lazy" />
+              ) : (
+                <div class="project-card__placeholder" />
+              )}
+              
+              <!-- Arrow absolutely positioned overlaying the cover image -->
+              <span class="project-card__arrow" aria-hidden="true">
+                <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="square" stroke-linejoin="miter">
+                  <line x1="6" y1="18" x2="18" y2="6"></line>
+                  <polyline points="10 6 18 6 18 14"></polyline>
+                </svg>
+              </span>
             </div>
           </a>
         </div>
@@ -182,13 +188,27 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
 <style>
   .projects-page {
     padding-block: var(--_tokens---space--medium);
+    position: relative;
+  }
+
+  /* Sticky search and filter header */
+  .projects-sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 90;
+    background-color: var(--_tokens---color--bg);
+    padding-top: 8px;
+    padding-bottom: 24px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+    transition: background-color 0.3s ease;
   }
 
   .projects-header {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
-    margin-bottom: 32px;
+    margin-bottom: 24px;
   }
 
   .projects-title {
@@ -196,19 +216,21 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
     font-weight: 700;
     color: var(--_tokens---color--fg);
     letter-spacing: -0.01em;
+    margin: 0;
   }
 
   .projects-count {
     font-size: var(--_tokens---type--micro);
     font-weight: 300;
     letter-spacing: 0.04em;
+    margin: 0;
   }
 
   /* Search Bar */
   .projects-search-bar {
     display: flex;
     gap: 12px;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
     width: 100%;
   }
 
@@ -250,12 +272,13 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
     color: var(--_tokens---color--bg);
   }
 
-  /* Filters Dropdowns */
+  /* Filters (Dropdown Category + Scrollable Tag Picker) */
   .filter-bar {
     display: flex;
     flex-direction: row;
     gap: 32px;
-    margin-bottom: 32px;
+    align-items: center;
+    width: 100%;
   }
 
   .filter-group {
@@ -264,16 +287,24 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
     gap: 16px;
   }
 
+  .filter-group--tags {
+    flex: 1;
+    min-width: 0;
+  }
+
   .filter-label {
     font-size: var(--_tokens---type--micro);
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.08em;
+    color: var(--_tokens---color--muted);
+    flex-shrink: 0;
   }
 
   .filter-select-wrap {
     position: relative;
     display: inline-block;
+    flex-shrink: 0;
   }
 
   .filter-select {
@@ -316,6 +347,60 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
     opacity: 0.7;
   }
 
+  /* Tag horizontal scrollable picker */
+  .tag-picker-container {
+    flex: 1;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+  }
+
+  .tag-picker-container::-webkit-scrollbar {
+    height: 3px;
+  }
+
+  .tag-picker-container::-webkit-scrollbar-track {
+    background: color-mix(in srgb, var(--_tokens---color--fg) 4%, transparent);
+    border-radius: 2px;
+  }
+
+  .tag-picker-container::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--_tokens---color--fg) 20%, transparent);
+    border-radius: 2px;
+  }
+
+  .tag-picker {
+    display: flex;
+    gap: 8px;
+    white-space: nowrap;
+    width: max-content;
+  }
+
+  .tag-picker-item {
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    color: var(--_tokens---color--muted);
+    font-size: var(--_tokens---type--micro);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+  }
+
+  .tag-picker-item:hover {
+    color: var(--_tokens---color--fg);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
+  }
+
+  .tag-picker-item.is-active {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+  }
+
   /* Detailed Compact Horizontal Cards */
   .project-cards-container {
     display: flex;
@@ -329,7 +414,7 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
     width: 100%;
     box-sizing: border-box;
     position: sticky;
-    top: calc(88px + var(--card-index, 0) * 36px);
+    top: calc(250px + var(--card-index, 0) * 36px);
     background-color: var(--_tokens---color--bg);
     border-top: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
     padding-top: 20px;
@@ -344,7 +429,7 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
 
   .project-card__link {
     display: grid;
-    grid-template-columns: clamp(160px, 16vw, 240px) 1fr;
+    grid-template-columns: 1fr clamp(160px, 16vw, 240px);
     gap: 32px;
     align-items: start;
     text-decoration: none;
@@ -412,10 +497,10 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
   }
 
   .project-card__title {
-    font-size: var(--_tokens---type--small);
-    font-weight: 600;
-    line-height: 1.2;
-    letter-spacing: -0.01em;
+    font-size: var(--_tokens---type--medium);
+    font-weight: 500;
+    line-height: 1.15;
+    letter-spacing: -0.015em;
     margin: 0;
   }
 
@@ -423,7 +508,7 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
   .project-card__meta-grid {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px 16px;
+    gap: 6px 16px;
     margin-block: 4px;
   }
 
@@ -448,9 +533,6 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
 
   .project-card__bottom {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    gap: 24px;
     margin-top: auto;
   }
 
@@ -461,20 +543,23 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
     margin: 0;
   }
 
+  /* Rotating overlay arrow on image */
   .project-card__arrow {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 5;
     width: 28px;
     height: 28px;
-    opacity: 0.6;
-    color: var(--_tokens---color--fg);
-    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
-    flex-shrink: 0;
+    opacity: 0.75;
+    color: #ffffff;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    pointer-events: none;
   }
 
   .project-card__link:hover .project-card__arrow {
-    transform: translate(4px, -4px);
+    transform: rotate(45deg);
     opacity: 1;
   }
 
@@ -523,15 +608,25 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
 
   @media (max-width: 900px) {
     .project-card__link {
-      grid-template-columns: 180px 1fr;
+      grid-template-columns: 1fr 180px;
       gap: 24px;
     }
   }
 
   @media (max-width: 768px) {
+    .projects-sticky-header {
+      position: relative;
+      top: auto !important;
+      padding-top: 0;
+      border-bottom: none;
+    }
     .filter-bar {
       flex-direction: column;
+      align-items: flex-start;
       gap: 16px;
+    }
+    .filter-group--tags {
+      width: 100%;
     }
     .project-card {
       position: relative;
@@ -561,7 +656,7 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
   const paginationContainer = document.getElementById('projects-pagination');
 
   const catSelect = document.getElementById('cat-select') as HTMLSelectElement;
-  const tagSelect = document.getElementById('tag-select') as HTMLSelectElement;
+  const tagPickerItems = document.querySelectorAll('#tag-picker .tag-picker-item');
 
   let searchQuery = '';
   let activeCat = '';
@@ -683,21 +778,29 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
     applyFilter();
   });
 
-  tagSelect?.addEventListener('change', (e) => {
-    activeTag = (e.target as HTMLSelectElement).value;
-    currentPage = 1;
-    applyFilter();
+  // Tag scrollable picker click listeners
+  tagPickerItems.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tagPickerItems.forEach(b => b.classList.remove('is-active'));
+      btn.classList.add('is-active');
+      activeTag = (btn as HTMLElement).dataset.filter ?? '';
+      currentPage = 1;
+      applyFilter();
+    });
   });
 
-  // Clear search and selects trigger
+  // Clear search and filters trigger
   clearBtn?.addEventListener('click', () => {
     if (searchInput) searchInput.value = '';
     if (catSelect) catSelect.value = '';
-    if (tagSelect) tagSelect.value = '';
     searchQuery = '';
     activeCat = '';
     activeTag = '';
     currentPage = 1;
+    // Reset tag picker active states
+    tagPickerItems.forEach(btn => {
+      btn.classList.toggle('is-active', (btn as HTMLElement).dataset.filter === '');
+    });
     applyFilter();
   });
 
