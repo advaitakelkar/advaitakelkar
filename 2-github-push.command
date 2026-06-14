@@ -1,6 +1,10 @@
 #!/bin/bash
-# Double-click this file in Finder to push your project to GitHub.
-# Prerequisites: run 1-setup.command first (npm install must succeed).
+# DEPRECATED — one-time initial GitHub setup, no longer needed.
+# Use 4-push.command for all ongoing pushes.
+echo "This script is deprecated. Use 4-push.command instead."
+read -p "Press any key to close..." _
+exit 0
+# ── original script below (kept for reference) ──
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"

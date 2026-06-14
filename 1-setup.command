@@ -1,42 +1,58 @@
 #!/bin/bash
-# Double-click this file in Finder to install dependencies and start the dev server.
+# ── advaitakelkar-website ──────────────────────────────────────
+# Double-click this in Finder to install dependencies and start
+# the local dev server. Run once after cloning or pulling.
+# Prereq: Node.js 18+ and pnpm installed.
+#   → Install pnpm: npm install -g pnpm
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
 echo ""
-echo "=== advaitakelkar-v2 setup ==="
+echo "=== advaitakelkar-website — dev setup ==="
 echo "Working in: $SCRIPT_DIR"
 echo ""
 
 # Check node
 if ! command -v node &>/dev/null; then
-  echo "ERROR: Node.js not found. Install from https://nodejs.org and try again."
+  echo "ERROR: Node.js not found."
+  echo "Install from https://nodejs.org then try again."
   read -p "Press any key to close..." _
   exit 1
 fi
 
-echo "Node: $(node --version)   npm: $(npm --version)"
-echo ""
-echo "Running npm install..."
-npm install --legacy-peer-deps
+echo "Node: $(node --version)"
 
-if [ $? -ne 0 ]; then
+# Use pnpm if available, fall back to npm
+if command -v pnpm &>/dev/null; then
+  echo "pnpm: $(pnpm --version)"
   echo ""
-  echo "Retrying with --force..."
-  npm install --force
+  echo "Installing dependencies..."
+  pnpm install --no-frozen-lockfile
+  INSTALL_OK=$?
+else
+  echo "pnpm not found — falling back to npm."
+  echo ""
+  echo "Installing dependencies..."
+  npm install --legacy-peer-deps
+  INSTALL_OK=$?
 fi
 
-if [ $? -ne 0 ]; then
+if [ $INSTALL_OK -ne 0 ]; then
   echo ""
-  echo "ERROR: npm install failed. See output above."
+  echo "ERROR: install failed. See output above."
   read -p "Press any key to close..." _
   exit 1
 fi
 
 echo ""
-echo "Done! Starting dev server..."
-echo "Open http://localhost:4321 in your browser."
-echo "Keystatic CMS: http://localhost:4321/keystatic"
+echo "Starting dev server..."
+echo "  Site:    http://localhost:4321"
+echo "  CMS:     http://localhost:4321/keystatic"
 echo ""
-npm run dev
+
+if command -v pnpm &>/dev/null; then
+  pnpm dev
+else
+  npm run dev
+fi

@@ -2,224 +2,518 @@
 import { getCollection } from 'astro:content';
 import PageLayout from '../layouts/PageLayout.astro';
 
+// ── Data ──────────────────────────────────────────────────────
 const allProjects = await getCollection('projects');
-const featured = allProjects.filter(p => p.data.featured).sort((a, b) =>
-  (a.data.numbr ?? 999) - (b.data.numbr ?? 999)
+const allTags     = await getCollection('tags');
+const allCats     = await getCollection('categories');
+
+// Lookup maps
+const tagMap = Object.fromEntries(allTags.map(t => [t.id, t.data.name]));
+const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
+
+// Featured slider (featured:true, sorted by numbr)
+const featured = allProjects
+  .filter(p => p.data.featured)
+  .sort((a, b) => (a.data.numbr ?? 999) - (b.data.numbr ?? 999));
+
+// All projects for quick search — sorted by year desc
+const sorted = [...allProjects].sort(
+  (a, b) => parseInt(b.data.year ?? '0') - parseInt(a.data.year ?? '0')
 );
-const recent = allProjects
-  .sort((a, b) => parseInt(b.data.year ?? '0') - parseInt(a.data.year ?? '0'))
-  .slice(0, 6);
+
+// Serialise to JSON for client-side search
+const projectsJson = JSON.stringify(
+  sorted.map(p => ({
+    id:   p.id,
+    name: p.data.name,
+    year: p.data.year ?? '',
+    tag:  p.data.tags?.[0] ? (tagMap[p.data.tags[0].id] ?? p.data.tags[0].id) : '',
+    cat:  p.data.category  ? (catMap[p.data.category.id] ?? p.data.category.id) : '',
+  }))
+);
 ---
 
-<PageLayout title="Home" label="Index" crumbs={[{ label: 'Home' }]}>
-  <section class="home-hero">
-    <h1 class="home-title">Advaita<br/>Kelkar</h1>
-    <p class="home-sub">Architect · Designer · Researcher</p>
-    <p class="home-tagline text-muted">
-      Working across interior, architecture, product, and visual practice —
-      from Mumbai to Savannah.
-    </p>
-    <div class="home-cta">
-      <a href="/projects" class="btn">View Projects</a>
-      <a href="/about" class="btn btn--ghost">About</a>
+<PageLayout
+  title="Home"
+  crumbs={[
+    { label: 'Home',     href: '/' },
+    { label: 'About Me', href: '/about' },
+    { label: 'Projects', href: '/projects' },
+  ]}
+>
+
+  <!-- ══ 1. INTRO ══════════════════════════════════════════════ -->
+  <section class="home-intro">
+    <div class="home-intro__left">
+      <p class="home-intro__label">Multidisciplinary Designer · Mumbai</p>
+      <p class="home-intro__desc">
+        This site is the living archive of Advaita Kelkar's design practice — one place
+        that gathers work spanning architecture, interiors, sculpture, graphic design,
+        product, and art. Instead of separating disciplines, it lets you move freely
+        between them, tracing how form, material, and intention return from one project
+        to the next. Here you'll find academic, professional, freelance, and experimental
+        work side by side, along with the research and process behind each piece. Browse
+        the featured work, search the full archive, or read more about the practice itself.
+      </p>
     </div>
+    <div class="home-intro__right" aria-hidden="true"></div>
   </section>
 
+  <!-- ══ 2. FEATURED SLIDER ════════════════════════════════════ -->
   {featured.length > 0 && (
-    <section class="home-section">
-      <h2 class="section-label">Featured</h2>
-      <div class="project-grid">
-        {featured.map(p => (
-          <a href={`/projects/${p.id}`} class="project-card">
-            {p.data.coverImage && (
-              <div class="project-card__img">
-                <img src={p.data.coverImage} alt={p.data.name} loading="lazy" />
-              </div>
-            )}
-            <div class="project-card__body">
-              <span class="project-card__name">{p.data.name}</span>
-              {p.data.smallIntro && <span class="project-card__intro text-muted">{p.data.smallIntro}</span>}
+    <section class="home-slider" aria-label="Featured projects">
+      <div class="home-slider__track" id="slider-track">
+        {featured.map((p, i) => (
+          <a
+            href={`/projects/${p.id}`}
+            class="home-slider__slide"
+            data-index={i}
+            aria-label={p.data.name}
+          >
+            {p.data.coverImage
+              ? <img src={p.data.coverImage} alt={p.data.name} loading={i === 0 ? 'eager' : 'lazy'} />
+              : <div class="home-slider__placeholder" aria-hidden="true" />
+            }
+            <div class="home-slider__caption">
+              <span class="home-slider__name">{p.data.name}</span>
+              <span class="home-slider__arrow" aria-hidden="true">↗</span>
             </div>
           </a>
+        ))}
+      </div>
+      <div class="home-slider__dots" role="tablist" aria-label="Slide navigation">
+        {featured.map((_, i) => (
+          <button
+            class={`home-slider__dot${i === 0 ? ' is-active' : ''}`}
+            role="tab"
+            aria-selected={i === 0 ? 'true' : 'false'}
+            aria-label={`Slide ${i + 1}`}
+            data-dot={i}
+          />
         ))}
       </div>
     </section>
   )}
 
-  <section class="home-section">
-    <h2 class="section-label">Recent Work</h2>
-    <div class="project-list">
-      {recent.map(p => (
-        <a href={`/projects/${p.id}`} class="project-row">
-          <span class="project-row__name">{p.data.name}</span>
-          <span class="project-row__meta text-muted">{p.data.year} · {p.data.location}</span>
-        </a>
-      ))}
-    </div>
-    <a href="/projects" class="see-all text-muted">All Projects →</a>
+  <!-- ══ 3. ABOUT ME TEASER ════════════════════════════════════ -->
+  <section class="home-teaser">
+    <p class="home-teaser__caption">
+      Get to know the designer behind the work — my background, training,
+      and the thinking that shapes each project.
+    </p>
+    <a href="/about" class="home-teaser__link">
+      <span>About Me</span>
+      <span class="home-teaser__arrow" aria-hidden="true">↗</span>
+    </a>
   </section>
+
+  <!-- ══ 4. PORTFOLIO TEASER ═══════════════════════════════════ -->
+  <section class="home-teaser">
+    <p class="home-teaser__caption">
+      A curated selection of built, drawn, and made work, gathered together in one place.
+    </p>
+    <a href="/projects" class="home-teaser__link">
+      <span>Portfolio</span>
+      <span class="home-teaser__arrow" aria-hidden="true">↗</span>
+    </a>
+  </section>
+
+  <!-- ══ 5. QUICK SEARCH ═══════════════════════════════════════ -->
+  <section class="home-search" aria-label="Project quick search">
+    <div class="home-search__header">
+      <h2 class="home-search__title">Projects Quick Search</h2>
+    </div>
+    <div class="home-search__bar">
+      <input
+        type="search"
+        id="qs-input"
+        class="home-search__input"
+        placeholder="Search"
+        autocomplete="off"
+        aria-label="Search projects"
+      />
+      <button class="home-search__clear" id="qs-clear" type="button">@Clear All</button>
+    </div>
+    <p class="home-search__count" id="qs-count" aria-live="polite"></p>
+    <div class="home-search__grid" id="qs-grid" role="list"></div>
+  </section>
+
 </PageLayout>
 
+<!-- ══ DATA + JS ══════════════════════════════════════════════ -->
+<script define:vars={{ projectsJson }}>
+  // ── Quick Search ────────────────────────────────────────────
+  const projects = JSON.parse(projectsJson);
+  const grid     = document.getElementById('qs-grid');
+  const input    = document.getElementById('qs-input');
+  const clearBtn = document.getElementById('qs-clear');
+  const count    = document.getElementById('qs-count');
+
+  function buildRow(p) {
+    const el = document.createElement('a');
+    el.href      = `/projects/${p.id}`;
+    el.className = 'qs-row';
+    el.setAttribute('role', 'listitem');
+    el.innerHTML = `
+      <span class="qs-row__meta">
+        <span class="qs-row__tag">${p.tag || p.cat || '—'}</span>
+        <span class="qs-row__year">${p.year}</span>
+      </span>
+      <span class="qs-row__name">${p.name}</span>
+      <span class="qs-row__arrow" aria-hidden="true">↗</span>
+    `;
+    return el;
+  }
+
+  function render(query) {
+    const q = query.trim().toLowerCase();
+    const matches = q
+      ? projects.filter(p =>
+          p.name.toLowerCase().includes(q) ||
+          p.tag.toLowerCase().includes(q)  ||
+          p.cat.toLowerCase().includes(q)  ||
+          p.year.includes(q)
+        )
+      : projects;
+
+    grid.innerHTML = '';
+    matches.forEach(p => grid.appendChild(buildRow(p)));
+    count.textContent =
+      `Results ${projects.length}   Showing Items 1 to ${matches.length} of ${projects.length}`;
+  }
+
+  render('');
+
+  input.addEventListener('input', () => render(input.value));
+  clearBtn.addEventListener('click', () => { input.value = ''; render(''); input.focus(); });
+
+  // ── Slider ──────────────────────────────────────────────────
+  const track = document.getElementById('slider-track');
+  const dots  = Array.from(document.querySelectorAll('.home-slider__dot'));
+
+  if (track && dots.length > 1) {
+    let current = 0;
+    let timer;
+    const slides = Array.from(track.querySelectorAll('.home-slider__slide'));
+
+    function setActive(idx) {
+      current = (idx + slides.length) % slides.length;
+      slides[current].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+      dots.forEach((d, i) => {
+        d.classList.toggle('is-active', i === current);
+        d.setAttribute('aria-selected', String(i === current));
+      });
+    }
+
+    function startAuto() { timer = setInterval(() => setActive(current + 1), 4000); }
+    function stopAuto()  { clearInterval(timer); }
+
+    startAuto();
+
+    dots.forEach((d, i) => d.addEventListener('click', () => { stopAuto(); setActive(i); startAuto(); }));
+    track.addEventListener('mouseenter', stopAuto);
+    track.addEventListener('mouseleave', startAuto);
+
+    // Sync dots on scroll
+    const io = new IntersectionObserver(
+      entries => entries.forEach(e => {
+        if (e.isIntersecting) {
+          const idx = parseInt(e.target.dataset.index ?? '0');
+          dots.forEach((d, i) => {
+            d.classList.toggle('is-active', i === idx);
+            d.setAttribute('aria-selected', String(i === idx));
+          });
+          current = idx;
+        }
+      }),
+      { root: track, threshold: 0.5 }
+    );
+    slides.forEach(s => io.observe(s));
+  }
+</script>
+
 <style>
-  .home-hero {
-    padding-block: var(--_tokens---space--big) var(--_tokens---space--medium);
-    max-width: var(--_tokens---layout--measure);
-  }
-
-  .home-title {
-    font-size: var(--_tokens---type--big);
-    font-weight: 600;
-    line-height: 1.05;
-    color: var(--_tokens---color--fg);
-    margin-bottom: var(--_tokens---space--micro);
-  }
-
-  .home-sub {
-    font-size: var(--_tokens---type--small);
-    color: var(--_tokens---color--muted);
-    margin-bottom: var(--_tokens---space--small);
-  }
-
-  .home-tagline {
-    font-size: var(--_tokens---type--small);
-    max-width: 40ch;
-    line-height: 1.5;
-    margin-bottom: var(--_tokens---space--small);
-  }
-
-  .home-cta {
-    display: flex;
-    gap: var(--_tokens---space--micro);
-    flex-wrap: wrap;
-  }
-
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.6em 1.2em;
-    border: 1px solid var(--_tokens---color--fg);
-    border-radius: var(--_tokens---radius--small);
-    color: var(--_tokens---color--bg);
-    background-color: var(--_tokens---color--fg);
-    font-size: var(--_tokens---type--micro);
-    text-decoration: none;
-    transition: background-color 0.2s ease, color 0.2s ease;
-  }
-
-  .btn:hover {
-    background-color: transparent;
-    color: var(--_tokens---color--fg);
-  }
-
-  .btn--ghost {
-    background-color: transparent;
-    color: var(--_tokens---color--fg);
-  }
-
-  .btn--ghost:hover {
-    background-color: var(--_tokens---color--fg);
-    color: var(--_tokens---color--bg);
-  }
-
-  .home-section {
-    padding-block: var(--_tokens---space--medium);
+  /* ══ Shared section skeleton ════════════════════════════════ */
+  .home-intro,
+  .home-slider,
+  .home-teaser,
+  .home-search {
     border-top: 1px solid var(--_tokens---color--line);
+    padding-block: 48px;
   }
 
-  .section-label {
-    font-size: var(--_tokens---type--micro);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--_tokens---color--muted);
-    margin-bottom: var(--_tokens---space--small);
-  }
-
-  .project-grid {
+  /* ══ 1. Intro ═══════════════════════════════════════════════ */
+  .home-intro {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: var(--_tokens---space--small);
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    padding-top: 40px;
   }
 
-  .project-card {
+  .home-intro__label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--_tokens---color--fg);
+    margin-bottom: 16px;
+  }
+
+  .home-intro__desc {
+    font-size: 13px;
+    line-height: 1.75;
+    color: var(--_tokens---color--muted);
+    max-width: 52ch;
+  }
+
+  /* ══ 2. Slider ══════════════════════════════════════════════ */
+  .home-slider {
+    padding-block: 0 16px;
+  }
+
+  .home-slider__track {
     display: flex;
-    flex-direction: column;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    gap: 2px;
+  }
+
+  .home-slider__track::-webkit-scrollbar { display: none; }
+
+  .home-slider__slide {
+    flex: 0 0 calc(50% - 1px);
+    scroll-snap-align: start;
+    position: relative;
+    display: block;
     text-decoration: none;
-    border: 1px solid var(--_tokens---color--line);
-    border-radius: var(--_tokens---radius--medium);
+    color: var(--_tokens---color--fg);
     overflow: hidden;
-    transition: opacity 0.2s ease;
-  }
-
-  .project-card:hover {
-    opacity: 0.8;
-  }
-
-  .project-card__img {
     aspect-ratio: 4 / 3;
-    overflow: hidden;
-    background-color: var(--_tokens---color--muted);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
   }
 
-  .project-card__img img {
+  .home-slider__slide img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    display: block;
+    transition: transform 0.5s ease;
   }
 
-  .project-card__body {
-    padding: var(--_tokens---space--micro);
-    display: flex;
-    flex-direction: column;
-    gap: 0.25em;
+  .home-slider__slide:hover img { transform: scale(1.03); }
+
+  .home-slider__placeholder {
+    width: 100%;
+    height: 100%;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
   }
 
-  .project-card__name {
-    font-size: var(--_tokens---type--small);
-    color: var(--_tokens---color--fg);
-  }
-
-  .project-card__intro {
-    font-size: var(--_tokens---type--micro);
-  }
-
-  .project-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-  }
-
-  .project-row {
+  .home-slider__caption {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
-    padding-block: var(--_tokens---space--micro);
-    border-bottom: 1px solid var(--_tokens---color--line);
-    text-decoration: none;
-    color: var(--_tokens---color--fg);
-    transition: opacity 0.2s ease;
+    align-items: flex-end;
+    padding: 32px 16px 14px;
+    background: linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 100%);
+    pointer-events: none;
   }
 
-  .project-row:hover {
+  .home-slider__name {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+
+  .home-slider__arrow { font-size: 14px; color: #fff; opacity: 0.85; }
+
+  .home-slider__dots {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    padding: 14px 0 0;
+  }
+
+  .home-slider__dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    border: none;
+    background-color: var(--_tokens---color--muted);
+    cursor: pointer;
+    padding: 0;
+    transition: background-color 0.2s, transform 0.2s;
+  }
+
+  .home-slider__dot.is-active {
+    background-color: var(--_tokens---color--fg);
+    transform: scale(1.4);
+  }
+
+  /* ══ 3 & 4. Teasers ═════════════════════════════════════════ */
+  .home-teaser__caption {
+    font-size: 12px;
+    line-height: 1.65;
+    color: var(--_tokens---color--muted);
+    max-width: 68ch;
+    margin-bottom: 12px;
+  }
+
+  .home-teaser__link {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    text-decoration: none;
+    color: var(--_tokens---color--fg);
+    transition: opacity 0.2s;
+  }
+
+  .home-teaser__link:hover { opacity: 0.65; }
+
+  .home-teaser__link > span:first-child {
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    font-weight: 800;
+    line-height: 1.0;
+    letter-spacing: -0.02em;
+  }
+
+  .home-teaser__arrow {
+    font-size: clamp(1.5rem, 3vw, 2.5rem);
+    flex-shrink: 0;
+  }
+
+  /* ══ 5. Quick Search ════════════════════════════════════════ */
+  .home-search__title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--_tokens---color--fg);
+    margin-bottom: 16px;
+  }
+
+  .home-search__bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .home-search__input {
+    flex: 1;
+    height: 36px;
+    padding: 0 12px;
+    font-size: 12px;
+    font-family: inherit;
+    background: transparent;
+    border: 1px solid var(--_tokens---color--line);
+    color: var(--_tokens---color--fg);
+    border-radius: 4px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .home-search__input::placeholder { color: var(--_tokens---color--muted); }
+  .home-search__input:focus { border-color: var(--_tokens---color--fg); }
+
+  .home-search__clear {
+    height: 36px;
+    padding: 0 14px;
+    font-size: 11px;
+    font-family: inherit;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    background: transparent;
+    border: 1px solid var(--_tokens---color--line);
+    color: var(--_tokens---color--fg);
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.2s, color 0.2s;
+  }
+
+  .home-search__clear:hover {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+  }
+
+  .home-search__count {
+    font-size: 10px;
+    color: var(--_tokens---color--muted);
+    letter-spacing: 0.04em;
+    margin-bottom: 16px;
+  }
+
+  /* 3-column project grid */
+  .home-search__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0 24px;
+  }
+
+  /* Individual row */
+  .qs-row {
+    display: grid;
+    grid-template-columns: 56px 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--_tokens---color--line) 40%, transparent);
+    text-decoration: none;
+    color: var(--_tokens---color--fg);
+    transition: opacity 0.15s;
+  }
+
+  .qs-row:hover { opacity: 0.55; }
+
+  .qs-row__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+
+  .qs-row__tag {
+    font-size: 9.5px;
+    font-weight: 500;
+    color: var(--_tokens---color--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-transform: capitalize;
+  }
+
+  .qs-row__year {
+    font-size: 9px;
+    color: var(--_tokens---color--muted);
     opacity: 0.7;
   }
 
-  .project-row__name {
-    font-size: var(--_tokens---type--small);
+  .qs-row__name {
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  .project-row__meta {
-    font-size: var(--_tokens---type--micro);
+  .qs-row__arrow {
+    font-size: 11px;
+    opacity: 0.45;
+    flex-shrink: 0;
   }
 
-  .see-all {
-    display: inline-block;
-    margin-top: var(--_tokens---space--small);
-    font-size: var(--_tokens---type--micro);
-    text-decoration: none;
-    transition: color 0.2s ease;
+  /* ══ Responsive ═════════════════════════════════════════════ */
+  @media (max-width: 900px) {
+    .home-intro { grid-template-columns: 1fr; }
+    .home-intro__right { display: none; }
+    .home-slider__slide { flex: 0 0 75%; }
+    .home-search__grid { grid-template-columns: repeat(2, 1fr); }
   }
 
-  .see-all:hover {
-    color: var(--_tokens---color--fg);
+  @media (max-width: 560px) {
+    .home-slider__slide { flex: 0 0 90%; }
+    .home-search__grid { grid-template-columns: 1fr; }
   }
 </style>
