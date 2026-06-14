@@ -17,6 +17,26 @@ if ! command -v git &>/dev/null; then
   exit 1
 fi
 
+# Ensure GitHub CLI is installed and authenticated
+if ! command -v gh &>/dev/null; then
+  echo "GitHub CLI not found. Installing via Homebrew..."
+  if ! command -v brew &>/dev/null; then
+    echo "Installing Homebrew first..."
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  fi
+  brew install gh
+fi
+
+echo "Checking GitHub authentication..."
+if ! gh auth status &>/dev/null; then
+  echo "Please log in to GitHub in the browser window that opens."
+  gh auth login --web --git-protocol https
+fi
+
+# Configure git to use GitHub CLI credentials
+gh auth setup-git
+echo ""
+
 echo "Repo: https://github.com/advaitakelkar/advaitakelkar"
 echo ""
 
