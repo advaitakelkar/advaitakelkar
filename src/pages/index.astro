@@ -29,6 +29,7 @@ const projectsJson = JSON.stringify(
     year: p.data.year ?? '',
     tag:  p.data.tags?.[0] ? (tagMap[p.data.tags[0].id] ?? p.data.tags[0].id) : '',
     cat:  p.data.category  ? (catMap[p.data.category.id] ?? p.data.category.id) : '',
+    loc:  p.data.location ?? '',
   }))
 );
 ---
@@ -38,14 +39,10 @@ const projectsJson = JSON.stringify(
 >
 
   <!-- Section 1: Hero (Intro + Slider) -->
-  <section class="home-section home-section--hero">
+  <section class="home-section home-section--hero" id="home-hero-section">
     <div class="home-intro">
-      <p class="home-intro__label">Multidisciplinary Designer · Mumbai</p>
-      
-      <div class="home-intro__summary">
-        <p class="home-intro__desc">
-          This digital platform serves as the comprehensive, living archive of Advaita Kelkar’s multidisciplinary design practice. It is designed to function as a singular, unified ecosystem that seamlessly integrates a diverse and expansive body of work. Here, projects spanning across architecture, interior environments, physical sculpture, graphic design, product innovation, and fine art are not treated as isolated endeavors, but rather as interconnected expressions of a singular creative vision.
-        </p>
+      <div class="home-intro__header">
+        <p class="home-intro__label">Multidisciplinary Designer · Mumbai</p>
         <button id="intro-read-more" class="intro-read-more-btn" aria-expanded="false" aria-controls="intro-expanded-content">
           <span>Read More</span>
           <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
@@ -57,6 +54,9 @@ const projectsJson = JSON.stringify(
 
       <div id="intro-expanded-content" class="home-intro__expanded">
         <div class="home-intro__left">
+          <p class="home-intro__desc">
+            This digital platform serves as the comprehensive, living archive of Advaita Kelkar’s multidisciplinary design practice. It is designed to function as a singular, unified ecosystem that seamlessly integrates a diverse and expansive body of work. Here, projects spanning across architecture, interior environments, physical sculpture, graphic design, product innovation, and fine art are not treated as isolated endeavors, but rather as interconnected expressions of a singular creative vision.
+          </p>
           <p class="home-intro__desc">
             Rather than compartmentalizing these various creative fields into rigid categories, this archive encourages fluid exploration. It invites visitors to navigate freely across different disciplines, uncovering the subtle threads and underlying dialogues that connect them. Through this unstructured journey, one can trace how foundational principles of form, tactile material choices, and core conceptual intentions recur, evolve, and echo from one project to the next, revealing a cohesive artistic philosophy.
           </p>
@@ -212,14 +212,21 @@ const projectsJson = JSON.stringify(
 
   function render(query) {
     const q = query.trim().toLowerCase();
-    const matches = q
-      ? projects.filter(p =>
-          p.name.toLowerCase().includes(q) ||
-          p.tag.toLowerCase().includes(q)  ||
-          p.cat.toLowerCase().includes(q)  ||
-          p.year.includes(q)
-        )
-      : projects;
+    let matches;
+    if (q) {
+      const keywords = q.split(/\s+/).filter(Boolean);
+      matches = projects.filter(p => {
+        return keywords.every(kw => 
+          p.name.toLowerCase().includes(kw) ||
+          p.tag.toLowerCase().includes(kw)  ||
+          p.cat.toLowerCase().includes(kw)  ||
+          p.year.includes(kw) ||
+          (p.loc && p.loc.toLowerCase().includes(kw))
+        );
+      });
+    } else {
+      matches = projects;
+    }
 
     grid.innerHTML = '';
     matches.forEach(p => grid.appendChild(buildRow(p)));
@@ -279,10 +286,12 @@ const projectsJson = JSON.stringify(
   // ── Read More Toggle ────────────────────────────────────────
   const readMoreBtn = document.getElementById('intro-read-more');
   const expandedContent = document.getElementById('intro-expanded-content');
-  if (readMoreBtn && expandedContent) {
+  const heroSection = document.getElementById('home-hero-section');
+  if (readMoreBtn && expandedContent && heroSection) {
     readMoreBtn.addEventListener('click', () => {
       const isOpen = expandedContent.classList.toggle('is-open');
       readMoreBtn.classList.toggle('is-open', isOpen);
+      heroSection.classList.toggle('is-expanded', isOpen);
       const btnText = readMoreBtn.querySelector('span');
       if (btnText) {
         btnText.textContent = isOpen ? 'Read Less' : 'Read More';
@@ -322,9 +331,17 @@ const projectsJson = JSON.stringify(
   }
 
   .home-section--hero {
-    justify-content: space-between;
+    justify-content: flex-start;
+    gap: 32px;
     padding-top: clamp(3rem, 6vh, 5rem);
     padding-bottom: 24px;
+    transition: height 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .home-section--hero.is-expanded {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
   }
 
   .home-section--teasers {
@@ -345,21 +362,21 @@ const projectsJson = JSON.stringify(
     margin-bottom: 16px;
   }
 
+  .home-intro__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    width: 100%;
+    margin-bottom: 8px;
+  }
+
   .home-intro__label {
     font-size: var(--_tokens---type--micro);
     font-weight: 300;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--_tokens---color--fg);
-    margin-bottom: 16px;
-    width: 100%;
-  }
-
-  .home-intro__summary {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    width: 100%;
+    margin: 0;
   }
 
   .home-intro__desc {
@@ -381,7 +398,7 @@ const projectsJson = JSON.stringify(
 
   .home-intro__expanded.is-open {
     opacity: 1;
-    margin-top: 16px;
+    margin-top: 24px;
   }
 
   .home-intro__left, .home-intro__right {
@@ -402,7 +419,7 @@ const projectsJson = JSON.stringify(
     text-transform: uppercase;
     letter-spacing: 0.04em;
     cursor: pointer;
-    margin-top: 12px;
+    margin: 0;
     padding: 0;
     transition: color 0.2s ease;
   }
@@ -425,6 +442,14 @@ const projectsJson = JSON.stringify(
   /* ══ 2. Slider ══════════════════════════════════════════════ */
   .home-slider {
     width: 100%;
+    margin-top: auto;
+    margin-bottom: auto;
+    transition: margin 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .home-section--hero.is-expanded .home-slider {
+    margin-top: 48px;
+    margin-bottom: 24px;
   }
 
   .home-slider__track {
@@ -433,15 +458,15 @@ const projectsJson = JSON.stringify(
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
     gap: 32px;
-    height: 38vh; /* Scale slider dynamically with screen height */
-    min-height: 250px;
-    max-height: 380px;
+    height: 52vh;
+    min-height: 380px;
+    max-height: 520px;
   }
 
   .home-slider__track::-webkit-scrollbar { display: none; }
 
   .home-slider__slide {
-    flex: 0 0 calc(50% - 16px);
+    flex: 0 0 calc(60% - 16px);
     scroll-snap-align: start;
     position: relative;
     display: block;
