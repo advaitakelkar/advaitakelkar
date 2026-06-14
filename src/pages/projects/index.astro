@@ -116,7 +116,9 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
           data-size={p.data.size ?? ''}
           data-program={p.data.program ?? ''}
           data-cat={p.data.category ? (catMap[p.data.category.id] || p.data.category.id) : ''}
+          data-cat-id={p.data.category ? p.data.category.id : ''}
           data-tags={(p.data.tags ?? []).map(t => tagMap[t.id] || t.id).join(',')}
+          data-tag-ids={(p.data.tags ?? []).map(t => t.id).join(',')}
         >
           <a href={`/projects/${p.id}`} class="project-card__link">
             <!-- Left side: Details -->
@@ -249,10 +251,11 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   }
 
   .projects-title {
-    font-size: var(--_tokens---type--medium);
+    font-size: var(--_tokens---type--big);
     font-weight: 700;
     color: var(--_tokens---color--fg);
-    letter-spacing: -0.01em;
+    letter-spacing: -0.03em;
+    line-height: 0.95;
     margin: 0;
   }
 
@@ -273,9 +276,9 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
   .projects-search-input {
     flex: 1;
-    height: 48px;
-    padding: 0 16px;
-    font-size: var(--_tokens---type--small);
+    height: 56px;
+    padding: 0 20px;
+    font-size: var(--_tokens---type--medium);
     font-family: inherit;
     background: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
     border: none;
@@ -289,9 +292,9 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   .projects-search-input:focus { background-color: color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent); }
 
   .projects-search-clear {
-    height: 48px;
-    padding: 0 20px;
-    font-size: var(--_tokens---type--micro);
+    height: 56px;
+    padding: 0 24px;
+    font-size: var(--_tokens---type--small);
     font-family: inherit;
     font-weight: 600;
     letter-spacing: 0.04em;
@@ -889,24 +892,24 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       const program = (card.dataset.program ?? '').toLowerCase();
       const cat = (card.dataset.cat ?? '').toLowerCase();
       const tags = (card.dataset.tags ?? '').toLowerCase();
+      const catId = card.dataset.catId ?? '';
+      const tagIds = (card.dataset.tagIds ?? '').split(',').filter(Boolean);
 
       // smart multi-keyword match (AND logic)
-      const searchMatch = !keywords.length || keywords.every(kw => 
-        name.includes(kw) || 
-        loc.includes(kw) || 
-        year.includes(kw) || 
-        client.includes(kw) || 
-        status.includes(kw) || 
-        size.includes(kw) || 
-        program.includes(kw) || 
-        cat.includes(kw) || 
+      const searchMatch = !keywords.length || keywords.every(kw =>
+        name.includes(kw) ||
+        loc.includes(kw) ||
+        year.includes(kw) ||
+        client.includes(kw) ||
+        status.includes(kw) ||
+        size.includes(kw) ||
+        program.includes(kw) ||
+        cat.includes(kw) ||
         tags.includes(kw)
       );
 
-      const catMatch = !activeCat || cat === activeCat.toLowerCase();
-
-      const rowTags = tags.split(',').filter(Boolean);
-      const tagMatch = !activeTag || rowTags.includes(activeTag.toLowerCase());
+      const catMatch = !activeCat || catId === activeCat;
+      const tagMatch = !activeTag || tagIds.includes(activeTag);
 
       if (searchMatch && catMatch && tagMatch) {
         matchingCards.push(card);

@@ -1,7 +1,6 @@
 ---
 import PageLayout from '../layouts/PageLayout.astro';
 
-// Structured career experience data
 const experience = [
   {
     title: "Fabrication Monitor",
@@ -37,7 +36,6 @@ const experience = [
   }
 ];
 
-// Structured exhibitions data
 const exhibitions = [
   {
     title: "Indian Art Fair",
@@ -73,7 +71,6 @@ const exhibitions = [
   }
 ];
 
-// Structured timeline data
 const timeline = [
   {
     title: "(SCAD) Savannah College of Art & Design",
@@ -157,7 +154,6 @@ const timeline = [
   }
 ];
 
-// Structured skillset categories
 const skillsets = [
   {
     category: "Languages",
@@ -184,6 +180,9 @@ const skillsets = [
     skills: ["Grasshopper", "Microsoft Office", "Notion", "Miro"]
   }
 ];
+
+// Arrow SVG reused across all cards
+const arrowSvg = `<svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>`;
 ---
 
 <PageLayout
@@ -195,18 +194,21 @@ const skillsets = [
   ]}
 >
   <article class="about-page">
-    
-    <!-- Section 1: Intro + Links -->
-    <section class="about-section-snap about-section--intro" id="about-intro-section">
+
+    <!-- ══ Section 1: Intro + Career (everything except skillset) ══ -->
+    <section class="about-section-snap about-section--career" id="panel-career-section">
+
+      <!-- Intro paragraph -->
       <div class="about-intro">
         <p class="about-intro__desc">
           Throughout my career, I've dissolved boundaries across scales—architecture, interiors, sculpture, graphic design, product design, and art—all converging in this virtual archive, my digital twin.
         </p>
       </div>
 
+      <!-- Download / page links -->
       <div class="about-links" aria-label="Downloads and pages">
         <p class="about-links__note text-muted">Click on the links to access downloadable PDF versions</p>
-        
+
         <a href="/advaita-kelkar-cv.pdf" class="about-link-row" target="_blank" rel="noopener">
           <span class="about-link-row__text">Curriculum Vitae</span>
           <span class="about-link-row__arrow" aria-hidden="true">
@@ -237,11 +239,8 @@ const skillsets = [
           </span>
         </a>
       </div>
-    </section>
 
-    <!-- Section 2: Career Tabs + Card Deck (Scrollable snaps) -->
-    <section class="about-section-snap about-section--career" id="panel-career-section">
-      <!-- Tabs (Sticky 100% width, equally spaced) -->
+      <!-- Career Tabs — compact flex, sticky within scroll container -->
       <div class="about-tabs-container" role="tablist" aria-label="Career sections">
         <button class="about-tab-btn is-active" role="tab" aria-selected="true" aria-controls="panel-about" data-tab="about">About Me</button>
         <button class="about-tab-btn" role="tab" aria-selected="false" aria-controls="panel-exhibitions" data-tab="exhibitions">Exhibitions</button>
@@ -251,21 +250,24 @@ const skillsets = [
       <p class="about-career__tagline text-muted">Dissolving roles and evolutions: Professional journey from Mumbai teams to SCAD fabrication, always fusing leadership with innovation.</p>
 
       <div class="about-tab-content">
+
         <!-- Panel 1: About Me (Experience) -->
         <div class="about-tab-panel is-active" id="panel-about" role="tabpanel" aria-labelledby="tab-about">
           {experience.map((item, idx) => (
             <div class="about-card" style={`--card-index: ${idx};`}>
-              <div class="about-card__details">
-                <div class="about-card__top">
-                  <span class="about-card__collab">{item.company}</span>
+              <!-- Strip: always visible when stacked -->
+              <div class="about-card__strip">
+                <span class="about-card__collab">{item.company}</span>
+                <span class="about-card__dot-sep">·</span>
+                <span class="about-card__role">{item.role}</span>
+                <span class="about-card__stacked-title">
                   <span class="about-card__dot-sep">·</span>
-                  <span class="about-card__tag-cat">{item.role}</span>
-                  <span class="about-card__stacked-title">
-                    <span class="about-card__dot-sep">·</span>
-                    <span class="stacked-name">{item.title}</span>
-                  </span>
-                </div>
-                <div class="about-card__mid">
+                  <span class="stacked-name">{item.title}</span>
+                </span>
+              </div>
+              <!-- Body: two-column, fades out when stacked -->
+              <div class="about-card__body">
+                <div class="about-card__left">
                   <h3 class="about-card__title">{item.title}</h3>
                   <div class="about-card__meta-grid">
                     <div class="meta-item">
@@ -278,8 +280,14 @@ const skillsets = [
                     </div>
                   </div>
                 </div>
-                <div class="about-card__bottom">
+                <div class="about-card__right">
                   <p class="about-card__desc text-muted">{item.desc}</p>
+                  <span class="about-card__arrow" aria-hidden="true">
+                    <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+                      <line x1="6" y1="18" x2="18" y2="6"></line>
+                      <polyline points="10 6 18 6 18 14"></polyline>
+                    </svg>
+                  </span>
                 </div>
               </div>
             </div>
@@ -290,17 +298,17 @@ const skillsets = [
         <div class="about-tab-panel" id="panel-exhibitions" role="tabpanel" aria-labelledby="tab-exhibitions" style="display: none;">
           {exhibitions.map((item, idx) => (
             <div class="about-card" style={`--card-index: ${idx};`}>
-              <div class="about-card__details">
-                <div class="about-card__top">
-                  <span class="about-card__collab">{item.company}</span>
+              <div class="about-card__strip">
+                <span class="about-card__collab">{item.company}</span>
+                <span class="about-card__dot-sep">·</span>
+                <span class="about-card__role">{item.role}</span>
+                <span class="about-card__stacked-title">
                   <span class="about-card__dot-sep">·</span>
-                  <span class="about-card__tag-cat">{item.role}</span>
-                  <span class="about-card__stacked-title">
-                    <span class="about-card__dot-sep">·</span>
-                    <span class="stacked-name">{item.title}</span>
-                  </span>
-                </div>
-                <div class="about-card__mid">
+                  <span class="stacked-name">{item.title}</span>
+                </span>
+              </div>
+              <div class="about-card__body">
+                <div class="about-card__left">
                   <h3 class="about-card__title">{item.title}</h3>
                   <div class="about-card__meta-grid">
                     <div class="meta-item">
@@ -313,8 +321,14 @@ const skillsets = [
                     </div>
                   </div>
                 </div>
-                <div class="about-card__bottom">
+                <div class="about-card__right">
                   <p class="about-card__desc text-muted">{item.desc}</p>
+                  <span class="about-card__arrow" aria-hidden="true">
+                    <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+                      <line x1="6" y1="18" x2="18" y2="6"></line>
+                      <polyline points="10 6 18 6 18 14"></polyline>
+                    </svg>
+                  </span>
                 </div>
               </div>
             </div>
@@ -325,17 +339,17 @@ const skillsets = [
         <div class="about-tab-panel" id="panel-timeline" role="tabpanel" aria-labelledby="tab-timeline" style="display: none;">
           {timeline.map((item, idx) => (
             <div class="about-card" style={`--card-index: ${idx};`}>
-              <div class="about-card__details">
-                <div class="about-card__top">
-                  <span class="about-card__collab">{item.company}</span>
+              <div class="about-card__strip">
+                <span class="about-card__collab">{item.company}</span>
+                <span class="about-card__dot-sep">·</span>
+                <span class="about-card__role">{item.role}</span>
+                <span class="about-card__stacked-title">
                   <span class="about-card__dot-sep">·</span>
-                  <span class="about-card__tag-cat">{item.role}</span>
-                  <span class="about-card__stacked-title">
-                    <span class="about-card__dot-sep">·</span>
-                    <span class="stacked-name">{item.title}</span>
-                  </span>
-                </div>
-                <div class="about-card__mid">
+                  <span class="stacked-name">{item.title}</span>
+                </span>
+              </div>
+              <div class="about-card__body">
+                <div class="about-card__left">
                   <h3 class="about-card__title">{item.title}</h3>
                   <div class="about-card__meta-grid">
                     <div class="meta-item">
@@ -348,31 +362,39 @@ const skillsets = [
                     </div>
                   </div>
                 </div>
-                <div class="about-card__bottom">
+                <div class="about-card__right">
                   <p class="about-card__desc text-muted">{item.desc}</p>
+                  <span class="about-card__arrow" aria-hidden="true">
+                    <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+                      <line x1="6" y1="18" x2="18" y2="6"></line>
+                      <polyline points="10 6 18 6 18 14"></polyline>
+                    </svg>
+                  </span>
                 </div>
               </div>
             </div>
           ))}
         </div>
+
       </div>
     </section>
 
-    <!-- Section 3: Skillset Section -->
+    <!-- ══ Section 2: Skillset only ══ -->
     <section class="about-section-snap about-section--skillset" id="panel-skillset-section">
+
+      <!-- Search IS the section header -->
       <div class="skillset-header-row">
-        <h2 class="skillset-title">Skillset</h2>
         <input
           type="search"
           id="skill-search"
           class="skillset-search-input"
-          placeholder="Search skillset..."
+          placeholder="Skill Set"
           autocomplete="off"
           aria-label="Search skills"
         />
       </div>
-      
-      <p class="skillset-subtitle text-muted">A searchable interface that blends all projects—academic, work, free, and experiments—into one seamless digital archive for holistic discovery</p>
+
+      <p class="skillset-subtitle text-muted">A searchable interface that blends all projects — academic, work, free, and experiments — into one seamless digital archive for holistic discovery.</p>
 
       <div class="skillset-grid">
         {skillsets.map((set) => (
@@ -393,18 +415,33 @@ const skillsets = [
         ))}
       </div>
     </section>
+
   </article>
 </PageLayout>
 
 <style>
-  /* Snapping layout overrides */
+  /* ── Scroll snap (page-wide) ── */
   :global(html) {
     scroll-snap-type: y mandatory;
     scroll-behavior: smooth;
   }
 
   :global(.page-main) {
-    padding: 0 !important; /* Overrides standard page padding for snapping fullscreens */
+    padding: 0 !important;
+  }
+
+  /* ── Breadcrumb: fixed overlay on about page too ── */
+  :global(.page-breadcrumb) {
+    position: fixed !important;
+    top: 0 !important;
+    left: 64px !important;
+    right: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    z-index: 150;
+    padding-inline: var(--_tokens---space--small) !important;
+    background-color: transparent !important;
+    margin-bottom: 0 !important;
   }
 
   .about-page {
@@ -412,6 +449,7 @@ const skillsets = [
     width: 100%;
   }
 
+  /* ── Shared snap section ── */
   .about-section-snap {
     scroll-snap-align: start;
     height: 100dvh;
@@ -421,29 +459,31 @@ const skillsets = [
     flex-direction: column;
     padding-inline: var(--_tokens---space--small);
     transition: padding 0.3s ease;
-    overflow: hidden;
   }
 
-  .about-section--intro {
-    justify-content: center;
-  }
-
+  /* ── Section 1: Career (intro + tabs + cards) ── */
   .about-section--career {
     justify-content: flex-start;
-    padding-top: clamp(2rem, 4vh, 3rem);
-    overflow-y: auto; /* scrollable career card deck */
+    padding-top: calc(clamp(2rem, 5vh, 4rem) + 48px); /* breadcrumb offset */
+    overflow-y: auto;
+    overflow-x: hidden;
     position: relative;
     scrollbar-width: thin;
+    scrollbar-color: var(--_tokens---color--line) transparent;
   }
 
+  /* ── Section 2: Skillset ── */
   .about-section--skillset {
     justify-content: flex-start;
-    padding-top: clamp(4rem, 8vh, 6rem);
-    overflow-y: auto; /* scrollable skillset */
+    padding-top: calc(clamp(3rem, 6vh, 5rem) + 48px); /* breadcrumb offset */
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--_tokens---color--line) transparent;
   }
 
+  /* ── Intro (top of section 1) ── */
   .about-intro {
-    margin-bottom: 32px;
+    margin-bottom: 16px;
   }
 
   .about-intro__desc {
@@ -454,11 +494,11 @@ const skillsets = [
     margin: 0;
   }
 
-  /* Curriculum Vitae / Portfolio download link rows */
+  /* ── Download links ── */
   .about-links {
     display: flex;
     flex-direction: column;
-    margin-bottom: 24px;
+    margin-bottom: 0;
     width: 100%;
   }
 
@@ -466,7 +506,7 @@ const skillsets = [
     font-size: var(--_tokens---type--micro);
     font-weight: 300;
     letter-spacing: 0.04em;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
   }
 
   .about-link-row {
@@ -476,7 +516,7 @@ const skillsets = [
     text-decoration: none;
     color: var(--_tokens---color--fg);
     border-top: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
-    padding-block: 22px;
+    padding-block: 18px;
     transition: opacity 0.2s ease, padding-left 0.2s ease;
   }
 
@@ -509,23 +549,20 @@ const skillsets = [
     transform: rotate(45deg);
   }
 
-  .link-arrow {
-    width: 100%;
-    height: 100%;
-  }
-
-  /* Career Tabs Pill Menu - Sticky 100% width grid */
+  /* ── Career Tabs — compact, auto-width, flex ── */
   .about-tabs-container {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    display: flex;
+    gap: 6px;
+    align-items: center;
     width: 100%;
-    margin-block: 16px;
-    border-bottom: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+    padding-top: 28px;
     padding-bottom: 12px;
     position: sticky;
     top: 0;
     z-index: 10;
     background-color: var(--_tokens---color--bg);
+    border-bottom: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+    transition: background-color 0.3s ease;
   }
 
   .about-tab-btn {
@@ -537,15 +574,17 @@ const skillsets = [
     background: none;
     border: none;
     color: var(--_tokens---color--muted);
-    padding: 10px 0;
+    padding: 8px 16px;        /* equal padding on all sides */
     cursor: pointer;
     transition: background-color 0.25s ease, color 0.25s ease;
-    text-align: center;
     border-radius: 6px;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .about-tab-btn:hover {
     color: var(--_tokens---color--fg);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
   }
 
   .about-tab-btn.is-active {
@@ -553,14 +592,12 @@ const skillsets = [
     color: var(--_tokens---color--bg);
   }
 
+  /* Tagline below tabs, above cards */
   .about-career__tagline {
     font-size: var(--_tokens---type--micro);
     line-height: 1.5;
-    text-align: center;
+    margin: 20px 0 24px;
     max-width: 80ch;
-    margin-inline: auto;
-    margin-bottom: 32px;
-    flex-shrink: 0;
   }
 
   .about-tab-content {
@@ -568,7 +605,6 @@ const skillsets = [
     position: relative;
   }
 
-  /* Tab Panel Transitions */
   .about-tab-panel {
     display: flex;
     flex-direction: column;
@@ -583,25 +619,27 @@ const skillsets = [
     transform: translateY(0);
   }
 
-  /* Experience card folder style stacking */
+  /* ── Stacking Cards ── */
   .about-card {
     width: 100%;
     box-sizing: border-box;
     position: sticky;
-    top: calc(56px + var(--card-index, 0) * 36px);
+    top: calc(52px + var(--card-index, 0) * 36px); /* 52px = sticky tabs height */
     background-color: var(--_tokens---color--bg);
     border-top: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
-    padding-top: 24px;
-    padding-bottom: 24px;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    padding-top: 20px;
+    padding-bottom: 20px;
     box-shadow: 0 -8px 24px -10px rgba(0, 0, 0, 0.3);
+    transition: background-color 0.25s ease;
+    cursor: default;
   }
 
   .about-card:hover {
-    opacity: 0.95;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 2%, transparent);
   }
 
-  .about-card__top {
+  /* Strip: always visible (even when stacked) */
+  .about-card__strip {
     display: flex;
     align-items: center;
     gap: 0;
@@ -610,7 +648,7 @@ const skillsets = [
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--_tokens---color--muted);
-    margin-bottom: 8px;
+    margin-bottom: 16px;
     min-height: 18px;
   }
 
@@ -619,7 +657,7 @@ const skillsets = [
     font-weight: 600;
   }
 
-  .about-card__tag-cat {
+  .about-card__role {
     color: var(--_tokens---color--muted);
   }
 
@@ -629,6 +667,7 @@ const skillsets = [
     font-weight: 300;
   }
 
+  /* Stacked title — slides in when card is stacked */
   .about-card__stacked-title {
     display: inline-flex;
     align-items: center;
@@ -649,29 +688,30 @@ const skillsets = [
 
   .about-card.is-stacked .about-card__stacked-title {
     opacity: 1;
-    max-width: 500px;
+    max-width: 600px;
     transform: translateX(0);
   }
 
-  /* Stacking transitions for lower parts of experience cards */
-  .about-card__mid {
+  /* Body: two-column — left: title/meta, right: desc + arrow */
+  .about-card__body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    align-items: start;
     transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1),
                 transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  .about-card.is-stacked .about-card__mid {
+  .about-card.is-stacked .about-card__body {
     opacity: 0;
-    transform: translateY(-8px);
+    transform: translateY(-6px);
     pointer-events: none;
   }
 
-  .about-card__bottom {
-    transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .about-card.is-stacked .about-card__bottom {
-    opacity: 0;
-    pointer-events: none;
+  .about-card__left {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }
 
   .about-card__title {
@@ -679,7 +719,7 @@ const skillsets = [
     font-weight: 500;
     line-height: 1.15;
     letter-spacing: -0.015em;
-    margin: 0 0 12px 0;
+    margin: 0 0 4px 0;
     color: var(--_tokens---color--fg);
   }
 
@@ -687,9 +727,39 @@ const skillsets = [
     display: flex;
     flex-wrap: wrap;
     gap: 6px 16px;
-    margin-bottom: 12px;
   }
 
+  .about-card__right {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 72px;
+  }
+
+  .about-card__desc {
+    font-size: var(--_tokens---type--micro);
+    line-height: 1.65;
+    margin: 0;
+  }
+
+  /* Arrow — bottom-right of right column, rotates on hover */
+  .about-card__arrow {
+    align-self: flex-end;
+    width: 18px;
+    height: 18px;
+    opacity: 0.35;
+    color: var(--_tokens---color--fg);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    flex-shrink: 0;
+  }
+
+  .about-card:hover .about-card__arrow {
+    opacity: 1;
+    transform: rotate(45deg);
+  }
+
+  /* Shared meta styles */
   .meta-item {
     display: flex;
     align-items: baseline;
@@ -709,66 +779,51 @@ const skillsets = [
     color: var(--_tokens---color--fg);
   }
 
-  .about-card__desc {
-    font-size: var(--_tokens---type--micro);
-    line-height: 1.6;
-    max-width: 80ch;
-    margin: 0;
-  }
-
-  /* Skillset Section */
-  .about-skillset {
+  .link-arrow {
     width: 100%;
+    height: 100%;
   }
 
-  /* Inline skillset title and search bar */
+  /* ── Skillset Section ── */
   .skillset-header-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 24px;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
     width: 100%;
   }
 
-  .skillset-title {
-    font-size: var(--_tokens---type--medium);
+  /* Search IS the section heading — large, underline-only */
+  .skillset-search-input {
+    width: 100%;
+    height: auto;
+    padding: 0 0 12px;
+    font-size: var(--_tokens---type--medium);  /* matches previous h2 size */
     font-weight: 700;
-    color: var(--_tokens---color--fg);
+    font-family: inherit;
     letter-spacing: -0.01em;
-    margin: 0;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 15%, transparent);
+    color: var(--_tokens---color--fg);
+    border-radius: 0;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .skillset-search-input::placeholder {
+    color: color-mix(in srgb, var(--_tokens---color--fg) 35%, transparent);
+  }
+
+  .skillset-search-input:focus {
+    border-color: var(--_tokens---color--fg);
   }
 
   .skillset-subtitle {
     font-size: var(--_tokens---type--micro);
     line-height: 1.5;
     max-width: 76ch;
-    margin: 0 0 32px 0;
+    margin: 0 0 28px 0;
   }
 
-  .skillset-search-input {
-    width: clamp(200px, 30vw, 360px);
-    height: 40px;
-    padding: 0 16px;
-    font-size: var(--_tokens---type--micro);
-    font-family: inherit;
-    background: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
-    border: none;
-    color: var(--_tokens---color--fg);
-    border-radius: 8px;
-    outline: none;
-    transition: background-color 0.2s;
-  }
-
-  .skillset-search-input::placeholder {
-    color: var(--_tokens---color--muted);
-  }
-
-  .skillset-search-input:focus {
-    background-color: color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
-  }
-
-  /* 3-column Skillset Grid */
+  /* 3-col skillset grid */
   .skillset-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -819,7 +874,7 @@ const skillsets = [
     padding: 4px 10px;
     text-decoration: none;
     cursor: pointer;
-    transition: background-color 0.2s, color 0.2s, transform 0.15s, box-shadow 0.2s;
+    transition: background-color 0.2s, color 0.2s, transform 0.15s;
   }
 
   .skill-pill:hover {
@@ -834,15 +889,23 @@ const skillsets = [
     box-shadow: 0 0 8px color-mix(in srgb, var(--_tokens---color--fg) 40%, transparent);
   }
 
+  /* ── Responsive ── */
   @media (min-width: 1200px) {
     .about-section-snap {
       padding-inline: clamp(6rem, 12vw, 16rem);
+    }
+    :global(.page-breadcrumb) {
+      padding-inline: clamp(6rem, 12vw, 16rem) !important;
     }
   }
 
   @media (max-width: 900px) {
     .skillset-grid {
       grid-template-columns: repeat(2, 1fr);
+    }
+    .about-card__body {
+      grid-template-columns: 1fr;
+      gap: 16px;
     }
   }
 
@@ -852,10 +915,9 @@ const skillsets = [
       min-height: 100dvh;
       overflow: visible;
       padding-block: 24px;
+      padding-top: calc(24px + 48px);
     }
-    .about-section--career {
-      overflow-y: visible;
-    }
+    .about-section--career,
     .about-section--skillset {
       overflow-y: visible;
     }
@@ -875,28 +937,23 @@ const skillsets = [
       font-size: var(--_tokens---type--medium);
     }
     .about-tabs-container {
-      gap: 8px;
+      gap: 4px;
     }
     .about-tab-btn {
-      padding: 8px 0;
+      padding: 7px 12px;
       font-size: 10px;
     }
     .skillset-grid {
       grid-template-columns: 1fr;
     }
-    .skillset-header-row {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 12px;
-    }
     .skillset-search-input {
-      width: 100%;
+      font-size: var(--_tokens---type--small);
     }
   }
 </style>
 
 <script>
-  // --- Tab Switching ---
+  // ── Tab Switching ──────────────────────────────────────────────
   const tabs = document.querySelectorAll('.about-tab-btn');
   const panels = document.querySelectorAll('.about-tab-panel');
   const careerSection = document.getElementById('panel-career-section');
@@ -904,7 +961,7 @@ const skillsets = [
   tabs.forEach((tab) => {
     tab.addEventListener('click', () => {
       const target = (tab as HTMLElement).dataset.tab;
-      
+
       tabs.forEach((t) => {
         const isMatched = t === tab;
         t.classList.toggle('is-active', isMatched);
@@ -916,7 +973,7 @@ const skillsets = [
         const panelEl = p as HTMLElement;
         if (isMatched) {
           panelEl.style.display = 'flex';
-          panelEl.offsetHeight; // Reflow
+          panelEl.offsetHeight; // force reflow
           panelEl.classList.add('is-active');
         } else {
           panelEl.classList.remove('is-active');
@@ -924,17 +981,12 @@ const skillsets = [
         }
       });
 
-      // Reset scroll position of career section to start from top
-      if (careerSection) {
-        careerSection.scrollTop = 0;
-      }
-
-      // Re-trigger scroll staking check for cards in new tab
+      // Re-trigger stacking check for newly visible cards
       setTimeout(handleAboutCardStacking, 50);
     });
   });
 
-  // --- Scroll-Driven About Card Stacking ---
+  // ── Scroll-Driven Card Stacking ────────────────────────────────
   const careerCards = careerSection?.querySelectorAll('.about-card') ?? [];
 
   function handleAboutCardStacking() {
@@ -943,9 +995,9 @@ const skillsets = [
 
     careerCards.forEach((card) => {
       const cardEl = card as HTMLElement;
-      
-      // Skip if card belongs to a hidden panel
-      if (cardEl.closest('.about-tab-panel')?.style.display === 'none') {
+
+      // Skip hidden panels
+      if (cardEl.closest('.about-tab-panel')?.getAttribute('style')?.includes('display: none')) {
         cardEl.classList.remove('is-stacked');
         return;
       }
@@ -957,37 +1009,35 @@ const skillsets = [
 
       const rect = cardEl.getBoundingClientRect();
       const computedTop = parseFloat(window.getComputedStyle(cardEl).top);
-      // Stuck check
+      // Card is stuck when its rect.top is at or above its sticky top value
       const isStacked = rect.top <= computedTop + 2;
       cardEl.classList.toggle('is-stacked', isStacked);
     });
   }
 
-  // Listen to scrolling within the Section 2 career container
   careerSection?.addEventListener('scroll', handleAboutCardStacking, { passive: true });
   window.addEventListener('resize', handleAboutCardStacking, { passive: true });
 
-  // --- Skillset Live Search ---
+  // ── Skillset Live Search ───────────────────────────────────────
   const skillSearch = document.getElementById('skill-search') as HTMLInputElement;
   const skillCards = document.querySelectorAll('.skillset-card');
 
   skillSearch?.addEventListener('input', () => {
     const q = skillSearch.value.trim().toLowerCase();
-    
+
     skillCards.forEach((card) => {
       const keywords = (card as HTMLElement).dataset.keywords ?? '';
       const isMatch = !q || keywords.includes(q);
-      
       card.classList.toggle('is-hidden', !isMatch);
-      
+
       // Highlight matching pills
       card.querySelectorAll('.skill-pill').forEach((pill) => {
         const text = pill.textContent?.toLowerCase() ?? '';
-        pill.classList.toggle('is-highlighted', q && text.includes(q));
+        pill.classList.toggle('is-highlighted', !!q && text.includes(q));
       });
     });
   });
 
-  // Run initial stack checks
+  // Initial stack check
   handleAboutCardStacking();
 </script>

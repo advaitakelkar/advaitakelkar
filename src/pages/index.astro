@@ -421,9 +421,23 @@ const projectsJson = JSON.stringify(
     scroll-snap-type: y mandatory;
     scroll-behavior: smooth;
   }
-  
+
   :global(.page-main) {
     padding: 0 !important; /* overrides standard page padding for fullscreen snapping */
+  }
+
+  /* ── Breadcrumb: fixed overlay (home page full-screen snap) ── */
+  :global(.page-breadcrumb) {
+    position: fixed !important;
+    top: 0 !important;
+    left: 64px !important;
+    right: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    z-index: 150;
+    padding-inline: var(--_tokens---space--small) !important;
+    background-color: transparent !important;
+    margin-bottom: 0 !important;
   }
 
   /* ══ Snapped Layout Sections ════════════════════════════════ */
@@ -442,14 +456,15 @@ const projectsJson = JSON.stringify(
 
   .home-section--hero {
     justify-content: flex-start;
-    gap: 24px;
-    padding-top: clamp(3rem, 6vh, 4rem);
+    gap: 20px;
+    padding-top: calc(clamp(2rem, 5vh, 3rem) + 48px); /* 48px for fixed breadcrumb */
     padding-bottom: 24px;
+    overflow: hidden; /* clip slider to section */
   }
 
   .home-section--info {
     justify-content: flex-start;
-    padding-top: clamp(2rem, 4vh, 3rem);
+    padding-top: calc(clamp(2rem, 4vh, 3rem) + 48px); /* 48px for fixed breadcrumb */
     overflow-y: auto; /* scrollable card deck & search */
     position: relative;
     scrollbar-width: thin;
@@ -493,8 +508,8 @@ const projectsJson = JSON.stringify(
   }
 
   .home-intro__desc {
-    font-size: var(--_tokens---type--micro);
-    line-height: 1.6;
+    font-size: var(--_tokens---type--small);
+    line-height: 1.65;
     color: var(--_tokens---color--muted);
     margin: 0;
   }
@@ -502,8 +517,10 @@ const projectsJson = JSON.stringify(
   /* ══ 2. Slider ══════════════════════════════════════════════ */
   .home-slider {
     width: 100%;
-    margin-top: auto;
-    margin-bottom: auto;
+    flex: 1;           /* fill remaining height in hero flex column */
+    min-height: 0;     /* allow shrinking below content size */
+    display: flex;
+    flex-direction: column;
   }
 
   .home-slider__track {
@@ -512,9 +529,8 @@ const projectsJson = JSON.stringify(
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
     gap: 32px;
-    height: 48vh;
-    min-height: 340px;
-    max-height: 480px;
+    flex: 1;           /* fill the slider's column space */
+    min-height: 180px;
   }
 
   .home-slider__track::-webkit-scrollbar { display: none; }
