@@ -6,50 +6,108 @@ export interface Props {
 }
 const { currentPath = '/' } = Astro.props;
 
-// Fetch 5 most recent projects by year
+// Derive human-readable page name for the label
+function pageName(path: string): string {
+  if (path === '/') return 'HOME';
+  const parts = path.split('/').filter(Boolean);
+  if (parts[0] === 'about') return 'ABOUT';
+  if (parts[0] === 'projects' && parts.length === 1) return 'PROJECTS';
+  if (parts[0] === 'projects' && parts.length > 1) {
+    return parts[1].replace(/-/g, ' ').toUpperCase();
+  }
+  return parts[parts.length - 1].replace(/-/g, ' ').toUpperCase();
+}
+
+const barLabel = `INDEX / ${pageName(currentPath)}`;
+
+// Fetch 5 most recent projects
 const allProjects = await getCollection('projects');
 const recentProjects = allProjects
   .sort((a, b) => parseInt(b.data.year) - parseInt(a.data.year))
   .slice(0, 5);
+
+// Color schemes for dropdown
+const schemes = [
+  { id: 'default', label: 'Void',     bg: '#111111', fg: '#ffffff' },
+  { id: 'sch1',    label: 'Ocean',    bg: '#0D5072', fg: '#7FEEFF' },
+  { id: 'sch2',    label: 'Moss',     bg: '#ECE7E2', fg: '#4A7766' },
+  { id: 'sch3',    label: 'Crimson',  bg: '#F5F5DA', fg: '#7B021D' },
+  { id: 'sch4',    label: 'Dusk',     bg: '#6C5383', fg: '#D7E7C3' },
+  { id: 'sch5',    label: 'Midnight', bg: '#0B1A35', fg: '#D2B96A' },
+  { id: 'sch6',    label: 'Cobalt',   bg: '#191265', fg: '#EBEBDF' },
+  { id: 'sch7',    label: 'Sapphire', bg: '#275CCC', fg: '#F5E4CF' },
+  { id: 'sch8',    label: 'Garden',   bg: '#BAD797', fg: '#670626' },
+  { id: 'sch9',    label: 'Forest',   bg: '#033631', fg: '#FFEDA8' },
+];
 ---
 
 <div class="sn-wrap" id="sn-wrap">
 
-  <!-- Narrow INDEX bar -->
-  <div class="sn-bar" id="sn-bar" role="button" tabindex="0" aria-expanded="false" aria-controls="sn-panel" aria-label="Toggle navigation">
-    <a href="/" class="sn-bar__logo" id="sn-logo" aria-label="Home">
+  <!-- ── Narrow INDEX bar ── -->
+  <div class="sn-bar" id="sn-bar" role="button" tabindex="0"
+       aria-expanded="false" aria-controls="sn-panel" aria-label="Toggle navigation">
+
+    <!-- Logo (top) -->
+    <a href="/" class="sn-bar__logo" id="sn-logo" aria-label="Home" title="Home">
       <div class="sn-bar__mark"></div>
     </a>
-    <button class="sn-bar__circle" id="sn-circle" aria-label="Cycle color scheme" title="Change color scheme"></button>
-    <span class="sn-bar__label">INDEX</span>
+
+    <!-- Color scheme switcher -->
+    <div class="sn-scheme" id="sn-scheme">
+      <button class="sn-scheme__btn" id="sn-scheme-btn"
+              aria-label="Change color scheme" title="Color scheme"
+              aria-haspopup="listbox" aria-expanded="false">
+        <div class="sn-scheme__indicator" id="sn-scheme-indicator"></div>
+      </button>
+      <!-- Dropdown -->
+      <div class="sn-scheme__dropdown" id="sn-scheme-dropdown" role="listbox" aria-label="Color schemes">
+        {schemes.map(s => (
+          <button
+            class="sn-scheme__option"
+            role="option"
+            data-scheme={s.id}
+            title={s.label}
+            aria-label={s.label}
+          >
+            <span class="sn-scheme__swatch" style={`background:${s.bg}`}>
+              <span class="sn-scheme__swatch-fg" style={`background:${s.fg}`}></span>
+            </span>
+            <span class="sn-scheme__name">{s.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+
+    <!-- Hamburger (open / close trigger — visual only, bar click is the trigger) -->
+    <div class="sn-bar__hamburger" id="sn-hamburger" aria-hidden="true">
+      <span></span>
+      <span></span>
+    </div>
+
+    <!-- Vertical label (bottom) -->
+    <span class="sn-bar__label" id="sn-bar-label">{barLabel}</span>
   </div>
 
-  <!-- Slide-in panel -->
+  <!-- ── Slide-in panel ── -->
   <div class="sn-panel" id="sn-panel" aria-hidden="true">
 
-    <!-- Name + bio -->
     <div class="sn-panel__header">
       <p class="sn-panel__name">Advaita Kelkar</p>
       <p class="sn-panel__bio">Hey! 👋 Advaita here — architectural designer from Mumbai 🇮🇳, currently at SCAD in Savannah 🌿. I work across architecture, interiors, urban design 🏙️ and everything in between ✨. Always curious, always making. When not designing you'll find me chasing good chai ☕, sketching street scenes ✏️, or lost in a book 📖. Glad you're here! 🙌</p>
     </div>
 
-    <!-- Main nav -->
     <nav class="sn-panel__nav" aria-label="Site navigation">
       <a href="/" class:list={['sn-panel__link', currentPath === '/' && 'is-active']}>
-        <span>Home</span>
-        <span class="sn-panel__arrow">↗</span>
+        <span>Home</span><span class="sn-panel__arrow">↗</span>
       </a>
       <a href="/about" class:list={['sn-panel__link', currentPath === '/about' && 'is-active']}>
-        <span>About Me</span>
-        <span class="sn-panel__arrow">↗</span>
+        <span>About Me</span><span class="sn-panel__arrow">↗</span>
       </a>
       <a href="/projects" class:list={['sn-panel__link', currentPath.startsWith('/projects') && 'is-active']}>
-        <span>Projects</span>
-        <span class="sn-panel__arrow">↗</span>
+        <span>Projects</span><span class="sn-panel__arrow">↗</span>
       </a>
     </nav>
 
-    <!-- Recent projects -->
     <div class="sn-panel__section">
       <p class="sn-panel__section-label">Recent Projects</p>
       <nav class="sn-panel__secondary-nav">
@@ -62,22 +120,18 @@ const recentProjects = allProjects
       </nav>
     </div>
 
-    <!-- Contact -->
     <div class="sn-panel__section">
       <p class="sn-panel__section-label">Contact</p>
       <div class="sn-panel__secondary-nav">
         <span class="sn-panel__email">advaitakelkar@gmail.com</span>
         <a href="https://linkedin.com/in/advaitakelkar" class="sn-panel__secondary-link" target="_blank" rel="noopener">
-          <span>LinkedIn</span>
-          <span class="sn-panel__arrow">↗</span>
+          <span>LinkedIn</span><span class="sn-panel__arrow">↗</span>
         </a>
         <a href="https://instagram.com/advaitakelkar" class="sn-panel__secondary-link" target="_blank" rel="noopener">
-          <span>Instagram</span>
-          <span class="sn-panel__arrow">↗</span>
+          <span>Instagram</span><span class="sn-panel__arrow">↗</span>
         </a>
         <a href="https://behance.net/advaitakelkar" class="sn-panel__secondary-link" target="_blank" rel="noopener">
-          <span>Behance</span>
-          <span class="sn-panel__arrow">↗</span>
+          <span>Behance</span><span class="sn-panel__arrow">↗</span>
         </a>
       </div>
     </div>
@@ -108,8 +162,8 @@ const recentProjects = allProjects
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--_tokens---space--micro, 8px);
-    padding: var(--_tokens---space--small, 16px) var(--_tokens---space--micro, 8px);
+    gap: 12px;
+    padding: 14px 0 14px;
     background-color: var(--_tokens---color--bg);
     border-right: 1px solid var(--_tokens---color--line);
     cursor: pointer;
@@ -118,17 +172,20 @@ const recentProjects = allProjects
     user-select: none;
   }
 
+  /* Logo */
   .sn-bar__logo {
     display: flex;
     align-items: center;
     justify-content: center;
-    text-decoration: none;
     flex-shrink: 0;
+    text-decoration: none;
+    width: 30px;
+    height: 30px;
   }
 
   .sn-bar__mark {
-    width: 22px;
-    height: 22px;
+    width: 30px;
+    height: 30px;
     background-color: var(--_tokens---color--fg);
     -webkit-mask: url('/ak-logo.svg') center / contain no-repeat;
     mask: url('/ak-logo.svg') center / contain no-repeat;
@@ -136,33 +193,160 @@ const recentProjects = allProjects
     transition: background-color 0.3s ease;
   }
 
-  .sn-bar__circle {
-    width: 20px;
-    height: 20px;
+  /* ── Color scheme switcher ── */
+  .sn-scheme {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .sn-scheme__btn {
+    width: 26px;
+    height: 26px;
     border-radius: 50%;
     border: 1.5px solid var(--_tokens---color--fg);
     background: transparent;
     cursor: pointer;
-    flex-shrink: 0;
     padding: 0;
-    transition: background-color 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.2s, transform 0.15s;
   }
 
-  .sn-bar__circle:hover {
+  .sn-scheme__btn:hover {
+    transform: scale(1.1);
+  }
+
+  /* Half-fill indicator showing current scheme */
+  .sn-scheme__indicator {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: linear-gradient(to right,
+      var(--_tokens---color--fg) 50%,
+      transparent 50%
+    );
+  }
+
+  /* Dropdown panel */
+  .sn-scheme__dropdown {
+    position: fixed;
+    top: auto;
+    left: 54px;
+    width: 160px;
+    background-color: var(--_tokens---color--bg);
+    border: 1px solid var(--_tokens---color--line);
+    border-radius: 6px;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-6px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 300;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  }
+
+  .sn-scheme__dropdown.is-open {
+    opacity: 1;
+    pointer-events: all;
+    transform: translateX(0);
+  }
+
+  .sn-scheme__option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 6px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.15s;
+    text-align: left;
+    width: 100%;
+  }
+
+  .sn-scheme__option:hover,
+  .sn-scheme__option.is-active {
+    background-color: var(--_tokens---color--bg-glass);
+  }
+
+  .sn-scheme__option.is-active {
+    outline: 1.5px solid var(--_tokens---color--fg);
+    outline-offset: -1px;
+  }
+
+  /* Color swatch: bg rectangle with fg dot */
+  .sn-scheme__swatch {
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(128,128,128,0.3);
+  }
+
+  .sn-scheme__swatch-fg {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .sn-scheme__name {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--_tokens---color--fg);
+    font-family: var(--_tokens---font--body);
+  }
+
+  /* ── Hamburger ── */
+  .sn-bar__hamburger {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    align-items: center;
+    flex-shrink: 0;
+    pointer-events: none;
+    padding: 4px 0;
+  }
+
+  .sn-bar__hamburger span {
+    display: block;
+    width: 18px;
+    height: 1.5px;
     background-color: var(--_tokens---color--fg);
+    transition: transform 0.3s ease, opacity 0.3s ease, width 0.3s ease;
+    transform-origin: center;
   }
 
+  /* Animate to X when panel open */
+  .sn-wrap.is-open .sn-bar__hamburger span:nth-child(1) {
+    transform: translateY(3.25px) rotate(45deg);
+  }
+
+  .sn-wrap.is-open .sn-bar__hamburger span:nth-child(2) {
+    transform: translateY(-3.25px) rotate(-45deg);
+  }
+
+  /* ── Vertical label (bottom) ── */
   .sn-bar__label {
     writing-mode: vertical-rl;
     text-orientation: mixed;
     transform: rotate(180deg);
-    font-size: 10px;
-    letter-spacing: 0.1em;
+    font-size: 9px;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--_tokens---color--muted);
     margin-top: auto;
     pointer-events: none;
     transition: color 0.3s ease;
+    white-space: nowrap;
   }
 
   /* ── Slide-in panel ── */
@@ -176,8 +360,8 @@ const recentProjects = allProjects
     border-right: 1px solid var(--_tokens---color--line);
     display: flex;
     flex-direction: column;
-    gap: var(--_tokens---space--medium, 24px);
-    padding: var(--_tokens---space--small, 16px) var(--_tokens---space--medium, 24px);
+    gap: 24px;
+    padding: 16px 24px;
     overflow-y: auto;
     transform: translateX(-100%);
     transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
@@ -190,12 +374,11 @@ const recentProjects = allProjects
     pointer-events: all;
   }
 
-  /* Header */
   .sn-panel__header {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding-top: var(--_tokens---space--small, 16px);
+    padding-top: 16px;
   }
 
   .sn-panel__name {
@@ -212,13 +395,12 @@ const recentProjects = allProjects
     margin: 0;
   }
 
-  /* Main nav */
   .sn-panel__nav {
     display: flex;
     flex-direction: column;
     gap: 2px;
     border-top: 1px solid var(--_tokens---color--line);
-    padding-top: var(--_tokens---space--small, 16px);
+    padding-top: 16px;
   }
 
   .sn-panel__link {
@@ -240,19 +422,16 @@ const recentProjects = allProjects
     opacity: 1;
   }
 
-  /* Sections */
   .sn-panel__section {
     display: flex;
     flex-direction: column;
     gap: 4px;
     border-top: 1px solid var(--_tokens---color--line);
-    padding-top: var(--_tokens---space--small, 16px);
+    padding-top: 16px;
   }
 
   .sn-panel__section-label {
     font-size: 11px;
-    letter-spacing: 0.06em;
-    text-transform: none;
     color: var(--_tokens---color--muted);
     margin: 0 0 6px 0;
   }
@@ -298,7 +477,7 @@ const recentProjects = allProjects
     position: fixed;
     inset: 0;
     left: 48px;
-    background-color: rgba(0, 0, 0, 0.3);
+    background-color: rgba(0, 0, 0, 0.35);
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.35s ease;
@@ -312,55 +491,122 @@ const recentProjects = allProjects
 </style>
 
 <script>
-  const bar      = document.getElementById('sn-bar');
-  const panel    = document.getElementById('sn-panel');
-  const backdrop = document.getElementById('sn-backdrop');
-  const logo     = document.getElementById('sn-logo');
-  const circle   = document.getElementById('sn-circle');
+  // ── State ──────────────────────────────────────────────────
+  let navOpen = false;
+  let schemeOpen = false;
 
-  let isOpen = false;
+  const wrap      = document.getElementById('sn-wrap')!;
+  const bar       = document.getElementById('sn-bar')!;
+  const panel     = document.getElementById('sn-panel')!;
+  const backdrop  = document.getElementById('sn-backdrop')!;
+  const logo      = document.getElementById('sn-logo')!;
+  const schemeEl  = document.getElementById('sn-scheme')!;
+  const schemeBtn = document.getElementById('sn-scheme-btn')!;
+  const dropdown  = document.getElementById('sn-scheme-dropdown')!;
 
+  // ── Nav toggle ─────────────────────────────────────────────
   function openNav() {
-    isOpen = true;
-    bar?.setAttribute('aria-expanded', 'true');
-    panel?.classList.add('is-open');
-    panel?.setAttribute('aria-hidden', 'false');
-    backdrop?.classList.add('is-open');
+    navOpen = true;
+    wrap.classList.add('is-open');
+    bar.setAttribute('aria-expanded', 'true');
+    panel.classList.add('is-open');
+    panel.setAttribute('aria-hidden', 'false');
+    backdrop.classList.add('is-open');
   }
 
   function closeNav() {
-    isOpen = false;
-    bar?.setAttribute('aria-expanded', 'false');
-    panel?.classList.remove('is-open');
-    panel?.setAttribute('aria-hidden', 'true');
-    backdrop?.classList.remove('is-open');
+    navOpen = false;
+    wrap.classList.remove('is-open');
+    bar.setAttribute('aria-expanded', 'false');
+    panel.classList.remove('is-open');
+    panel.setAttribute('aria-hidden', 'true');
+    backdrop.classList.remove('is-open');
   }
 
-  function toggleNav() {
-    isOpen ? closeNav() : openNav();
-  }
-
-  bar?.addEventListener('click', (e) => {
-    if ((e.target as HTMLElement)?.closest('#sn-logo')) return;
-    if ((e.target as HTMLElement)?.closest('#sn-circle')) return;
-    toggleNav();
+  bar.addEventListener('click', (e) => {
+    if ((e.target as HTMLElement).closest('#sn-logo')) return;
+    if ((e.target as HTMLElement).closest('#sn-scheme')) return;
+    navOpen ? closeNav() : openNav();
   });
 
-  bar?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleNav(); }
+  bar.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navOpen ? closeNav() : openNav(); }
     if (e.key === 'Escape') closeNav();
   });
 
-  logo?.addEventListener('click', (e) => e.stopPropagation());
-  backdrop?.addEventListener('click', closeNav);
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && isOpen) closeNav(); });
-
-  circle?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const match = document.documentElement.className.match(/sch(\d+)/);
-    const next = match ? (parseInt(match[1]) % 9) + 1 : 1;
-    const cls = `sch${next}`;
-    document.documentElement.className = cls;
-    sessionStorage.setItem('aks', cls);
+  logo.addEventListener('click', (e) => e.stopPropagation());
+  backdrop.addEventListener('click', closeNav);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { closeNav(); closeScheme(); }
   });
+
+  // ── Scheme dropdown ────────────────────────────────────────
+  const SCHEMES = [
+    'default','sch1','sch2','sch3','sch4','sch5','sch6','sch7','sch8','sch9'
+  ];
+
+  function getCurrentScheme(): string {
+    const match = document.documentElement.className.match(/sch\d+/);
+    return match ? match[0] : 'default';
+  }
+
+  function applyScheme(id: string) {
+    // Remove all sch classes
+    document.documentElement.classList.remove(...SCHEMES.filter(s => s !== 'default'));
+    if (id !== 'default') document.documentElement.classList.add(id);
+    sessionStorage.setItem('aks', id === 'default' ? '' : id);
+    updateActiveOption();
+    closeScheme();
+  }
+
+  function updateActiveOption() {
+    const current = getCurrentScheme();
+    dropdown.querySelectorAll<HTMLElement>('.sn-scheme__option').forEach(btn => {
+      btn.classList.toggle('is-active', btn.dataset.scheme === current);
+    });
+  }
+
+  function openScheme() {
+    schemeOpen = true;
+    schemeBtn.setAttribute('aria-expanded', 'true');
+    dropdown.classList.add('is-open');
+    // Position dropdown vertically near the button
+    const rect = schemeBtn.getBoundingClientRect();
+    dropdown.style.top = `${Math.max(8, rect.top - 8)}px`;
+    updateActiveOption();
+  }
+
+  function closeScheme() {
+    schemeOpen = false;
+    schemeBtn.setAttribute('aria-expanded', 'false');
+    dropdown.classList.remove('is-open');
+  }
+
+  schemeBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    schemeOpen ? closeScheme() : openScheme();
+  });
+
+  schemeEl.addEventListener('click', (e) => e.stopPropagation());
+
+  dropdown.querySelectorAll<HTMLElement>('.sn-scheme__option').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.scheme ?? 'default';
+      applyScheme(id);
+    });
+  });
+
+  // Close scheme if clicking outside
+  document.addEventListener('click', (e) => {
+    if (schemeOpen && !schemeEl.contains(e.target as Node)) closeScheme();
+  });
+
+  // Restore persisted scheme on load
+  const saved = sessionStorage.getItem('aks');
+  if (saved && SCHEMES.includes(saved)) {
+    document.documentElement.classList.remove(...SCHEMES.filter(s => s !== 'default'));
+    document.documentElement.classList.add(saved);
+  }
+  updateActiveOption();
 </script>
