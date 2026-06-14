@@ -1,69 +1,85 @@
 ---
-// SideNav — matches Webflow side navigation structure
-// AK logo (mask SVG), color scheme circle, Index label, burger toggle
-
 export interface Props {
   currentPath?: string;
-  label?: string;
 }
-
-const { currentPath = '/', label = 'Index' } = Astro.props;
+const { currentPath = '/' } = Astro.props;
 ---
 
-<nav class="side-nav" id="side-nav">
-  <!-- AK Logo (SVG mask, fg color) -->
-  <a href="/" class="side-nav__logo" aria-label="AK — Home">
-    <div class="side-nav__logo-mark"></div>
-  </a>
+<!-- Wrapper holds the bar + panel together -->
+<div class="sn-wrap" id="sn-wrap">
 
-  <!-- Color scheme circle -->
-  <button class="side-nav__scheme-circle" id="scheme-circle" aria-label="Change color scheme" title="Cycle color scheme"></button>
+  <!-- Narrow INDEX bar — always visible, click to toggle panel -->
+  <div class="sn-bar" id="sn-bar" role="button" tabindex="0" aria-expanded="false" aria-controls="sn-panel" aria-label="Toggle navigation">
+    <!-- AK logo — goes home, stops bar click -->
+    <a href="/" class="sn-bar__logo" id="sn-logo" aria-label="Home">
+      <div class="sn-bar__mark"></div>
+    </a>
 
-  <!-- Label -->
-  <span class="side-nav__label">{label}</span>
+    <!-- Color scheme circle -->
+    <button class="sn-bar__circle" id="sn-circle" aria-label="Cycle color scheme" title="Change color scheme"></button>
 
-  <!-- Burger toggle (mobile) -->
-  <button class="side-nav__burger" id="nav-burger" aria-label="Open menu" aria-expanded="false">
-    <span></span><span></span><span></span>
-  </button>
+    <!-- INDEX label — vertical text at bottom -->
+    <span class="sn-bar__label">INDEX</span>
+  </div>
 
-  <!-- Mobile nav menu -->
-  <div class="side-nav__menu" id="nav-menu" hidden>
-    <nav class="side-nav__links">
-      <a href="/" class:list={['side-nav__link', currentPath === '/' && 'is-active']}>Home</a>
-      <a href="/about" class:list={['side-nav__link', currentPath === '/about' && 'is-active']}>About</a>
-      <a href="/projects" class:list={['side-nav__link', currentPath.startsWith('/projects') && 'is-active']}>Projects</a>
+  <!-- Slide-in panel -->
+  <div class="sn-panel" id="sn-panel" aria-hidden="true">
+    <nav class="sn-panel__nav" aria-label="Site navigation">
+      <a href="/" class:list={['sn-panel__link', currentPath === '/' && 'is-active']}>Home</a>
+      <a href="/about" class:list={['sn-panel__link', currentPath === '/about' && 'is-active']}>About</a>
+      <a href="/projects" class:list={['sn-panel__link', currentPath.startsWith('/projects') && 'is-active']}>Projects</a>
     </nav>
   </div>
-</nav>
+
+  <!-- Backdrop — click to close on mobile -->
+  <div class="sn-backdrop" id="sn-backdrop" aria-hidden="true"></div>
+</div>
 
 <style>
-  .side-nav {
+  /* ── Wrapper ── */
+  .sn-wrap {
     position: fixed;
     top: 0;
     left: 0;
-    z-index: 100;
+    height: 100dvh;
+    z-index: 200;
+    display: flex;
+  }
+
+  /* ── Narrow bar ── */
+  .sn-bar {
+    position: relative;
+    z-index: 201;
+    width: 48px;
+    height: 100dvh;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--_tokens---space--micro);
-    padding: var(--_tokens---space--small) var(--_tokens---space--micro);
-    height: 100dvh;
-    border-right: 1px solid var(--_tokens---color--line);
+    gap: var(--_tokens---space--micro, 8px);
+    padding: var(--_tokens---space--small, 16px) var(--_tokens---space--micro, 8px);
     background-color: var(--_tokens---color--bg);
-    width: 48px;
+    border-right: 1px solid var(--_tokens---color--line);
+    cursor: pointer;
+    flex-shrink: 0;
     transition: background-color 0.3s ease;
+    user-select: none;
   }
 
-  .side-nav__logo {
+  .sn-bar:hover {
+    background-color: var(--_tokens---color--surface, rgba(255,255,255,0.04));
+  }
+
+  /* AK logo mark */
+  .sn-bar__logo {
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
     text-decoration: none;
+    flex-shrink: 0;
+    z-index: 1;
   }
 
-  .side-nav__logo-mark {
+  .sn-bar__mark {
     width: 22px;
     height: 22px;
     background-color: var(--_tokens---color--fg);
@@ -73,110 +89,174 @@ const { currentPath = '/', label = 'Index' } = Astro.props;
     transition: background-color 0.3s ease;
   }
 
-  .side-nav__scheme-circle {
-    width: 22px;
-    height: 22px;
+  /* Scheme circle */
+  .sn-bar__circle {
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     border: 1.5px solid var(--_tokens---color--fg);
-    background-color: var(--_tokens---color--fg);
+    background: transparent;
     cursor: pointer;
     flex-shrink: 0;
-    transition: background-color 0.3s ease, border-color 0.3s ease;
     padding: 0;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
   }
 
-  .side-nav__label {
+  .sn-bar__circle:hover {
+    background-color: var(--_tokens---color--fg);
+  }
+
+  /* INDEX label */
+  .sn-bar__label {
     writing-mode: vertical-rl;
     text-orientation: mixed;
     transform: rotate(180deg);
-    font-size: var(--_tokens---type--micro);
-    color: var(--_tokens---color--muted);
-    letter-spacing: 0.08em;
+    font-size: 10px;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    user-select: none;
+    color: var(--_tokens---color--muted);
     margin-top: auto;
+    pointer-events: none;
+    transition: color 0.3s ease;
   }
 
-  .side-nav__burger {
-    display: none;
+  /* ── Slide-in panel ── */
+  .sn-panel {
+    position: fixed;
+    top: 0;
+    left: 48px;
+    width: 260px;
+    height: 100dvh;
+    background-color: var(--_tokens---color--bg);
+    border-right: 1px solid var(--_tokens---color--line);
+    display: flex;
     flex-direction: column;
-    gap: 4px;
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 4px;
+    justify-content: flex-end;
+    padding: var(--_tokens---space--large, 32px) var(--_tokens---space--medium, 24px);
+    transform: translateX(-100%);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 200;
+    pointer-events: none;
   }
 
-  .side-nav__burger span {
-    display: block;
-    width: 18px;
-    height: 2px;
-    background-color: var(--_tokens---color--fg);
-    transition: background-color 0.3s ease;
+  /* Open state */
+  .sn-panel.is-open {
+    transform: translateX(0);
+    pointer-events: all;
   }
 
-  /* Mobile menu */
-  .side-nav__menu {
+  /* Nav links */
+  .sn-panel__nav {
+    display: flex;
+    flex-direction: column;
+    gap: var(--_tokens---space--small, 16px);
+  }
+
+  .sn-panel__link {
+    font-size: clamp(1.5rem, 3vw, 2.5rem);
+    font-weight: 400;
+    color: var(--_tokens---color--fg);
+    text-decoration: none;
+    line-height: 1.1;
+    transition: color 0.2s ease, opacity 0.2s ease;
+    opacity: 0.4;
+  }
+
+  .sn-panel__link:hover {
+    opacity: 1;
+  }
+
+  .sn-panel__link.is-active {
+    opacity: 1;
+  }
+
+  /* ── Backdrop ── */
+  .sn-backdrop {
     position: fixed;
     inset: 0;
     left: 48px;
-    background-color: var(--_tokens---color--bg);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 99;
+    background-color: rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s ease;
+    z-index: 199;
   }
 
-  .side-nav__menu[hidden] {
-    display: none;
+  .sn-backdrop.is-open {
+    opacity: 1;
+    pointer-events: all;
   }
 
-  .side-nav__links {
-    display: flex;
-    flex-direction: column;
-    gap: var(--_tokens---space--small);
-    text-align: center;
-  }
-
-  .side-nav__link {
-    font-size: var(--_tokens---type--big);
+  /* ── Bar open-state indicator ── */
+  .sn-bar.is-open .sn-bar__label {
     color: var(--_tokens---color--fg);
-    text-decoration: none;
-    transition: color 0.2s ease;
-  }
-
-  .side-nav__link:hover,
-  .side-nav__link.is-active {
-    color: var(--_tokens---color--muted);
-  }
-
-  @media (max-width: 767px) {
-    .side-nav__label {
-      display: none;
-    }
-
-    .side-nav__burger {
-      display: flex;
-      margin-top: auto;
-    }
   }
 </style>
 
 <script>
-  // Burger toggle
-  const burger = document.getElementById('nav-burger');
-  const menu = document.getElementById('nav-menu');
+  const bar     = document.getElementById('sn-bar');
+  const panel   = document.getElementById('sn-panel');
+  const backdrop = document.getElementById('sn-backdrop');
+  const logo    = document.getElementById('sn-logo');
+  const circle  = document.getElementById('sn-circle');
 
-  burger?.addEventListener('click', () => {
-    const isOpen = burger.getAttribute('aria-expanded') === 'true';
-    burger.setAttribute('aria-expanded', String(!isOpen));
-    burger.setAttribute('aria-label', isOpen ? 'Open menu' : 'Close menu');
-    if (menu) menu.hidden = isOpen;
+  let isOpen = false;
+
+  function openNav() {
+    isOpen = true;
+    bar?.setAttribute('aria-expanded', 'true');
+    bar?.classList.add('is-open');
+    panel?.classList.add('is-open');
+    panel?.setAttribute('aria-hidden', 'false');
+    backdrop?.classList.add('is-open');
+  }
+
+  function closeNav() {
+    isOpen = false;
+    bar?.setAttribute('aria-expanded', 'false');
+    bar?.classList.remove('is-open');
+    panel?.classList.remove('is-open');
+    panel?.setAttribute('aria-hidden', 'true');
+    backdrop?.classList.remove('is-open');
+  }
+
+  function toggleNav() {
+    isOpen ? closeNav() : openNav();
+  }
+
+  // Click anywhere on bar toggles panel
+  bar?.addEventListener('click', (e) => {
+    // Don't toggle if click was on logo or circle (they have their own actions)
+    if ((e.target as HTMLElement)?.closest('#sn-logo')) return;
+    if ((e.target as HTMLElement)?.closest('#sn-circle')) return;
+    toggleNav();
   });
 
-  // Scheme circle — cycle through sch1–sch9
-  const circle = document.getElementById('scheme-circle');
-  circle?.addEventListener('click', () => {
+  // Keyboard: Enter/Space on bar
+  bar?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      toggleNav();
+    }
+    if (e.key === 'Escape') closeNav();
+  });
+
+  // Logo click goes home, doesn't toggle panel
+  logo?.addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
+
+  // Backdrop click closes
+  backdrop?.addEventListener('click', closeNav);
+
+  // Escape key closes
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && isOpen) closeNav();
+  });
+
+  // Color scheme circle
+  circle?.addEventListener('click', (e) => {
+    e.stopPropagation();
     const current = document.documentElement.className;
     const match = current.match(/sch(\d+)/);
     const next = match ? (parseInt(match[1]) % 9) + 1 : 1;
