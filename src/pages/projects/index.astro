@@ -70,15 +70,27 @@ const tagsToShow = sortedTags.slice(0, 4);
         </div>
         
         <div class="filter-group filter-group--tags">
-          <div class="tag-picker-container" id="tag-picker-container">
-            <div class="tag-picker" id="tag-picker">
-              <button class="tag-picker-item is-active" data-filter="">All</button>
-              {tagsToShow.map(tag => (
-                <button class="tag-picker-item" data-filter={tag.id}>
-                  {tag.data.name}
-                </button>
-              ))}
+          <div class="tag-scroll-nav">
+            <button class="tag-scroll-arrow tag-scroll-arrow--left" id="tag-scroll-left" aria-label="Scroll tags left" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+            </button>
+            <div class="tag-picker-container" id="tag-picker-container">
+              <div class="tag-picker" id="tag-picker">
+                <button class="tag-picker-item is-active" data-filter="">All</button>
+                {tagsToShow.map(tag => (
+                  <button class="tag-picker-item" data-filter={tag.id}>
+                    {tag.data.name}
+                  </button>
+                ))}
+              </div>
             </div>
+            <button class="tag-scroll-arrow tag-scroll-arrow--right" id="tag-scroll-right" aria-label="Scroll tags right" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
           </div>
         </div>
       </div>
@@ -367,6 +379,45 @@ const tagsToShow = sortedTags.slice(0, 4);
   }
 
   /* Tag horizontal scrollable picker */
+  .tag-scroll-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .tag-scroll-arrow {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    color: var(--_tokens---color--fg);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background-color 0.2s, opacity 0.2s;
+    opacity: 0.8;
+  }
+
+  .tag-scroll-arrow:hover {
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
+    opacity: 1;
+  }
+
+  .tag-scroll-arrow:disabled {
+    opacity: 0.15;
+    cursor: not-allowed;
+  }
+
+  .tag-scroll-arrow svg {
+    width: 16px;
+    height: 16px;
+  }
+
   .tag-picker-container {
     flex: 1;
     min-width: 0;
@@ -376,6 +427,7 @@ const tagsToShow = sortedTags.slice(0, 4);
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
     padding-bottom: 2px;
+    scroll-behavior: smooth;
   }
 
   .tag-picker-container::-webkit-scrollbar {
@@ -853,35 +905,36 @@ const tagsToShow = sortedTags.slice(0, 4);
     applyFilter();
   });
 
-  // --- Infinite Loop Tag Scroll ---
+  // --- Tag Picker Scroll Navigation ---
   const tagPickerContainer = document.getElementById('tag-picker-container');
-  if (tagPicker && tagPickerContainer) {
-    const items = Array.from(tagPicker.children);
-    if (items.length > 0) {
-      // Clone once before and once after
-      items.forEach(item => {
-        const clone = item.cloneNode(true);
-        tagPicker.appendChild(clone);
-      });
-      items.forEach(item => {
-        const clone = item.cloneNode(true);
-        tagPicker.insertBefore(clone, tagPicker.firstChild);
-      });
+  const scrollLeftBtn = document.getElementById('tag-scroll-left') as HTMLButtonElement;
+  const scrollRightBtn = document.getElementById('tag-scroll-right') as HTMLButtonElement;
 
-      // Position scroll to start of original set
-      tagPickerContainer.scrollLeft = tagPicker.scrollWidth / 3;
-
-      tagPickerContainer.addEventListener('scroll', () => {
-        const oneSetWidth = tagPicker.scrollWidth / 3;
-        const scrollLeft = tagPickerContainer.scrollLeft;
-        if (scrollLeft >= oneSetWidth * 2) {
-          tagPickerContainer.scrollLeft = scrollLeft - oneSetWidth;
-        } else if (scrollLeft <= 0) {
-          tagPickerContainer.scrollLeft = scrollLeft + oneSetWidth;
-        }
-      }, { passive: true });
-    }
+  function updateScrollArrows() {
+    if (!tagPickerContainer || !scrollLeftBtn || !scrollRightBtn) return;
+    const { scrollLeft, scrollWidth, clientWidth } = tagPickerContainer;
+    
+    // Disable arrows based on scroll position limits
+    scrollLeftBtn.disabled = scrollLeft <= 1;
+    scrollRightBtn.disabled = scrollLeft + clientWidth >= scrollWidth - 2;
+    
+    // Only display arrows if container actually has overflow
+    const hasOverflow = scrollWidth > clientWidth;
+    scrollLeftBtn.style.display = hasOverflow ? 'flex' : 'none';
+    scrollRightBtn.style.display = hasOverflow ? 'flex' : 'none';
   }
+
+  // Smooth scroll offset on arrow click
+  scrollLeftBtn?.addEventListener('click', () => {
+    tagPickerContainer?.scrollBy({ left: -140, behavior: 'smooth' });
+  });
+
+  scrollRightBtn?.addEventListener('click', () => {
+    tagPickerContainer?.scrollBy({ left: 140, behavior: 'smooth' });
+  });
+
+  tagPickerContainer?.addEventListener('scroll', updateScrollArrows, { passive: true });
+  window.addEventListener('resize', updateScrollArrows, { passive: true });
 
   // Tag scrollable picker click listener using event delegation
   tagPicker?.addEventListener('click', (e) => {
@@ -892,12 +945,14 @@ const tagsToShow = sortedTags.slice(0, 4);
     activeTag = filter;
     currentPage = 1;
 
-    // Sync active state across all buttons (original & clones)
+    // Set active state on clicked button
     tagPicker.querySelectorAll('.tag-picker-item').forEach(b => {
       b.classList.toggle('is-active', (b as HTMLElement).dataset.filter === filter);
     });
 
     applyFilter();
+    // Re-check arrows in case item selection changes container layout (unlikely but safe)
+    setTimeout(updateScrollArrows, 50);
   });
 
   // --- Scroll-Driven Card Stacking Title Animation ---
@@ -933,9 +988,12 @@ const tagsToShow = sortedTags.slice(0, 4);
       btn.classList.toggle('is-active', (btn as HTMLElement).dataset.filter === '');
     });
     applyFilter();
+    updateScrollArrows();
   });
 
-  // Initialize visibility and card stacking state
+  // Initialize visibility, card stacking state, and tag scroll arrows
   applyFilter();
   handleCardStacking();
+  // Brief delay to allow browser layout calculation of scrollWidth/clientWidth
+  setTimeout(updateScrollArrows, 100);
 </script>
