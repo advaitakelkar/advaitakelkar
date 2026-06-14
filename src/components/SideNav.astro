@@ -49,7 +49,7 @@ const schemes = [
 
     <!-- Logo (top) -->
     <a href="/" class="sn-bar__logo" id="sn-logo" aria-label="Home" title="Home">
-      <div class="sn-bar__mark"></div>
+      <div class="sn-bar__mark" id="sn-logo-mark"></div>
     </a>
 
     <!-- Color scheme switcher -->
@@ -157,7 +157,7 @@ const schemes = [
   .sn-bar {
     position: relative;
     z-index: 201;
-    width: 48px;
+    width: 64px; /* Increased to 64px */
     height: 100dvh;
     display: flex;
     flex-direction: column;
@@ -165,6 +165,7 @@ const schemes = [
     gap: 0;
     padding: 24px 0;
     background-color: var(--_tokens---color--bg);
+    border-right: 1px solid var(--_tokens---color--line); /* Restored border line */
     cursor: pointer;
     flex-shrink: 0;
     transition: background-color 0.3s ease;
@@ -178,19 +179,38 @@ const schemes = [
     justify-content: center;
     flex-shrink: 0;
     text-decoration: none;
-    width: 36px;
-    height: 36px;
-    margin-bottom: 16px;
+    width: 44px; /* Much bigger */
+    height: 44px;
+    margin-bottom: 24px;
+    transition: transform 0.1s linear; /* Smooth scroll rotation transition */
   }
 
   .sn-bar__mark {
-    width: 36px;
-    height: 36px;
+    width: 44px; /* Much bigger */
+    height: 44px;
     background-color: var(--_tokens---color--fg);
     -webkit-mask: url('/ak-logo.svg') center / contain no-repeat;
     mask: url('/ak-logo.svg') center / contain no-repeat;
     flex-shrink: 0;
     transition: background-color 0.3s ease;
+    /* Living logo: Continuous slow rotation and breathing glow */
+    animation: rotate-logo var(--logo-speed, 20s) linear infinite, glow-logo 4s ease-in-out infinite;
+  }
+
+  @keyframes rotate-logo {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes glow-logo {
+    0%, 100% {
+      opacity: 0.7;
+      filter: drop-shadow(0 0 1px var(--_tokens---color--fg));
+    }
+    50% {
+      opacity: 1;
+      filter: drop-shadow(0 0 6px var(--_tokens---color--fg));
+    }
   }
 
   /* ── Color scheme switcher ── */
@@ -349,7 +369,7 @@ const schemes = [
   .sn-panel {
     position: fixed;
     top: 0;
-    left: 48px;
+    left: 64px; /* Positioned relative to 64px sidebar */
     width: 400px;
     height: 100dvh;
     background-color: var(--_tokens---color--bg);
@@ -488,7 +508,7 @@ const schemes = [
   .sn-backdrop {
     position: fixed;
     inset: 0;
-    left: 48px;
+    left: 64px; /* Positioned relative to 64px sidebar */
     background-color: rgba(0, 0, 0, 0.35);
     opacity: 0;
     pointer-events: none;
@@ -512,6 +532,51 @@ const schemes = [
   const panel     = document.getElementById('sn-panel')!;
   const backdrop  = document.getElementById('sn-backdrop')!;
   const logo      = document.getElementById('sn-logo')!;
+  const logoMark  = document.getElementById('sn-logo-mark')!;
+
+  // ── Living Logo Activity & Scroll Controls ─────────────────
+  let lastScrollTop = 0;
+  let scrollRotation = 0;
+  let currentSpeed = 20; // 20s rotation speed (slow)
+  let targetSpeed = 20;
+
+  // Rotate logo container on page scroll
+  window.addEventListener('scroll', () => {
+    const st = window.pageYOffset || document.documentElement.scrollTop;
+    const diff = st - lastScrollTop;
+    scrollRotation += diff * 0.15; // sensitivity coefficient
+    lastScrollTop = st <= 0 ? 0 : st;
+    if (logo) {
+      logo.style.transform = `rotate(${scrollRotation}deg)`;
+    }
+  }, { passive: true });
+
+  // Boost logo velocity on interaction
+  function boostLogo(speed = 2) {
+    targetSpeed = speed; // Spin faster (smaller animation period)
+  }
+
+  // Activity listeners
+  window.addEventListener('mousemove', () => boostLogo(2.5), { passive: true });
+  window.addEventListener('keydown', () => boostLogo(1.5), { passive: true });
+  window.addEventListener('scroll', () => boostLogo(3), { passive: true });
+
+  // Hyper-boost logo speed when clicking the index bar
+  bar.addEventListener('click', () => boostLogo(0.4));
+
+  // Velocity controller loop with smooth decay
+  function updateVelocity() {
+    currentSpeed = currentSpeed + (targetSpeed - currentSpeed) * 0.04;
+    if (logoMark) {
+      logoMark.style.setProperty('--logo-speed', `${currentSpeed}s`);
+    }
+    if (targetSpeed < 20) {
+      targetSpeed += 0.15; // Slow down gradually
+      if (targetSpeed > 20) targetSpeed = 20;
+    }
+    requestAnimationFrame(updateVelocity);
+  }
+  requestAnimationFrame(updateVelocity);
   const schemeEl  = document.getElementById('sn-scheme')!;
   const schemeBtn = document.getElementById('sn-scheme-btn')!;
   const dropdown  = document.getElementById('sn-scheme-dropdown')!;

@@ -38,14 +38,51 @@ const currentPath = Astro.url.pathname;
 
   .page-main {
     flex: 1;
-    margin-left: 48px;
+    margin-left: 64px; /* Offset adjusted for 64px wide sidebar */
     padding: var(--_tokens---space--small);
+    transition: padding 0.3s ease;
   }
 
+  /* Sticky magnetic breadcrumb bar */
   .page-breadcrumb {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background-color: var(--_tokens---color--bg);
+    margin-left: calc(-1 * var(--_tokens---space--small));
+    margin-right: calc(-1 * var(--_tokens---space--small));
+    padding-inline: var(--_tokens---space--small);
+    padding-block: 20px 16px; /* expanded vertical size */
     margin-bottom: var(--_tokens---space--small);
-    padding-block: var(--_tokens---space--micro);
-    border-bottom: 1px solid var(--_tokens---color--line);
-    opacity: 0.5;
+    opacity: 0.85;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s ease;
+    transform: translateY(-6px); /* tucked up slightly by default */
+  }
+
+  /* Magnetic pull down effect when hovered */
+  .page-breadcrumb:hover {
+    transform: translateY(0); /* slides down */
+    opacity: 1;
+    background-color: color-mix(in srgb, var(--_tokens---color--bg) 96%, var(--_tokens---color--fg)); /* slight color variation */
+  }
+
+  /* Padding for really big screens (above laptop screens, >= 1200px) */
+  @media (min-width: 1200px) {
+    .page-main {
+      padding-inline: clamp(6rem, 12vw, 16rem); /* Squeezes body text in */
+      padding-top: clamp(6rem, 8vh, 9rem); /* Switched down */
+    }
+    
+    .page-breadcrumb {
+      margin-left: calc(-1 * clamp(6rem, 12vw, 16rem));
+      margin-right: calc(-1 * clamp(6rem, 12vw, 16rem));
+      padding-inline: clamp(6rem, 12vw, 16rem);
+      padding-top: 24px;
+      transform: translateY(-10px);
+    }
+    
+    .page-breadcrumb:hover {
+      transform: translateY(0);
+    }
   }
 </style>
