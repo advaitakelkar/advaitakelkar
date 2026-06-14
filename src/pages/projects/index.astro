@@ -1,0 +1,234 @@
+---
+import { getCollection } from 'astro:content';
+import PageLayout from '../../layouts/PageLayout.astro';
+
+const allProjects = await getCollection('projects');
+const allTags = await getCollection('tags');
+const allCats = await getCollection('categories');
+
+// Sort by number then year
+const sorted = [...allProjects].sort((a, b) => {
+  if (a.data.numbr && b.data.numbr) return a.data.numbr - b.data.numbr;
+  if (a.data.numbr) return -1;
+  if (b.data.numbr) return 1;
+  return parseInt(b.data.year ?? '0') - parseInt(a.data.year ?? '0');
+});
+
+const tagMap = Object.fromEntries(allTags.map(t => [t.id, t.data.name]));
+const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
+---
+
+<PageLayout
+  title="Projects"
+  label="Projects"
+  crumbs={[{ label: 'Home', href: '/' }, { label: 'Projects' }]}
+>
+  <section class="projects-page">
+    <header class="projects-header">
+      <h1 class="projects-title">Projects</h1>
+      <p class="projects-count text-muted">{allProjects.length} works</p>
+    </header>
+
+    <!-- Filter bar -->
+    <div class="filter-bar">
+      <div class="filter-group">
+        <span class="filter-label text-muted">Category</span>
+        <div class="filter-pills" id="cat-filter">
+          <button class="filter-pill is-active" data-filter="">All</button>
+          {allCats.map(cat => (
+            <button class="filter-pill" data-filter={`cat:${cat.id}`}>
+              {cat.data.displayName}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label text-muted">Tag</span>
+        <div class="filter-pills" id="tag-filter">
+          <button class="filter-pill is-active" data-filter="">All</button>
+          {allTags.map(tag => (
+            <button class="filter-pill" data-filter={`tag:${tag.id}`}>
+              {tag.data.name}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+
+    <!-- Project list -->
+    <div class="project-table" id="project-table">
+      {sorted.map(p => (
+        <a
+          href={`/projects/${p.id}`}
+          class="project-row"
+          data-cat={p.data.category?.id ?? ''}
+          data-tags={(p.data.tags ?? []).map(t => t.id).join(',')}
+        >
+          <span class="project-row__num text-muted">{String(p.data.numbr ?? '').padStart(2, '0') || '—'}</span>
+          <span class="project-row__name">{p.data.name}</span>
+          <span class="project-row__loc text-muted">{p.data.location}</span>
+          <span class="project-row__year text-muted">{p.data.year}</span>
+          <span class="project-row__cat text-muted">
+            {p.data.category ? catMap[p.data.category.id] : ''}
+          </span>
+        </a>
+      ))}
+    </div>
+  </section>
+</PageLayout>
+
+<style>
+  .projects-page {
+    padding-block: var(--_tokens---space--medium);
+  }
+
+  .projects-header {
+    display: flex;
+    align-items: baseline;
+    gap: var(--_tokens---space--small);
+    margin-bottom: var(--_tokens---space--medium);
+  }
+
+  .projects-title {
+    font-size: var(--_tokens---type--big);
+    font-weight: 600;
+    color: var(--_tokens---color--fg);
+  }
+
+  .projects-count {
+    font-size: var(--_tokens---type--micro);
+  }
+
+  .filter-bar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--_tokens---space--micro);
+    margin-bottom: var(--_tokens---space--small);
+    padding-bottom: var(--_tokens---space--small);
+    border-bottom: 1px solid var(--_tokens---color--line);
+  }
+
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: var(--_tokens---space--micro);
+    flex-wrap: wrap;
+  }
+
+  .filter-label {
+    font-size: var(--_tokens---type--micro);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    min-width: 60px;
+  }
+
+  .filter-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4em;
+  }
+
+  .filter-pill {
+    padding: 0.3em 0.8em;
+    border: 1px solid var(--_tokens---color--line);
+    border-radius: var(--_tokens---radius--small);
+    background: none;
+    color: var(--_tokens---color--muted);
+    font-size: var(--_tokens---type--micro);
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  .filter-pill:hover,
+  .filter-pill.is-active {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
+  }
+
+  .project-table {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .project-row {
+    display: grid;
+    grid-template-columns: 2.5rem 1fr auto auto auto;
+    gap: var(--_tokens---space--small);
+    align-items: baseline;
+    padding-block: var(--_tokens---space--micro);
+    border-bottom: 1px solid var(--_tokens---color--line);
+    text-decoration: none;
+    color: var(--_tokens---color--fg);
+    transition: opacity 0.2s ease;
+  }
+
+  .project-row:hover {
+    opacity: 0.7;
+  }
+
+  .project-row[hidden] {
+    display: none;
+  }
+
+  .project-row__num {
+    font-size: var(--_tokens---type--micro);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .project-row__name {
+    font-size: var(--_tokens---type--small);
+  }
+
+  .project-row__loc,
+  .project-row__year,
+  .project-row__cat {
+    font-size: var(--_tokens---type--micro);
+  }
+
+  @media (max-width: 767px) {
+    .project-row {
+      grid-template-columns: 2rem 1fr auto;
+    }
+    .project-row__loc,
+    .project-row__cat {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  const table = document.getElementById('project-table');
+  const rows = table?.querySelectorAll<HTMLElement>('.project-row') ?? [];
+
+  let activeCat = '';
+  let activeTag = '';
+
+  function applyFilter() {
+    rows.forEach(row => {
+      const rowCat = row.dataset.cat ?? '';
+      const rowTags = (row.dataset.tags ?? '').split(',').filter(Boolean);
+      const catOk = !activeCat || rowCat === activeCat.replace('cat:', '');
+      const tagOk = !activeTag || rowTags.includes(activeTag.replace('tag:', ''));
+      row.hidden = !(catOk && tagOk);
+    });
+  }
+
+  document.querySelectorAll('#cat-filter .filter-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#cat-filter .filter-pill').forEach(b => b.classList.remove('is-active'));
+      btn.classList.add('is-active');
+      activeCat = (btn as HTMLElement).dataset.filter ?? '';
+      applyFilter();
+    });
+  });
+
+  document.querySelectorAll('#tag-filter .filter-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#tag-filter .filter-pill').forEach(b => b.classList.remove('is-active'));
+      btn.classList.add('is-active');
+      activeTag = (btn as HTMLElement).dataset.filter ?? '';
+      applyFilter();
+    });
+  });
+</script>

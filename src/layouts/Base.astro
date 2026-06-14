@@ -1,0 +1,48 @@
+---
+import '../styles/tokens.css';
+
+export interface Props {
+  title: string;
+  description?: string;
+  ogImage?: string;
+}
+
+const { title, description = 'Advaita Kelkar — Architect & Designer', ogImage } = Astro.props;
+const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+
+    <title>{title} — AK</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalURL} />
+
+    <!-- OG -->
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalURL} />
+    {ogImage && <meta property="og:image" content={ogImage} />}
+  </head>
+  <body>
+    <slot />
+    <script>
+      // Scheme persistence: restore from sessionStorage
+      const stored = sessionStorage.getItem('aks');
+      if (stored && /^sch[1-9]$/.test(stored)) {
+        document.documentElement.className = stored;
+      } else {
+        // Random scheme on first load
+        const n = Math.ceil(Math.random() * 9);
+        const cls = `sch${n}`;
+        document.documentElement.className = cls;
+        sessionStorage.setItem('aks', cls);
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,187 @@
+---
+// SideNav — matches Webflow side navigation structure
+// AK logo (mask SVG), color scheme circle, Index label, burger toggle
+
+export interface Props {
+  currentPath?: string;
+  label?: string;
+}
+
+const { currentPath = '/', label = 'Index' } = Astro.props;
+---
+
+<nav class="side-nav" id="side-nav">
+  <!-- AK Logo (SVG mask, fg color) -->
+  <a href="/" class="side-nav__logo" aria-label="AK — Home">
+    <div class="side-nav__logo-mark"></div>
+  </a>
+
+  <!-- Color scheme circle -->
+  <button class="side-nav__scheme-circle" id="scheme-circle" aria-label="Change color scheme" title="Cycle color scheme"></button>
+
+  <!-- Label -->
+  <span class="side-nav__label">{label}</span>
+
+  <!-- Burger toggle (mobile) -->
+  <button class="side-nav__burger" id="nav-burger" aria-label="Open menu" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+
+  <!-- Mobile nav menu -->
+  <div class="side-nav__menu" id="nav-menu" hidden>
+    <nav class="side-nav__links">
+      <a href="/" class:list={['side-nav__link', currentPath === '/' && 'is-active']}>Home</a>
+      <a href="/about" class:list={['side-nav__link', currentPath === '/about' && 'is-active']}>About</a>
+      <a href="/projects" class:list={['side-nav__link', currentPath.startsWith('/projects') && 'is-active']}>Projects</a>
+    </nav>
+  </div>
+</nav>
+
+<style>
+  .side-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--_tokens---space--micro);
+    padding: var(--_tokens---space--small) var(--_tokens---space--micro);
+    height: 100dvh;
+    border-right: 1px solid var(--_tokens---color--line);
+    background-color: var(--_tokens---color--bg);
+    width: 48px;
+    transition: background-color 0.3s ease;
+  }
+
+  .side-nav__logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    text-decoration: none;
+  }
+
+  .side-nav__logo-mark {
+    width: 22px;
+    height: 22px;
+    background-color: var(--_tokens---color--fg);
+    -webkit-mask: url('/ak-logo.svg') center / contain no-repeat;
+    mask: url('/ak-logo.svg') center / contain no-repeat;
+    flex-shrink: 0;
+    transition: background-color 0.3s ease;
+  }
+
+  .side-nav__scheme-circle {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 1.5px solid var(--_tokens---color--fg);
+    background-color: var(--_tokens---color--fg);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+    padding: 0;
+  }
+
+  .side-nav__label {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+    font-size: var(--_tokens---type--micro);
+    color: var(--_tokens---color--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    user-select: none;
+    margin-top: auto;
+  }
+
+  .side-nav__burger {
+    display: none;
+    flex-direction: column;
+    gap: 4px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+  }
+
+  .side-nav__burger span {
+    display: block;
+    width: 18px;
+    height: 2px;
+    background-color: var(--_tokens---color--fg);
+    transition: background-color 0.3s ease;
+  }
+
+  /* Mobile menu */
+  .side-nav__menu {
+    position: fixed;
+    inset: 0;
+    left: 48px;
+    background-color: var(--_tokens---color--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 99;
+  }
+
+  .side-nav__menu[hidden] {
+    display: none;
+  }
+
+  .side-nav__links {
+    display: flex;
+    flex-direction: column;
+    gap: var(--_tokens---space--small);
+    text-align: center;
+  }
+
+  .side-nav__link {
+    font-size: var(--_tokens---type--big);
+    color: var(--_tokens---color--fg);
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+
+  .side-nav__link:hover,
+  .side-nav__link.is-active {
+    color: var(--_tokens---color--muted);
+  }
+
+  @media (max-width: 767px) {
+    .side-nav__label {
+      display: none;
+    }
+
+    .side-nav__burger {
+      display: flex;
+      margin-top: auto;
+    }
+  }
+</style>
+
+<script>
+  // Burger toggle
+  const burger = document.getElementById('nav-burger');
+  const menu = document.getElementById('nav-menu');
+
+  burger?.addEventListener('click', () => {
+    const isOpen = burger.getAttribute('aria-expanded') === 'true';
+    burger.setAttribute('aria-expanded', String(!isOpen));
+    burger.setAttribute('aria-label', isOpen ? 'Open menu' : 'Close menu');
+    if (menu) menu.hidden = isOpen;
+  });
+
+  // Scheme circle — cycle through sch1–sch9
+  const circle = document.getElementById('scheme-circle');
+  circle?.addEventListener('click', () => {
+    const current = document.documentElement.className;
+    const match = current.match(/sch(\d+)/);
+    const next = match ? (parseInt(match[1]) % 9) + 1 : 1;
+    const cls = `sch${next}`;
+    document.documentElement.className = cls;
+    sessionStorage.setItem('aks', cls);
+  });
+</script>

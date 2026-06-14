@@ -1,0 +1,51 @@
+---
+import Base from './Base.astro';
+import SideNav from '../components/SideNav.astro';
+import Breadcrumb from '../components/Breadcrumb.astro';
+
+export interface Props {
+  title: string;
+  description?: string;
+  ogImage?: string;
+  crumbs?: Array<{ label: string; href?: string }>;
+  label?: string;
+}
+
+const { title, description, ogImage, crumbs = [], label } = Astro.props;
+const currentPath = Astro.url.pathname;
+---
+
+<Base title={title} description={description} ogImage={ogImage}>
+  <div class="page-wrap">
+    <SideNav currentPath={currentPath} label={label} />
+
+    <main class="page-main">
+      {crumbs.length > 0 && (
+        <div class="page-breadcrumb">
+          <Breadcrumb crumbs={crumbs} />
+        </div>
+      )}
+      <slot />
+    </main>
+  </div>
+</Base>
+
+<style>
+  .page-wrap {
+    display: flex;
+    min-height: 100dvh;
+  }
+
+  .page-main {
+    flex: 1;
+    margin-left: 48px;
+    padding: var(--_tokens---space--small);
+  }
+
+  .page-breadcrumb {
+    margin-bottom: var(--_tokens---space--small);
+    padding-block: var(--_tokens---space--micro);
+    border-bottom: 1px solid var(--_tokens---color--line);
+    opacity: 0.5;
+  }
+</style>

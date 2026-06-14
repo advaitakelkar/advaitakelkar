@@ -1,0 +1,85 @@
+---
+import { getCollection } from 'astro:content';
+import PageLayout from '../../layouts/PageLayout.astro';
+
+export async function getStaticPaths() {
+  const tags = await getCollection('tags');
+  return tags.map(tag => ({
+    params: { slug: tag.id },
+    props: { tag },
+  }));
+}
+
+const { tag } = Astro.props;
+const allProjects = await getCollection('projects');
+const projects = allProjects
+  .filter(p => (p.data.tags ?? []).some(t => t.id === tag.id))
+  .sort((a, b) => (a.data.numbr ?? 999) - (b.data.numbr ?? 999));
+---
+
+<PageLayout
+  title={tag.data.name}
+  label={tag.data.name}
+  crumbs={[
+    { label: 'Home', href: '/' },
+    { label: 'Projects', href: '/projects' },
+    { label: tag.data.name },
+  ]}
+>
+  <section class="tag-page">
+    <header class="tag-header">
+      <h1 class="tag-title">{tag.data.name}</h1>
+      <p class="tag-count text-muted">{projects.length} project{projects.length !== 1 ? 's' : ''}</p>
+    </header>
+
+    <div class="project-list">
+      {projects.map(p => (
+        <a href={`/projects/${p.id}`} class="project-row">
+          <span class="project-row__name">{p.data.name}</span>
+          <span class="project-row__meta text-muted">
+            {p.data.year}{p.data.location ? ` · ${p.data.location}` : ''}
+          </span>
+        </a>
+      ))}
+    </div>
+  </section>
+</PageLayout>
+
+<style>
+  .tag-page { padding-block: var(--_tokens---space--medium); }
+
+  .tag-header {
+    display: flex;
+    align-items: baseline;
+    gap: var(--_tokens---space--small);
+    margin-bottom: var(--_tokens---space--medium);
+    padding-bottom: var(--_tokens---space--small);
+    border-bottom: 1px solid var(--_tokens---color--line);
+  }
+
+  .tag-title {
+    font-size: var(--_tokens---type--big);
+    font-weight: 600;
+    color: var(--_tokens---color--fg);
+  }
+
+  .tag-count { font-size: var(--_tokens---type--micro); }
+
+  .project-list { display: flex; flex-direction: column; }
+
+  .project-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-block: var(--_tokens---space--micro);
+    border-bottom: 1px solid var(--_tokens---color--line);
+    text-decoration: none;
+    color: var(--_tokens---color--fg);
+    transition: opacity 0.2s ease;
+  }
+
+  .project-row:hover { opacity: 0.7; }
+
+  .project-row__name { font-size: var(--_tokens---type--small); }
+  .project-row__meta { font-size: var(--_tokens---type--micro); }
+</style>

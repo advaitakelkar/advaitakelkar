@@ -1,0 +1,276 @@
+---
+import { getCollection, getEntry } from 'astro:content';
+import PageLayout from '../../layouts/PageLayout.astro';
+
+export async function getStaticPaths() {
+  const projects = await getCollection('projects');
+  return projects.map(p => ({
+    params: { slug: p.id },
+    props: { project: p },
+  }));
+}
+
+const { project } = Astro.props;
+const { data } = project;
+
+// Resolve tag and category references
+const tags = await Promise.all((data.tags ?? []).map(t => getEntry(t)));
+const category = data.category ? await getEntry(data.category) : null;
+---
+
+<PageLayout
+  title={data.name}
+  description={data.smallIntro}
+  ogImage={data.coverImage}
+  label={data.name}
+  crumbs={[
+    { label: 'Home', href: '/' },
+    { label: 'Projects', href: '/projects' },
+    { label: data.name },
+  ]}
+>
+  <article class="project-detail">
+    <!-- Cover image -->
+    {data.coverImage && (
+      <div class="project-detail__cover">
+        <img src={data.coverImage} alt={data.name} />
+      </div>
+    )}
+
+    <div class="project-detail__body">
+      <!-- Header -->
+      <header class="project-detail__header">
+        <h1 class="project-detail__title">{data.name}</h1>
+        {data.smallIntro && <p class="project-detail__intro text-muted">{data.smallIntro}</p>}
+      </header>
+
+      <!-- Meta -->
+      <aside class="project-detail__meta">
+        {data.year && (
+          <div class="meta-row">
+            <span class="meta-label text-muted">Year</span>
+            <span class="meta-val">{data.year}</span>
+          </div>
+        )}
+        {data.location && (
+          <div class="meta-row">
+            <span class="meta-label text-muted">Location</span>
+            <span class="meta-val">{data.location}</span>
+          </div>
+        )}
+        {data.client && data.client !== 'NA' && (
+          <div class="meta-row">
+            <span class="meta-label text-muted">Client</span>
+            <span class="meta-val">{data.client}</span>
+          </div>
+        )}
+        {data.collaborator && (
+          <div class="meta-row">
+            <span class="meta-label text-muted">With</span>
+            <span class="meta-val">{data.collaborator}</span>
+          </div>
+        )}
+        {data.program && (
+          <div class="meta-row">
+            <span class="meta-label text-muted">Program</span>
+            <span class="meta-val">{data.program}</span>
+          </div>
+        )}
+        {data.status && (
+          <div class="meta-row">
+            <span class="meta-label text-muted">Status</span>
+            <span class="meta-val">{data.status}</span>
+          </div>
+        )}
+        {category && (
+          <div class="meta-row">
+            <span class="meta-label text-muted">Category</span>
+            <a href={`/type/${category.id}`} class="meta-val meta-link">
+              {category.data.displayName}
+            </a>
+          </div>
+        )}
+        {tags.length > 0 && (
+          <div class="meta-row meta-row--tags">
+            <span class="meta-label text-muted">Tags</span>
+            <div class="meta-tags">
+              {tags.map(tag => tag && (
+                <a href={`/tags/${tag.id}`} class="meta-tag">{tag.data.name}</a>
+              ))}
+            </div>
+          </div>
+        )}
+      </aside>
+
+      <!-- Description -->
+      {data.description && (
+        <div class="project-detail__desc" set:html={data.description} />
+      )}
+    </div>
+
+    <!-- Gallery -->
+    {data.multiImage && data.multiImage.length > 0 && (
+      <section class="project-detail__gallery">
+        {data.multiImage.map((url, i) => (
+          <div class="gallery-img">
+            <img src={url} alt={`${data.name} — image ${i + 1}`} loading="lazy" />
+          </div>
+        ))}
+      </section>
+    )}
+  </article>
+</PageLayout>
+
+<style>
+  .project-detail {
+    padding-block: var(--_tokens---space--small) var(--_tokens---space--big);
+  }
+
+  .project-detail__cover {
+    width: 100%;
+    max-height: 70vh;
+    overflow: hidden;
+    border-radius: var(--_tokens---radius--large);
+    margin-bottom: var(--_tokens---space--medium);
+  }
+
+  .project-detail__cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .project-detail__body {
+    display: grid;
+    grid-template-columns: 1fr 240px;
+    gap: var(--_tokens---space--medium);
+    max-width: var(--_tokens---layout--container);
+    margin-bottom: var(--_tokens---space--medium);
+  }
+
+  .project-detail__header {
+    grid-column: 1;
+  }
+
+  .project-detail__title {
+    font-size: var(--_tokens---type--big);
+    font-weight: 600;
+    color: var(--_tokens---color--fg);
+    margin-bottom: 0.5em;
+    line-height: 1.1;
+  }
+
+  .project-detail__intro {
+    font-size: var(--_tokens---type--small);
+    line-height: 1.5;
+  }
+
+  .project-detail__meta {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75em;
+    padding: var(--_tokens---space--small);
+    border: 1px solid var(--_tokens---color--line);
+    border-radius: var(--_tokens---radius--medium);
+    align-self: start;
+  }
+
+  .meta-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2em;
+  }
+
+  .meta-label {
+    font-size: var(--_tokens---type--micro);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .meta-val {
+    font-size: var(--_tokens---type--micro);
+    color: var(--_tokens---color--fg);
+  }
+
+  .meta-link {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    color: var(--_tokens---color--fg);
+    transition: opacity 0.2s ease;
+  }
+
+  .meta-link:hover {
+    opacity: 0.7;
+  }
+
+  .meta-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4em;
+  }
+
+  .meta-tag {
+    display: inline-block;
+    padding: 0.2em 0.6em;
+    border: 1px solid var(--_tokens---color--line);
+    border-radius: var(--_tokens---radius--small);
+    font-size: var(--_tokens---type--micro);
+    color: var(--_tokens---color--muted);
+    text-decoration: none;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  .meta-tag:hover {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+  }
+
+  .project-detail__desc {
+    grid-column: 1;
+    font-size: var(--_tokens---type--small);
+    line-height: 1.7;
+    color: var(--_tokens---color--fg);
+  }
+
+  .project-detail__desc :global(p) {
+    margin-bottom: 1em;
+  }
+
+  .project-detail__gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: var(--_tokens---space--small);
+    margin-top: var(--_tokens---space--medium);
+  }
+
+  .gallery-img {
+    overflow: hidden;
+    border-radius: var(--_tokens---radius--medium);
+    aspect-ratio: 4 / 3;
+    background-color: var(--_tokens---color--muted);
+  }
+
+  .gallery-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s ease;
+  }
+
+  .gallery-img:hover img {
+    transform: scale(1.03);
+  }
+
+  @media (max-width: 900px) {
+    .project-detail__body {
+      grid-template-columns: 1fr;
+    }
+
+    .project-detail__meta {
+      grid-column: 1;
+      grid-row: auto;
+    }
+  }
+</style>
