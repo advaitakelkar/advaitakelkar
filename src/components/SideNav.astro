@@ -1,37 +1,90 @@
 ---
+import { getCollection } from 'astro:content';
+
 export interface Props {
   currentPath?: string;
 }
 const { currentPath = '/' } = Astro.props;
+
+// Fetch 5 most recent projects by year
+const allProjects = await getCollection('projects');
+const recentProjects = allProjects
+  .sort((a, b) => parseInt(b.data.year) - parseInt(a.data.year))
+  .slice(0, 5);
 ---
 
-<!-- Wrapper holds the bar + panel together -->
 <div class="sn-wrap" id="sn-wrap">
 
-  <!-- Narrow INDEX bar — always visible, click to toggle panel -->
+  <!-- Narrow INDEX bar -->
   <div class="sn-bar" id="sn-bar" role="button" tabindex="0" aria-expanded="false" aria-controls="sn-panel" aria-label="Toggle navigation">
-    <!-- AK logo — goes home, stops bar click -->
     <a href="/" class="sn-bar__logo" id="sn-logo" aria-label="Home">
       <div class="sn-bar__mark"></div>
     </a>
-
-    <!-- Color scheme circle -->
     <button class="sn-bar__circle" id="sn-circle" aria-label="Cycle color scheme" title="Change color scheme"></button>
-
-    <!-- INDEX label — vertical text at bottom -->
     <span class="sn-bar__label">INDEX</span>
   </div>
 
   <!-- Slide-in panel -->
   <div class="sn-panel" id="sn-panel" aria-hidden="true">
+
+    <!-- Name + bio -->
+    <div class="sn-panel__header">
+      <p class="sn-panel__name">Advaita Kelkar</p>
+      <p class="sn-panel__bio">Hey! 👋 Advaita here — architectural designer from Mumbai 🇮🇳, currently at SCAD in Savannah 🌿. I work across architecture, interiors, urban design 🏙️ and everything in between ✨. Always curious, always making. When not designing you'll find me chasing good chai ☕, sketching street scenes ✏️, or lost in a book 📖. Glad you're here! 🙌</p>
+    </div>
+
+    <!-- Main nav -->
     <nav class="sn-panel__nav" aria-label="Site navigation">
-      <a href="/" class:list={['sn-panel__link', currentPath === '/' && 'is-active']}>Home</a>
-      <a href="/about" class:list={['sn-panel__link', currentPath === '/about' && 'is-active']}>About</a>
-      <a href="/projects" class:list={['sn-panel__link', currentPath.startsWith('/projects') && 'is-active']}>Projects</a>
+      <a href="/" class:list={['sn-panel__link', currentPath === '/' && 'is-active']}>
+        <span>Home</span>
+        <span class="sn-panel__arrow">↗</span>
+      </a>
+      <a href="/about" class:list={['sn-panel__link', currentPath === '/about' && 'is-active']}>
+        <span>About Me</span>
+        <span class="sn-panel__arrow">↗</span>
+      </a>
+      <a href="/projects" class:list={['sn-panel__link', currentPath.startsWith('/projects') && 'is-active']}>
+        <span>Projects</span>
+        <span class="sn-panel__arrow">↗</span>
+      </a>
     </nav>
+
+    <!-- Recent projects -->
+    <div class="sn-panel__section">
+      <p class="sn-panel__section-label">Recent Projects</p>
+      <nav class="sn-panel__secondary-nav">
+        {recentProjects.map(p => (
+          <a href={`/projects/${p.slug}`} class="sn-panel__secondary-link">
+            <span>{p.data.name}</span>
+            <span class="sn-panel__arrow">↗</span>
+          </a>
+        ))}
+      </nav>
+    </div>
+
+    <!-- Contact -->
+    <div class="sn-panel__section">
+      <p class="sn-panel__section-label">Contact</p>
+      <div class="sn-panel__secondary-nav">
+        <span class="sn-panel__email">advaitakelkar@gmail.com</span>
+        <a href="https://linkedin.com/in/advaitakelkar" class="sn-panel__secondary-link" target="_blank" rel="noopener">
+          <span>LinkedIn</span>
+          <span class="sn-panel__arrow">↗</span>
+        </a>
+        <a href="https://instagram.com/advaitakelkar" class="sn-panel__secondary-link" target="_blank" rel="noopener">
+          <span>Instagram</span>
+          <span class="sn-panel__arrow">↗</span>
+        </a>
+        <a href="https://behance.net/advaitakelkar" class="sn-panel__secondary-link" target="_blank" rel="noopener">
+          <span>Behance</span>
+          <span class="sn-panel__arrow">↗</span>
+        </a>
+      </div>
+    </div>
+
   </div>
 
-  <!-- Backdrop — click to close on mobile -->
+  <!-- Backdrop -->
   <div class="sn-backdrop" id="sn-backdrop" aria-hidden="true"></div>
 </div>
 
@@ -65,18 +118,12 @@ const { currentPath = '/' } = Astro.props;
     user-select: none;
   }
 
-  .sn-bar:hover {
-    background-color: var(--_tokens---color--surface, rgba(255,255,255,0.04));
-  }
-
-  /* AK logo mark */
   .sn-bar__logo {
     display: flex;
     align-items: center;
     justify-content: center;
     text-decoration: none;
     flex-shrink: 0;
-    z-index: 1;
   }
 
   .sn-bar__mark {
@@ -89,7 +136,6 @@ const { currentPath = '/' } = Astro.props;
     transition: background-color 0.3s ease;
   }
 
-  /* Scheme circle */
   .sn-bar__circle {
     width: 20px;
     height: 20px;
@@ -99,14 +145,13 @@ const { currentPath = '/' } = Astro.props;
     cursor: pointer;
     flex-shrink: 0;
     padding: 0;
-    transition: background-color 0.3s ease, border-color 0.3s ease;
+    transition: background-color 0.2s ease;
   }
 
   .sn-bar__circle:hover {
     background-color: var(--_tokens---color--fg);
   }
 
-  /* INDEX label */
   .sn-bar__label {
     writing-mode: vertical-rl;
     text-orientation: mixed;
@@ -125,49 +170,127 @@ const { currentPath = '/' } = Astro.props;
     position: fixed;
     top: 0;
     left: 48px;
-    width: 260px;
+    width: 300px;
     height: 100dvh;
     background-color: var(--_tokens---color--bg);
     border-right: 1px solid var(--_tokens---color--line);
     display: flex;
     flex-direction: column;
-    justify-content: flex-end;
-    padding: var(--_tokens---space--large, 32px) var(--_tokens---space--medium, 24px);
+    gap: var(--_tokens---space--medium, 24px);
+    padding: var(--_tokens---space--small, 16px) var(--_tokens---space--medium, 24px);
+    overflow-y: auto;
     transform: translateX(-100%);
     transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 200;
     pointer-events: none;
   }
 
-  /* Open state */
   .sn-panel.is-open {
     transform: translateX(0);
     pointer-events: all;
   }
 
-  /* Nav links */
+  /* Header */
+  .sn-panel__header {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: var(--_tokens---space--small, 16px);
+  }
+
+  .sn-panel__name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--_tokens---color--fg);
+    margin: 0;
+  }
+
+  .sn-panel__bio {
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--_tokens---color--muted);
+    margin: 0;
+  }
+
+  /* Main nav */
   .sn-panel__nav {
     display: flex;
     flex-direction: column;
-    gap: var(--_tokens---space--small, 16px);
+    gap: 2px;
+    border-top: 1px solid var(--_tokens---color--line);
+    padding-top: var(--_tokens---space--small, 16px);
   }
 
   .sn-panel__link {
-    font-size: clamp(1.5rem, 3vw, 2.5rem);
-    font-weight: 400;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: clamp(1.4rem, 2.5vw, 1.8rem);
+    font-weight: 700;
     color: var(--_tokens---color--fg);
-    text-decoration: none;
-    line-height: 1.1;
-    transition: color 0.2s ease, opacity 0.2s ease;
-    opacity: 0.4;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    padding: 4px 0;
+    transition: opacity 0.15s ease;
+    opacity: 0.85;
   }
 
-  .sn-panel__link:hover {
-    opacity: 1;
-  }
-
+  .sn-panel__link:hover,
   .sn-panel__link.is-active {
     opacity: 1;
+  }
+
+  /* Sections */
+  .sn-panel__section {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border-top: 1px solid var(--_tokens---color--line);
+    padding-top: var(--_tokens---space--small, 16px);
+  }
+
+  .sn-panel__section-label {
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: none;
+    color: var(--_tokens---color--muted);
+    margin: 0 0 6px 0;
+  }
+
+  .sn-panel__secondary-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .sn-panel__secondary-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--_tokens---color--fg);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    padding: 3px 0;
+    transition: opacity 0.15s ease;
+    opacity: 0.85;
+  }
+
+  .sn-panel__secondary-link:hover {
+    opacity: 1;
+  }
+
+  .sn-panel__email {
+    font-size: 11px;
+    color: var(--_tokens---color--muted);
+    padding: 3px 0;
+    display: block;
+  }
+
+  .sn-panel__arrow {
+    font-size: 0.9em;
+    flex-shrink: 0;
   }
 
   /* ── Backdrop ── */
@@ -175,7 +298,7 @@ const { currentPath = '/' } = Astro.props;
     position: fixed;
     inset: 0;
     left: 48px;
-    background-color: rgba(0, 0, 0, 0.4);
+    background-color: rgba(0, 0, 0, 0.3);
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.35s ease;
@@ -186,26 +309,20 @@ const { currentPath = '/' } = Astro.props;
     opacity: 1;
     pointer-events: all;
   }
-
-  /* ── Bar open-state indicator ── */
-  .sn-bar.is-open .sn-bar__label {
-    color: var(--_tokens---color--fg);
-  }
 </style>
 
 <script>
-  const bar     = document.getElementById('sn-bar');
-  const panel   = document.getElementById('sn-panel');
+  const bar      = document.getElementById('sn-bar');
+  const panel    = document.getElementById('sn-panel');
   const backdrop = document.getElementById('sn-backdrop');
-  const logo    = document.getElementById('sn-logo');
-  const circle  = document.getElementById('sn-circle');
+  const logo     = document.getElementById('sn-logo');
+  const circle   = document.getElementById('sn-circle');
 
   let isOpen = false;
 
   function openNav() {
     isOpen = true;
     bar?.setAttribute('aria-expanded', 'true');
-    bar?.classList.add('is-open');
     panel?.classList.add('is-open');
     panel?.setAttribute('aria-hidden', 'false');
     backdrop?.classList.add('is-open');
@@ -214,7 +331,6 @@ const { currentPath = '/' } = Astro.props;
   function closeNav() {
     isOpen = false;
     bar?.setAttribute('aria-expanded', 'false');
-    bar?.classList.remove('is-open');
     panel?.classList.remove('is-open');
     panel?.setAttribute('aria-hidden', 'true');
     backdrop?.classList.remove('is-open');
@@ -224,41 +340,24 @@ const { currentPath = '/' } = Astro.props;
     isOpen ? closeNav() : openNav();
   }
 
-  // Click anywhere on bar toggles panel
   bar?.addEventListener('click', (e) => {
-    // Don't toggle if click was on logo or circle (they have their own actions)
     if ((e.target as HTMLElement)?.closest('#sn-logo')) return;
     if ((e.target as HTMLElement)?.closest('#sn-circle')) return;
     toggleNav();
   });
 
-  // Keyboard: Enter/Space on bar
   bar?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      toggleNav();
-    }
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleNav(); }
     if (e.key === 'Escape') closeNav();
   });
 
-  // Logo click goes home, doesn't toggle panel
-  logo?.addEventListener('click', (e) => {
-    e.stopPropagation();
-  });
-
-  // Backdrop click closes
+  logo?.addEventListener('click', (e) => e.stopPropagation());
   backdrop?.addEventListener('click', closeNav);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && isOpen) closeNav(); });
 
-  // Escape key closes
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && isOpen) closeNav();
-  });
-
-  // Color scheme circle
   circle?.addEventListener('click', (e) => {
     e.stopPropagation();
-    const current = document.documentElement.className;
-    const match = current.match(/sch(\d+)/);
+    const match = document.documentElement.className.match(/sch(\d+)/);
     const next = match ? (parseInt(match[1]) % 9) + 1 : 1;
     const cls = `sch${next}`;
     document.documentElement.className = cls;
