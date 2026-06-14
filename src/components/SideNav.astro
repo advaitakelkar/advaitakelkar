@@ -20,11 +20,15 @@ function pageName(path: string): string {
 
 const barLabel = `INDEX / ${pageName(currentPath)}`;
 
-// Fetch 5 most recent projects
+// Fetch all projects for scrollable collaborations list
 const allProjects = await getCollection('projects');
 const recentProjects = allProjects
-  .sort((a, b) => parseInt(b.data.year) - parseInt(a.data.year))
-  .slice(0, 5);
+  .sort((a, b) => {
+    if (a.data.numbr && b.data.numbr) return a.data.numbr - b.data.numbr;
+    if (a.data.numbr) return -1;
+    if (b.data.numbr) return 1;
+    return parseInt(b.data.year ?? '0') - parseInt(a.data.year ?? '0');
+  });
 
 // Color schemes for dropdown
 const schemes = [
@@ -127,27 +131,39 @@ const schemes = [
     </nav>
 
     <div class="sn-panel__section">
-      <p class="sn-panel__section-label">Recent Projects</p>
-      <nav class="sn-panel__secondary-nav">
-        {recentProjects.map(p => (
-          <a href={`/projects/${p.slug}`} class="sn-panel__secondary-link">
-            <span>{p.data.name}</span>
-            <span class="sn-panel__arrow">
-              <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
-                <line x1="6" y1="18" x2="18" y2="6"></line>
-                <polyline points="10 6 18 6 18 14"></polyline>
-              </svg>
-            </span>
-          </a>
-        ))}
-      </nav>
+      <p class="sn-panel__section-label">Recent Collaborations</p>
+      <div class="sn-panel__scrollable-projects">
+        <nav class="sn-panel__secondary-nav">
+          {recentProjects.map(p => (
+            <a href={`/projects/${p.slug}`} class="sn-panel__secondary-link">
+              <span>{p.data.name}</span>
+              <span class="sn-panel__arrow">
+                <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+                  <line x1="6" y1="18" x2="18" y2="6"></line>
+                  <polyline points="10 6 18 6 18 14"></polyline>
+                </svg>
+              </span>
+            </a>
+          ))}
+        </nav>
+      </div>
     </div>
 
     <div class="sn-panel__section">
       <p class="sn-panel__section-label">Contact</p>
-      <div class="sn-panel__secondary-nav">
-        <span class="sn-panel__email">advaitakelkar@gmail.com</span>
-        <a href="https://linkedin.com/in/advaitakelkar" class="sn-panel__secondary-link" target="_blank" rel="noopener">
+      <div class="sn-panel__secondary-nav" style="gap: 8px;">
+        <div class="sn-email-row">
+          <span class="sn-panel__email" id="sn-email-val">advaitakelkar@gmail.com</span>
+          <button class="sn-email-copy-btn" id="sn-copy-email" aria-label="Copy email address" title="Copy email address">
+            <svg class="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter" style="width: 14px; height: 14px;">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <span class="copy-success-tooltip" id="sn-copy-tooltip">Copied!</span>
+          </button>
+        </div>
+        
+        <a href="https://linkedin.com/in/advaitakelkar" class="sn-panel__link" target="_blank" rel="noopener">
           <span>LinkedIn</span>
           <span class="sn-panel__arrow">
             <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
@@ -156,7 +172,7 @@ const schemes = [
             </svg>
           </span>
         </a>
-        <a href="https://instagram.com/advaitakelkar" class="sn-panel__secondary-link" target="_blank" rel="noopener">
+        <a href="https://instagram.com/advaitakelkar" class="sn-panel__link" target="_blank" rel="noopener">
           <span>Instagram</span>
           <span class="sn-panel__arrow">
             <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
@@ -165,7 +181,7 @@ const schemes = [
             </svg>
           </span>
         </a>
-        <a href="https://behance.net/advaitakelkar" class="sn-panel__secondary-link" target="_blank" rel="noopener">
+        <a href="https://behance.net/advaitakelkar" class="sn-panel__link" target="_blank" rel="noopener">
           <span>Behance</span>
           <span class="sn-panel__arrow">
             <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
@@ -442,7 +458,7 @@ const schemes = [
   }
 
   .sn-panel__name {
-    font-size: var(--_tokens---type--medium);
+    font-size: 1.5rem;
     font-weight: 800;
     letter-spacing: -0.02em;
     color: var(--_tokens---color--fg);
@@ -450,8 +466,8 @@ const schemes = [
   }
 
   .sn-panel__bio {
-    font-size: var(--_tokens---type--small);
-    line-height: 1.7;
+    font-size: 0.85rem;
+    line-height: 1.6;
     color: var(--_tokens---color--muted);
     margin: 0;
   }
@@ -503,6 +519,23 @@ const schemes = [
     margin: 0 0 16px 0;
   }
 
+  .sn-panel__scrollable-projects {
+    max-height: 220px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--_tokens---color--line) transparent;
+    padding-right: 8px;
+  }
+
+  .sn-panel__scrollable-projects::-webkit-scrollbar {
+    width: 3px;
+  }
+
+  .sn-panel__scrollable-projects::-webkit-scrollbar-thumb {
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 15%, transparent);
+    border-radius: 2px;
+  }
+
   .sn-panel__secondary-nav {
     display: flex;
     flex-direction: column;
@@ -530,11 +563,61 @@ const schemes = [
     transform: translateX(4px);
   }
 
+  .sn-email-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    position: relative;
+  }
+
+  .sn-email-copy-btn {
+    background: none;
+    border: none;
+    color: var(--_tokens---color--muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    border-radius: 4px;
+    transition: color 0.2s, background-color 0.2s;
+    position: relative;
+  }
+
+  .sn-email-copy-btn:hover {
+    color: var(--_tokens---color--fg);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+  }
+
+  .copy-success-tooltip {
+    position: absolute;
+    bottom: 120%;
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    font-size: 10px;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 4px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s, transform 0.2s;
+    white-space: nowrap;
+    z-index: 10;
+  }
+
+  .copy-success-tooltip.is-visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
   .sn-panel__email {
     font-size: var(--_tokens---type--small);
     font-weight: 400;
     color: var(--_tokens---color--muted);
-    padding: 0 0 12px 0;
+    padding: 0;
     display: block;
     white-space: nowrap;
   }
@@ -557,7 +640,6 @@ const schemes = [
 
   .sn-panel__link:hover .sn-panel__arrow,
   .sn-panel__secondary-link:hover .sn-panel__arrow {
-    transform: translate(2px, -2px);
     opacity: 1;
   }
 
@@ -735,6 +817,22 @@ const schemes = [
   document.addEventListener('click', (e) => {
     if (schemeOpen && !schemeEl.contains(e.target as Node)) closeScheme();
   });
+
+  // Email Copy Action
+  const copyBtn = document.getElementById('sn-copy-email');
+  const emailVal = document.getElementById('sn-email-val')?.textContent;
+  const tooltip = document.getElementById('sn-copy-tooltip');
+  
+  if (copyBtn && emailVal && tooltip) {
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(emailVal).then(() => {
+        tooltip.classList.add('is-visible');
+        setTimeout(() => {
+          tooltip.classList.remove('is-visible');
+        }, 1500);
+      });
+    });
+  }
 
   // Restore persisted scheme on load
   const saved = sessionStorage.getItem('aks');

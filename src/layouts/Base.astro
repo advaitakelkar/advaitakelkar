@@ -44,5 +44,34 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         sessionStorage.setItem('aks', cls);
       }
     </script>
+    <script>
+      // Global Arrow Hover Random Rotation
+      document.addEventListener('mouseover', (e) => {
+        const target = e.target as HTMLElement;
+        const hoverContainer = target.closest('a, button, .project-card, .about-link-row, .qs-row, .home-slider__slide, .sn-panel__link, .sn-panel__secondary-link');
+        if (hoverContainer) {
+          const arrow = hoverContainer.querySelector('.link-arrow') as HTMLElement;
+          if (arrow && !arrow.dataset.hasRandomHover) {
+            arrow.dataset.hasRandomHover = 'true';
+            arrow.style.transition = 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease';
+            
+            const onMouseEnter = () => {
+              const randomAngle = Math.floor(Math.random() * 360);
+              arrow.style.transform = `rotate(${randomAngle}deg)`;
+            };
+            
+            const onMouseLeave = () => {
+              arrow.style.transform = '';
+            };
+            
+            hoverContainer.addEventListener('mouseenter', onMouseEnter);
+            hoverContainer.addEventListener('mouseleave', onMouseLeave);
+            
+            // Trigger immediately on first hover detection
+            onMouseEnter();
+          }
+        }
+      });
+    </script>
   </body>
 </html>
