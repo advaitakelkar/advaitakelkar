@@ -41,37 +41,44 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
       <button class="projects-search-clear" id="projects-search-clear" type="button">@Clear All</button>
     </div>
 
-    <!-- Filter bar matching home UI style -->
+    <!-- Filter bar with dropdown menus -->
     <div class="filter-bar">
       <div class="filter-group">
         <span class="filter-label text-muted">Category</span>
-        <div class="filter-pills" id="cat-filter">
-          <button class="filter-pill is-active" data-filter="">All</button>
-          {allCats.map(cat => (
-            <button class="filter-pill" data-filter={cat.id}>
-              {cat.data.displayName}
-            </button>
-          ))}
+        <div class="filter-select-wrap">
+          <select id="cat-select" class="filter-select">
+            <option value="">All Categories</option>
+            {allCats.map(cat => (
+              <option value={cat.id}>{cat.data.displayName}</option>
+            ))}
+          </select>
+          <svg class="filter-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
         </div>
       </div>
       <div class="filter-group">
         <span class="filter-label text-muted">Tag</span>
-        <div class="filter-pills" id="tag-filter">
-          <button class="filter-pill is-active" data-filter="">All</button>
-          {allTags.map(tag => (
-            <button class="filter-pill" data-filter={tag.id}>
-              {tag.data.name}
-            </button>
-          ))}
+        <div class="filter-select-wrap">
+          <select id="tag-select" class="filter-select">
+            <option value="">All Tags</option>
+            {allTags.map(tag => (
+              <option value={tag.id}>{tag.data.name}</option>
+            ))}
+          </select>
+          <svg class="filter-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
         </div>
       </div>
     </div>
 
-    <!-- Project list with detailed card layout (one per row) -->
+    <!-- Project list with detailed compact card layout (one per row) -->
     <div class="project-cards-container" id="project-cards-container">
-      {sorted.map(p => (
+      {sorted.map((p, i) => (
         <div
           class="project-card"
+          style={`--card-index: ${i};`}
           data-name={p.data.name}
           data-loc={p.data.location ?? ''}
           data-year={p.data.year ?? ''}
@@ -92,64 +99,70 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
             </div>
             
             <div class="project-card__details">
-              <div class="project-card__header">
+              <!-- Top: Category and Tags -->
+              <div class="project-card__top">
                 <span class="project-card__cat">
                   {p.data.category ? catMap[p.data.category.id] : ''}
                 </span>
+                {p.data.tags && p.data.tags.length > 0 && (
+                  <span class="project-card__tag-list text-muted">
+                    · {p.data.tags.map(t => tagMap[t.id] || t.id).join(', ')}
+                  </span>
+                )}
+              </div>
+
+              <!-- Middle: Title & Metadata -->
+              <div class="project-card__mid">
                 <h2 class="project-card__title">{p.data.name}</h2>
+                
+                <!-- Metadata Grid -->
+                <div class="project-card__meta-grid">
+                  {p.data.location && (
+                    <div class="meta-item">
+                      <span class="meta-label text-muted">Location</span>
+                      <span class="meta-val">{p.data.location}</span>
+                    </div>
+                  )}
+                  {p.data.year && (
+                    <div class="meta-item">
+                      <span class="meta-label text-muted">Year</span>
+                      <span class="meta-val">{p.data.year}</span>
+                    </div>
+                  )}
+                  {p.data.client && (
+                    <div class="meta-item">
+                      <span class="meta-label text-muted">Client</span>
+                      <span class="meta-val">{p.data.client}</span>
+                    </div>
+                  )}
+                  {p.data.size && (
+                    <div class="meta-item">
+                      <span class="meta-label text-muted">Size</span>
+                      <span class="meta-val">{p.data.size}</span>
+                    </div>
+                  )}
+                  {p.data.status && (
+                    <div class="meta-item">
+                      <span class="meta-label text-muted">Status</span>
+                      <span class="meta-val">{p.data.status}</span>
+                    </div>
+                  )}
+                  {p.data.program && (
+                    <div class="meta-item">
+                      <span class="meta-label text-muted">Program</span>
+                      <span class="meta-val">{p.data.program}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <!-- Bottom: Arrow & Small Intro (Intro is LAST) -->
+              <div class="project-card__bottom">
                 {p.data.smallIntro && (
                   <p class="project-card__intro text-muted">{p.data.smallIntro}</p>
                 )}
-              </div>
-
-              <!-- Metadata Grid -->
-              <div class="project-card__meta-grid">
-                {p.data.location && (
-                  <div class="meta-item">
-                    <span class="meta-label text-muted">Location</span>
-                    <span class="meta-val">{p.data.location}</span>
-                  </div>
-                )}
-                {p.data.year && (
-                  <div class="meta-item">
-                    <span class="meta-label text-muted">Year</span>
-                    <span class="meta-val">{p.data.year}</span>
-                  </div>
-                )}
-                {p.data.client && (
-                  <div class="meta-item">
-                    <span class="meta-label text-muted">Client</span>
-                    <span class="meta-val">{p.data.client}</span>
-                  </div>
-                )}
-                {p.data.size && (
-                  <div class="meta-item">
-                    <span class="meta-label text-muted">Size</span>
-                    <span class="meta-val">{p.data.size}</span>
-                  </div>
-                )}
-                {p.data.status && (
-                  <div class="meta-item">
-                    <span class="meta-label text-muted">Status</span>
-                    <span class="meta-val">{p.data.status}</span>
-                  </div>
-                )}
-                {p.data.program && (
-                  <div class="meta-item">
-                    <span class="meta-label text-muted">Program</span>
-                    <span class="meta-val">{p.data.program}</span>
-                  </div>
-                )}
-              </div>
-
-              <div class="project-card__footer">
-                <div class="project-card__tags">
-                  {(p.data.tags ?? []).map(t => (
-                    <span class="project-card__tag-pill">{tagMap[t.id] || t.id}</span>
-                  ))}
-                </div>
                 <span class="project-card__arrow" aria-hidden="true">
-                  <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+                  <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="square" stroke-linejoin="miter">
                     <line x1="6" y1="18" x2="18" y2="6"></line>
                     <polyline points="10 6 18 6 18 14"></polyline>
                   </svg>
@@ -237,63 +250,92 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
     color: var(--_tokens---color--bg);
   }
 
-  /* Filters */
+  /* Filters Dropdowns */
   .filter-bar {
     display: flex;
-    flex-direction: column;
-    gap: 20px;
-    margin-bottom: 40px;
+    flex-direction: row;
+    gap: 32px;
+    margin-bottom: 32px;
   }
 
   .filter-group {
     display: flex;
     align-items: center;
-    gap: 20px;
-    flex-wrap: wrap;
+    gap: 16px;
   }
 
   .filter-label {
     font-size: var(--_tokens---type--micro);
-    font-weight: 300;
-    letter-spacing: 0.08em;
+    font-weight: 500;
     text-transform: uppercase;
-    min-width: 80px;
+    letter-spacing: 0.08em;
   }
 
-  .filter-pills {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+  .filter-select-wrap {
+    position: relative;
+    display: inline-block;
   }
 
-  .filter-pill {
-    padding: 6px 14px;
+  .filter-select {
+    appearance: none;
+    -webkit-appearance: none;
     background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
-    border: none;
-    color: var(--_tokens---color--muted);
+    color: var(--_tokens---color--fg);
+    font-family: inherit;
     font-size: var(--_tokens---type--micro);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border: none;
     border-radius: 8px;
+    padding: 10px 40px 10px 16px;
     cursor: pointer;
-    transition: background-color 0.2s ease, color 0.2s ease;
+    outline: none;
+    min-width: 180px;
+    transition: background-color 0.2s;
   }
 
-  .filter-pill:hover,
-  .filter-pill.is-active {
-    background-color: var(--_tokens---color--fg);
-    color: var(--_tokens---color--bg);
+  .filter-select:hover {
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
   }
 
-  /* Detailed Horizontal Cards */
+  .filter-select option {
+    background-color: var(--_tokens---color--bg);
+    color: var(--_tokens---color--fg);
+  }
+
+  .filter-select-arrow {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12px;
+    height: 12px;
+    pointer-events: none;
+    color: var(--_tokens---color--fg);
+    opacity: 0.7;
+  }
+
+  /* Detailed Compact Horizontal Cards */
   .project-cards-container {
     display: flex;
     flex-direction: column;
-    gap: 48px;
+    gap: 24px;
     margin-top: 16px;
+    position: relative;
   }
 
   .project-card {
     width: 100%;
     box-sizing: border-box;
+    position: sticky;
+    top: calc(88px + var(--card-index, 0) * 36px);
+    background-color: var(--_tokens---color--bg);
+    border-top: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+    padding-top: 20px;
+    padding-bottom: 16px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, top 0.3s ease;
+    box-shadow: 0 -8px 24px -10px rgba(0, 0, 0, 0.3);
   }
 
   .project-card[hidden] {
@@ -302,9 +344,9 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
 
   .project-card__link {
     display: grid;
-    grid-template-columns: clamp(260px, 24vw, 380px) 1fr;
-    gap: 48px;
-    align-items: stretch;
+    grid-template-columns: clamp(160px, 16vw, 240px) 1fr;
+    gap: 32px;
+    align-items: start;
     text-decoration: none;
     color: var(--_tokens---color--fg);
     transition: opacity 0.2s ease;
@@ -316,10 +358,10 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
 
   .project-card__img-wrap {
     position: relative;
-    aspect-ratio: 4 / 3;
+    aspect-ratio: 16 / 10;
     width: 100%;
     overflow: hidden;
-    border-radius: 8px;
+    border-radius: 6px;
     background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
   }
 
@@ -344,50 +386,51 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
   .project-card__details {
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    padding-block: 8px;
+    justify-content: flex-start;
+    gap: 8px;
+    height: 100%;
   }
 
-  .project-card__header {
+  .project-card__top {
     display: flex;
-    flex-direction: column;
-    gap: 6px;
+    align-items: center;
+    gap: 8px;
   }
 
   .project-card__cat {
     font-size: var(--_tokens---type--micro);
-    font-weight: 300;
+    font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--_tokens---color--muted);
   }
 
+  .project-card__tag-list {
+    font-size: var(--_tokens---type--micro);
+    font-weight: 300;
+    color: var(--_tokens---color--muted);
+  }
+
   .project-card__title {
-    font-size: var(--_tokens---type--medium);
-    font-weight: 500;
-    line-height: 1.1;
-    letter-spacing: -0.01em;
-  }
-
-  .project-card__intro {
     font-size: var(--_tokens---type--small);
-    line-height: 1.6;
-    max-width: 68ch;
-    margin-top: 4px;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    margin: 0;
   }
 
-  /* Metadata Grid */
+  /* Metadata Grid (Compact Single Line Values) */
   .project-card__meta-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px 24px;
-    margin-block: 24px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    margin-block: 4px;
   }
 
   .meta-item {
     display: flex;
-    flex-direction: column;
-    gap: 2px;
+    align-items: baseline;
+    gap: 6px;
   }
 
   .meta-label {
@@ -403,37 +446,31 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
     color: var(--_tokens---color--fg);
   }
 
-  .project-card__footer {
+  .project-card__bottom {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-end;
+    gap: 24px;
     margin-top: auto;
   }
 
-  .project-card__tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .project-card__tag-pill {
+  .project-card__intro {
     font-size: var(--_tokens---type--micro);
-    font-weight: 300;
-    padding: 4px 10px;
-    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
-    color: var(--_tokens---color--muted);
-    border-radius: 4px;
-    text-transform: capitalize;
+    line-height: 1.5;
+    max-width: 80ch;
+    margin: 0;
   }
 
   .project-card__arrow {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
-    opacity: 0.5;
+    width: 28px;
+    height: 28px;
+    opacity: 0.6;
+    color: var(--_tokens---color--fg);
     transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    flex-shrink: 0;
   }
 
   .project-card__link:hover .project-card__arrow {
@@ -446,66 +483,68 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
     height: 100%;
   }
 
-  /* Pagination styles */
+  /* Pagination styles - Dot buttons */
   .pagination-container {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 12px;
-    margin-top: 64px;
-    margin-bottom: 32px;
+    gap: 16px;
+    margin-top: 48px;
+    margin-bottom: 24px;
   }
 
-  .pagination-btn {
-    background: none;
+  .pagination-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
     border: none;
-    font-size: var(--_tokens---type--micro);
-    font-family: inherit;
-    font-weight: 500;
-    text-transform: uppercase;
-    color: var(--_tokens---color--muted);
+    background-color: var(--_tokens---color--muted);
     cursor: pointer;
-    padding: 8px 16px;
-    border-radius: 6px;
-    transition: background-color 0.2s, color 0.2s;
+    padding: 0;
+    transition: background-color 0.2s, transform 0.2s, opacity 0.2s;
+    opacity: 0.5;
   }
 
-  .pagination-btn:hover {
-    color: var(--_tokens---color--fg);
-    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
-  }
-
-  .pagination-btn.is-active {
-    color: var(--_tokens---color--bg);
+  .pagination-dot:hover {
     background-color: var(--_tokens---color--fg);
+    opacity: 1;
   }
 
-  .pagination-btn:disabled {
-    opacity: 0.25;
+  .pagination-dot.is-active {
+    background-color: var(--_tokens---color--fg);
+    transform: scale(1.3);
+    opacity: 1;
+  }
+
+  .pagination-dot:disabled {
+    opacity: 0.15;
     cursor: not-allowed;
   }
 
   @media (max-width: 900px) {
     .project-card__link {
-      grid-template-columns: 240px 1fr;
-      gap: 32px;
-    }
-    .project-card__meta-grid {
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: 180px 1fr;
+      gap: 24px;
     }
   }
 
   @media (max-width: 768px) {
+    .filter-bar {
+      flex-direction: column;
+      gap: 16px;
+    }
+    .project-card {
+      position: relative;
+      top: auto !important;
+      box-shadow: none;
+      border-top: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
+    }
     .project-card__link {
       grid-template-columns: 1fr;
-      gap: 20px;
+      gap: 16px;
     }
     .project-card__img-wrap {
       aspect-ratio: 16 / 9;
-    }
-    .project-card__meta-grid {
-      grid-template-columns: repeat(2, 1fr);
-      margin-block: 16px;
     }
     .project-card__details {
       padding-block: 0;
@@ -521,6 +560,9 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
   const countLabel = document.querySelector('.projects-count');
   const paginationContainer = document.getElementById('projects-pagination');
 
+  const catSelect = document.getElementById('cat-select') as HTMLSelectElement;
+  const tagSelect = document.getElementById('tag-select') as HTMLSelectElement;
+
   let searchQuery = '';
   let activeCat = '';
   let activeTag = '';
@@ -534,42 +576,17 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
     const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
     if (totalPages <= 1) return;
 
-    // Prev Button
-    const prevBtn = document.createElement('button');
-    prevBtn.className = 'pagination-btn';
-    prevBtn.textContent = 'Prev';
-    prevBtn.disabled = currentPage === 1;
-    prevBtn.addEventListener('click', () => {
-      currentPage--;
-      applyVisibility(matchingCards);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-    paginationContainer.appendChild(prevBtn);
-
-    // Page Number Buttons
     for (let i = 1; i <= totalPages; i++) {
-      const pageBtn = document.createElement('button');
-      pageBtn.className = `pagination-btn${i === currentPage ? ' is-active' : ''}`;
-      pageBtn.textContent = String(i);
-      pageBtn.addEventListener('click', () => {
+      const dot = document.createElement('button');
+      dot.className = `pagination-dot${i === currentPage ? ' is-active' : ''}`;
+      dot.setAttribute('aria-label', `Page ${i}`);
+      dot.addEventListener('click', () => {
         currentPage = i;
         applyVisibility(matchingCards);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       });
-      paginationContainer.appendChild(pageBtn);
+      paginationContainer.appendChild(dot);
     }
-
-    // Next Button
-    const nextBtn = document.createElement('button');
-    nextBtn.className = 'pagination-btn';
-    nextBtn.textContent = 'Next';
-    nextBtn.disabled = currentPage === totalPages;
-    nextBtn.addEventListener('click', () => {
-      currentPage++;
-      applyVisibility(matchingCards);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-    paginationContainer.appendChild(nextBtn);
   }
 
   function applyVisibility(matchingCards) {
@@ -593,6 +610,8 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
     matchingCards.forEach((card, idx) => {
       if (idx >= startIndex && idx < endIndex) {
         card.hidden = false;
+        // Dynamically compute the stacking index for visible cards on this page
+        card.style.setProperty('--card-index', String(idx - startIndex));
       } else {
         card.hidden = true;
       }
@@ -657,37 +676,28 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
     applyFilter();
   });
 
-  // Pills filter listeners
-  document.querySelectorAll('#cat-filter .filter-pill').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('#cat-filter .filter-pill').forEach(b => b.classList.remove('is-active'));
-      btn.classList.add('is-active');
-      activeCat = (btn as HTMLElement).dataset.filter ?? '';
-      currentPage = 1;
-      applyFilter();
-    });
+  // Select dropdown filter listeners
+  catSelect?.addEventListener('change', (e) => {
+    activeCat = (e.target as HTMLSelectElement).value;
+    currentPage = 1;
+    applyFilter();
   });
 
-  document.querySelectorAll('#tag-filter .filter-pill').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('#tag-filter .filter-pill').forEach(b => b.classList.remove('is-active'));
-      btn.classList.add('is-active');
-      activeTag = (btn as HTMLElement).dataset.filter ?? '';
-      currentPage = 1;
-      applyFilter();
-    });
+  tagSelect?.addEventListener('change', (e) => {
+    activeTag = (e.target as HTMLSelectElement).value;
+    currentPage = 1;
+    applyFilter();
   });
 
-  // Clear search and pills trigger
+  // Clear search and selects trigger
   clearBtn?.addEventListener('click', () => {
     if (searchInput) searchInput.value = '';
+    if (catSelect) catSelect.value = '';
+    if (tagSelect) tagSelect.value = '';
     searchQuery = '';
     activeCat = '';
     activeTag = '';
     currentPage = 1;
-    document.querySelectorAll('.filter-pill').forEach(pill => {
-      pill.classList.toggle('is-active', (pill as HTMLElement).dataset.filter === '');
-    });
     applyFilter();
   });
 
