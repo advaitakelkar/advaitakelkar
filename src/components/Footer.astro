@@ -42,7 +42,8 @@ const sorted = [...allProjects].sort((a, b) => {
   </div>
   <p class="home-search__count" id="qs-count" aria-live="polite"></p>
   
-  <!-- Pill/bubble search CMS interface -->
+  <!-- Pill/bubble search CMS interface — single looping marquee row -->
+  <div class="qs-marquee" id="qs-marquee">
   <div class="proj-bubbles" id="qs-grid" role="list" style="margin-top: 28px; border-top: none; padding-top: 0;">
     {sorted.map(p => {
       const tagsArr = (p.data.tags ?? []).map(t => tagMap[t.id] || t.id);
@@ -127,6 +128,7 @@ const sorted = [...allProjects].sort((a, b) => {
         <polyline points="10 6 18 6 18 14"></polyline>
       </svg>
     </a>
+  </div>
   </div>
 </footer>
 
@@ -239,13 +241,40 @@ const sorted = [...allProjects].sort((a, b) => {
     margin-bottom: 24px;
   }
 
-  /* ── Pill/bubble search CMS interface ── */
+  /* ── Pill/bubble search — single looping marquee row ── */
+  .qs-marquee {
+    width: 100%;
+    overflow: hidden;
+    /* soft fade at both ends */
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 3%, #000 97%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0%, #000 3%, #000 97%, transparent 100%);
+  }
+
+  /* The moving track: one row, never wraps, auto-scrolls and loops (holds 2× pills) */
   .proj-bubbles {
     display: flex !important;
     flex-direction: row !important;
-    flex-wrap: wrap !important;
+    flex-wrap: nowrap !important;
+    width: max-content;
     gap: 7px !important;
-    transition: opacity 0.25s ease;
+    align-items: center;
+    animation: qs-marquee 90s linear infinite;
+    will-change: transform;
+  }
+
+  /* Pause while hovering or searching so a pill can grow / be read without moving the row */
+  .qs-marquee:hover .proj-bubbles,
+  .proj-bubbles.is-paused {
+    animation-play-state: paused;
+  }
+
+  @keyframes qs-marquee {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); } /* 2× content → one full loop */
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .proj-bubbles { animation: none; }
   }
 
   .proj-bubble {
@@ -346,33 +375,44 @@ const sorted = [...allProjects].sort((a, b) => {
   function initQuickSearch() {
     const footer = document.querySelector('.home-search-footer');
     if (!footer) return;
-    const grid     = footer.querySelector('#qs-grid');
+    const grid     = footer.querySelector('#qs-grid') as HTMLElement | null;
     const input    = footer.querySelector('#qs-input') as HTMLInputElement | null;
     const clearBtn = footer.querySelector('#qs-clear');
     const count    = footer.querySelector('#qs-count');
-    if (!grid) return;
-    
-    // Shuffle the project and admin bubbles on load to display a randomized order
-    const bubbles  = Array.from(grid.querySelectorAll('.proj-bubble')) as HTMLElement[];
-    for (let i = bubbles.length - 1; i > 0; i--) {
+    if (!grid || grid.dataset.qsInit) return;  // guard against double-init on the same DOM
+    grid.dataset.qsInit = '1';
+
+    // Shuffle the original pills, then duplicate them so the marquee can loop seamlessly
+    const originals = Array.from(grid.querySelectorAll('.proj-bubble')) as HTMLElement[];
+    for (let i = originals.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      const temp = bubbles[i];
-      bubbles[i] = bubbles[j];
-      bubbles[j] = temp;
+      const t = originals[i]; originals[i] = originals[j]; originals[j] = t;
     }
-    bubbles.forEach(bubble => grid.appendChild(bubble));
+    originals.forEach(b => grid.appendChild(b));
+    // second identical copy → translateX(-50%) loops with no seam
+    originals.forEach(b => {
+      const clone = b.cloneNode(true) as HTMLElement;
+      clone.setAttribute('aria-hidden', 'true');
+      clone.setAttribute('tabindex', '-1');
+      clone.dataset.clone = '1';
+      grid.appendChild(clone);
+    });
+
+    const total = originals.length;
+
+    function setPaused(p: boolean) { grid!.classList.toggle('is-paused', p); }
 
     function render(query: string) {
       const q = query.trim().toLowerCase();
       const keywords = q.split(/\s+/).filter(Boolean);
-      let matchCount = 0;
+      grid!.classList.toggle('has-search', keywords.length > 0);
 
-      grid.classList.toggle('has-search', keywords.length > 0);
-
-      bubbles.forEach(el => {
+      const matched = new Set<string>();
+      const all = Array.from(grid!.querySelectorAll('.proj-bubble')) as HTMLElement[];
+      all.forEach(el => {
         if (!keywords.length) {
           el.classList.remove('is-match');
-          el.classList.remove('is-tag-reveal'); // collapse the tag again
+          el.classList.remove('is-tag-reveal');
           return;
         }
         const hay = [
@@ -382,33 +422,32 @@ const sorted = [...allProjects].sort((a, b) => {
 
         const isMatch = keywords.every(kw => hay.includes(kw));
         el.classList.toggle('is-match', isMatch);
-        if (isMatch) matchCount++;
+        if (isMatch && el.dataset.name) matched.add(el.dataset.name);
 
-        // Grow the pill to reveal its tag when the search is hitting the tag
-        // (≥3 letters of the visible tag typed) — dynamic, per the word searched.
+        // Grow the pill to reveal its tag when the search hits the tag (≥3 letters)
         const tagText = (el.querySelector('.proj-bubble__tag')?.textContent || '').toLowerCase();
         const tagReveal = isMatch && keywords.some(kw => kw.length >= 3 && tagText.includes(kw));
         el.classList.toggle('is-tag-reveal', tagReveal);
       });
 
       if (count) {
-        if (q) {
-          count.textContent = `Results ${bubbles.length}   Showing Items 1 to ${matchCount} of ${bubbles.length}`;
-        } else {
-          count.textContent = `Results ${bubbles.length}   Showing all items`;
-        }
+        count.textContent = q
+          ? `Results ${total}   Showing Items 1 to ${matched.size} of ${total}`
+          : `Results ${total}   Showing all items`;
       }
     }
 
     render('');
 
+    // Pause the marquee while the search is focused or has a query
+    input?.addEventListener('focus', () => setPaused(true));
+    input?.addEventListener('blur',  () => { if (!input.value.trim()) setPaused(false); });
+
     input?.addEventListener('input', () => {
       render(input.value);
-      if (input.value.trim()) {
-        input.classList.add('is-active');
-      } else {
-        input.classList.remove('is-active');
-      }
+      const active = !!input.value.trim();
+      input.classList.toggle('is-active', active);
+      setPaused(active || document.activeElement === input);
     });
 
     clearBtn?.addEventListener('click', () => {
@@ -416,6 +455,7 @@ const sorted = [...allProjects].sort((a, b) => {
         input.value = '';
         input.classList.remove('is-active');
         render('');
+        setPaused(document.activeElement === input);
         input.focus();
       }
     });
