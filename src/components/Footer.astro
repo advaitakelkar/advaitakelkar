@@ -246,9 +246,9 @@ const sorted = [...allProjects].sort((a, b) => {
     flex-wrap: nowrap;
     gap: 7px;
     --qs-shift: 0px;            /* shared shift; all rows move together */
-    /* soft fade at both horizontal ends */
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 2.5%, #000 97.5%, transparent 100%);
-    mask-image: linear-gradient(to right, transparent 0%, #000 2.5%, #000 97.5%, transparent 100%);
+    /* soft fade at the right horizontal end only */
+    -webkit-mask-image: linear-gradient(to right, #000 0%, #000 95%, transparent 100%);
+    mask-image: linear-gradient(to right, #000 0%, #000 95%, transparent 100%);
   }
 
   /* Each visual row clips its overflow; never wraps */
@@ -389,24 +389,30 @@ const sorted = [...allProjects].sort((a, b) => {
     const setShift = (px: number) => g.style.setProperty('--qs-shift', px + 'px');
     const curShift = () => parseFloat(getComputedStyle(g).getPropertyValue('--qs-shift')) || 0;
 
-    // Group the pills into visual rows (by wrap position), then make each row a
-    // clipped, horizontally-shiftable track with a duplicate copy for seamless looping.
+    // Group the pills into visual rows by distributing them evenly into a balanced number of rows
+    // based on the container width, ensuring all rows are perfectly aligned in a straight line.
     function buildRows() {
       setShift(0);
       g.querySelectorAll('.qs-row').forEach(r => r.remove());
       originals.forEach(p => g.appendChild(p));        // flatten
-      g.style.flexDirection = 'row';                   // measure natural wrapping
-      g.style.flexWrap = 'wrap';
-      const groups: HTMLElement[][] = [];
-      let cur: HTMLElement[] = []; let last: number | null = null;
-      originals.forEach(p => {
-        const t = p.offsetTop;
-        if (last === null || Math.abs(t - last) <= 6) cur.push(p);
-        else { groups.push(cur); cur = [p]; }
-        last = t;
+      g.style.flexDirection = 'row';                   // temporarily lay out in row to measure natural width
+
+      // Measure natural width of each element
+      const widths = originals.map(p => p.getBoundingClientRect().width || 120);
+      g.style.flexDirection = '';                      // reset to column
+
+      const totalWidth = widths.reduce((sum, w) => sum + w, 0);
+      const containerWidth = g.getBoundingClientRect().width || window.innerWidth;
+
+      // Calculate a balanced number of rows based on container width
+      // We cap the rows between 3 and 9 to keep it compact and aesthetic
+      const numRows = Math.min(9, Math.max(3, Math.ceil(totalWidth / (containerWidth - 40))));
+
+      const groups: HTMLElement[][] = Array.from({ length: numRows }, () => []);
+      originals.forEach((p, idx) => {
+        groups[idx % numRows].push(p);
       });
-      if (cur.length) groups.push(cur);
-      g.style.flexDirection = ''; g.style.flexWrap = ''; // back to column of rows
+
       groups.forEach(grp => {
         const row = document.createElement('div'); row.className = 'qs-row';
         const track = document.createElement('div'); track.className = 'qs-row__track';
