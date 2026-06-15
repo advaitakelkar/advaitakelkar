@@ -20,11 +20,11 @@ function pageName(path: string): string {
 
 const barLabel = `INDEX / ${pageName(currentPath)}`;
 
-// Fetch 5 most recent projects
+// Fetch all projects for the infinite scroll wheel
 const allProjects = await getCollection('projects');
-const recentProjects = allProjects
-  .sort((a, b) => parseInt(b.data.year) - parseInt(a.data.year))
-  .slice(0, 5);
+const wheelProjects = [...allProjects].sort(
+  (a, b) => parseInt(b.data.year ?? '0') - parseInt(a.data.year ?? '0')
+);
 
 // Color schemes for dropdown
 const schemes = [
@@ -84,88 +84,87 @@ const schemes = [
       <span></span>
     </div>
 
-    <!-- Vertical label (bottom) -->
-    <span class="sn-bar__label" id="sn-bar-label">{barLabel}</span>
+    <!-- Vertical label (bottom): index / current page -->
+    <span class="sn-bar__label" id="sn-bar-label"><span class="sn-bar__label-index">index</span><span class="sn-bar__label-page"> / {pageName(currentPath)}</span></span>
   </div>
 
   <!-- ── Slide-in panel ── -->
   <div class="sn-panel" id="sn-panel" aria-hidden="true">
 
-    <div class="sn-panel__header">
-      <p class="sn-panel__name">Advaita Kelkar</p>
-      <p class="sn-panel__bio">Hey! 👋 Advaita here — architectural designer from Mumbai 🇮🇳, currently at SCAD in Savannah 🌿. I work across architecture, interiors, urban design 🏙️ and everything in between ✨. Always curious, always making. When not designing you'll find me chasing good chai ☕, sketching street scenes ✏️, or lost in a book 📖. Glad you're here! 🙌</p>
-    </div>
+    <!-- Top: identity + main nav -->
+    <div class="sn-panel__top">
+      <div class="sn-panel__header">
+        <p class="sn-panel__name" data-scramble>Advaita Kelkar</p>
+        <p class="sn-panel__bio">Hey! 👋 Advaita here — architectural designer from Mumbai 🇮🇳, currently at SCAD in Savannah 🌿. I work across architecture, interiors, urban design 🏙️ and everything in between ✨. Always curious, always making. Glad you're here! 🙌</p>
+      </div>
 
-    <nav class="sn-panel__nav" aria-label="Site navigation">
-      <a href="/" class:list={['sn-panel__link', currentPath === '/' && 'is-active']}>
-        <span data-scramble>Home</span>
-        <span class="sn-panel__arrow">
-          <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
-            <line x1="6" y1="18" x2="18" y2="6"></line>
-            <polyline points="10 6 18 6 18 14"></polyline>
-          </svg>
-        </span>
-      </a>
-      <a href="/about" class:list={['sn-panel__link', currentPath === '/about' && 'is-active']}>
-        <span data-scramble>About Me</span>
-        <span class="sn-panel__arrow">
-          <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
-            <line x1="6" y1="18" x2="18" y2="6"></line>
-            <polyline points="10 6 18 6 18 14"></polyline>
-          </svg>
-        </span>
-      </a>
-      <a href="/projects" class:list={['sn-panel__link', currentPath.startsWith('/projects') && 'is-active']}>
-        <span data-scramble>Projects</span>
-        <span class="sn-panel__arrow">
-          <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
-            <line x1="6" y1="18" x2="18" y2="6"></line>
-            <polyline points="10 6 18 6 18 14"></polyline>
-          </svg>
-        </span>
-      </a>
-    </nav>
-
-    <div class="sn-panel__section">
-      <p class="sn-panel__section-label">Recent Projects</p>
-      <nav class="sn-panel__secondary-nav">
-        {recentProjects.map(p => (
-          <a href={`/projects/${p.id}`} class="sn-panel__secondary-link">
-            <span data-scramble>{p.data.name}</span>
-            <span class="sn-panel__arrow">
-              <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
-                <line x1="6" y1="18" x2="18" y2="6"></line>
-                <polyline points="10 6 18 6 18 14"></polyline>
-              </svg>
-            </span>
-          </a>
-        ))}
+      <nav class="sn-panel__nav" aria-label="Site navigation">
+        <a href="/" class:list={['sn-panel__link', currentPath === '/' && 'is-active']}>
+          <span data-scramble>Home</span>
+          <span class="sn-panel__arrow">
+            <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+              <line x1="6" y1="18" x2="18" y2="6"></line>
+              <polyline points="10 6 18 6 18 14"></polyline>
+            </svg>
+          </span>
+        </a>
+        <a href="/about" class:list={['sn-panel__link', currentPath === '/about' && 'is-active']}>
+          <span data-scramble>About Me</span>
+          <span class="sn-panel__arrow">
+            <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+              <line x1="6" y1="18" x2="18" y2="6"></line>
+              <polyline points="10 6 18 6 18 14"></polyline>
+            </svg>
+          </span>
+        </a>
+        <a href="/projects" class:list={['sn-panel__link', currentPath.startsWith('/projects') && 'is-active']}>
+          <span data-scramble>Projects</span>
+          <span class="sn-panel__arrow">
+            <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+              <line x1="6" y1="18" x2="18" y2="6"></line>
+              <polyline points="10 6 18 6 18 14"></polyline>
+            </svg>
+          </span>
+        </a>
       </nav>
     </div>
 
-    <div class="sn-panel__section">
-      <p class="sn-panel__section-label">Contact</p>
-      <div class="sn-panel__secondary-nav">
-        <span class="sn-panel__email">advaitakelkar@gmail.com</span>
-        <a href="https://linkedin.com/in/advaitakelkar" class="sn-panel__secondary-link" target="_blank" rel="noopener">
-          <span>LinkedIn</span>
-          <span class="sn-panel__arrow">
-            <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
-              <line x1="6" y1="18" x2="18" y2="6"></line>
-              <polyline points="10 6 18 6 18 14"></polyline>
-            </svg>
-          </span>
-        </a>
-        <a href="https://instagram.com/advaitakelkar" class="sn-panel__secondary-link" target="_blank" rel="noopener">
-          <span>Instagram</span>
-          <span class="sn-panel__arrow">
-            <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
-              <line x1="6" y1="18" x2="18" y2="6"></line>
-              <polyline points="10 6 18 6 18 14"></polyline>
-            </svg>
-          </span>
-        </a>
-        <a href="https://behance.net/advaitakelkar" class="sn-panel__secondary-link" target="_blank" rel="noopener">
+    <!-- Center: infinite, scrollable project wheel -->
+    <div class="sn-panel__wheel" id="sn-wheel">
+      <div class="sn-wheel__track" id="sn-wheel-track">
+        {[0, 1, 2].map(() => (
+          wheelProjects.map(p => (
+            <a href={`/projects/${p.id}`} class="sn-wheel__item">
+              <span data-scramble>{p.data.name}</span>
+              <span class="sn-panel__arrow">
+                <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+                  <line x1="6" y1="18" x2="18" y2="6"></line>
+                  <polyline points="10 6 18 6 18 14"></polyline>
+                </svg>
+              </span>
+            </a>
+          ))
+        ))}
+      </div>
+    </div>
+
+    <!-- Bottom: contact -->
+    <div class="sn-panel__contact">
+      <div class="sn-panel__email" id="sn-email-box" role="button" tabindex="0" aria-label="Copy email address">
+        <span class="sn-panel__email-text">advaitakelkar@gmail.com</span>
+        <span class="sn-panel__copy" aria-hidden="true">
+          <svg class="sn-copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          <svg class="sn-check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </span>
+      </div>
+
+      <nav class="sn-panel__social" aria-label="Social links">
+        <a href="https://behance.net/advaitakelkar" class="sn-panel__link sn-panel__link--social" target="_blank" rel="noopener">
           <span>Behance</span>
           <span class="sn-panel__arrow">
             <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
@@ -174,7 +173,25 @@ const schemes = [
             </svg>
           </span>
         </a>
-      </div>
+        <a href="https://instagram.com/advaitakelkar" class="sn-panel__link sn-panel__link--social" target="_blank" rel="noopener">
+          <span>Instagram</span>
+          <span class="sn-panel__arrow">
+            <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+              <line x1="6" y1="18" x2="18" y2="6"></line>
+              <polyline points="10 6 18 6 18 14"></polyline>
+            </svg>
+          </span>
+        </a>
+        <a href="https://linkedin.com/in/advaitakelkar" class="sn-panel__link sn-panel__link--social" target="_blank" rel="noopener">
+          <span>LinkedIn</span>
+          <span class="sn-panel__arrow">
+            <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+              <line x1="6" y1="18" x2="18" y2="6"></line>
+              <polyline points="10 6 18 6 18 14"></polyline>
+            </svg>
+          </span>
+        </a>
+      </nav>
     </div>
 
   </div>
@@ -261,59 +278,57 @@ const schemes = [
   }
 
   .sn-scheme__btn {
-    width: 26px;
-    height: 26px;
+    width: 38px;
+    height: 38px;
     border-radius: 50%;
-    border: 1.5px solid var(--_tokens---color--fg);
+    border: none; /* minimal — no border */
     background: transparent;
     cursor: pointer;
     padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: border-color 0.2s, transform 0.15s;
+    transition: transform 0.15s;
   }
 
-  .sn-scheme__btn:hover {
-    transform: scale(1.1);
-  }
+  .sn-scheme__btn:hover { transform: scale(1.1); }
 
-  /* Half-fill indicator showing current scheme */
+  /* Half-fill indicator showing current scheme — borderless */
   .sn-scheme__indicator {
-    width: 14px;
-    height: 14px;
+    width: 30px;
+    height: 30px;
     border-radius: 50%;
     background: linear-gradient(to right,
       var(--_tokens---color--fg) 50%,
-      transparent 50%
+      color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent) 50%
     );
   }
 
-  /* Dropdown panel */
+  /* Dropdown — drops linearly DOWN inside the index bar, icons stacked one below the other */
   .sn-scheme__dropdown {
-    position: fixed;
-    top: auto;
-    left: 54px;
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 50%;
     width: auto;
-    background-color: var(--_tokens---color--bg);
+    background: transparent;
     border: none;
-    border-radius: 12px;
-    padding: 12px;
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 8px;
+    border-radius: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 9px;
     opacity: 0;
     pointer-events: none;
-    transform: translateX(-6px);
+    transform: translateX(-50%) translateY(-6px);
     transition: opacity 0.2s ease, transform 0.2s ease;
     z-index: 300;
-    box-shadow: 0 12px 40px rgba(0,0,0,0.15);
   }
 
   .sn-scheme__dropdown.is-open {
     opacity: 1;
     pointer-events: all;
-    transform: translateX(0);
+    transform: translateX(-50%) translateY(0);
   }
 
   .sn-scheme__option {
@@ -322,34 +337,32 @@ const schemes = [
     background: transparent;
     cursor: pointer;
     padding: 0;
-    border-radius: 8px;
+    border-radius: 50%;
     transition: transform 0.15s;
   }
 
-  .sn-scheme__option:hover {
-    transform: scale(1.1);
-  }
+  .sn-scheme__option:hover { transform: scale(1.18); }
 
   .sn-scheme__option.is-active .sn-scheme__swatch {
-    outline: 2px solid var(--_tokens---color--fg);
+    outline: 1.5px solid var(--_tokens---color--fg);
     outline-offset: 2px;
   }
 
-  /* Color swatch — full button, no text */
+  /* Color swatch — small circular dot, no border (minimal) */
   .sn-scheme__swatch {
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid rgba(128,128,128,0.15);
+    border: none;
   }
 
   .sn-scheme__swatch-fg {
-    width: 10px;
-    height: 10px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     flex-shrink: 0;
   }
@@ -390,20 +403,33 @@ const schemes = [
     transform: translateY(-3.25px) rotate(-45deg);
   }
 
-  /* ── Vertical label (bottom) ── */
+  /* ── Vertical label (bottom): index / current page ── */
   .sn-bar__label {
     writing-mode: vertical-rl;
     text-orientation: mixed;
     transform: rotate(180deg);
-    font-size: var(--_tokens---type--micro);
-    font-weight: 300;
-    letter-spacing: 0.12em;
-    text-transform: none;
-    color: var(--_tokens---color--muted);
     margin-top: auto;
     pointer-events: none;
-    transition: color 0.3s ease;
     white-space: nowrap;
+    text-transform: none;
+    letter-spacing: 0.04em;
+    transition: color 0.3s ease;
+  }
+
+  /* "index" — larger (medium-leaning), medium weight */
+  .sn-bar__label-index {
+    font-size: clamp(1.25rem, 1.8vw, 1.7rem);
+    font-weight: 500;
+    color: var(--_tokens---color--fg);
+    vertical-align: middle;
+  }
+
+  /* "/ page" — small, regular */
+  .sn-bar__label-page {
+    font-size: var(--_tokens---type--small);
+    font-weight: 400;
+    color: var(--_tokens---color--muted);
+    vertical-align: middle;
   }
 
   /* ── Slide-in panel ── */
@@ -418,14 +444,11 @@ const schemes = [
     flex-direction: column;
     gap: 0;
     padding: 0;
-    overflow-y: auto;
+    overflow: hidden; /* the wheel scrolls internally */
     transform: translateX(-100%);
     transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     z-index: 200;
     pointer-events: none;
-    /* Custom scrollbar */
-    scrollbar-width: thin;
-    scrollbar-color: var(--_tokens---color--line) transparent;
   }
 
   .sn-panel.is-open {
@@ -433,49 +456,54 @@ const schemes = [
     pointer-events: all;
   }
 
-  /* ── Panel inner padding wrapper ── */
+  /* ── Top block: identity + nav ── */
+  .sn-panel__top { flex-shrink: 0; }
+
   .sn-panel__header {
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    padding: var(--_tokens---space--small) var(--_tokens---space--small) 16px;
+    gap: 8px;
+    padding: var(--_tokens---space--small) var(--_tokens---space--small) 0;
   }
 
+  /* Name — micro, bold */
   .sn-panel__name {
-    font-size: var(--_tokens---type--medium);
-    font-weight: 500;
-    letter-spacing: -0.02em;
+    font-size: var(--_tokens---type--micro);
+    font-weight: 700;
+    letter-spacing: 0.01em;
     color: var(--_tokens---color--fg);
     margin: 0;
   }
 
+  /* Bio — micro */
   .sn-panel__bio {
-    font-size: var(--_tokens---type--small);
-    line-height: 1.7;
+    font-size: var(--_tokens---type--micro);
+    line-height: 1.55;
     color: var(--_tokens---color--muted);
     margin: 0;
   }
 
-  /* ── Main nav section ── */
+  /* Main nav — tight, after a small spacer */
   .sn-panel__nav {
     display: flex;
     flex-direction: column;
-    padding: 24px var(--_tokens---space--small) 32px;
-    gap: 8px;
+    padding: 0 var(--_tokens---space--small);
+    margin-top: 20px; /* small spacer */
+    gap: 0;
   }
 
   .sn-panel__link {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     justify-content: space-between;
-    font-size: var(--_tokens---type--medium);
+    font-size: var(--_tokens---type--small);
     font-weight: 500;
     line-height: 1.1;
     color: var(--_tokens---color--fg);
     text-decoration: none;
-    padding: 8px 0;
+    padding: 3px 0; /* tightly spaced */
     transition: opacity 0.15s ease, transform 0.2s ease;
-    opacity: 0.6;
+    opacity: 0.65;
     white-space: nowrap;
     gap: 12px;
   }
@@ -486,57 +514,113 @@ const schemes = [
     transform: translateX(4px);
   }
 
-  /* ── Sub sections (Recent Projects, Contact) ── */
-  .sn-panel__section {
+  /* ── Center: infinite project wheel ── */
+  .sn-panel__wheel {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    margin: 14px 0;
+    padding-inline: var(--_tokens---space--small);
+    /* fade (grey out) items away from the centre */
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 24%, #000 76%, transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0%, #000 24%, #000 76%, transparent 100%);
+  }
+
+  .sn-panel__wheel::-webkit-scrollbar { display: none; }
+
+  .sn-wheel__track {
     display: flex;
     flex-direction: column;
-    padding: 24px var(--_tokens---space--small) 32px;
-    gap: 0;
   }
 
-  .sn-panel__section-label {
-    font-size: var(--_tokens---type--micro);
-    font-weight: 300;
-    letter-spacing: 0.1em;
-    text-transform: none;
-    color: var(--_tokens---color--muted);
-    margin: 0 0 16px 0;
-  }
-
-  .sn-panel__secondary-nav {
+  .sn-wheel__item {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .sn-panel__secondary-link {
-    display: flex;
-    align-items: baseline;
+    align-items: center;
     justify-content: space-between;
     font-size: var(--_tokens---type--small);
     font-weight: 400;
     line-height: 1.2;
     color: var(--_tokens---color--fg);
     text-decoration: none;
-    padding: 6px 0;
-    transition: opacity 0.15s ease, transform 0.2s ease;
-    opacity: 0.7;
-    white-space: nowrap;
+    padding: 5px 0;
     gap: 12px;
+    opacity: 0.85;
+    white-space: nowrap;
+    transition: opacity 0.15s ease, transform 0.2s ease;
   }
 
-  .sn-panel__secondary-link:hover {
+  .sn-wheel__item:hover {
     opacity: 1;
     transform: translateX(4px);
   }
 
+  /* ── Bottom: contact ── */
+  .sn-panel__contact {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px var(--_tokens---space--small) var(--_tokens---space--small);
+  }
+
+  /* Email — greyed box with copy icon */
   .sn-panel__email {
-    font-size: var(--_tokens---type--small);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 7%, transparent);
+    border-radius: 8px;
+    padding: 9px 12px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+
+  .sn-panel__email:hover {
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 11%, transparent);
+  }
+
+  .sn-panel__email-text {
+    font-size: var(--_tokens---type--micro);
     font-weight: 400;
-    color: var(--_tokens---color--muted);
-    padding: 0 0 12px 0;
-    display: block;
+    color: var(--_tokens---color--fg);
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .sn-panel__copy {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    color: var(--_tokens---color--muted);
+    position: relative;
+  }
+
+  .sn-panel__copy svg {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    inset: 0;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .sn-copy-icon { opacity: 1; }
+  .sn-check-icon { opacity: 0; transform: scale(0.6); color: var(--_tokens---color--fg); }
+  .sn-panel__email.is-copied .sn-copy-icon { opacity: 0; }
+  .sn-panel__email.is-copied .sn-check-icon { opacity: 1; transform: scale(1); }
+
+  /* Social links — same size as main nav */
+  .sn-panel__social {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    gap: 0;
   }
 
   .sn-panel__arrow {
@@ -556,7 +640,7 @@ const schemes = [
   }
 
   .sn-panel__link:hover .sn-panel__arrow,
-  .sn-panel__secondary-link:hover .sn-panel__arrow {
+  .sn-wheel__item:hover .sn-panel__arrow {
     transform: translate(2px, -2px);
     opacity: 1;
   }
@@ -704,9 +788,6 @@ const schemes = [
     schemeOpen = true;
     schemeBtn.setAttribute('aria-expanded', 'true');
     dropdown.classList.add('is-open');
-    // Position dropdown vertically near the button
-    const rect = schemeBtn.getBoundingClientRect();
-    dropdown.style.top = `${Math.max(8, rect.top - 8)}px`;
     updateActiveOption();
   }
 
@@ -743,4 +824,37 @@ const schemes = [
     document.documentElement.classList.add(saved);
   }
   updateActiveOption();
+
+  // ── Infinite project wheel ─────────────────────────────────
+  const wheel = document.getElementById('sn-wheel');
+  const wheelTrack = document.getElementById('sn-wheel-track');
+  if (wheel && wheelTrack) {
+    const oneCopyHeight = () => wheelTrack.scrollHeight / 3;
+    // start in the middle copy so it can loop both directions
+    requestAnimationFrame(() => { wheel.scrollTop = oneCopyHeight(); });
+    let ticking = false;
+    wheel.addEventListener('scroll', () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const h = oneCopyHeight();
+        if (h > 0) {
+          if (wheel.scrollTop < h * 0.5) wheel.scrollTop += h;
+          else if (wheel.scrollTop > h * 1.5) wheel.scrollTop -= h;
+        }
+        ticking = false;
+      });
+    }, { passive: true });
+  }
+
+  // ── Copy email to clipboard ────────────────────────────────
+  const emailBox = document.getElementById('sn-email-box');
+  emailBox?.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText('advaitakelkar@gmail.com'); } catch (_) {}
+    emailBox.classList.add('is-copied');
+    setTimeout(() => emailBox.classList.remove('is-copied'), 1500);
+  });
+  emailBox?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (emailBox as HTMLElement).click(); }
+  });
 </script>
