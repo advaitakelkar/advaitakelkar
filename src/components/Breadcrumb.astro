@@ -517,7 +517,7 @@ if (activeProject) {
     padding: 5px 10px;
     border-radius: 999px;
     border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
-    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    background-color: var(--_tokens---color--bg);
     color: var(--_tokens---color--muted);
     font-family: inherit;
     font-size: 9px;
@@ -603,8 +603,15 @@ if (activeProject) {
   /* Predictive Search Highlighting & Sorting rules */
   .breadcrumb__dropdown-panel.has-search .breadcrumb__cat-item:not(.is-match),
   .breadcrumb__dropdown-panel.has-search .breadcrumb__proj-item:not(.is-match) {
-    opacity: 0.15;
+    background-color: var(--_tokens---color--bg);
+    border-color: color-mix(in srgb, var(--_tokens---color--fg) 4%, transparent);
+    color: color-mix(in srgb, var(--_tokens---color--muted) 25%, transparent);
     pointer-events: none;
+  }
+
+  .breadcrumb__dropdown-panel.has-search .breadcrumb__cat-item:not(.is-match) .breadcrumb__arrow-icon,
+  .breadcrumb__dropdown-panel.has-search .breadcrumb__proj-item:not(.is-match) .breadcrumb__arrow-icon {
+    opacity: 0.15;
   }
 
   .breadcrumb__dropdown-panel.has-search .breadcrumb__cat-item.is-match,
@@ -680,6 +687,10 @@ if (activeProject) {
         activateCategory('all');
         panel.classList.add('has-search');
         
+        // Clear all matches first
+        projItems.forEach(el => el.classList.remove('is-match'));
+        catItems.forEach(el => el.classList.remove('is-match'));
+        
         let hasMatches = false;
         projItems.forEach(el => {
           const nameText = el.querySelector('.breadcrumb__proj-name')?.textContent || el.textContent || '';
@@ -687,16 +698,6 @@ if (activeProject) {
           if (matches) {
             el.classList.add('is-match');
             hasMatches = true;
-            
-            const catId = el.getAttribute('data-cat-id');
-            if (catId) {
-              const catBtn = dropdown.querySelector(`.breadcrumb__cat-item[data-cat-id="${catId}"]`);
-              if (catBtn) {
-                catBtn.classList.add('is-match');
-              }
-            }
-          } else {
-            el.classList.remove('is-match');
           }
         });
         
@@ -705,8 +706,6 @@ if (activeProject) {
           if (allCatBtn) {
             allCatBtn.classList.add('is-match');
           }
-        } else {
-          dropdown.querySelectorAll('.breadcrumb__cat-item').forEach(el => el.classList.remove('is-match'));
         }
       });
     }
