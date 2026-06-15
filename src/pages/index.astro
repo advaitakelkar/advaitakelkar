@@ -36,10 +36,13 @@ const featured = allProjects
             This digital platform serves as the comprehensive, living archive of Advaita Kelkar’s multidisciplinary design practice. It is designed to function as a singular, unified ecosystem that seamlessly integrates a diverse and expansive body of work. Here, projects spanning across architecture, interior environments, physical sculpture, graphic design, product innovation, and fine art are not treated as isolated endeavors, but rather as interconnected expressions of a singular creative vision.
           </p>
         </div>
-        <div class="home-intro__column">
-          <p class="home-intro__desc">
-            Rather than compartmentalizing these various creative fields into rigid categories, this archive encourages fluid exploration. It invites visitors to navigate freely across different disciplines, uncovering the subtle threads and underlying dialogues that connect them. Through this unstructured journey, one can trace how foundational principles of form, tactile material choices, and core conceptual intentions recur, evolve, and echo from one project to the next.
-          </p>
+        <div class="home-intro__column home-intro__column--collapsible">
+          <div class="home-intro__collapsed-content" id="intro-collapsed-content">
+            <p class="home-intro__desc">
+              Rather than compartmentalizing these various creative fields into rigid categories, this archive encourages fluid exploration. It invites visitors to navigate freely across different disciplines, uncovering the subtle threads and underlying dialogues that connect them. Through this unstructured journey, one can trace how foundational principles of form, tactile material choices, and core conceptual intentions recur, evolve, and echo from one project to the next.
+            </p>
+          </div>
+          <button class="intro-read-more-btn" id="intro-read-more-btn" type="button">Read More</button>
         </div>
         <div class="home-intro__column">
           <p class="home-intro__desc">
@@ -176,6 +179,25 @@ const featured = allProjects
     triggerTaglineScramble();
   }
   document.addEventListener('astro:after-swap', triggerTaglineScramble);
+
+  // ── Introduction Read More Toggle ──────────────────────────
+  function setupIntroToggle() {
+    const introReadMoreBtn = document.getElementById('intro-read-more-btn');
+    const collapsibleCol = introReadMoreBtn?.closest('.home-intro__column--collapsible');
+    introReadMoreBtn?.addEventListener('click', () => {
+      if (collapsibleCol && introReadMoreBtn) {
+        const isExpanded = collapsibleCol.classList.toggle('is-expanded');
+        introReadMoreBtn.textContent = isExpanded ? 'Read Less' : 'Read More';
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupIntroToggle);
+  } else {
+    setupIntroToggle();
+  }
+  document.addEventListener('astro:after-swap', setupIntroToggle);
 </script>
 
 <style>
@@ -331,8 +353,9 @@ const featured = allProjects
     gap: 32px;
     flex: 1;
     min-height: 200px;
-    align-items: center;
+    align-items: flex-start; /* Align slides closer to the dots */
     position: relative;
+    padding-top: 4px;
   }
 
   .home-slider__track::-webkit-scrollbar { display: none; }
@@ -425,7 +448,30 @@ const featured = allProjects
     display: flex;
     justify-content: center;
     gap: 8px;
-    padding: 0 0 16px; /* padding on the bottom, in between intro and slider */
+    padding: 0 0 6px; /* Reduced from 16px */
+  }
+
+  /* Read More button styling */
+  .intro-read-more-btn {
+    display: none; /* Hidden on desktop */
+    align-self: flex-start;
+    font-family: inherit;
+    font-size: var(--_tokens---type--micro);
+    font-weight: 500;
+    color: var(--_tokens---color--fg);
+    background: none;
+    border: none;
+    padding: 0;
+    margin-top: 8px;
+    cursor: pointer;
+    text-decoration: underline;
+    opacity: 0.8;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .intro-read-more-btn:hover {
+    opacity: 1;
+    transform: translateX(2px);
   }
 
   .home-slider__dot {
@@ -534,6 +580,15 @@ const featured = allProjects
     .home-intro__body {
       grid-template-columns: 1fr;
       gap: 20px;
+    }
+    .intro-read-more-btn {
+      display: inline-block; /* Show on mobile */
+    }
+    .home-intro__collapsed-content {
+      display: none; /* Collapsed on mobile by default */
+    }
+    .home-intro__column--collapsible.is-expanded .home-intro__collapsed-content {
+      display: block; /* Expanded when class is active */
     }
     .home-slider__slide {
       flex: 0 0 75vw;
