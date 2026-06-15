@@ -24,22 +24,20 @@ const sorted = [...allProjects].sort((a, b) => {
   return parseInt(b.data.year ?? '0') - parseInt(a.data.year ?? '0');
 });
 
-// Serialise to JSON for client-side search
-const projectsJson = JSON.stringify(
-  sorted.map(p => ({
-    id:      p.id,
-    name:    p.data.name,
-    year:    p.data.year ?? '',
-    tag:     p.data.tags?.[0] ? (tagMap[p.data.tags[0].id] ?? p.data.tags[0].id) : '',
-    tags:    (p.data.tags ?? []).map(t => tagMap[t.id] ?? t.id).join(' '),
-    cat:     p.data.category  ? (catMap[p.data.category.id] ?? p.data.category.id) : '',
-    loc:     p.data.location ?? '',
-    client:  p.data.client ?? '',
-    status:  p.data.status ?? '',
-    size:    p.data.size ?? '',
-    program: p.data.program ?? '',
-  }))
-);
+// Projects array for client-side search
+const projectsData = sorted.map(p => ({
+  id:      p.id,
+  name:    p.data.name,
+  year:    p.data.year ?? '',
+  tag:     p.data.tags?.[0] ? (tagMap[p.data.tags[0].id] ?? p.data.tags[0].id) : '',
+  tags:    (p.data.tags ?? []).map(t => tagMap[t.id] ?? t.id).join(' '),
+  cat:     p.data.category  ? (catMap[p.data.category.id] ?? p.data.category.id) : '',
+  loc:     p.data.location ?? '',
+  client:  p.data.client ?? '',
+  status:  p.data.status ?? '',
+  size:    p.data.size ?? '',
+  program: p.data.program ?? '',
+}));
 ---
 
 <PageLayout
@@ -189,9 +187,9 @@ const projectsJson = JSON.stringify(
 </PageLayout>
 
 <!-- ══ DATA + JS ══════════════════════════════════════════════ -->
-<script define:vars={{ projectsJson }}>
+<script define:vars={{ projectsData }}>
   // ── Quick Search ────────────────────────────────────────────
-  const projects = JSON.parse(projectsJson);
+  const projects = projectsData;
   const grid     = document.getElementById('qs-grid');
   const input    = document.getElementById('qs-input');
   const clearBtn = document.getElementById('qs-clear');
@@ -393,7 +391,7 @@ const projectsJson = JSON.stringify(
 
   .home-intro__body {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 32px;
     width: 100%;
   }
@@ -681,19 +679,19 @@ const projectsJson = JSON.stringify(
   /* 3-column project grid */
   .home-search__grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 24px;
   }
 
   @media (max-width: 1199px) {
     .home-search__grid {
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 
   @media (max-width: 768px) {
     .home-search__grid {
-      grid-template-columns: repeat(2, 1fr); /* 2 columns on mobile too! */
+      grid-template-columns: repeat(2, minmax(0, 1fr)); /* 2 columns on mobile too! */
       gap: 16px;
     }
   }
@@ -779,7 +777,7 @@ const projectsJson = JSON.stringify(
   /* ══ Responsive ═════════════════════════════════════════════ */
   @media (max-width: 1199px) {
     .home-intro__body {
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 24px;
     }
     .home-slider__slide {
