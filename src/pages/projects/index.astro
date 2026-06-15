@@ -831,9 +831,10 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
   /* ── Bottom quick-search bubbles ── */
   .proj-bubbles {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 7px;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 7px !important;
   }
 
   .proj-bubble {
@@ -871,7 +872,12 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     border-color: color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
   }
 
-  .proj-bubble.is-match:hover { transform: translateY(-2px); }
+  .proj-bubble:hover {
+    opacity: 1 !important;
+    transform: translateY(-2px);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
+    border-color: color-mix(in srgb, var(--_tokens---color--fg) 30%, transparent);
+  }
 
   @media (max-width: 768px) {
     .projects-sticky-header {
@@ -988,6 +994,18 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   }
 
   // Bottom bubbles: always present, grey by default, highlight on search match
+  const grid = document.getElementById('proj-bubbles');
+  if (grid) {
+    const bubblesArr = Array.from(grid.querySelectorAll('.proj-bubble')) as HTMLElement[];
+    for (let i = bubblesArr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const temp = bubblesArr[i];
+      bubblesArr[i] = bubblesArr[j];
+      bubblesArr[j] = temp;
+    }
+    bubblesArr.forEach(b => grid.appendChild(b));
+  }
+
   const bubbles = document.querySelectorAll<HTMLElement>('.proj-bubble');
   function updateBubbles(keywords: string[]) {
     bubbles.forEach(b => {

@@ -225,9 +225,10 @@ const sorted = [...allProjects].sort((a, b) => {
 
   /* ── Pill/bubble search CMS interface ── */
   .proj-bubbles {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 7px;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 7px !important;
   }
 
   .proj-bubble {
@@ -265,22 +266,17 @@ const sorted = [...allProjects].sort((a, b) => {
     border-color: color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
   }
 
-  .proj-bubble.is-match:hover {
+  .proj-bubble:hover {
+    opacity: 1 !important;
     transform: translateY(-2px);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
+    border-color: color-mix(in srgb, var(--_tokens---color--fg) 30%, transparent);
   }
 
   /* ── Admin Bubbles ── */
   .admin-bubble {
     border-color: color-mix(in srgb, var(--_tokens---color--fg) 14%, transparent);
     background-color: color-mix(in srgb, var(--_tokens---color--fg) 4%, transparent);
-    opacity: 0.5;
-  }
-
-  .admin-bubble.is-match,
-  .admin-bubble:hover {
-    opacity: 1;
-    background-color: color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
-    border-color: color-mix(in srgb, var(--_tokens---color--fg) 30%, transparent);
   }
 </style>
 
@@ -293,7 +289,16 @@ const sorted = [...allProjects].sort((a, b) => {
     const clearBtn = footer.querySelector('#qs-clear');
     const count    = footer.querySelector('#qs-count');
     if (!grid) return;
+    
+    // Shuffle the project and admin bubbles on load to display a randomized order
     const bubbles  = Array.from(grid.querySelectorAll('.proj-bubble')) as HTMLElement[];
+    for (let i = bubbles.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const temp = bubbles[i];
+      bubbles[i] = bubbles[j];
+      bubbles[j] = temp;
+    }
+    bubbles.forEach(bubble => grid.appendChild(bubble));
 
     function render(query: string) {
       const q = query.trim().toLowerCase();
