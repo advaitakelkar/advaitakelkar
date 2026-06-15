@@ -118,13 +118,19 @@ if (activeProject) {
 
     <!-- Custom Dropdown Menu System -->
     <div class="breadcrumb__custom-dropdown" id="breadcrumb-custom-dropdown">
-      <button class="breadcrumb__dropdown-trigger" id="breadcrumb-dropdown-trigger" aria-haspopup="true" aria-expanded="false" type="button">
-        <span id="breadcrumb-dropdown-trigger-text">{isProjectPage && currentProjectName ? currentProjectName : 'Search projects'}</span>
+      <div class="breadcrumb__dropdown-trigger" id="breadcrumb-dropdown-trigger" aria-haspopup="true" aria-expanded="false">
+        <input
+          type="text"
+          id="breadcrumb-search-input"
+          placeholder={isProjectPage && currentProjectName ? currentProjectName : 'Search projects'}
+          autocomplete="off"
+          aria-label="Search projects"
+        />
         <svg class="link-arrow breadcrumb__arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
           <line x1="6" y1="18" x2="18" y2="6"></line>
           <polyline points="10 6 18 6 18 14"></polyline>
         </svg>
-      </button>
+      </div>
 
       <div class="breadcrumb__dropdown-panel" id="breadcrumb-dropdown-panel">
         <!-- Column 1: Categories -->
@@ -160,7 +166,7 @@ if (activeProject) {
           <!-- All projects list -->
           <div class="breadcrumb__proj-list is-active" data-cat-id="all">
             {projects.map(p => (
-              <a href={`/projects/${p.id}`} class:list={["breadcrumb__proj-item", currentProjectId === p.id && "is-active"]}>
+              <a href={`/projects/${p.id}`} class:list={["breadcrumb__proj-item", currentProjectId === p.id && "is-active"]} data-cat-id={p.data.category?.id || ''}>
                 <span class="breadcrumb__proj-name">{p.data.name}</span>
                 <svg class="link-arrow breadcrumb__arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
                   <line x1="6" y1="18" x2="18" y2="6"></line>
@@ -179,7 +185,7 @@ if (activeProject) {
                   <div class="breadcrumb__proj-empty">No projects</div>
                 ) : (
                   catProjects.map(p => (
-                    <a href={`/projects/${p.id}`} class:list={["breadcrumb__proj-item", currentProjectId === p.id && "is-active"]}>
+                    <a href={`/projects/${p.id}`} class:list={["breadcrumb__proj-item", currentProjectId === p.id && "is-active"]} data-cat-id={p.data.category?.id || ''}>
                       <span class="breadcrumb__proj-name">{p.data.name}</span>
                       <svg class="link-arrow breadcrumb__arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
                         <line x1="6" y1="18" x2="18" y2="6"></line>
@@ -324,29 +330,47 @@ if (activeProject) {
     border-color: var(--_tokens---color--fg);
   }
 
-  .breadcrumb__project-nav.is-active .breadcrumb__dropdown-trigger:hover {
+  .breadcrumb__project-nav.is-active .breadcrumb__dropdown-trigger:hover,
+  .breadcrumb__project-nav.is-active .breadcrumb__dropdown-trigger:focus-within {
     color: var(--_tokens---color--bg);
   }
 
   .breadcrumb__dropdown-trigger:hover,
+  .breadcrumb__dropdown-trigger:focus-within,
   .breadcrumb__dropdown-trigger[aria-expanded="true"] {
     background-color: var(--_tokens---color--fg);
     color: var(--_tokens---color--bg);
     border-color: var(--_tokens---color--fg);
   }
 
-  #breadcrumb-dropdown-trigger-text {
-    max-width: 110px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    display: inline-block;
-    vertical-align: middle;
+  #breadcrumb-search-input {
+    background: none;
+    border: none;
+    outline: none;
+    font-family: inherit;
+    font-size: 9px;
+    font-weight: 500;
+    color: currentColor;
+    width: 80px;
+    padding: 0;
+    margin: 0;
+    letter-spacing: inherit;
+    transition: color 0.2s;
+  }
+
+  #breadcrumb-search-input::placeholder {
+    color: color-mix(in srgb, var(--_tokens---color--fg) 60%, transparent);
+    transition: color 0.2s;
+  }
+
+  .breadcrumb__dropdown-trigger:hover #breadcrumb-search-input::placeholder,
+  .breadcrumb__dropdown-trigger:focus-within #breadcrumb-search-input::placeholder {
+    color: color-mix(in srgb, var(--_tokens---color--bg) 60%, transparent);
   }
 
   @media (min-width: 768px) {
-    #breadcrumb-dropdown-trigger-text {
-      max-width: 220px;
+    #breadcrumb-search-input {
+      width: 120px;
     }
   }
 
@@ -355,10 +379,10 @@ if (activeProject) {
     top: calc(100% + 6px);
     left: 0;
     z-index: 500;
-    background-color: var(--_tokens---color--bg);
-    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
+    background-color: transparent;
+    border: none;
     border-radius: 8px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    box-shadow: none;
     display: none; /* toggled via js */
     overflow: hidden;
     
@@ -373,7 +397,7 @@ if (activeProject) {
     .breadcrumb__dropdown-panel {
       top: auto;
       bottom: calc(100% + 6px);
-      box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.25);
+      box-shadow: none;
     }
   }
 
@@ -413,13 +437,13 @@ if (activeProject) {
   }
 
   .breadcrumb__menu-column--categories {
-    border-right: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
-    background-color: color-mix(in srgb, var(--_tokens---color--fg) 2.5%, transparent);
+    border-right: none;
+    background-color: transparent;
   }
 
   .breadcrumb__menu-column--projects {
     display: none; /* hidden by default */
-    background-color: var(--_tokens---color--bg);
+    background-color: transparent;
     width: 100%;
   }
 
@@ -576,6 +600,25 @@ if (activeProject) {
     outline-offset: 4px;
     opacity: 1 !important;
   }
+  /* Predictive Search Highlighting & Sorting rules */
+  .breadcrumb__dropdown-panel.has-search .breadcrumb__cat-item:not(.is-match),
+  .breadcrumb__dropdown-panel.has-search .breadcrumb__proj-item:not(.is-match) {
+    opacity: 0.15;
+    pointer-events: none;
+  }
+
+  .breadcrumb__dropdown-panel.has-search .breadcrumb__cat-item.is-match,
+  .breadcrumb__dropdown-panel.has-search .breadcrumb__proj-item.is-match {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
+    opacity: 1;
+  }
+
+  .breadcrumb__dropdown-panel.has-search .breadcrumb__cat-item.is-match .breadcrumb__arrow-icon,
+  .breadcrumb__dropdown-panel.has-search .breadcrumb__proj-item.is-match .breadcrumb__arrow-icon {
+    opacity: 1;
+  }
 </style>
 
 <script>
@@ -585,22 +628,91 @@ if (activeProject) {
     const dropdown = document.getElementById('breadcrumb-custom-dropdown');
     if (!trigger || !panel || !dropdown) return;
 
-    // Toggle dropdown panel open/close
-    trigger.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const isOpen = panel.classList.toggle('is-open');
-      trigger.setAttribute('aria-expanded', String(isOpen));
+    const searchInput = document.getElementById('breadcrumb-search-input') as HTMLInputElement | null;
 
-      if (isOpen) {
-        // Reset panel to show categories only when opened
-        panel.classList.remove('has-active-cat');
-        panel.classList.remove('show-projects');
-        catItems.forEach(item => item.classList.remove('is-active'));
-        projLists.forEach(list => list.classList.remove('is-active'));
-      }
-    });
+    // Toggle dropdown panel open/close on click/focus
+    if (searchInput) {
+      searchInput.addEventListener('focus', () => {
+        panel.classList.add('is-open');
+        trigger.setAttribute('aria-expanded', 'true');
+        
+        // Auto-activate correct category on focus
+        const activeCatProjItem = dropdown.querySelector('.breadcrumb__proj-list:not([data-cat-id="all"]) .breadcrumb__proj-item.is-active');
+        if (activeCatProjItem) {
+          const parentList = activeCatProjItem.closest('.breadcrumb__proj-list');
+          const catId = parentList ? parentList.getAttribute('data-cat-id') : null;
+          if (catId && catId !== 'all') {
+            activateCategory(catId);
+          }
+        } else {
+          activateCategory('all');
+        }
+      });
 
-    // Close when clicking anywhere outside
+      trigger.addEventListener('click', (e) => {
+        if (e.target !== searchInput) {
+          searchInput.focus();
+        }
+      });
+
+      // Predictive search input handler
+      searchInput.addEventListener('input', () => {
+        const query = searchInput.value.toLowerCase().trim();
+        const projItems = Array.from(dropdown.querySelectorAll('.breadcrumb__proj-list[data-cat-id="all"] .breadcrumb__proj-item')) as HTMLElement[];
+        const catItems = Array.from(dropdown.querySelectorAll('.breadcrumb__cat-item')) as HTMLElement[];
+        
+        if (!query) {
+          panel.classList.remove('has-search');
+          projItems.forEach(el => el.classList.remove('is-match'));
+          catItems.forEach(el => el.classList.remove('is-match'));
+          
+          // Restore active category selection
+          const activeCatBtn = panel.querySelector('.breadcrumb__cat-item.is-active');
+          if (activeCatBtn) {
+            activateCategory(activeCatBtn.getAttribute('data-cat-id') || 'all');
+          } else {
+            activateCategory('all');
+          }
+          return;
+        }
+        
+        // Active search: always activate "all" categories list to search across all projects
+        activateCategory('all');
+        panel.classList.add('has-search');
+        
+        let hasMatches = false;
+        projItems.forEach(el => {
+          const nameText = el.querySelector('.breadcrumb__proj-name')?.textContent || el.textContent || '';
+          const matches = nameText.toLowerCase().includes(query);
+          if (matches) {
+            el.classList.add('is-match');
+            hasMatches = true;
+            
+            const catId = el.getAttribute('data-cat-id');
+            if (catId) {
+              const catBtn = dropdown.querySelector(`.breadcrumb__cat-item[data-cat-id="${catId}"]`);
+              if (catBtn) {
+                catBtn.classList.add('is-match');
+              }
+            }
+          } else {
+            el.classList.remove('is-match');
+          }
+        });
+        
+        if (hasMatches) {
+          const allCatBtn = dropdown.querySelector('.breadcrumb__cat-item[data-cat-id="all"]');
+          if (allCatBtn) {
+            allCatBtn.classList.add('is-match');
+          }
+        } else {
+          dropdown.querySelectorAll('.breadcrumb__cat-item').forEach(el => el.classList.remove('is-match'));
+        }
+      });
+    }
+
+    // Commented out for strict selection mode: has to select a project or you cannot exit
+    /*
     document.addEventListener('click', (e) => {
       if (!dropdown.contains(e.target as Node)) {
         panel.classList.remove('is-open');
@@ -609,6 +721,7 @@ if (activeProject) {
         trigger.setAttribute('aria-expanded', 'false');
       }
     });
+    */
 
     // Handle category hover / click selections to filter projects list
     const catItems = Array.from(dropdown.querySelectorAll('.breadcrumb__cat-item')) as HTMLButtonElement[];
@@ -666,15 +779,14 @@ if (activeProject) {
       const activeEl = projItems[idx];
       const activeName = activeEl.querySelector('.breadcrumb__proj-name')?.textContent?.trim() || activeEl.textContent?.trim() || '';
       
-      // Update trigger text only if on a project page
-      const triggerText = document.getElementById('breadcrumb-dropdown-trigger-text');
-      if (triggerText) {
+      // Update trigger placeholder only if on a project page
+      if (searchInput) {
         const path = window.location.pathname.replace(/\/$/, '') || '/';
         const isProjPage = path.startsWith('/projects/') && path !== '/projects';
         if (isProjPage) {
-          triggerText.textContent = activeName;
+          searchInput.placeholder = activeName;
         } else {
-          triggerText.textContent = 'Search projects';
+          searchInput.placeholder = 'Search projects';
         }
       }
       
@@ -746,15 +858,25 @@ if (activeProject) {
       const primaryNav = [homeLink, aboutLink, projectsLink, trigger].filter(Boolean) as HTMLElement[];
       const active = document.activeElement as HTMLElement | null;
       
-      // Ignore if typing in an input, textarea, or contenteditable
+      // Ignore if typing in an input (except our search input when pressing ArrowDown or ArrowRight)
       if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)) {
-        return;
+        if (active.id === 'breadcrumb-search-input') {
+          if (e.key !== 'ArrowDown' && e.key !== 'ArrowRight') {
+            return;
+          }
+        } else {
+          return;
+        }
       }
 
       const isOpen = panel.classList.contains('is-open');
 
       // 1. SPACEBAR: Toggle dropdown open/close globally
       if (e.key === ' ' || e.code === 'Space') {
+        // Bypass if focus is inside search input
+        if (active && active.id === 'breadcrumb-search-input') {
+          return;
+        }
         e.preventDefault();
         const nextState = !isOpen;
         panel.classList.toggle('is-open', nextState);
@@ -771,7 +893,8 @@ if (activeProject) {
         return;
       }
 
-      // 2. ESCAPE: Close dropdown if open
+      // 2. ESCAPE: Close dropdown if open (disabled for strict selection mode)
+      /*
       if (e.key === 'Escape' && isOpen) {
         e.preventDefault();
         panel.classList.remove('is-open');
@@ -781,6 +904,7 @@ if (activeProject) {
         trigger.focus();
         return;
       }
+      */
 
       // 3. Arrow navigation
       if (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'ArrowDown' || e.key === 'ArrowUp') {
