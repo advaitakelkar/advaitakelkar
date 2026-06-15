@@ -1,0 +1,292 @@
+---
+import { getCollection } from 'astro:content';
+
+export interface Props {
+  isEmbedded?: boolean;
+}
+
+const { isEmbedded = false } = Astro.props;
+
+// Fetch projects, categories, and tags
+const allProjects = await getCollection('projects');
+const allTags     = await getCollection('tags');
+const allCats     = await getCollection('categories');
+
+// Lookup maps
+const tagMap = Object.fromEntries(allTags.map(t => [t.id, t.data.name]));
+const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
+
+// Sort projects
+const sorted = [...allProjects].sort((a, b) => {
+  if (a.data.numbr && b.data.numbr) return a.data.numbr - b.data.numbr;
+  if (a.data.numbr) return -1;
+  if (b.data.numbr) return 1;
+  return parseInt(b.data.year ?? '0') - parseInt(a.data.year ?? '0');
+});
+---
+
+<footer class:list={["home-search-footer", isEmbedded && "home-search-footer--embedded"]} id="home-search-footer">
+  <div class="home-search__header">
+    <h2 class="home-search__title">Projects Quick Search</h2>
+  </div>
+  <div class="home-search__bar">
+    <input
+      type="search"
+      id="qs-input"
+      class="home-search__input"
+      placeholder="Search projects by name or tag..."
+      autocomplete="off"
+      aria-label="Search projects"
+    />
+    <button class="home-search__clear" id="qs-clear" type="button">@Clear All</button>
+  </div>
+  <p class="home-search__count" id="qs-count" aria-live="polite"></p>
+  
+  <!-- Pill/bubble search CMS interface -->
+  <div class="proj-bubbles" id="qs-grid" role="list" style="margin-top: 28px; border-top: none; padding-top: 0;">
+    {sorted.map(p => {
+      const tagsArr = (p.data.tags ?? []).map(t => tagMap[t.id] || t.id);
+      return (
+        <a
+          href={`/projects/${p.id}`}
+          class="proj-bubble"
+          data-name={p.data.name}
+          data-tags={tagsArr.join(',')}
+          data-cat={p.data.category ? (catMap[p.data.category.id] || p.data.category.id) : ''}
+          data-year={p.data.year ?? ''}
+          data-loc={p.data.location ?? ''}
+          data-client={p.data.client ?? ''}
+          data-status={p.data.status ?? ''}
+          data-program={p.data.program ?? ''}
+        >
+          <span class="proj-bubble__name">{p.data.name}</span>
+          <span class="proj-bubble__tag">{tagsArr[0] || (p.data.category ? catMap[p.data.category.id] : 'Design')}</span>
+        </a>
+      );
+    })}
+  </div>
+</footer>
+
+<style>
+  .home-search-footer {
+    width: 100%;
+    border-top: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+    padding-top: 32px;
+    padding-bottom: 24px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* standalone (non-embedded) padding to match standard page margins */
+  .home-search-footer:not(.home-search-footer--embedded) {
+    padding-inline: var(--_tokens---space--small);
+    margin-top: clamp(3rem, 6vh, 5rem);
+  }
+
+  @media (min-width: 1200px) {
+    .home-search-footer:not(.home-search-footer--embedded) {
+      padding-inline: clamp(6rem, 12vw, 16rem);
+    }
+  }
+
+  @media (max-width: 767px) and (orientation: portrait) {
+    .home-search-footer:not(.home-search-footer--embedded) {
+      padding-bottom: 80px; /* space for mobile bottom docked breadcrumbs */
+    }
+  }
+
+  .home-search-footer--embedded {
+    margin-top: auto; /* push to the bottom when placed in a flex layout */
+  }
+
+  .home-search__header {
+    margin-bottom: 16px;
+  }
+
+  .home-search__title {
+    font-size: var(--_tokens---type--small);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--_tokens---color--fg);
+    margin: 0;
+  }
+
+  .home-search__bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .home-search__input {
+    flex: 1;
+    height: 42px;
+    padding: 0 16px;
+    font-size: var(--_tokens---type--micro);
+    font-family: inherit;
+    background: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    border: none;
+    color: var(--_tokens---color--fg);
+    border-radius: 8px;
+    outline: none;
+    opacity: 0.35; /* grayed out by default */
+    transition: background-color 0.2s, opacity 0.3s ease;
+  }
+
+  .home-search__input::placeholder { color: var(--_tokens---color--muted); }
+  .home-search__input:focus,
+  .home-search__input:not(:placeholder-shown),
+  .home-search__input.is-active {
+    opacity: 1; /* activated on focus / input */
+  }
+
+  .home-search__clear {
+    height: 42px;
+    padding: 0 18px;
+    font-size: var(--_tokens---type--micro);
+    font-family: inherit;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    background: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    border: none;
+    color: var(--_tokens---color--fg);
+    border-radius: 8px;
+    cursor: pointer;
+    white-space: nowrap;
+    opacity: 0.35; /* grayed out by default */
+    transition: background-color 0.2s, color 0.2s, opacity 0.3s ease;
+  }
+
+  .home-search__input:focus ~ .home-search__clear,
+  .home-search__input:not(:placeholder-shown) ~ .home-search__clear,
+  .home-search__clear:hover {
+    opacity: 1; /* activated on search/hover */
+  }
+
+  .home-search__clear:hover {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+  }
+
+  .home-search__count {
+    font-size: var(--_tokens---type--micro);
+    font-weight: 300;
+    color: var(--_tokens---color--muted);
+    letter-spacing: 0.04em;
+    margin-bottom: 24px;
+  }
+
+  /* ── Pill/bubble search CMS interface ── */
+  .proj-bubbles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+
+  .proj-bubble {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 2%, transparent);
+    text-decoration: none;
+    white-space: nowrap;
+    opacity: 0.32; /* greyed out by default */
+    transition: opacity 0.25s ease, background-color 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
+  }
+
+  .proj-bubble__name {
+    font-size: var(--_tokens---type--micro);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--_tokens---color--fg);
+  }
+
+  .proj-bubble__tag {
+    font-family: var(--_tokens---font--mono);
+    line-height: 1;
+    font-size: 0.6rem;
+    color: var(--_tokens---color--muted);
+    letter-spacing: 0.04em;
+  }
+
+  .proj-bubble.is-match {
+    opacity: 1;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 7%, transparent);
+    border-color: color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
+  }
+
+  .proj-bubble.is-match:hover {
+    transform: translateY(-2px);
+  }
+</style>
+
+<script>
+  function initQuickSearch() {
+    const footer = document.querySelector('.home-search-footer');
+    if (!footer) return;
+    const grid     = footer.querySelector('#qs-grid');
+    const input    = footer.querySelector('#qs-input') as HTMLInputElement | null;
+    const clearBtn = footer.querySelector('#qs-clear');
+    const count    = footer.querySelector('#qs-count');
+    if (!grid) return;
+    const bubbles  = Array.from(grid.querySelectorAll('.proj-bubble')) as HTMLElement[];
+
+    function render(query: string) {
+      const q = query.trim().toLowerCase();
+      const keywords = q.split(/\s+/).filter(Boolean);
+      let matchCount = 0;
+
+      bubbles.forEach(el => {
+        if (!keywords.length) {
+          el.classList.remove('is-match');
+          return;
+        }
+        const hay = [
+          el.dataset.name, el.dataset.tags, el.dataset.cat, el.dataset.year,
+          el.dataset.loc, el.dataset.client, el.dataset.status, el.dataset.program
+        ].join(' ').toLowerCase();
+
+        const isMatch = keywords.every(kw => hay.includes(kw));
+        el.classList.toggle('is-match', isMatch);
+        if (isMatch) matchCount++;
+      });
+
+      if (count) {
+        if (q) {
+          count.textContent = `Results ${bubbles.length}   Showing Items 1 to ${matchCount} of ${bubbles.length}`;
+        } else {
+          count.textContent = `Results ${bubbles.length}   Showing all items`;
+        }
+      }
+    }
+
+    render('');
+
+    input?.addEventListener('input', () => {
+      render(input.value);
+      if (input.value.trim()) {
+        input.classList.add('is-active');
+      } else {
+        input.classList.remove('is-active');
+      }
+    });
+
+    clearBtn?.addEventListener('click', () => {
+      if (input) {
+        input.value = '';
+        input.classList.remove('is-active');
+        render('');
+        input.focus();
+      }
+    });
+  }
+
+  // Setup on page load
+  initQuickSearch();
+
+  // Support Astro View Transitions
+  document.addEventListener('astro:after-swap', initQuickSearch);
+</script>
