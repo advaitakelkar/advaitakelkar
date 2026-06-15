@@ -2,6 +2,7 @@
 import Base from './Base.astro';
 import SideNav from '../components/SideNav.astro';
 import Breadcrumb from '../components/Breadcrumb.astro';
+import WayfindingNav from '../components/WayfindingNav.astro';
 
 export interface Props {
   title: string;
@@ -9,9 +10,10 @@ export interface Props {
   ogImage?: string;
   crumbs?: Array<{ label: string; href?: string }>;
   label?: string;
+  sections?: Array<{ id: string; label: string }>;
 }
 
-const { title, description, ogImage, crumbs = [], label } = Astro.props;
+const { title, description, ogImage, crumbs = [], label, sections } = Astro.props;
 const currentPath = Astro.url.pathname;
 ---
 
@@ -19,11 +21,12 @@ const currentPath = Astro.url.pathname;
   <div class="page-wrap">
     <SideNav currentPath={currentPath} label={label} />
 
-    <main class="page-main">
+    <main class:list={["page-main", sections && "page-main--has-wayfinding"]}>
       <div class="page-breadcrumb">
         <Breadcrumb currentPath={currentPath} />
       </div>
       <slot />
+      {sections && <WayfindingNav sections={sections} />}
     </main>
   </div>
 </Base>
@@ -39,6 +42,12 @@ const currentPath = Astro.url.pathname;
     margin-left: 64px; /* Offset adjusted for 64px wide sidebar */
     padding: var(--_tokens---space--small);
     transition: padding 0.3s ease;
+  }
+
+  @media (min-width: 768px) and (max-width: 1199px) {
+    .page-main--has-wayfinding {
+      padding-right: calc(var(--_tokens---space--small) + 2rem);
+    }
   }
 
   /* Sticky breadcrumb bar */

@@ -26,6 +26,7 @@ const projects = defineCollection({
     location: z.string().optional(),
     status: z.string().optional(),
     featured: z.boolean().default(false),
+    passcode: z.string().optional(),
     smallIntro: z.string().optional(),
     description: z.any().optional(),
     collaborator: z.string().optional(),

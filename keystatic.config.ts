@@ -32,6 +32,7 @@ export default config({
           defaultValue: 'Completed',
         }),
         featured: fields.checkbox({ label: 'Featured', defaultValue: false }),
+        passcode: fields.text({ label: 'Passcode' }),
         smallIntro: fields.text({ label: 'Short Intro', multiline: true }),
         description: fields.document({
           label: 'Description',
