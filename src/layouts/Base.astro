@@ -157,42 +157,80 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
       }
 
       function getScrambleTarget(target: HTMLElement): HTMLElement | null {
-        // 1. Explicit scramble attribute
-        const scrambleAttr = target.closest('[data-scramble]');
-        if (scrambleAttr) return scrambleAttr as HTMLElement;
-
-        // 2. Headings (h1-h6)
-        const heading = target.closest('h1, h2, h3, h4, h5, h6');
-        if (heading) return heading as HTMLElement;
-
-        // 3. Tab buttons, filter tags, clear buttons, terminal statuses
-        const control = target.closest(
-          '.about-tab-btn, .projects-search-clear, .home-search__clear, ' +
-          '.term-status, button, input[type="button"]'
+        // 0. Direct match: if the target (or close ancestor) is one of our designated safe text components,
+        // use it immediately if it does not contain child elements (to preserve inner tags/SVGs).
+        const directTextSpan = target.closest(
+          '.home-nav-row__text, .about-link-row__text, ' +
+          '.sn-panel__link span, .proj-bubble__name, ' +
+          '.project-card__stack-name, .project-card__title, ' +
+          '.education-card__school, .about-card__title, .stacked-name, .about-card__collab'
         );
-        if (control) return control as HTMLElement;
-
-        // 4. Links and navigation items
-        const link = target.closest('a');
-        if (link) {
-          // Exclude long paragraphs
-          if (link.closest('p, .home-intro__desc, .about-card__desc, .project-card__desc')) {
-            const text = link.textContent?.trim() || '';
-            if (text.length > 50) return null;
-          }
-          const textSpan = link.querySelector(
-            '.home-nav-row__text, .about-link-row__text, .breadcrumb__link, ' +
-            '.sn-panel__link span, .skill-pill span, .proj-bubble__name'
-          );
-          return (textSpan || link) as HTMLElement;
+        if (directTextSpan && directTextSpan.children.length === 0) {
+          return directTextSpan as HTMLElement;
         }
 
-        // 5. Card headers and titles
-        const title = target.closest(
-          '.project-card__title, .education-card__school, ' +
-          '.about-card__role, .about-card__org'
-        );
-        if (title) return title as HTMLElement;
+        // Find the closest potential scramble container/element candidate
+        let candidate: HTMLElement | null = null;
+
+        // 1. Explicit scramble attribute
+        const scrambleAttr = target.closest('[data-scramble]');
+        if (scrambleAttr) {
+          candidate = scrambleAttr as HTMLElement;
+        } else {
+          // 2. Headings (h1-h6)
+          const heading = target.closest('h1, h2, h3, h4, h5, h6');
+          if (heading) {
+            candidate = heading as HTMLElement;
+          } else {
+            // 3. Links and navigation items
+            const link = target.closest('a');
+            if (link) {
+              // Exclude breadcrumbs from ever scrambling
+              if (link.closest('.breadcrumb, .page-breadcrumb')) {
+                return null;
+              }
+              // Exclude long paragraphs or paragraph links
+              if (link.closest('p, .home-intro__desc, .about-card__desc, .project-card__desc')) {
+                const text = link.textContent?.trim() || '';
+                if (text.length > 50) return null;
+              }
+              const textSpan = link.querySelector(
+                '.home-nav-row__text, .about-link-row__text, ' +
+                '.sn-panel__link span, .proj-bubble__name, ' +
+                '.project-card__stack-name'
+              );
+              if (textSpan) return textSpan as HTMLElement;
+              candidate = link;
+            } else {
+              // 4. Card headers and titles
+              const title = target.closest(
+                '.project-card__title, .education-card__school, ' +
+                '.about-card__role, .about-card__org, .about-card__title, .stacked-name, .about-card__collab'
+              );
+              if (title) {
+                candidate = title as HTMLElement;
+              }
+            }
+          }
+        }
+
+        // Safety check: if the candidate exists and is safe (no element children), scramble it.
+        // This ensures nested HTML structure (such as SVG icons or spans) is never deleted.
+        if (candidate) {
+          if (candidate.children.length === 0) {
+            return candidate;
+          }
+          // If it has children, attempt to find a child that is safe to scramble
+          const safeChild = candidate.querySelector(
+            '.home-nav-row__text, .about-link-row__text, ' +
+            '.sn-panel__link span, .proj-bubble__name, ' +
+            '.project-card__stack-name, .project-card__title, ' +
+            '.education-card__school, .about-card__title, .stacked-name, .about-card__collab'
+          );
+          if (safeChild && safeChild.children.length === 0) {
+            return safeChild as HTMLElement;
+          }
+        }
 
         return null;
       }
