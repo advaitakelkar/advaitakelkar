@@ -156,49 +156,58 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         }
       }
 
+      function getScrambleTarget(target: HTMLElement): HTMLElement | null {
+        // 1. Explicit scramble attribute
+        const scrambleAttr = target.closest('[data-scramble]');
+        if (scrambleAttr) return scrambleAttr as HTMLElement;
+
+        // 2. Headings (h1-h6)
+        const heading = target.closest('h1, h2, h3, h4, h5, h6');
+        if (heading) return heading as HTMLElement;
+
+        // 3. Tab buttons, filter tags, clear buttons, terminal statuses
+        const control = target.closest(
+          '.about-tab-btn, .projects-search-clear, .home-search__clear, ' +
+          '.term-status, button, input[type="button"]'
+        );
+        if (control) return control as HTMLElement;
+
+        // 4. Links and navigation items
+        const link = target.closest('a');
+        if (link) {
+          // Exclude long paragraphs
+          if (link.closest('p, .home-intro__desc, .about-card__desc, .project-card__desc')) {
+            const text = link.textContent?.trim() || '';
+            if (text.length > 50) return null;
+          }
+          const textSpan = link.querySelector(
+            '.home-nav-row__text, .about-link-row__text, .breadcrumb__link, ' +
+            '.sn-panel__link span, .skill-pill span, .proj-bubble__name'
+          );
+          return (textSpan || link) as HTMLElement;
+        }
+
+        // 5. Card headers and titles
+        const title = target.closest(
+          '.project-card__title, .education-card__school, ' +
+          '.about-card__role, .about-card__org'
+        );
+        if (title) return title as HTMLElement;
+
+        return null;
+      }
+
+      function getTriggerElement(scrambleEl: HTMLElement): HTMLElement {
+        return scrambleEl.closest(
+          'a, button, .home-nav-row, .about-link-row, .home-slider__slide, ' +
+          '.sn-panel__link, .project-card, .education-card, .about-card, ' +
+          '.skill-pill, .proj-bubble'
+        ) as HTMLElement || scrambleEl;
+      }
+
       document.addEventListener('mouseover', (e) => {
         const target = e.target as HTMLElement;
-        let scrambleEl = target.closest('[data-scramble]') as HTMLElement | null;
-
-        // If not marked with data-scramble, check if target is a heading
-        if (!scrambleEl) {
-          const heading = target.closest('h1, h2, h3, h4, h5, h6');
-          if (heading) {
-            scrambleEl = heading as HTMLElement;
-          }
-        }
-
-        // Check for other standard navigation rows, card titles, pills, buttons, and status indicators
-        if (!scrambleEl) {
-          const match = target.closest(
-            '.home-nav-row__text, .about-link-row__text, .breadcrumb__link, ' +
-            '.sn-panel__link span, .project-card__title, .education-card__school, ' +
-            '.about-card__role, .about-card__org, .skill-pill span, .proj-bubble__name, ' +
-            '.proj-bubble__tag, .term-status, .about-tab-btn, .projects-search-clear, ' +
-            '.home-search__clear'
-          );
-          if (match) {
-            scrambleEl = match as HTMLElement;
-          }
-        }
-
-        // If still not found, check if hovered target is a parent row/slide/card containing a scramble element
-        if (!scrambleEl) {
-          const parentRow = target.closest(
-            '.home-nav-row, .about-link-row, .home-slider__slide, .sn-panel__link, ' +
-            '.project-card, .education-card, .about-card, .skill-pill, .proj-bubble'
-          );
-          if (parentRow) {
-            scrambleEl = parentRow.querySelector(
-              '[data-scramble], h1, h2, h3, h4, h5, h6, ' +
-              '.home-nav-row__text, .about-link-row__text, .breadcrumb__link, ' +
-              '.sn-panel__link span, .project-card__title, .education-card__school, ' +
-              '.about-card__role, .about-card__org, .skill-pill span, .proj-bubble__name, ' +
-              '.proj-bubble__tag, .term-status, .about-tab-btn, .projects-search-clear, ' +
-              '.home-search__clear'
-            ) as HTMLElement | null;
-          }
-        }
+        const scrambleEl = getScrambleTarget(target);
 
         if (scrambleEl) {
           if (!scrambleEl.dataset.hasScrambleListener) {
@@ -213,16 +222,11 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
               scrambler.stop();
             };
 
-            // Bind listeners to parent container if available, otherwise elements themselves
-            const triggerEl = scrambleEl.closest(
-              '.home-nav-row, .about-link-row, .home-slider__slide, .sn-panel__link, ' +
-              '.project-card, .education-card, .about-card, .skill-pill, .proj-bubble'
-            ) || scrambleEl;
-
+            const triggerEl = getTriggerElement(scrambleEl);
             triggerEl.addEventListener('mouseenter', onMouseEnter);
             triggerEl.addEventListener('mouseleave', onMouseLeave);
 
-            // Trigger immediately for the first hover
+            // Trigger immediately for the current hover
             onMouseEnter();
           }
         }
