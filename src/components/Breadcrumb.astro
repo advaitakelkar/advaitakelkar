@@ -441,7 +441,9 @@ if (activeProject) {
     gap: 1px;
     padding: 8px;
     box-sizing: border-box;
-    background-color: var(--_tokens---color--bg);
+    background-color: color-mix(in srgb, var(--_tokens---color--bg) 75%, transparent);
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
     border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
     border-radius: 8px;
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
@@ -454,6 +456,19 @@ if (activeProject) {
   .breadcrumb__menu-column--projects {
     display: none; /* hidden by default */
     width: 100%;
+    max-height: 350px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+  .breadcrumb__menu-column--projects::-webkit-scrollbar {
+    width: 4px;
+  }
+  .breadcrumb__menu-column--projects::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .breadcrumb__menu-column--projects::-webkit-scrollbar-thumb {
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 15%, transparent);
+    border-radius: 4px;
   }
 
   /* Show projects column on desktop when category active */
@@ -525,8 +540,8 @@ if (activeProject) {
     gap: 8px;
     padding: 5px 10px;
     border-radius: 999px;
-    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
-    background-color: var(--_tokens---color--bg);
+    border: 1px solid transparent;
+    background-color: transparent;
     color: var(--_tokens---color--muted);
     font-family: inherit;
     font-size: 9px;
@@ -783,6 +798,11 @@ if (activeProject) {
         if (window.innerWidth >= 768) {
           activateCategory(catId);
         }
+      });
+
+      // Keyboard Focus auto-activation
+      item.addEventListener('focus', () => {
+        activateCategory(catId);
       });
 
       // Mobile Click
