@@ -53,23 +53,18 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
       .watermark-logo {
         position: absolute;
-        right: -22%;            /* push ~25% off the corner → ~75% visible */
-        bottom: -22%;
+        left: 100%;
+        top: 100%;
         width: 100%;
         height: 100%;
         background-color: var(--_tokens---color--fg);
-        -webkit-mask: url('/ak-logo.svg') bottom right / contain no-repeat;
-        mask: url('/ak-logo.svg') bottom right / contain no-repeat;
+        -webkit-mask: url('/ak-logo.svg') center / contain no-repeat;
+        mask: url('/ak-logo.svg') center / contain no-repeat;
         opacity: 0.05;          /* really light */
-        transform-origin: bottom right;  /* anchor at the corner */
-        animation: watermark-breathe 9s ease-in-out infinite;
+        transform-origin: center center;  /* anchor at the logo center */
+        transform: translate(-50%, -50%) rotate(0deg) scale(1);
         transition: background-color 0.3s ease;
-        will-change: transform, opacity;
-      }
-
-      @keyframes watermark-breathe {
-        0%, 100% { transform: scale(1);     opacity: 0.04; }
-        50%      { transform: scale(1.22);  opacity: 0.075; }
+        will-change: transform;
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -311,6 +306,80 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           }
         }
       });
+    </script>
+    <script>
+      function initWatermarkLogo() {
+        const watermarkLogo = document.getElementById('watermark-logo');
+        if (!watermarkLogo) return;
+
+        let currentRotation = 0;
+        let targetRotation = 0;
+        let currentScale = 1;
+        let targetScale = 1;
+        let frameId: number;
+
+        // Mouse move listener to update targetScale (breathing based on mouse position)
+        const onMouseMove = (e: MouseEvent) => {
+          const dx = window.innerWidth - e.clientX;
+          const dy = window.innerHeight - e.clientY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const maxD = Math.sqrt(window.innerWidth**2 + window.innerHeight**2) || 1000;
+          // Scale ranges from 0.85 (far away) to 1.3 (very close to bottom-right corner)
+          targetScale = 0.85 + (1 - dist / maxD) * 0.45;
+        };
+
+        // Scroll listener to update targetRotation (smooth roll on scroll)
+        const onScroll = () => {
+          const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+          const scrollPct = docHeight > 0 ? window.scrollY / docHeight : 0;
+          // One full page scroll rotates it by 360 degrees
+          targetRotation = scrollPct * 360;
+        };
+
+        window.addEventListener('mousemove', onMouseMove, { passive: true });
+        window.addEventListener('scroll', onScroll, { passive: true });
+
+        // Smooth interpolation animation loop
+        function updateLogo() {
+          currentRotation += (targetRotation - currentRotation) * 0.08;
+          currentScale += (targetScale - currentScale) * 0.08;
+
+          if (watermarkLogo) {
+            watermarkLogo.style.transform = `translate(-50%, -50%) rotate(${currentRotation}deg) scale(${currentScale})`;
+          }
+          frameId = requestAnimationFrame(updateLogo);
+        }
+        
+        // Start values based on center of screen
+        const maxD = Math.sqrt(window.innerWidth**2 + window.innerHeight**2) || 1000;
+        const dist = Math.sqrt((window.innerWidth/2)**2 + (window.innerHeight/2)**2);
+        targetScale = 0.85 + (1 - dist / maxD) * 0.45;
+        currentScale = targetScale;
+        
+        frameId = requestAnimationFrame(updateLogo);
+
+        // Cleanup function for view transitions
+        return () => {
+          window.removeEventListener('mousemove', onMouseMove);
+          window.removeEventListener('scroll', onScroll);
+          cancelAnimationFrame(frameId);
+        };
+      }
+
+      let cleanupWatermark: (() => void) | undefined;
+
+      function setup() {
+        if (cleanupWatermark) {
+          cleanupWatermark();
+        }
+        cleanupWatermark = initWatermarkLogo();
+      }
+
+      // Initialize
+      setup();
+      
+      // Support Astro View Transitions
+      document.addEventListener('astro:after-swap', setup);
     </script>
   </body>
 </html>
