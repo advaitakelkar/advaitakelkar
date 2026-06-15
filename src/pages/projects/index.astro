@@ -860,13 +860,11 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       width: 100%;
     }
     .project-card {
-      position: relative;
-      top: auto !important;
+      position: sticky;
+      top: calc(0px + var(--card-index, 0) * 54px);
       box-shadow: none;
-      border-top: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
+      border-top: 1.5px solid color-mix(in srgb, var(--_tokens---color--fg) 20%, transparent);
     }
-    .project-card__stackrow { display: none; }
-    .project-card.is-stacked .project-card__full { opacity: 1; pointer-events: auto; }
     .project-card__row2 {
       flex-direction: column;
     }
@@ -1090,14 +1088,9 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
   // --- Scroll-Driven Card Stacking Title Animation ---
   function handleCardStacking() {
-    const isMobile = window.innerWidth <= 768;
     updateHeaderHeight();
     cards.forEach(card => {
       if (card.hidden) return;
-      if (isMobile) {
-        card.classList.remove('is-stacked');
-        return;
-      }
       const rect = card.getBoundingClientRect();
       const computedTop = parseFloat(window.getComputedStyle(card).top);
       // Stuck check: card rect.top meets its sticky top constraint

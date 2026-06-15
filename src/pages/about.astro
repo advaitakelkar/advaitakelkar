@@ -1254,12 +1254,14 @@ const skillsets = [
       overflow-y: visible;
     }
     .about-tabs-container {
-      position: relative;
-      top: auto !important;
+      position: sticky;
+      top: 0;
+      z-index: 110;
+      background-color: var(--_tokens---color--bg);
     }
     .about-card {
-      position: relative;
-      top: auto !important;
+      position: sticky;
+      top: calc(48px + var(--card-index, 0) * 36px);
       box-shadow: none;
     }
   }
@@ -1463,7 +1465,12 @@ const skillsets = [
 
       // Reset scroll position of career section to start from top
       if (careerSection) {
-        careerSection.scrollTop = 0;
+        if (window.innerWidth <= 768) {
+          const y = careerSection.getBoundingClientRect().top + window.pageYOffset - 48;
+          window.scrollTo({ top: y, behavior: 'smooth' });
+        } else {
+          careerSection.scrollTop = 0;
+        }
       }
 
       // Re-trigger scroll staking check for cards in new tab
@@ -1476,18 +1483,12 @@ const skillsets = [
 
   function handleAboutCardStacking() {
     if (!careerSection) return;
-    const isMobile = window.innerWidth <= 768;
 
     careerCards.forEach((card) => {
       const cardEl = card as HTMLElement;
       
       // Skip if card belongs to a hidden panel
       if (cardEl.closest('.about-tab-panel')?.style.display === 'none') {
-        cardEl.classList.remove('is-stacked');
-        return;
-      }
-
-      if (isMobile) {
         cardEl.classList.remove('is-stacked');
         return;
       }
@@ -1500,8 +1501,9 @@ const skillsets = [
     });
   }
 
-  // Listen to scrolling within the Section 2 career container
+  // Listen to scrolling within the Section 2 career container and globally on window
   careerSection?.addEventListener('scroll', handleAboutCardStacking, { passive: true });
+  window.addEventListener('scroll', handleAboutCardStacking, { passive: true });
   window.addEventListener('resize', handleAboutCardStacking, { passive: true });
 
   // --- Skillset Live Search ---
