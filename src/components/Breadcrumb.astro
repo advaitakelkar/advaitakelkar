@@ -36,9 +36,10 @@ const isAbout = normalizedPath === '/about';
 const isProjectsIndex = normalizedPath === '/projects';
 const isProjectPage = normalizedPath.startsWith('/projects/') && !isProjectsIndex;
 
-// Extract current project ID and category ID if on a project page
+// Extract current project ID, name, and category ID if on a project page
 let currentProjectId = '';
 let currentProjectCatId = '';
+let currentProjectName = '';
 let prevProjectUrl = '';
 let nextProjectUrl = '';
 
@@ -48,8 +49,11 @@ if (isProjectPage) {
   currentProjectId = parts[1] || '';
   
   const currentProject = projects.find(p => p.id === currentProjectId);
-  if (currentProject && currentProject.data.category) {
-    currentProjectCatId = currentProject.data.category.id;
+  if (currentProject) {
+    currentProjectName = currentProject.data.name;
+    if (currentProject.data.category) {
+      currentProjectCatId = currentProject.data.category.id;
+    }
   }
   
   const idx = projects.findIndex(p => p.id === currentProjectId);
@@ -75,59 +79,81 @@ if (isProjectPage) {
     <!-- Projects -->
     <a href="/projects" class:list={["breadcrumb__link", "breadcrumb__link--projects", isProjectsIndex && "is-active"]}>Projects</a>
     <span class="breadcrumb__sep breadcrumb__sep--projects" aria-hidden="true">/</span>
+  </div>
 
-    <!-- Select Category & Project Dropdowns -->
-    <div class:list={["breadcrumb__project-nav", isProjectPage && "is-active"]}>
-      {isProjectPage && prevProjectUrl && (
-        <a href={prevProjectUrl} class="breadcrumb__arrow breadcrumb__arrow--prev" title="Previous Project" aria-label="Previous Project">
+  <!-- Select Category & Project Dropdown Menu (outside links wrapper to prevent clipping) -->
+  <div class:list={["breadcrumb__project-nav", isProjectPage && "is-active"]}>
+    {isProjectPage && prevProjectUrl && (
+      <a href={prevProjectUrl} class="breadcrumb__arrow breadcrumb__arrow--prev" title="Previous Project" aria-label="Previous Project">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </a>
+    )}
+
+    <!-- Custom Dropdown Menu System -->
+    <div class="breadcrumb__custom-dropdown" id="breadcrumb-custom-dropdown">
+      <button class="breadcrumb__dropdown-trigger" id="breadcrumb-dropdown-trigger" aria-haspopup="true" aria-expanded="false" type="button">
+        <span>{isProjectPage && currentProjectName ? currentProjectName : 'Select Project'}</span>
+        <span class="breadcrumb__select-arrow" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
-            <polyline points="15 18 9 12 15 6"></polyline>
+            <polyline points="6 9 12 15 18 9"></polyline>
           </svg>
-        </a>
-      )}
+        </span>
+      </button>
 
-      <!-- Category dropdown -->
-      <div class="breadcrumb__select-wrap">
-        <select id="breadcrumb-category-select" class="breadcrumb__select breadcrumb__select--category" aria-label="Filter projects by category">
-          <option value="">All Categories</option>
+      <div class="breadcrumb__dropdown-panel" id="breadcrumb-dropdown-panel">
+        <!-- Column 1: Categories -->
+        <div class="breadcrumb__menu-column breadcrumb__menu-column--categories">
+          <button class="breadcrumb__cat-item is-active" data-cat-id="all" type="button">
+            All
+          </button>
           {categories.map(c => (
-            <option value={c.id} selected={currentProjectCatId === c.id}>
+            <button class="breadcrumb__cat-item" data-cat-id={c.id} type="button">
               {categoryDisplayNames[c.id] || c.data.displayName}
-            </option>
+            </button>
           ))}
-        </select>
-        <span class="breadcrumb__select-arrow" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg>
-        </span>
-      </div>
+        </div>
 
-      <!-- Projects dropdown -->
-      <div class="breadcrumb__select-wrap">
-        <select id="breadcrumb-project-select" class="breadcrumb__select breadcrumb__select--project" aria-label="Quick nav projects">
-          <option value="" disabled selected={!isProjectPage}>&lt; Select Project &gt;</option>
-          {projects.map(p => (
-            <option value={`/projects/${p.id}`} data-category={p.data.category ? p.data.category.id : ''} selected={currentProjectId === p.id}>
-              {p.data.name}
-            </option>
-          ))}
-        </select>
-        <span class="breadcrumb__select-arrow" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg>
-        </span>
-      </div>
+        <!-- Column 2: Projects -->
+        <div class="breadcrumb__menu-column breadcrumb__menu-column--projects">
+          <!-- All projects list -->
+          <div class="breadcrumb__proj-list is-active" data-cat-id="all">
+            {projects.map(p => (
+              <a href={`/projects/${p.id}`} class:list={["breadcrumb__proj-item", currentProjectId === p.id && "is-active"]}>
+                {p.data.name}
+              </a>
+            ))}
+          </div>
 
-      {isProjectPage && nextProjectUrl && (
-        <a href={nextProjectUrl} class="breadcrumb__arrow breadcrumb__arrow--next" title="Next Project" aria-label="Next Project">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
-            <polyline points="9 18 15 12 9 6"></polyline>
-          </svg>
-        </a>
-      )}
+          <!-- Categorized projects lists -->
+          {categories.map(c => {
+            const catProjects = projects.filter(p => p.data.category?.id === c.id);
+            return (
+              <div class="breadcrumb__proj-list" data-cat-id={c.id}>
+                {catProjects.length === 0 ? (
+                  <div class="breadcrumb__proj-empty">No projects</div>
+                ) : (
+                  catProjects.map(p => (
+                    <a href={`/projects/${p.id}`} class:list={["breadcrumb__proj-item", currentProjectId === p.id && "is-active"]}>
+                      {p.data.name}
+                    </a>
+                  ))
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
+
+    {isProjectPage && nextProjectUrl && (
+      <a href={nextProjectUrl} class="breadcrumb__arrow breadcrumb__arrow--next" title="Next Project" aria-label="Next Project">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </a>
+    )}
   </div>
 </nav>
 
@@ -136,6 +162,7 @@ if (isProjectPage) {
     display: flex;
     align-items: center;
     width: 100%;
+    gap: 8px;
   }
 
   .breadcrumb__list {
@@ -149,10 +176,10 @@ if (isProjectPage) {
     letter-spacing: 0.08em;
     text-transform: none;
     color: var(--_tokens---color--muted);
-    width: 100%;
     overflow-x: auto;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
+    flex: 1; /* occupy remaining space */
   }
 
   .breadcrumb__list::-webkit-scrollbar {
@@ -193,19 +220,17 @@ if (isProjectPage) {
     flex-shrink: 0;
   }
 
-  .breadcrumb__project-nav.is-active .breadcrumb__select-wrap {
-    border-color: var(--_tokens---color--fg);
-  }
-
-  /* Custom Select container styling */
-  .breadcrumb__select-wrap {
+  /* Custom Dropdown Menu System styling */
+  .breadcrumb__custom-dropdown {
     position: relative;
     display: inline-block;
   }
 
-  .breadcrumb__select {
-    appearance: none;
-    -webkit-appearance: none;
+  .breadcrumb__dropdown-trigger {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 20px;
     background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
     color: var(--_tokens---color--muted);
     font-family: inherit;
@@ -218,38 +243,18 @@ if (isProjectPage) {
     padding: 6px 30px 6px 12px;
     cursor: pointer;
     outline: none;
-    text-overflow: ellipsis;
     white-space: nowrap;
-    overflow: hidden;
-    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+    transition: background-color 0.2s, color 0.2s;
   }
 
-  .breadcrumb__select--category {
-    min-width: 110px;
-    max-width: 130px;
-  }
-
-  .breadcrumb__select--project {
-    min-width: 140px;
-    max-width: 180px;
-  }
-
-  .breadcrumb__project-nav.is-active .breadcrumb__select {
+  .breadcrumb__project-nav.is-active .breadcrumb__dropdown-trigger {
     color: var(--_tokens---color--fg);
-    font-weight: 300;
+    border-color: var(--_tokens---color--fg);
   }
 
-  .breadcrumb__select:hover {
+  .breadcrumb__dropdown-trigger:hover {
     background-color: color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
     color: var(--_tokens---color--fg);
-  }
-
-  .breadcrumb__select option {
-    background-color: var(--_tokens---color--bg);
-    color: var(--_tokens---color--fg);
-    text-transform: none; /* Let option text preserve original capitalization */
-    letter-spacing: normal;
-    font-size: 14px; /* Highly readable in drop down menu */
   }
 
   .breadcrumb__select-arrow {
@@ -270,6 +275,115 @@ if (isProjectPage) {
   .breadcrumb__select-arrow svg {
     width: 100%;
     height: 100%;
+  }
+
+  .breadcrumb__dropdown-panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 500;
+    background-color: var(--_tokens---color--bg);
+    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    display: none; /* toggled via js */
+    grid-template-columns: 85px 175px;
+    overflow: hidden;
+  }
+
+  /* When docked on mobile bottom, let the dropdown open upwards! */
+  @media (max-width: 767px) and (orientation: portrait) {
+    .breadcrumb__dropdown-panel {
+      top: auto;
+      bottom: calc(100% + 6px);
+      box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.25);
+    }
+  }
+
+  .breadcrumb__dropdown-panel.is-open {
+    display: grid;
+  }
+
+  .breadcrumb__menu-column {
+    display: flex;
+    flex-direction: column;
+    max-height: 220px;
+    overflow-y: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .breadcrumb__menu-column::-webkit-scrollbar {
+    display: none;
+  }
+
+  .breadcrumb__menu-column--categories {
+    border-right: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 2.5%, transparent);
+    padding: 6px 0;
+  }
+
+  .breadcrumb__menu-column--projects {
+    padding: 6px 0;
+    background-color: var(--_tokens---color--bg);
+  }
+
+  .breadcrumb__cat-item {
+    font-family: inherit;
+    font-size: 9px;
+    font-weight: 400;
+    text-align: left;
+    padding: 8px 12px;
+    border: none;
+    background: none;
+    color: var(--_tokens---color--muted);
+    cursor: pointer;
+    width: 100%;
+    transition: background-color 0.15s, color 0.15s;
+    letter-spacing: 0.05em;
+  }
+
+  .breadcrumb__cat-item:hover,
+  .breadcrumb__cat-item.is-active {
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    color: var(--_tokens---color--fg);
+  }
+
+  .breadcrumb__proj-list {
+    display: none;
+  }
+
+  .breadcrumb__proj-list.is-active {
+    display: block;
+  }
+
+  .breadcrumb__proj-item {
+    font-family: inherit;
+    font-size: 9px;
+    font-weight: 300;
+    text-align: left;
+    padding: 8px 12px;
+    text-decoration: none;
+    color: var(--_tokens---color--muted);
+    display: block;
+    transition: background-color 0.15s, color 0.15s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: 0.04em;
+  }
+
+  .breadcrumb__proj-item:hover,
+  .breadcrumb__proj-item.is-active {
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    color: var(--_tokens---color--fg);
+  }
+
+  .breadcrumb__proj-empty {
+    font-size: 8px;
+    color: var(--_tokens---color--muted);
+    padding: 12px;
+    text-align: center;
   }
 
   /* Arrows */
@@ -309,67 +423,87 @@ if (isProjectPage) {
 </style>
 
 <script>
-  // Setup event listener to filter projects by category and navigate on project selection
-  function setupDoubleDropdown() {
-    const catSelect = document.getElementById('breadcrumb-category-select') as HTMLSelectElement | null;
-    const projSelect = document.getElementById('breadcrumb-project-select') as HTMLSelectElement | null;
-    if (!catSelect || !projSelect) return;
+  function setupCustomDropdown() {
+    const trigger = document.getElementById('breadcrumb-dropdown-trigger');
+    const panel = document.getElementById('breadcrumb-dropdown-panel');
+    const dropdown = document.getElementById('breadcrumb-custom-dropdown');
+    if (!trigger || !panel || !dropdown) return;
 
-    // Save all original options except the placeholder
-    const originalOptions = Array.from(projSelect.querySelectorAll('option')).filter(opt => opt.value !== "");
-    const placeholder = projSelect.querySelector('option[value=""]') as HTMLOptionElement | null;
+    // Toggle dropdown panel open/close
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = panel.classList.toggle('is-open');
+      trigger.setAttribute('aria-expanded', String(isOpen));
 
-    function updateProjectsList(catId: string, currentUrl?: string) {
-      // Clear current options
-      projSelect!.innerHTML = '';
-      
-      // Re-add placeholder
-      if (placeholder) {
-        projSelect!.appendChild(placeholder);
+      if (isOpen) {
+        // Reset category view to the current project's category on open
+        const activeProjItem = dropdown.querySelector('.breadcrumb__proj-item.is-active');
+        if (activeProjItem) {
+          const parentList = activeProjItem.closest('.breadcrumb__proj-list');
+          if (parentList) {
+            const catId = parentList.getAttribute('data-cat-id');
+            if (catId && catId !== 'all') {
+              activateCategory(catId);
+            }
+          }
+        } else {
+          activateCategory('all');
+        }
       }
+    });
 
-      // Filter and append options
-      const matches = catId 
-        ? originalOptions.filter(opt => opt.getAttribute('data-category') === catId)
-        : originalOptions;
+    // Close when clicking anywhere outside
+    document.addEventListener('click', (e) => {
+      if (!dropdown.contains(e.target as Node)) {
+        panel.classList.remove('is-open');
+        trigger.setAttribute('aria-expanded', 'false');
+      }
+    });
 
-      matches.forEach(opt => {
-        // Clone option so we don't lose the original reference
-        const clone = opt.cloneNode(true) as HTMLOptionElement;
-        projSelect!.appendChild(clone);
+    // Handle category hover / click selections to filter projects list
+    const catItems = Array.from(dropdown.querySelectorAll('.breadcrumb__cat-item')) as HTMLButtonElement[];
+    const projLists = Array.from(dropdown.querySelectorAll('.breadcrumb__proj-list')) as HTMLDivElement[];
+
+    function activateCategory(catId: string) {
+      catItems.forEach(item => {
+        item.classList.toggle('is-active', item.getAttribute('data-cat-id') === catId);
       });
-
-      // If a currentUrl is provided and matches one of the options, select it
-      if (currentUrl && matches.some(opt => opt.value === currentUrl)) {
-        projSelect!.value = currentUrl;
-      } else {
-        projSelect!.value = "";
-      }
+      projLists.forEach(list => {
+        list.classList.toggle('is-active', list.getAttribute('data-cat-id') === catId);
+      });
     }
 
-    // Listen to Category dropdown changes
-    catSelect.addEventListener('change', () => {
-      const currentUrl = window.location.pathname.replace(/\/$/, '');
-      updateProjectsList(catSelect.value, currentUrl);
+    catItems.forEach(item => {
+      const catId = item.getAttribute('data-cat-id') || '';
+
+      // Desktop Hover
+      item.addEventListener('mouseenter', () => {
+        activateCategory(catId);
+      });
+
+      // Mobile Click
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        activateCategory(catId);
+      });
     });
 
-    // Listen to Project dropdown changes (navigation)
-    projSelect.addEventListener('change', () => {
-      const val = projSelect.value;
-      if (val) {
-        window.location.href = val;
+    // On page load: auto-activate correct category if on a project detail view
+    const activeProjItem = dropdown.querySelector('.breadcrumb__proj-item.is-active');
+    if (activeProjItem) {
+      const parentList = activeProjItem.closest('.breadcrumb__proj-list');
+      if (parentList) {
+        const catId = parentList.getAttribute('data-cat-id');
+        if (catId && catId !== 'all') {
+          activateCategory(catId);
+        }
       }
-    });
-
-    // Initial setup: filter by current selected category on page load
-    const initialCat = catSelect.value;
-    const currentUrl = window.location.pathname.replace(/\/$/, '');
-    updateProjectsList(initialCat, currentUrl);
+    }
   }
 
-  // Run on page load
-  setupDoubleDropdown();
+  // Initial load
+  setupCustomDropdown();
 
-  // Support Astro View Transitions if enabled
-  document.addEventListener('astro:after-swap', setupDoubleDropdown);
+  // Support Astro View Transitions
+  document.addEventListener('astro:after-swap', setupCustomDropdown);
 </script>
