@@ -14,5 +14,5 @@ if (isDev) {
 
 export default defineConfig({
   integrations,
-  site: 'https://advaitakelkar.com',
+  site: 'https://advaitakelkar-site.web.app',
 });

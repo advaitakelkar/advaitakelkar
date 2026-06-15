@@ -2,7 +2,7 @@
 
 Portfolio site for **Advaita Kelkar** — multidisciplinary designer based in Mumbai / Savannah.
 
-Live: [advaitakelkar.com](https://advaitakelkar.com)
+Live: [advaitakelkar-site.web.app](https://advaitakelkar-site.web.app)
 Repo: [github.com/advaitakelkar/advaitakelkar](https://github.com/advaitakelkar/advaitakelkar)
 
 ---
@@ -227,7 +227,7 @@ Push to `main` → GitHub Actions runs automatically:
 ```yaml
 pnpm install --no-frozen-lockfile
 pnpm build          # → dist/
-firebase deploy     # → advaitakelkar.com
+firebase deploy     # → advaitakelkar-site.web.app
 ```
 
 **Required GitHub Secrets:**
@@ -278,7 +278,7 @@ pnpm dev
 - Design token system with 10 color schemes
 - SideNav with slide-in panel, color switcher, hamburger
 - Home page: intro, featured auto-slider, teasers, quick search
-- Firebase Hosting live at `advaitakelkar.com`
+- Firebase Hosting live at `advaitakelkar-site.web.app`
 - GitHub Actions CI/CD pipeline
 
 **In progress / pending:**

@@ -29,10 +29,18 @@
   /* Default color scheme (dark base — no sch class) */
   --_tokens---color--bg:         #111111;
   --_tokens---color--fg:         #ffffff;
-  --_tokens---color--muted:      rgba(255, 255, 255, 0.6);
-  --_tokens---color--line:       #ffffff;
-  --_tokens---color--bg-overlay: hsla(0, 0%, 100%, 0.75);
-  --_tokens---color--bg-glass:   hsla(0, 0%, 100%, 0.40);
+}
+
+/* 
+  Dynamically derived third and fourth colors based on the two primary colors.
+  - 3rd color: --_tokens---color--muted (Foreground at 60% opacity)
+  - 4th color: --_tokens---color--bg-overlay / --_tokens---color--bg-glass (Background at 75% / 40% opacity)
+*/
+:root, html {
+  --_tokens---color--muted:      color-mix(in srgb, var(--_tokens---color--fg) 60%, transparent);
+  --_tokens---color--line:       var(--_tokens---color--fg);
+  --_tokens---color--bg-overlay: color-mix(in srgb, var(--_tokens---color--bg) 75%, transparent);
+  --_tokens---color--bg-glass:   color-mix(in srgb, var(--_tokens---color--bg) 40%, transparent);
 }
 
 /* ─── Color Schemes ──────────────────────────────────────── */
@@ -42,82 +50,46 @@
 html.sch1 {
   --_tokens---color--bg:         #0D5072;
   --_tokens---color--fg:         #7FEEFF;
-  --_tokens---color--muted:      rgba(127, 238, 255, 0.6);
-  --_tokens---color--line:       #7FEEFF;
-  --_tokens---color--bg-overlay: hsla(13, 79%, 72%, 0.75);
-  --_tokens---color--bg-glass:   hsla(13, 79%, 72%, 0.40);
 }
 
 html.sch2 {
   --_tokens---color--bg:         #ECE7E2;
   --_tokens---color--fg:         #4A7766;
-  --_tokens---color--muted:      rgba(74, 119, 102, 0.6);
-  --_tokens---color--line:       #4A7766;
-  --_tokens---color--bg-overlay: hsla(30, 21%, 89%, 0.75);
-  --_tokens---color--bg-glass:   hsla(30, 21%, 89%, 0.40);
 }
 
 html.sch3 {
   --_tokens---color--bg:         #F5F5DA;
   --_tokens---color--fg:         #7B021D;
-  --_tokens---color--muted:      rgba(123, 2, 29, 0.6);
-  --_tokens---color--line:       #7B021D;
-  --_tokens---color--bg-overlay: hsla(60, 71%, 91%, 0.75);
-  --_tokens---color--bg-glass:   hsla(60, 71%, 91%, 0.40);
 }
 
 html.sch4 {
   --_tokens---color--bg:         #6C5383;
   --_tokens---color--fg:         #D7E7C3;
-  --_tokens---color--muted:      rgba(215, 231, 195, 0.6);
-  --_tokens---color--line:       #D7E7C3;
-  --_tokens---color--bg-overlay: hsla(276, 22%, 42%, 0.75);
-  --_tokens---color--bg-glass:   hsla(276, 22%, 42%, 0.40);
 }
 
 html.sch5 {
   --_tokens---color--bg:         #0B1A35;
   --_tokens---color--fg:         #D2B96A;
-  --_tokens---color--muted:      rgba(210, 185, 106, 0.6);
-  --_tokens---color--line:       #D2B96A;
-  --_tokens---color--bg-overlay: hsla(220, 67%, 12%, 0.75);
-  --_tokens---color--bg-glass:   hsla(220, 67%, 12%, 0.40);
 }
 
 html.sch6 {
   --_tokens---color--bg:         #191265;
   --_tokens---color--fg:         #EBEBDF;
-  --_tokens---color--muted:      rgba(235, 235, 223, 0.6);
-  --_tokens---color--line:       #EBEBDF;
-  --_tokens---color--bg-overlay: hsla(243, 72%, 24%, 0.75);
-  --_tokens---color--bg-glass:   hsla(243, 72%, 24%, 0.40);
 }
 
 html.sch7 {
   --_tokens---color--bg:         #275CCC;
   --_tokens---color--fg:         #F5E4CF;
-  --_tokens---color--muted:      rgba(245, 228, 207, 0.6);
-  --_tokens---color--line:       #F5E4CF;
-  --_tokens---color--bg-overlay: hsla(220, 66%, 47%, 0.75);
-  --_tokens---color--bg-glass:   hsla(220, 66%, 47%, 0.40);
 }
 
 html.sch8 {
   --_tokens---color--bg:         #BAD797;
   --_tokens---color--fg:         #670626;
-  --_tokens---color--muted:      rgba(103, 6, 38, 0.6);
-  --_tokens---color--line:       #670626;
-  --_tokens---color--bg-overlay: hsla(96, 43%, 72%, 0.75);
-  --_tokens---color--bg-glass:   hsla(96, 43%, 72%, 0.40);
 }
 
 html.sch9 {
   --_tokens---color--bg:         #033631;
   --_tokens---color--fg:         #FFEDA8;
-  --_tokens---color--muted:      rgba(255, 237, 168, 0.6);
-  --_tokens---color--line:       #FFEDA8;
-  --_tokens---color--bg-overlay: hsla(174, 90%, 12%, 0.75);
-  --_tokens---color--bg-glass:   hsla(174, 90%, 12%, 0.40);
 }
 
 /* ─── Base Reset ─────────────────────────────────────────── */
@@ -182,5 +154,46 @@ img {
   pointer-events: none;
   transition: box-shadow 0.3s ease;
   z-index: 2;
+}
+
+/* ─── Watermark Logo ───────────────────────────────────────── */
+
+.watermark-container {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  width: 65vmax;
+  height: 65vmax;
+  pointer-events: none;
+  z-index: -1;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+}
+
+.watermark-logo {
+  width: 100%;
+  height: 100%;
+  transform: translate(25%, 25%) scale(0.95);
+  transform-origin: bottom right;
+  background-color: var(--_tokens---color--fg);
+  -webkit-mask: url('/ak-logo.svg') center / contain no-repeat;
+  mask: url('/ak-logo.svg') center / contain no-repeat;
+  opacity: 0.04;
+  transition: background-color 0.3s ease;
+  animation: watermark-anim var(--watermark-speed, 36s) linear infinite;
+}
+
+@keyframes watermark-anim {
+  0% {
+    transform: translate(25%, 25%) scale(0.92) rotate(0deg);
+  }
+  50% {
+    transform: translate(25%, 25%) scale(1.08) rotate(180deg);
+  }
+  100% {
+    transform: translate(25%, 25%) scale(0.92) rotate(360deg);
+  }
 }
 
