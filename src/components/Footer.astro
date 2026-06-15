@@ -42,8 +42,7 @@ const sorted = [...allProjects].sort((a, b) => {
   </div>
   <p class="home-search__count" id="qs-count" aria-live="polite"></p>
   
-  <!-- Pill/bubble search CMS interface — single looping marquee row -->
-  <div class="qs-marquee" id="qs-marquee">
+  <!-- Pill/bubble search — multi-row paragraph; each row slides left on hover -->
   <div class="proj-bubbles" id="qs-grid" role="list" style="margin-top: 28px; border-top: none; padding-top: 0;">
     {sorted.map(p => {
       const tagsArr = (p.data.tags ?? []).map(t => tagMap[t.id] || t.id);
@@ -128,7 +127,6 @@ const sorted = [...allProjects].sort((a, b) => {
         <polyline points="10 6 18 6 18 14"></polyline>
       </svg>
     </a>
-  </div>
   </div>
 </footer>
 
@@ -241,40 +239,37 @@ const sorted = [...allProjects].sort((a, b) => {
     margin-bottom: 24px;
   }
 
-  /* ── Pill/bubble search — single looping marquee row ── */
-  .qs-marquee {
-    width: 100%;
-    overflow: hidden;
-    /* soft fade at both ends */
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 3%, #000 97%, transparent 100%);
-    mask-image: linear-gradient(to right, transparent 0%, #000 3%, #000 97%, transparent 100%);
-  }
-
-  /* The moving track: one row, never wraps, auto-scrolls and loops (holds 2× pills) */
+  /* ── Pill/bubble search — multi-row paragraph; rows shift (looping) on hover/search ── */
   .proj-bubbles {
     display: flex !important;
-    flex-direction: row !important;
+    flex-direction: column !important;
     flex-wrap: nowrap !important;
-    width: max-content;
     gap: 7px !important;
-    align-items: center;
-    animation: qs-marquee 90s linear infinite;
+    --qs-shift: 0px;            /* shared shift; all rows move together */
+    /* soft fade at both horizontal ends */
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 2.5%, #000 97.5%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0%, #000 2.5%, #000 97.5%, transparent 100%);
+  }
+
+  /* Each visual row clips its overflow; never wraps */
+  .qs-row {
+    overflow: hidden;
+    width: 100%;
+  }
+
+  /* The moving track inside a row (holds the row's pills duplicated for a seamless loop) */
+  .qs-row__track {
+    display: flex;
+    flex-wrap: nowrap;
+    width: max-content;
+    gap: 7px;
+    transform: translateX(var(--qs-shift));
+    transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
     will-change: transform;
   }
 
-  /* Pause while hovering or searching so a pill can grow / be read without moving the row */
-  .qs-marquee:hover .proj-bubbles,
-  .proj-bubbles.is-paused {
-    animation-play-state: paused;
-  }
-
-  @keyframes qs-marquee {
-    from { transform: translateX(0); }
-    to   { transform: translateX(-50%); } /* 2× content → one full loop */
-  }
-
   @media (prefers-reduced-motion: reduce) {
-    .proj-bubbles { animation: none; }
+    .qs-row__track { transition: none; }
   }
 
   .proj-bubble {
@@ -381,83 +376,117 @@ const sorted = [...allProjects].sort((a, b) => {
     const count    = footer.querySelector('#qs-count');
     if (!grid || grid.dataset.qsInit) return;  // guard against double-init on the same DOM
     grid.dataset.qsInit = '1';
+    const g = grid;
 
-    // Shuffle the original pills, then duplicate them so the marquee can loop seamlessly
-    const originals = Array.from(grid.querySelectorAll('.proj-bubble')) as HTMLElement[];
+    // Shuffle the original pills once
+    const originals = Array.from(g.querySelectorAll('.proj-bubble')) as HTMLElement[];
     for (let i = originals.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       const t = originals[i]; originals[i] = originals[j]; originals[j] = t;
     }
-    originals.forEach(b => grid.appendChild(b));
-    // second identical copy → translateX(-50%) loops with no seam
-    originals.forEach(b => {
-      const clone = b.cloneNode(true) as HTMLElement;
-      clone.setAttribute('aria-hidden', 'true');
-      clone.setAttribute('tabindex', '-1');
-      clone.dataset.clone = '1';
-      grid.appendChild(clone);
-    });
-
     const total = originals.length;
 
-    function setPaused(p: boolean) { grid!.classList.toggle('is-paused', p); }
+    const setShift = (px: number) => g.style.setProperty('--qs-shift', px + 'px');
+    const curShift = () => parseFloat(getComputedStyle(g).getPropertyValue('--qs-shift')) || 0;
+
+    // Group the pills into visual rows (by wrap position), then make each row a
+    // clipped, horizontally-shiftable track with a duplicate copy for seamless looping.
+    function buildRows() {
+      setShift(0);
+      g.querySelectorAll('.qs-row').forEach(r => r.remove());
+      originals.forEach(p => g.appendChild(p));        // flatten
+      g.style.flexDirection = 'row';                   // measure natural wrapping
+      g.style.flexWrap = 'wrap';
+      const groups: HTMLElement[][] = [];
+      let cur: HTMLElement[] = []; let last: number | null = null;
+      originals.forEach(p => {
+        const t = p.offsetTop;
+        if (last === null || Math.abs(t - last) <= 6) cur.push(p);
+        else { groups.push(cur); cur = [p]; }
+        last = t;
+      });
+      if (cur.length) groups.push(cur);
+      g.style.flexDirection = ''; g.style.flexWrap = ''; // back to column of rows
+      groups.forEach(grp => {
+        const row = document.createElement('div'); row.className = 'qs-row';
+        const track = document.createElement('div'); track.className = 'qs-row__track';
+        grp.forEach(p => track.appendChild(p));
+        grp.forEach(p => {                              // duplicate → loop
+          const c = p.cloneNode(true) as HTMLElement;
+          c.dataset.clone = '1'; c.setAttribute('aria-hidden', 'true'); c.setAttribute('tabindex', '-1');
+          track.appendChild(c);
+        });
+        row.appendChild(track); g.appendChild(row);
+      });
+    }
+
+    // Shift every row together just enough to keep a pill (once grown) fully visible
+    function shiftToShow(pill: HTMLElement) {
+      const gr = g.getBoundingClientRect();
+      const margin = 14;
+      const tag = pill.querySelector('.proj-bubble__tag') as HTMLElement | null;
+      const grow = tag ? tag.scrollWidth + 8 : 0; // width the tag will add when revealed
+      const pr = pill.getBoundingClientRect();
+      const overflowR = (pr.right + grow) - (gr.right - margin);
+      if (overflowR > 0) { setShift(curShift() - overflowR); return; }
+      if (pr.left < gr.left + margin) setShift(Math.min(0, curShift() + ((gr.left + margin) - pr.left)));
+    }
 
     function render(query: string) {
       const q = query.trim().toLowerCase();
       const keywords = q.split(/\s+/).filter(Boolean);
-      grid!.classList.toggle('has-search', keywords.length > 0);
-
+      g.classList.toggle('has-search', keywords.length > 0);
       const matched = new Set<string>();
-      const all = Array.from(grid!.querySelectorAll('.proj-bubble')) as HTMLElement[];
-      all.forEach(el => {
-        if (!keywords.length) {
-          el.classList.remove('is-match');
-          el.classList.remove('is-tag-reveal');
-          return;
-        }
+      let firstMatch: HTMLElement | null = null;
+      Array.from(g.querySelectorAll('.proj-bubble')).forEach(el0 => {
+        const el = el0 as HTMLElement;
+        if (!keywords.length) { el.classList.remove('is-match'); el.classList.remove('is-tag-reveal'); return; }
         const hay = [
           el.dataset.name, el.dataset.tags, el.dataset.cat, el.dataset.year,
           el.dataset.loc, el.dataset.client, el.dataset.status, el.dataset.program
         ].join(' ').toLowerCase();
-
         const isMatch = keywords.every(kw => hay.includes(kw));
         el.classList.toggle('is-match', isMatch);
-        if (isMatch && el.dataset.name) matched.add(el.dataset.name);
-
-        // Grow the pill to reveal its tag when the search hits the tag (≥3 letters)
+        if (isMatch) { if (el.dataset.name) matched.add(el.dataset.name); if (!firstMatch) firstMatch = el; }
         const tagText = (el.querySelector('.proj-bubble__tag')?.textContent || '').toLowerCase();
-        const tagReveal = isMatch && keywords.some(kw => kw.length >= 3 && tagText.includes(kw));
-        el.classList.toggle('is-tag-reveal', tagReveal);
+        el.classList.toggle('is-tag-reveal', isMatch && keywords.some(kw => kw.length >= 3 && tagText.includes(kw)));
       });
-
       if (count) {
         count.textContent = q
           ? `Results ${total}   Showing Items 1 to ${matched.size} of ${total}`
           : `Results ${total}   Showing all items`;
       }
+      if (keywords.length && firstMatch) shiftToShow(firstMatch); else setShift(0);
     }
 
+    buildRows();
     render('');
 
-    // Pause the marquee while the search is focused or has a query
-    input?.addEventListener('focus', () => setPaused(true));
-    input?.addEventListener('blur',  () => { if (!input.value.trim()) setPaused(false); });
+    // Hover → shift the paragraph so the hovered pill grows in view (delegated, so it
+    // survives row rebuilds and never double-binds)
+    let lastPill: HTMLElement | null = null;
+    g.addEventListener('mouseover', (e) => {
+      const pill = (e.target as HTMLElement).closest('.proj-bubble') as HTMLElement | null;
+      if (pill && pill !== lastPill) { lastPill = pill; shiftToShow(pill); }
+    });
+    g.addEventListener('mouseleave', () => {
+      lastPill = null;
+      if (!input || !input.value.trim()) setShift(0);
+    });
 
     input?.addEventListener('input', () => {
       render(input.value);
-      const active = !!input.value.trim();
-      input.classList.toggle('is-active', active);
-      setPaused(active || document.activeElement === input);
+      input.classList.toggle('is-active', !!input.value.trim());
     });
 
     clearBtn?.addEventListener('click', () => {
-      if (input) {
-        input.value = '';
-        input.classList.remove('is-active');
-        render('');
-        setPaused(document.activeElement === input);
-        input.focus();
-      }
+      if (input) { input.value = ''; input.classList.remove('is-active'); render(''); input.focus(); }
+    });
+
+    let rt: ReturnType<typeof setTimeout>;
+    window.addEventListener('resize', () => {
+      clearTimeout(rt);
+      rt = setTimeout(() => { buildRows(); render(input?.value || ''); }, 200);
     });
   }
 
