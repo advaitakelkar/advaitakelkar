@@ -269,13 +269,30 @@ const sorted = [...allProjects].sort((a, b) => {
     color: inherit;
   }
 
+  /* Tag is collapsed at rest (pill shows only name + arrow);
+     it grows open on hover or when a search matches the tag. */
   .proj-bubble__tag {
     font-family: var(--_tokens---font--mono);
     line-height: 1;
     font-size: 0.6rem;
     color: inherit;
-    opacity: 0.6;
+    opacity: 0;
     letter-spacing: 0.04em;
+    max-width: 0;
+    margin-left: -7px; /* cancel the inter-item gap while collapsed */
+    overflow: hidden;
+    white-space: nowrap;
+    transition: max-width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                opacity 0.28s ease,
+                margin-left 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Reveal (grow) the tag on hover or on a tag-search match */
+  .proj-bubble:hover .proj-bubble__tag,
+  .proj-bubble.is-tag-reveal .proj-bubble__tag {
+    max-width: 160px;
+    opacity: 0.6;
+    margin-left: 0;
   }
 
   .proj-bubble__arrow {
@@ -355,6 +372,7 @@ const sorted = [...allProjects].sort((a, b) => {
       bubbles.forEach(el => {
         if (!keywords.length) {
           el.classList.remove('is-match');
+          el.classList.remove('is-tag-reveal'); // collapse the tag again
           return;
         }
         const hay = [
@@ -365,6 +383,12 @@ const sorted = [...allProjects].sort((a, b) => {
         const isMatch = keywords.every(kw => hay.includes(kw));
         el.classList.toggle('is-match', isMatch);
         if (isMatch) matchCount++;
+
+        // Grow the pill to reveal its tag when the search is hitting the tag
+        // (≥3 letters of the visible tag typed) — dynamic, per the word searched.
+        const tagText = (el.querySelector('.proj-bubble__tag')?.textContent || '').toLowerCase();
+        const tagReveal = isMatch && keywords.some(kw => kw.length >= 3 && tagText.includes(kw));
+        el.classList.toggle('is-tag-reveal', tagReveal);
       });
 
       if (count) {
