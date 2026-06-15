@@ -760,6 +760,21 @@ const schemes = [
     if (e.key === 'Escape') { closeNav(); closeScheme(); }
   });
 
+  // Global spacebar listener to toggle side navigation index bar
+  if (!(window as any).hasSideNavSpacebarInit) {
+    (window as any).hasSideNavSpacebarInit = true;
+    window.addEventListener('keydown', (e) => {
+      const active = document.activeElement as HTMLElement | null;
+      if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)) {
+        return;
+      }
+      if (e.key === ' ' || e.code === 'Space') {
+        e.preventDefault();
+        navOpen ? closeNav() : openNav();
+      }
+    });
+  }
+
   // ── Scheme dropdown ────────────────────────────────────────
   const SCHEMES = [
     'default','sch1','sch2','sch3','sch4','sch5','sch6','sch7','sch8','sch9'

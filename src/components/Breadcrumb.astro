@@ -845,17 +845,6 @@ if (activeProject) {
     (window as any).hasKbNavInit = true;
 
     window.addEventListener('keydown', (e) => {
-      // Find the breadcrumb elements dynamically on the active page
-      const trigger = document.getElementById('breadcrumb-dropdown-trigger') as HTMLButtonElement | null;
-      const panel = document.getElementById('breadcrumb-dropdown-panel') as HTMLElement | null;
-      const dropdown = document.getElementById('breadcrumb-custom-dropdown') as HTMLElement | null;
-      if (!trigger || !panel || !dropdown) return;
-
-      const homeLink = document.querySelector('.breadcrumb__link--home') as HTMLElement | null;
-      const aboutLink = document.querySelector('.breadcrumb__link--about') as HTMLElement | null;
-      const projectsLink = document.querySelector('.breadcrumb__link--projects') as HTMLElement | null;
-
-      const primaryNav = [homeLink, aboutLink, projectsLink, trigger].filter(Boolean) as HTMLElement[];
       const active = document.activeElement as HTMLElement | null;
       
       // Ignore if typing in an input (except our search input when pressing ArrowDown or ArrowRight)
@@ -869,125 +858,90 @@ if (activeProject) {
         }
       }
 
+      const panel = document.getElementById('breadcrumb-dropdown-panel') as HTMLElement | null;
+      const trigger = document.getElementById('breadcrumb-dropdown-trigger') as HTMLElement | null;
+      if (!panel || !trigger) return;
       const isOpen = panel.classList.contains('is-open');
 
-      // 1. SPACEBAR: Toggle dropdown open/close globally
-      if (e.key === ' ' || e.code === 'Space') {
-        // Bypass if focus is inside search input
-        if (active && active.id === 'breadcrumb-search-input') {
-          return;
-        }
-        e.preventDefault();
-        const nextState = !isOpen;
-        panel.classList.toggle('is-open', nextState);
-        trigger.setAttribute('aria-expanded', String(nextState));
-        if (nextState) {
-          panel.classList.remove('has-active-cat');
-          panel.classList.remove('show-projects');
-          // Focus the first category item
-          const firstCat = panel.querySelector('.breadcrumb__cat-item') as HTMLElement | null;
-          if (firstCat) firstCat.focus();
-        } else {
-          trigger.focus();
-        }
-        return;
-      }
-
-      // 2. ESCAPE: Close dropdown if open (disabled for strict selection mode)
-      /*
-      if (e.key === 'Escape' && isOpen) {
-        e.preventDefault();
-        panel.classList.remove('is-open');
-        panel.classList.remove('has-active-cat');
-        panel.classList.remove('show-projects');
-        trigger.setAttribute('aria-expanded', 'false');
-        trigger.focus();
-        return;
-      }
-      */
-
-      // 3. Arrow navigation
-      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-        // Dropdown Panel is open
-        if (isOpen) {
-          e.preventDefault();
-          const catItems = Array.from(panel.querySelectorAll('.breadcrumb__cat-item')) as HTMLElement[];
-          const activeProjList = panel.querySelector('.breadcrumb__proj-list.is-active');
-          const projItems = activeProjList 
-            ? (Array.from(activeProjList.querySelectorAll('.breadcrumb__proj-item')) as HTMLElement[])
-            : [];
-          const backBtn = panel.querySelector('.breadcrumb__back-btn') as HTMLElement | null;
-          
-          // Combine projects and back button (if visible) into right column items
-          const rightItems = [backBtn, ...projItems].filter((el): el is HTMLElement => !!el && el.offsetHeight > 0);
-
-          const isCatFocused = catItems.includes(active!);
-          const isRightFocused = rightItems.includes(active!);
-
-          if (isCatFocused) {
-            const idx = catItems.indexOf(active!);
-            if (e.key === 'ArrowDown') {
-              catItems[(idx + 1) % catItems.length].focus();
-            } else if (e.key === 'ArrowUp') {
-              catItems[(idx - 1 + catItems.length) % catItems.length].focus();
-            } else if (e.key === 'ArrowRight') {
-              // Activate category and focus first right item
-              active!.click();
-              setTimeout(() => {
-                const updatedActiveProjList = panel.querySelector('.breadcrumb__proj-list.is-active');
-                const updatedProjItems = updatedActiveProjList 
-                  ? (Array.from(updatedActiveProjList.querySelectorAll('.breadcrumb__proj-item')) as HTMLElement[])
-                  : [];
-                const updatedRightItems = [backBtn, ...updatedProjItems].filter((el): el is HTMLElement => !!el && el.offsetHeight > 0);
-                if (updatedRightItems.length > 0) {
-                  updatedRightItems[0].focus();
-                }
-              }, 60);
-            } else if (e.key === 'ArrowLeft') {
-              // Close panel and focus trigger
-              panel.classList.remove('is-open');
-              trigger.setAttribute('aria-expanded', 'false');
-              trigger.focus();
-            }
-          } else if (isRightFocused) {
-            const idx = rightItems.indexOf(active!);
-            if (e.key === 'ArrowDown') {
-              rightItems[(idx + 1) % rightItems.length].focus();
-            } else if (e.key === 'ArrowUp') {
-              rightItems[(idx - 1 + rightItems.length) % rightItems.length].focus();
-            } else if (e.key === 'ArrowLeft') {
-              // Back to active category item
-              const activeCat = panel.querySelector('.breadcrumb__cat-item.is-active') as HTMLElement | null;
-              if (activeCat) {
-                activeCat.focus();
-              } else {
-                catItems[0].focus();
-              }
-            }
-          } else {
-            // Dropdown is open but focus is elsewhere, focus first category
-            if (catItems.length > 0) catItems[0].focus();
-          }
-        } 
-        // Dropdown Panel is closed: navigate between breadcrumb items
-        else {
-          const isPrimaryFocused = primaryNav.includes(active!);
-          if (isPrimaryFocused) {
-            e.preventDefault();
-            const idx = primaryNav.indexOf(active!);
-            if (e.key === 'ArrowRight') {
-              primaryNav[(idx + 1) % primaryNav.length].focus();
-            } else if (e.key === 'ArrowLeft') {
-              primaryNav[(idx - 1 + primaryNav.length) % primaryNav.length].focus();
-            }
-          } else {
-            // Focus first item if user presses arrow and nothing in breadcrumb is focused
-            if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+      // 1. Arrow navigation when dropdown is closed (direct page turners)
+      if (!isOpen) {
+        if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+          const path = window.location.pathname.replace(/\/$/, '') || '/';
+          if (e.key === 'ArrowRight') {
+            if (path === '/') {
               e.preventDefault();
-              const activeLink = primaryNav.find(el => el.classList.contains('is-active')) || primaryNav[0];
-              if (activeLink) activeLink.focus();
+              window.location.href = '/about';
+            } else if (path === '/about') {
+              e.preventDefault();
+              window.location.href = '/projects';
+            }
+          } else if (e.key === 'ArrowLeft') {
+            if (path === '/projects') {
+              e.preventDefault();
+              window.location.href = '/about';
+            } else if (path === '/about') {
+              e.preventDefault();
+              window.location.href = '/';
             }
           }
+        }
+        return;
+      }
+
+      // 2. Arrow navigation when dropdown is open
+      if (isOpen && (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+        e.preventDefault();
+        const catItems = Array.from(panel.querySelectorAll('.breadcrumb__cat-item')) as HTMLElement[];
+        const activeProjList = panel.querySelector('.breadcrumb__proj-list.is-active');
+        const projItems = activeProjList 
+          ? (Array.from(activeProjList.querySelectorAll('.breadcrumb__proj-item')) as HTMLElement[])
+          : [];
+        const backBtn = panel.querySelector('.breadcrumb__back-btn') as HTMLElement | null;
+        
+        // Combine projects and back button (if visible) into right column items
+        const rightItems = [backBtn, ...projItems].filter((el): el is HTMLElement => !!el && el.offsetHeight > 0);
+
+        const isCatFocused = catItems.includes(active!);
+        const isRightFocused = rightItems.includes(active!);
+
+        if (isCatFocused) {
+          const idx = catItems.indexOf(active!);
+          if (e.key === 'ArrowDown') {
+            catItems[(idx + 1) % catItems.length].focus();
+          } else if (e.key === 'ArrowUp') {
+            catItems[(idx - 1 + catItems.length) % catItems.length].focus();
+          } else if (e.key === 'ArrowRight') {
+            // Activate category and focus first right item
+            active!.click();
+            setTimeout(() => {
+              const updatedActiveProjList = panel.querySelector('.breadcrumb__proj-list.is-active');
+              const updatedProjItems = updatedActiveProjList 
+                ? (Array.from(updatedActiveProjList.querySelectorAll('.breadcrumb__proj-item')) as HTMLElement[])
+                : [];
+              const updatedRightItems = [backBtn, ...updatedProjItems].filter((el): el is HTMLElement => !!el && el.offsetHeight > 0);
+              if (updatedRightItems.length > 0) {
+                updatedRightItems[0].focus();
+              }
+            }, 60);
+          }
+        } else if (isRightFocused) {
+          const idx = rightItems.indexOf(active!);
+          if (e.key === 'ArrowDown') {
+            rightItems[(idx + 1) % rightItems.length].focus();
+          } else if (e.key === 'ArrowUp') {
+            rightItems[(idx - 1 + rightItems.length) % rightItems.length].focus();
+          } else if (e.key === 'ArrowLeft') {
+            // Back to active category item
+            const activeCat = panel.querySelector('.breadcrumb__cat-item.is-active') as HTMLElement | null;
+            if (activeCat) {
+              activeCat.focus();
+            } else {
+              catItems[0].focus();
+            }
+          }
+        } else {
+          // Dropdown is open but focus is elsewhere, focus first category
+          if (catItems.length > 0) catItems[0].focus();
         }
       }
     });
