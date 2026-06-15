@@ -11,8 +11,21 @@ const { currentPath = '/' } = Astro.props;
 const allProjects = await getCollection('projects');
 const allCats = await getCollection('categories');
 
-const projects = [...allProjects].sort((a, b) => a.id.localeCompare(b.id));
-const categories = [...allCats].sort((a, b) => a.data.displayName.localeCompare(b.data.displayName));
+const categoryDisplayNames: Record<string, string> = {
+  'studio-823': '823',
+  'faizan-khatri': 'FKD',
+  'archv': 'ARCHV',
+  'scad': 'SCAD',
+  'collaboration': 'COLLAB',
+  'freelancer': 'FREE'
+};
+
+const getCatDisplayName = (id: string, def: string) => categoryDisplayNames[id] || def;
+
+const projects = [...allProjects].sort((a, b) => a.data.name.localeCompare(b.data.name));
+const categories = [...allCats].sort((a, b) => 
+  getCatDisplayName(a.id, a.data.displayName).localeCompare(getCatDisplayName(b.id, b.data.displayName))
+);
 
 // Normalize path for matching (ignoring trailing slash)
 const normalizedPath = currentPath.replace(/\/$/, '') || '/';
@@ -50,18 +63,18 @@ if (isProjectPage) {
 ---
 
 <nav class="breadcrumb" aria-label="Secondary navigation">
-  <div class="breadcrumb__list">
+  <div class:list={["breadcrumb__list", isProjectPage && "breadcrumb__list--project-page"]}>
     <!-- Home -->
-    <a href="/" class:list={["breadcrumb__link", isHome && "is-active"]}>Home</a>
-    <span class="breadcrumb__sep" aria-hidden="true">/</span>
+    <a href="/" class:list={["breadcrumb__link", "breadcrumb__link--home", isHome && "is-active"]}>Home</a>
+    <span class="breadcrumb__sep breadcrumb__sep--home" aria-hidden="true">/</span>
 
     <!-- About Me -->
-    <a href="/about" class:list={["breadcrumb__link", isAbout && "is-active"]}>About Me</a>
-    <span class="breadcrumb__sep" aria-hidden="true">/</span>
+    <a href="/about" class:list={["breadcrumb__link", "breadcrumb__link--about", isAbout && "is-active"]}>About Me</a>
+    <span class="breadcrumb__sep breadcrumb__sep--about" aria-hidden="true">/</span>
 
     <!-- Projects -->
-    <a href="/projects" class:list={["breadcrumb__link", isProjectsIndex && "is-active"]}>Projects</a>
-    <span class="breadcrumb__sep" aria-hidden="true">/</span>
+    <a href="/projects" class:list={["breadcrumb__link", "breadcrumb__link--projects", isProjectsIndex && "is-active"]}>Projects</a>
+    <span class="breadcrumb__sep breadcrumb__sep--projects" aria-hidden="true">/</span>
 
     <!-- Select Category & Project Dropdowns -->
     <div class:list={["breadcrumb__project-nav", isProjectPage && "is-active"]}>
@@ -79,7 +92,7 @@ if (isProjectPage) {
           <option value="">All Categories</option>
           {categories.map(c => (
             <option value={c.id} selected={currentProjectCatId === c.id}>
-              {c.data.displayName}
+              {categoryDisplayNames[c.id] || c.data.displayName}
             </option>
           ))}
         </select>
@@ -283,6 +296,16 @@ if (isProjectPage) {
     width: 1em;
     height: 1em;
   }
+
+  /* Mobile Portrait responsive optimization: on project pages hide Home & About Me to fit dropdowns */
+  @media (max-width: 767px) {
+    .breadcrumb__list--project-page .breadcrumb__link--home,
+    .breadcrumb__list--project-page .breadcrumb__sep--home,
+    .breadcrumb__list--project-page .breadcrumb__link--about,
+    .breadcrumb__list--project-page .breadcrumb__sep--about {
+      display: none;
+    }
+  }
 </style>
 
 <script>
@@ -326,7 +349,8 @@ if (isProjectPage) {
 
     // Listen to Category dropdown changes
     catSelect.addEventListener('change', () => {
-      updateProjectsList(catSelect.value);
+      const currentUrl = window.location.pathname.replace(/\/$/, '');
+      updateProjectsList(catSelect.value, currentUrl);
     });
 
     // Listen to Project dropdown changes (navigation)
