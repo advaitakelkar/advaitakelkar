@@ -27,12 +27,17 @@ const sorted = [...allProjects].sort((a, b) => {
 // Serialise to JSON for client-side search
 const projectsJson = JSON.stringify(
   sorted.map(p => ({
-    id:   p.id,
-    name: p.data.name,
-    year: p.data.year ?? '',
-    tag:  p.data.tags?.[0] ? (tagMap[p.data.tags[0].id] ?? p.data.tags[0].id) : '',
-    cat:  p.data.category  ? (catMap[p.data.category.id] ?? p.data.category.id) : '',
-    loc:  p.data.location ?? '',
+    id:      p.id,
+    name:    p.data.name,
+    year:    p.data.year ?? '',
+    tag:     p.data.tags?.[0] ? (tagMap[p.data.tags[0].id] ?? p.data.tags[0].id) : '',
+    tags:    (p.data.tags ?? []).map(t => tagMap[t.id] ?? t.id).join(' '),
+    cat:     p.data.category  ? (catMap[p.data.category.id] ?? p.data.category.id) : '',
+    loc:     p.data.location ?? '',
+    client:  p.data.client ?? '',
+    status:  p.data.status ?? '',
+    size:    p.data.size ?? '',
+    program: p.data.program ?? '',
   }))
 );
 ---
@@ -273,10 +278,14 @@ const projectsJson = JSON.stringify(
       matches = projects.filter(p => {
         return keywords.every(kw => 
           p.name.toLowerCase().includes(kw) ||
-          p.tag.toLowerCase().includes(kw)  ||
+          p.tags.toLowerCase().includes(kw)  ||
           p.cat.toLowerCase().includes(kw)  ||
           p.year.includes(kw) ||
-          (p.loc && p.loc.toLowerCase().includes(kw))
+          (p.loc && p.loc.toLowerCase().includes(kw)) ||
+          (p.client && p.client.toLowerCase().includes(kw)) ||
+          (p.status && p.status.toLowerCase().includes(kw)) ||
+          (p.size && p.size.toLowerCase().includes(kw)) ||
+          (p.program && p.program.toLowerCase().includes(kw))
         );
       });
     } else {
@@ -695,9 +704,9 @@ const projectsJson = JSON.stringify(
 
   .home-search__input {
     flex: 1;
-    height: 48px;
-    padding: 0 16px;
-    font-size: var(--_tokens---type--small);
+    height: 56px;
+    padding: 0 20px;
+    font-size: var(--_tokens---type--medium);
     font-family: inherit;
     background: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
     border: none;
@@ -711,9 +720,9 @@ const projectsJson = JSON.stringify(
   .home-search__input:focus { background-color: color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent); }
 
   .home-search__clear {
-    height: 48px;
-    padding: 0 20px;
-    font-size: var(--_tokens---type--micro);
+    height: 56px;
+    padding: 0 24px;
+    font-size: var(--_tokens---type--small);
     font-family: inherit;
     font-weight: 600;
     letter-spacing: 0.04em;
