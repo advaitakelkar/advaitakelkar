@@ -237,41 +237,16 @@ const projectsData = sorted.map(p => ({
     let timer;
     const slides = Array.from(track.querySelectorAll('.home-slider__slide'));
 
-    let animId;
-    const DWELL = 5200;     // time each project stays on screen
-    const GLIDE = 1100;     // duration of the eased transition
-
-    // Custom eased horizontal scroll (smoother & slower than native 'smooth')
-    function easeInOutCubic(t) {
-      return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-    }
-    function glideTo(targetLeft) {
-      cancelAnimationFrame(animId);
-      const start = track.scrollLeft;
-      const change = targetLeft - start;
-      if (Math.abs(change) < 1) return;
-      const startTime = performance.now();
-      function step(now) {
-        const t = Math.min((now - startTime) / GLIDE, 1);
-        track.scrollLeft = start + change * easeInOutCubic(t);
-        if (t < 1) animId = requestAnimationFrame(step);
-      }
-      animId = requestAnimationFrame(step);
-    }
-
     function setActive(idx) {
       current = (idx + slides.length) % slides.length;
-      const slide = slides[current];
-      // centre this slide within the track viewport
-      const target = slide.offsetLeft - (track.clientWidth - slide.clientWidth) / 2;
-      glideTo(target);
+      slides[current].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
       dots.forEach((d, i) => {
         d.classList.toggle('is-active', i === current);
         d.setAttribute('aria-selected', String(i === current));
       });
     }
 
-    function startAuto() { timer = setInterval(() => setActive(current + 1), DWELL); }
+    function startAuto() { timer = setInterval(() => setActive(current + 1), 3000); }
     function stopAuto()  { clearInterval(timer); }
 
     startAuto();
@@ -383,9 +358,9 @@ const projectsData = sorted.map(p => ({
   }
 
   .home-intro__label {
-    font-size: var(--_tokens---type--micro);
-    font-weight: 300;
-    letter-spacing: 0.08em;
+    font-size: var(--_tokens---type--small);
+    font-weight: 600;
+    letter-spacing: 0.01em;
     text-transform: none;
     color: var(--_tokens---color--fg);
     margin: 0;
@@ -418,8 +393,8 @@ const projectsData = sorted.map(p => ({
   }
 
   .home-intro__desc {
-    font-size: var(--_tokens---type--small);
-    line-height: 1.65;
+    font-size: var(--_tokens---type--micro);
+    line-height: 1.55;
     color: var(--_tokens---color--muted);
     margin: 0;
   }
@@ -473,17 +448,23 @@ const projectsData = sorted.map(p => ({
 
   .home-slider__track::-webkit-scrollbar { display: none; }
 
-  /* One project visible at a time — each slide fills the track */
+  /* Centring buffer hack using pseudo-elements */
+  .home-slider__track::before,
+  .home-slider__track::after {
+    content: '';
+    flex: 0 0 25vw;
+  }
+
   .home-slider__slide {
-    flex: 0 0 100%;
-    scroll-snap-align: center;
+    flex: 0 0 50vw;
+    scroll-snap-align: center; /* snap to center! */
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 12px;
     text-decoration: none;
     color: var(--_tokens---color--fg);
-    min-width: 0;
-    max-width: 100%;
+    min-width: 280px;
+    max-width: 720px;
   }
 
   .home-slider__image-wrap {
@@ -521,25 +502,18 @@ const projectsData = sorted.map(p => ({
   }
 
   .home-slider__name {
-    font-size: var(--_tokens---type--medium); /* one class up from small */
-    font-weight: 500;
-    line-height: 1.1;
-    letter-spacing: -0.02em;
+    font-size: var(--_tokens---type--small);
+    font-weight: 400;
+    letter-spacing: -0.01em;
   }
 
   .home-slider__arrow {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: clamp(22px, 2.4vw, 34px);
-    height: clamp(22px, 2.4vw, 34px);
-    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
     transition: transform 0.3s ease;
-  }
-
-  .home-slider__arrow svg {
-    width: 100%;
-    height: 100%;
   }
 
   .home-slider__slide:hover .home-slider__arrow {
@@ -577,12 +551,12 @@ const projectsData = sorted.map(p => ({
 
   /* ══ 3. Projects Quick Search ══════════════════════════════ */
   .home-search__header {
-    margin-bottom: 32px;
+    margin-bottom: 16px;
   }
 
   .home-search__title {
-    font-size: var(--_tokens---type--medium);
-    font-weight: 500;
+    font-size: var(--_tokens---type--small);
+    font-weight: 600;
     letter-spacing: -0.01em;
     color: var(--_tokens---color--fg);
     margin: 0;
@@ -590,15 +564,15 @@ const projectsData = sorted.map(p => ({
 
   .home-search__bar {
     display: flex;
-    gap: 12px;
-    margin-bottom: 16px;
+    gap: 10px;
+    margin-bottom: 14px;
   }
 
   .home-search__input {
     flex: 1;
-    height: 56px;
-    padding: 0 20px;
-    font-size: var(--_tokens---type--medium);
+    height: 42px;
+    padding: 0 16px;
+    font-size: var(--_tokens---type--micro);
     font-family: inherit;
     background: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
     border: none;
@@ -612,9 +586,9 @@ const projectsData = sorted.map(p => ({
   .home-search__input:focus { background-color: color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent); }
 
   .home-search__clear {
-    height: 56px;
-    padding: 0 24px;
-    font-size: var(--_tokens---type--small);
+    height: 42px;
+    padding: 0 18px;
+    font-size: var(--_tokens---type--micro);
     font-family: inherit;
     font-weight: 400;
     letter-spacing: 0.04em;
@@ -646,12 +620,12 @@ const projectsData = sorted.map(p => ({
     display: flex;
     flex-wrap: wrap;
     align-items: flex-start;
-    gap: 10px;
+    gap: 7px;
   }
 
   @media (max-width: 768px) {
     .home-search__grid {
-      gap: 8px;
+      gap: 6px;
     }
   }
 
@@ -663,10 +637,10 @@ const projectsData = sorted.map(p => ({
     display: inline-flex;
     flex-direction: row;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     width: auto;
     max-width: 100%;
-    padding: 9px 10px 9px 16px;
+    padding: 6px 9px 6px 13px;
     background-color: color-mix(in srgb, var(--_tokens---color--fg) 3%, transparent);
     border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
     border-radius: 999px; /* capsule / pill */
@@ -683,19 +657,19 @@ const projectsData = sorted.map(p => ({
     transform: translateY(-1px);
   }
 
-  /* Name — bold, small */
+  /* Name — semibold, micro (compact) */
   :global(.qs-card__name) {
-    font-size: var(--_tokens---type--small);
+    font-size: var(--_tokens---type--micro);
     font-weight: 600;
     letter-spacing: -0.01em;
     line-height: 1;
     color: var(--_tokens---color--fg);
   }
 
-  /* Tag — small, regular, muted */
+  /* Tag — tiny, regular, muted */
   :global(.qs-card__tag) {
     font-family: var(--_tokens---font--mono);
-    font-size: var(--_tokens---type--micro);
+    font-size: 0.62rem;
     font-weight: 300;
     color: var(--_tokens---color--muted);
     text-transform: none;
@@ -703,16 +677,16 @@ const projectsData = sorted.map(p => ({
     line-height: 1;
   }
 
-  /* Arrow — sits after a wider spacer at the capsule's end */
+  /* Arrow — sits after a spacer at the capsule's end */
   :global(.qs-card__arrow) {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 16px;
-    height: 16px;
-    margin-left: 8px; /* double spacer before the arrow */
+    width: 13px;
+    height: 13px;
+    margin-left: 6px; /* spacer before the arrow */
     color: var(--_tokens---color--muted);
-    flex: 0 0 16px;
+    flex: 0 0 13px;
     transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s ease;
   }
 
@@ -722,8 +696,8 @@ const projectsData = sorted.map(p => ({
   }
 
   :global(.qs-card__arrow svg) {
-    width: 16px;
-    height: 16px;
+    width: 13px;
+    height: 13px;
   }
 
   /* ══ 4. Page Navigation (links above search) ════════════════ */
@@ -793,6 +767,13 @@ const projectsData = sorted.map(p => ({
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 24px;
     }
+    .home-slider__slide {
+      flex: 0 0 65vw;
+    }
+    .home-slider__track::before,
+    .home-slider__track::after {
+      flex: 0 0 17.5vw; /* (100vw - 65vw) / 2 */
+    }
   }
 
   @media (max-width: 768px) {
@@ -809,8 +790,25 @@ const projectsData = sorted.map(p => ({
       grid-template-columns: 1fr;
       gap: 20px;
     }
+    .home-slider__slide {
+      flex: 0 0 75vw;
+    }
+    .home-slider__track::before,
+    .home-slider__track::after {
+      flex: 0 0 12.5vw; /* (100vw - 75vw) / 2 */
+    }
     .home-nav-row__text {
       font-size: var(--_tokens---type--medium);
+    }
+  }
+
+  @media (max-width: 600px) {
+    .home-slider__slide {
+      flex: 0 0 85vw;
+    }
+    .home-slider__track::before,
+    .home-slider__track::after {
+      flex: 0 0 7.5vw;
     }
   }
 
