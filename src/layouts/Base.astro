@@ -158,9 +158,17 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
       document.addEventListener('mouseover', (e) => {
         const target = e.target as HTMLElement;
-        const hoverContainer = target.closest('[data-scramble]');
-        if (hoverContainer) {
-          const scrambleEl = hoverContainer as HTMLElement;
+        let scrambleEl = target.closest('[data-scramble]') as HTMLElement | null;
+
+        // Check if target has a parent wrapper container that should trigger the scramble child
+        if (!scrambleEl) {
+          const parentRow = target.closest('.home-nav-row, .home-slider__slide, .sn-panel__link');
+          if (parentRow) {
+            scrambleEl = parentRow.querySelector('[data-scramble]') as HTMLElement | null;
+          }
+        }
+
+        if (scrambleEl) {
           if (!scrambleEl.dataset.hasScrambleListener) {
             scrambleEl.dataset.hasScrambleListener = 'true';
             const scrambler = new TextScrambler(scrambleEl);
@@ -173,8 +181,10 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
               scrambler.stop();
             };
 
-            scrambleEl.addEventListener('mouseenter', onMouseEnter);
-            scrambleEl.addEventListener('mouseleave', onMouseLeave);
+            // Bind listeners to parent container if available, otherwise elements themselves
+            const triggerEl = scrambleEl.closest('.home-nav-row, .home-slider__slide, .sn-panel__link') || scrambleEl;
+            triggerEl.addEventListener('mouseenter', onMouseEnter);
+            triggerEl.addEventListener('mouseleave', onMouseLeave);
 
             // Trigger immediately for the first hover
             onMouseEnter();
