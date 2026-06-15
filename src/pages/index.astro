@@ -133,15 +133,6 @@ const projectsData = sorted.map(p => ({
           </svg>
         </span>
       </a>
-      <a href="/projects" class="home-nav-row">
-        <span class="home-nav-row__text">Projects</span>
-        <span class="home-nav-row__arrow" aria-hidden="true">
-          <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
-            <line x1="6" y1="18" x2="18" y2="6"></line>
-            <polyline points="10 6 18 6 18 14"></polyline>
-          </svg>
-        </span>
-      </a>
     </nav>
 
     <!-- Quick Search footer element -->
@@ -161,7 +152,30 @@ const projectsData = sorted.map(p => ({
         <button class="home-search__clear" id="qs-clear" type="button">@Clear All</button>
       </div>
       <p class="home-search__count" id="qs-count" aria-live="polite"></p>
-      <div class="home-search__grid" id="qs-grid" role="list"></div>
+      
+      <!-- Pill/bubble search CMS interface -->
+      <div class="proj-bubbles" id="qs-grid" role="list" style="margin-top: 28px; border-top: none; padding-top: 0;">
+        {sorted.map(p => {
+          const tagsArr = (p.data.tags ?? []).map(t => tagMap[t.id] || t.id);
+          return (
+            <a
+              href={`/projects/${p.id}`}
+              class="proj-bubble"
+              data-name={p.data.name}
+              data-tags={tagsArr.join(',')}
+              data-cat={p.data.category ? (catMap[p.data.category.id] || p.data.category.id) : ''}
+              data-year={p.data.year ?? ''}
+              data-loc={p.data.location ?? ''}
+              data-client={p.data.client ?? ''}
+              data-status={p.data.status ?? ''}
+              data-program={p.data.program ?? ''}
+            >
+              <span class="proj-bubble__name">{p.data.name}</span>
+              <span class="proj-bubble__tag">{tagsArr[0] || (p.data.category ? catMap[p.data.category.id] : 'Design')}</span>
+            </a>
+          );
+        })}
+      </div>
     </footer>
   </section>
 
@@ -170,58 +184,38 @@ const projectsData = sorted.map(p => ({
 <!-- ══ DATA + JS ══════════════════════════════════════════════ -->
 <script define:vars={{ projectsData }}>
   // ── Quick Search ────────────────────────────────────────────
-  const projects = projectsData;
   const grid     = document.getElementById('qs-grid');
   const input    = document.getElementById('qs-input');
   const clearBtn = document.getElementById('qs-clear');
   const count    = document.getElementById('qs-count');
-
-  function buildRow(p) {
-    const el = document.createElement('a');
-    el.href      = `/projects/${p.id}`;
-    el.className = 'qs-card';
-    el.setAttribute('role', 'listitem');
-    el.innerHTML = `
-      <span class="qs-card__name" data-scramble>${p.name}</span>
-      <span class="qs-card__tag">${p.tag || p.cat || 'Design'}</span>
-      <span class="qs-card__arrow" aria-hidden="true">
-        <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
-          <line x1="6" y1="18" x2="18" y2="6"></line>
-          <polyline points="10 6 18 6 18 14"></polyline>
-        </svg>
-      </span>
-    `;
-    return el;
-  }
+  const bubbles  = grid ? Array.from(grid.querySelectorAll('.proj-bubble')) : [];
 
   function render(query) {
-    if (!grid) return;
     const q = query.trim().toLowerCase();
-    let matches;
-    if (q) {
-      const keywords = q.split(/\s+/).filter(Boolean);
-      matches = projects.filter(p => {
-        return keywords.every(kw =>
-          p.name.toLowerCase().includes(kw) ||
-          p.tags.toLowerCase().includes(kw)  ||
-          p.cat.toLowerCase().includes(kw)  ||
-          p.year.includes(kw) ||
-          (p.loc && p.loc.toLowerCase().includes(kw)) ||
-          (p.client && p.client.toLowerCase().includes(kw)) ||
-          (p.status && p.status.toLowerCase().includes(kw)) ||
-          (p.size && p.size.toLowerCase().includes(kw)) ||
-          (p.program && p.program.toLowerCase().includes(kw))
-        );
-      });
-    } else {
-      matches = projects;
-    }
+    const keywords = q.split(/\s+/).filter(Boolean);
+    let matchCount = 0;
 
-    grid.innerHTML = '';
-    matches.forEach(p => grid.appendChild(buildRow(p)));
+    bubbles.forEach(el => {
+      if (!keywords.length) {
+        el.classList.remove('is-match');
+        return;
+      }
+      const hay = [
+        el.dataset.name, el.dataset.tags, el.dataset.cat, el.dataset.year,
+        el.dataset.loc, el.dataset.client, el.dataset.status, el.dataset.program
+      ].join(' ').toLowerCase();
+
+      const isMatch = keywords.every(kw => hay.includes(kw));
+      el.classList.toggle('is-match', isMatch);
+      if (isMatch) matchCount++;
+    });
+
     if (count) {
-      count.textContent =
-        `Results ${projects.length}   Showing Items 1 to ${matches.length} of ${projects.length}`;
+      if (q) {
+        count.textContent = `Results ${bubbles.length}   Showing Items 1 to ${matchCount} of ${bubbles.length}`;
+      } else {
+        count.textContent = `Results ${bubbles.length}   Showing all items`;
+      }
     }
   }
 
@@ -657,90 +651,50 @@ const projectsData = sorted.map(p => ({
     margin-bottom: 24px;
   }
 
-  /* Capsule "paragraph" layout — content-sized pills that wrap and reflow.
-     No fixed columns: each card sizes to its own name + tag, packed like words. */
-  .home-search__grid {
+  /* ── Pill/bubble search CMS interface ── */
+  .proj-bubbles {
     display: flex;
     flex-wrap: wrap;
-    align-items: flex-start;
     gap: 7px;
   }
 
-  @media (max-width: 768px) {
-    .home-search__grid {
-      gap: 6px;
-    }
-  }
-
-  /* Card Sizing & Sibling elements style.
-     NOTE: quick-search cards are injected at runtime via JS (buildRow),
-     so Astro's scoped styles never reach them. These rules are :global
-     so they apply to the dynamically-created card markup. */
-  :global(.qs-card) {
+  .proj-bubble {
     display: inline-flex;
-    flex-direction: row;
     align-items: center;
-    gap: 6px;
-    width: auto;
-    max-width: 100%;
-    padding: 6px 9px 6px 13px;
-    background-color: color-mix(in srgb, var(--_tokens---color--fg) 3%, transparent);
+    gap: 7px;
+    padding: 6px 12px;
+    border-radius: 999px;
     border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
-    border-radius: 999px; /* capsule / pill */
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 2%, transparent);
     text-decoration: none;
-    color: var(--_tokens---color--fg);
     white-space: nowrap;
-    transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
-    animation: capsuleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+    opacity: 0.32; /* greyed out by default */
+    transition: opacity 0.25s ease, background-color 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
   }
 
-  :global(.qs-card:hover) {
-    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
-    border-color: color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
-    transform: translateY(-1px);
-  }
-
-  /* Name — semibold, micro (compact) */
-  :global(.qs-card__name) {
+  .proj-bubble__name {
     font-size: var(--_tokens---type--micro);
     font-weight: 600;
     letter-spacing: -0.01em;
-    line-height: 1;
     color: var(--_tokens---color--fg);
   }
 
-  /* Tag — tiny, regular, muted */
-  :global(.qs-card__tag) {
+  .proj-bubble__tag {
     font-family: var(--_tokens---font--mono);
-    font-size: 0.62rem;
-    font-weight: 300;
-    color: var(--_tokens---color--muted);
-    text-transform: none;
-    letter-spacing: 0.04em;
     line-height: 1;
-  }
-
-  /* Arrow — sits after a spacer at the capsule's end */
-  :global(.qs-card__arrow) {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 13px;
-    height: 13px;
-    margin-left: 6px; /* spacer before the arrow */
+    font-size: 0.6rem;
     color: var(--_tokens---color--muted);
-    flex: 0 0 13px;
-    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s ease;
+    letter-spacing: 0.04em;
   }
 
-  :global(.qs-card:hover .qs-card__arrow) {
-    transform: translate(2px, -2px);
-    color: var(--_tokens---color--fg);
+  .proj-bubble.is-match {
+    opacity: 1;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 7%, transparent);
+    border-color: color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
   }
 
-  :global(.qs-card__arrow svg) {
-    width: 13px;
-    height: 13px;
+  .proj-bubble.is-match:hover {
+    transform: translateY(-2px);
   }
 
   /* ══ 4. Page Navigation (links above search) ════════════════ */
