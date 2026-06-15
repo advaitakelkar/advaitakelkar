@@ -627,7 +627,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   }
 
   .project-card__stack-name {
-    font-size: var(--_tokens---type--small);
+    font-size: clamp(1.15rem, 1.05rem + 0.35vw, 1.35rem);
     font-weight: 700; /* bold on the left */
     letter-spacing: -0.01em;
     white-space: nowrap;
@@ -704,7 +704,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   .project-card__title-link { text-decoration: none; color: var(--_tokens---color--fg); }
 
   .project-card__title {
-    font-size: clamp(1.25rem, 2.2vw, 1.6rem); /* reduced title height */
+    font-size: clamp(1.5rem, 2.5vw, 1.85rem);
     font-weight: 500;
     line-height: 1.1;
     letter-spacing: -0.02em;
@@ -1145,51 +1145,47 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   }
 
   // --- Scroll-Driven Card Stacking Title Animation ---
-  let hasScrolled = false;
+  // --- Scroll-Driven Card Stacking Title Animation ---
+  let hasUserInteracted = false;
+
+  function enableInteraction() {
+    if (hasUserInteracted) return;
+    hasUserInteracted = true;
+    handleCardStacking();
+    // Clean up temporary interaction listeners
+    window.removeEventListener('scroll', enableInteraction);
+    window.removeEventListener('mousemove', enableInteraction);
+    window.removeEventListener('touchstart', enableInteraction);
+  }
+
+  window.addEventListener('scroll', enableInteraction, { passive: true });
+  window.addEventListener('mousemove', enableInteraction, { passive: true });
+  window.addEventListener('touchstart', enableInteraction, { passive: true });
 
   function handleCardStacking() {
     updateHeaderHeight();
 
-    if (window.scrollY > 10) {
-      hasScrolled = true;
-    }
-
-    if (!hasScrolled || window.scrollY <= 10) {
-      // Keep all cards stacked on first load or when at the top of the page
+    if (!hasUserInteracted) {
+      // Keep all cards stacked on initial load
       cards.forEach(card => {
         card.classList.add('is-stacked');
       });
       return;
     }
 
-    // Find the best candidate card to expand (closest to target center)
-    let bestCandidate: HTMLElement | null = null;
-    let minDistance = Infinity;
-    const targetY = window.innerHeight * 0.45; // target focus line at 45% viewport height
-
     const visibleCards = Array.from(cards).filter(card => !card.hidden);
 
-    visibleCards.forEach(card => {
-      const rect = card.getBoundingClientRect();
-      const cardCenter = rect.top + rect.height / 2;
-
-      // Focus range: must be between 15% and 70% of viewport height
-      const inRange = cardCenter >= window.innerHeight * 0.15 && cardCenter <= window.innerHeight * 0.7;
-
-      if (inRange) {
-        const distance = Math.abs(cardCenter - targetY);
-        if (distance < minDistance) {
-          minDistance = distance;
-          bestCandidate = card;
-        }
-      }
-    });
-
-    visibleCards.forEach(card => {
-      if (card === bestCandidate) {
-        card.classList.remove('is-stacked');
-      } else {
+    visibleCards.forEach((card, idx) => {
+      const isLast = idx === visibleCards.length - 1;
+      if (isLast) {
+        // The last card (the end of the list) is always closed (stacked)
         card.classList.add('is-stacked');
+      } else {
+        const rect = card.getBoundingClientRect();
+        const computedTop = parseFloat(window.getComputedStyle(card).top);
+        // Stuck check: card rect.top meets its sticky top constraint
+        const isStacked = rect.top <= computedTop + 2;
+        card.classList.toggle('is-stacked', isStacked);
       }
     });
   }
