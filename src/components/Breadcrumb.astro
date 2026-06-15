@@ -36,24 +36,31 @@ const isAbout = normalizedPath === '/about';
 const isProjectsIndex = normalizedPath === '/projects';
 const isProjectPage = normalizedPath.startsWith('/projects/') && !isProjectsIndex;
 
-// Extract current project ID, name, and category ID if on a project page
+// Extract current project ID, name, and category ID
 let currentProjectId = '';
 let currentProjectCatId = '';
 let currentProjectName = '';
 let prevProjectUrl = '';
 let nextProjectUrl = '';
 
+let activeProject = null;
+
 if (isProjectPage) {
-  // Extract id from path (e.g. /projects/carlo -> carlo)
   const parts = normalizedPath.split('/').filter(Boolean);
-  currentProjectId = parts[1] || '';
-  
-  const currentProject = projects.find(p => p.id === currentProjectId);
-  if (currentProject) {
-    currentProjectName = currentProject.data.name;
-    if (currentProject.data.category) {
-      currentProjectCatId = currentProject.data.category.id;
-    }
+  const projectId = parts[1] || '';
+  activeProject = projects.find(p => p.id === projectId);
+}
+
+// Fallback to the latest project (first in the list) if not on a project page
+if (!activeProject && projects.length > 0) {
+  activeProject = projects[0];
+}
+
+if (activeProject) {
+  currentProjectId = activeProject.id;
+  currentProjectName = activeProject.data.name;
+  if (activeProject.data.category) {
+    currentProjectCatId = activeProject.data.category.id;
   }
   
   const idx = projects.findIndex(p => p.id === currentProjectId);
@@ -82,8 +89,8 @@ if (isProjectPage) {
   </div>
 
   <!-- Select Category & Project Dropdown Menu (outside links wrapper to prevent clipping) -->
-  <div class:list={["breadcrumb__project-nav", isProjectPage && "is-active"]}>
-    {isProjectPage && prevProjectUrl && (
+  <div class:list={["breadcrumb__project-nav", "is-active"]}>
+    {prevProjectUrl && (
       <a href={prevProjectUrl} class="breadcrumb__arrow breadcrumb__arrow--prev" title="Previous Project" aria-label="Previous Project">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
           <polyline points="15 18 9 12 15 6"></polyline>
@@ -94,7 +101,7 @@ if (isProjectPage) {
     <!-- Custom Dropdown Menu System -->
     <div class="breadcrumb__custom-dropdown" id="breadcrumb-custom-dropdown">
       <button class="breadcrumb__dropdown-trigger" id="breadcrumb-dropdown-trigger" aria-haspopup="true" aria-expanded="false" type="button">
-        <span>{isProjectPage && currentProjectName ? currentProjectName : 'Select Project'}</span>
+        <span id="breadcrumb-dropdown-trigger-text">{currentProjectName ? currentProjectName : 'Select Project'}</span>
         <span class="breadcrumb__select-arrow" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
             <polyline points="6 9 12 15 18 9"></polyline>
@@ -147,7 +154,7 @@ if (isProjectPage) {
       </div>
     </div>
 
-    {isProjectPage && nextProjectUrl && (
+    {nextProjectUrl && (
       <a href={nextProjectUrl} class="breadcrumb__arrow breadcrumb__arrow--next" title="Next Project" aria-label="Next Project">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
           <polyline points="9 18 15 12 9 6"></polyline>
@@ -437,14 +444,12 @@ if (isProjectPage) {
 
       if (isOpen) {
         // Reset category view to the current project's category on open
-        const activeProjItem = dropdown.querySelector('.breadcrumb__proj-item.is-active');
-        if (activeProjItem) {
-          const parentList = activeProjItem.closest('.breadcrumb__proj-list');
-          if (parentList) {
-            const catId = parentList.getAttribute('data-cat-id');
-            if (catId && catId !== 'all') {
-              activateCategory(catId);
-            }
+        const activeCatProjItem = dropdown.querySelector('.breadcrumb__proj-list:not([data-cat-id="all"]) .breadcrumb__proj-item.is-active');
+        if (activeCatProjItem) {
+          const parentList = activeCatProjItem.closest('.breadcrumb__proj-list');
+          const catId = parentList ? parentList.getAttribute('data-cat-id') : null;
+          if (catId && catId !== 'all') {
+            activateCategory(catId);
           }
         } else {
           activateCategory('all');
@@ -488,16 +493,68 @@ if (isProjectPage) {
       });
     });
 
-    // On page load: auto-activate correct category if on a project detail view
-    const activeProjItem = dropdown.querySelector('.breadcrumb__proj-item.is-active');
-    if (activeProjItem) {
-      const parentList = activeProjItem.closest('.breadcrumb__proj-list');
-      if (parentList) {
-        const catId = parentList.getAttribute('data-cat-id');
-        if (catId && catId !== 'all') {
-          activateCategory(catId);
-        }
+    // Helper to update active project in the DOM on non-project page load
+    function updateActiveProject(projectId: string) {
+      const projItems = Array.from(dropdown.querySelectorAll('.breadcrumb__proj-list[data-cat-id="all"] .breadcrumb__proj-item')) as HTMLAnchorElement[];
+      const idx = projItems.findIndex(el => el.getAttribute('href') === `/projects/${projectId}`);
+      if (idx === -1) return;
+      
+      const activeEl = projItems[idx];
+      const activeName = activeEl.querySelector('.breadcrumb__proj-name')?.textContent?.trim() || activeEl.textContent?.trim() || '';
+      
+      // Update trigger text
+      const triggerText = document.getElementById('breadcrumb-dropdown-trigger-text');
+      if (triggerText) {
+        triggerText.textContent = activeName;
       }
+      
+      // Update active class in all proj lists
+      dropdown.querySelectorAll('.breadcrumb__proj-item').forEach(el => {
+        const href = el.getAttribute('href');
+        el.classList.toggle('is-active', href === `/projects/${projectId}`);
+      });
+      
+      // Update arrows
+      const prevIdx = (idx - 1 + projItems.length) % projItems.length;
+      const nextIdx = (idx + 1) % projItems.length;
+      
+      const prevEl = projItems[prevIdx];
+      const nextEl = projItems[nextIdx];
+      
+      const prevArrow = document.querySelector('.breadcrumb__arrow--prev') as HTMLAnchorElement | null;
+      const nextArrow = document.querySelector('.breadcrumb__arrow--next') as HTMLAnchorElement | null;
+      
+      if (prevArrow) prevArrow.setAttribute('href', prevEl.getAttribute('href') || '#');
+      if (nextArrow) nextArrow.setAttribute('href', nextEl.getAttribute('href') || '#');
+    }
+
+    // Sync localStorage latestProject
+    const path = window.location.pathname.replace(/\/$/, '') || '/';
+    const isProjPage = path.startsWith('/projects/') && path !== '/projects';
+    
+    if (isProjPage) {
+      const parts = path.split('/').filter(Boolean);
+      const currentProjId = parts[1] || '';
+      if (currentProjId) {
+        localStorage.setItem('latestProject', currentProjId);
+      }
+    } else {
+      const latestProjId = localStorage.getItem('latestProject');
+      if (latestProjId) {
+        updateActiveProject(latestProjId);
+      }
+    }
+
+    // On page load: auto-activate correct category if on a project detail view
+    const activeCatProjItem = dropdown.querySelector('.breadcrumb__proj-list:not([data-cat-id="all"]) .breadcrumb__proj-item.is-active');
+    if (activeCatProjItem) {
+      const parentList = activeCatProjItem.closest('.breadcrumb__proj-list');
+      const catId = parentList ? parentList.getAttribute('data-cat-id') : null;
+      if (catId && catId !== 'all') {
+        activateCategory(catId);
+      }
+    } else {
+      activateCategory('all');
     }
   }
 
