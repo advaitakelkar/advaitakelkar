@@ -384,7 +384,7 @@ if (activeProject) {
     border-radius: 8px;
     box-shadow: none;
     display: none; /* toggled via js */
-    overflow: hidden;
+    overflow: visible;
     
     /* Default categories-only width */
     grid-template-columns: 110px;
@@ -409,7 +409,8 @@ if (activeProject) {
   @media (min-width: 768px) {
     .breadcrumb__dropdown-panel.has-active-cat {
       grid-template-columns: 110px 190px;
-      width: 300px;
+      width: 308px;
+      gap: 8px;
     }
   }
 
@@ -434,16 +435,18 @@ if (activeProject) {
     gap: 1px;
     padding: 8px;
     box-sizing: border-box;
+    background-color: var(--_tokens---color--bg);
+    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
+    border-radius: 8px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
   }
 
   .breadcrumb__menu-column--categories {
     border-right: none;
-    background-color: transparent;
   }
 
   .breadcrumb__menu-column--projects {
     display: none; /* hidden by default */
-    background-color: transparent;
     width: 100%;
   }
 
@@ -658,18 +661,7 @@ if (activeProject) {
       searchInput.addEventListener('focus', () => {
         panel.classList.add('is-open');
         trigger.setAttribute('aria-expanded', 'true');
-        
-        // Auto-activate correct category on focus
-        const activeCatProjItem = dropdown.querySelector('.breadcrumb__proj-list:not([data-cat-id="all"]) .breadcrumb__proj-item.is-active');
-        if (activeCatProjItem) {
-          const parentList = activeCatProjItem.closest('.breadcrumb__proj-list');
-          const catId = parentList ? parentList.getAttribute('data-cat-id') : null;
-          if (catId && catId !== 'all') {
-            activateCategory(catId);
-          }
-        } else {
-          activateCategory('all');
-        }
+        activateCategory('all');
       });
 
       trigger.addEventListener('click', (e) => {
@@ -842,17 +834,8 @@ if (activeProject) {
       }
     }
 
-    // On page load: auto-activate correct category if on a project detail view
-    const activeCatProjItem = dropdown.querySelector('.breadcrumb__proj-list:not([data-cat-id="all"]) .breadcrumb__proj-item.is-active');
-    if (activeCatProjItem) {
-      const parentList = activeCatProjItem.closest('.breadcrumb__proj-list');
-      const catId = parentList ? parentList.getAttribute('data-cat-id') : null;
-      if (catId && catId !== 'all') {
-        activateCategory(catId);
-      }
-    } else {
-      activateCategory('all');
-    }
+    // On page load: always default to category "all" active
+    activateCategory('all');
   }
 
   function setupKeyboardNavigation() {
