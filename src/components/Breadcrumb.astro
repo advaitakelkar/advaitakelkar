@@ -846,10 +846,10 @@ if (activeProject) {
     window.addEventListener('keydown', (e) => {
       const active = document.activeElement as HTMLElement | null;
       
-      // Ignore if typing in an input (except our search input when pressing ArrowDown or ArrowRight)
+      // Ignore if typing in an input (except our search input when pressing ArrowDown, ArrowRight, or ArrowLeft)
       if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)) {
         if (active.id === 'breadcrumb-search-input') {
-          if (e.key !== 'ArrowDown' && e.key !== 'ArrowRight') {
+          if (e.key !== 'ArrowDown' && e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') {
             return;
           }
         } else {
@@ -873,9 +873,15 @@ if (activeProject) {
             } else if (path === '/about') {
               e.preventDefault();
               window.location.href = '/projects';
+            } else if (path === '/projects' || path.startsWith('/projects/')) {
+              const searchInput = document.getElementById('breadcrumb-search-input') as HTMLElement | null;
+              if (searchInput) {
+                e.preventDefault();
+                searchInput.focus();
+              }
             }
           } else if (e.key === 'ArrowLeft') {
-            if (path === '/projects') {
+            if (path === '/projects' || path.startsWith('/projects/')) {
               e.preventDefault();
               window.location.href = '/about';
             } else if (path === '/about') {
@@ -903,7 +909,26 @@ if (activeProject) {
         const isCatFocused = catItems.includes(active!);
         const isRightFocused = rightItems.includes(active!);
 
-        if (isCatFocused) {
+        if (active && active.id === 'breadcrumb-search-input') {
+          if (e.key === 'ArrowLeft') {
+            // Close dropdown and focus Projects link
+            panel.classList.remove('is-open');
+            trigger.setAttribute('aria-expanded', 'false');
+            active.blur();
+            const projectsLink = document.querySelector('.breadcrumb__link--projects') as HTMLElement | null;
+            if (projectsLink) {
+              projectsLink.focus();
+            }
+          } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+            // Focus the active or first category item
+            const activeCat = panel.querySelector('.breadcrumb__cat-item.is-active') as HTMLElement | null;
+            if (activeCat) {
+              activeCat.focus();
+            } else if (catItems.length > 0) {
+              catItems[0].focus();
+            }
+          }
+        } else if (isCatFocused) {
           const idx = catItems.indexOf(active!);
           if (e.key === 'ArrowDown') {
             catItems[(idx + 1) % catItems.length].focus();
@@ -922,6 +947,12 @@ if (activeProject) {
                 updatedRightItems[0].focus();
               }
             }, 60);
+          } else if (e.key === 'ArrowLeft') {
+            // Focus search input
+            const searchInput = document.getElementById('breadcrumb-search-input') as HTMLElement | null;
+            if (searchInput) {
+              searchInput.focus();
+            }
           }
         } else if (isRightFocused) {
           const idx = rightItems.indexOf(active!);

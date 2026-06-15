@@ -119,7 +119,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
         ].filter(m => m.val);
         return (
         <div
-          class="project-card"
+          class="project-card is-stacked"
           style={`--card-index: ${i};`}
           data-name={p.data.name}
           data-loc={p.data.location ?? ''}
@@ -602,11 +602,28 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     background-color: var(--_tokens---color--bg);
     opacity: 0;
     pointer-events: none;
+    transition: opacity 0.3s ease;
   }
 
   .project-card.is-stacked .project-card__stackrow {
     opacity: 1;
     pointer-events: auto;
+  }
+
+  /* Hover expansion when card is stacked */
+  .project-card.is-stacked:hover {
+    max-height: 500px;
+    padding-block: clamp(16px, 2vw, 24px);
+  }
+
+  .project-card.is-stacked:hover .project-card__full {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .project-card.is-stacked:hover .project-card__stackrow {
+    opacity: 0;
+    pointer-events: none;
   }
 
   .project-card__stack-name {
@@ -665,6 +682,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     display: flex;
     flex-direction: column;
     gap: 10px; /* reduced gap */
+    transition: opacity 0.3s ease;
   }
 
   .project-card.is-stacked .project-card__full {
@@ -1127,16 +1145,52 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   }
 
   // --- Scroll-Driven Card Stacking Title Animation ---
+  let hasScrolled = false;
+
   function handleCardStacking() {
     updateHeaderHeight();
-    cards.forEach(card => {
-      if (card.hidden) return;
-      const rect = card.getBoundingClientRect();
-      const computedTop = parseFloat(window.getComputedStyle(card).top);
-      // Stuck check: card rect.top meets its sticky top constraint
-      const isStacked = rect.top <= computedTop + 2;
 
-      card.classList.toggle('is-stacked', isStacked);
+    if (window.scrollY > 10) {
+      hasScrolled = true;
+    }
+
+    if (!hasScrolled || window.scrollY <= 10) {
+      // Keep all cards stacked on first load or when at the top of the page
+      cards.forEach(card => {
+        card.classList.add('is-stacked');
+      });
+      return;
+    }
+
+    // Find the best candidate card to expand (closest to target center)
+    let bestCandidate: HTMLElement | null = null;
+    let minDistance = Infinity;
+    const targetY = window.innerHeight * 0.45; // target focus line at 45% viewport height
+
+    const visibleCards = Array.from(cards).filter(card => !card.hidden);
+
+    visibleCards.forEach(card => {
+      const rect = card.getBoundingClientRect();
+      const cardCenter = rect.top + rect.height / 2;
+
+      // Focus range: must be between 15% and 70% of viewport height
+      const inRange = cardCenter >= window.innerHeight * 0.15 && cardCenter <= window.innerHeight * 0.7;
+
+      if (inRange) {
+        const distance = Math.abs(cardCenter - targetY);
+        if (distance < minDistance) {
+          minDistance = distance;
+          bestCandidate = card;
+        }
+      }
+    });
+
+    visibleCards.forEach(card => {
+      if (card === bestCandidate) {
+        card.classList.remove('is-stacked');
+      } else {
+        card.classList.add('is-stacked');
+      }
     });
   }
 
