@@ -36,7 +36,9 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   ]}
 >
   <section class="projects-page">
-    <div class="projects-sticky-header">
+    <!-- Top Section: Header, search, filters, and cards -->
+    <div class="projects-top-section">
+      <div class="projects-sticky-header">
       <header class="projects-header">
         <h1 class="projects-title">Projects</h1>
         <p class="projects-count text-muted">{allProjects.length} of {allProjects.length} works</p>
@@ -199,29 +201,33 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
     <!-- Pagination Controls -->
     <div class="pagination-container" id="projects-pagination"></div>
+    </div> <!-- End projects-top-section -->
 
-    <!-- Bottom quick-search bubbles — all projects, grey by default, highlight on match -->
-    <div class="proj-bubbles" id="proj-bubbles" aria-label="Quick project search">
-      {sorted.map(p => {
-        const tagsArr = (p.data.tags ?? []).map(t => tagMap[t.id] || t.id);
-        return (
-          <a
-            href={`/projects/${p.id}`}
-            class="proj-bubble"
-            data-name={p.data.name}
-            data-loc={p.data.location ?? ''}
-            data-year={p.data.year ?? ''}
-            data-client={p.data.client ?? ''}
-            data-status={p.data.status ?? ''}
-            data-program={p.data.program ?? ''}
-            data-cat={p.data.category ? (catMap[p.data.category.id] || p.data.category.id) : ''}
-            data-tags={tagsArr.join(',')}
-          >
-            <span class="proj-bubble__name">{p.data.name}</span>
-            <span class="proj-bubble__tag">{tagsArr[0] || (p.data.category ? catMap[p.data.category.id] : 'Design')}</span>
-          </a>
-        );
-      })}
+    <!-- Bottom Section: Bubbles interface -->
+    <div class="projects-bottom-section">
+      <!-- Bottom quick-search bubbles — all projects, grey by default, highlight on match -->
+      <div class="proj-bubbles" id="proj-bubbles" aria-label="Quick project search">
+        {sorted.map(p => {
+          const tagsArr = (p.data.tags ?? []).map(t => tagMap[t.id] || t.id);
+          return (
+            <a
+              href={`/projects/${p.id}`}
+              class="proj-bubble"
+              data-name={p.data.name}
+              data-loc={p.data.location ?? ''}
+              data-year={p.data.year ?? ''}
+              data-client={p.data.client ?? ''}
+              data-status={p.data.status ?? ''}
+              data-program={p.data.program ?? ''}
+              data-cat={p.data.category ? (catMap[p.data.category.id] || p.data.category.id) : ''}
+              data-tags={tagsArr.join(',')}
+            >
+              <span class="proj-bubble__name">{p.data.name}</span>
+              <span class="proj-bubble__tag">{tagsArr[0] || (p.data.category ? catMap[p.data.category.id] : 'Design')}</span>
+            </a>
+          );
+        })}
+      </div>
     </div>
   </section>
 </PageLayout>
@@ -558,7 +564,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     width: 100%;
     box-sizing: border-box;
     position: sticky;
-    top: calc(250px + var(--card-index, 0) * 54px);
+    top: calc(var(--header-height, 240px) + var(--card-index, 0) * 54px);
     background-color: var(--_tokens---color--bg);
     border-top: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
     padding: clamp(1.5rem, 3vw, 3rem);
@@ -809,14 +815,24 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     cursor: not-allowed;
   }
 
+  .projects-top-section {
+    position: relative;
+    width: 100%;
+  }
+
+  .projects-bottom-section {
+    position: relative;
+    width: 100%;
+    margin-top: 56px;
+    padding-top: 28px;
+    border-top: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
+  }
+
   /* ── Bottom quick-search bubbles ── */
   .proj-bubbles {
     display: flex;
     flex-wrap: wrap;
     gap: 7px;
-    margin-top: 56px;
-    padding-top: 28px;
-    border-top: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
   }
 
   .proj-bubble {
@@ -1126,9 +1142,20 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     setTimeout(updateScrollArrows, 50);
   });
 
+  const stickyHeader = document.querySelector('.projects-sticky-header');
+  const cardsContainer = document.getElementById('project-cards-container');
+
+  function updateHeaderHeight() {
+    if (stickyHeader && cardsContainer) {
+      const height = stickyHeader.getBoundingClientRect().height;
+      cardsContainer.style.setProperty('--header-height', `${height}px`);
+    }
+  }
+
   // --- Scroll-Driven Card Stacking Title Animation ---
   function handleCardStacking() {
     const isMobile = window.innerWidth <= 768;
+    updateHeaderHeight();
     cards.forEach(card => {
       if (card.hidden) return;
       if (isMobile) {
@@ -1138,13 +1165,24 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       const rect = card.getBoundingClientRect();
       const computedTop = parseFloat(window.getComputedStyle(card).top);
       // Stuck check: card rect.top meets its sticky top constraint
-      const isStacked = rect.top <= computedTop + 2;
+      let isStacked = rect.top <= computedTop + 2;
+
+      // Force stack if we've scrolled all the way to the bottom of the page (closes last item)
+      const scrollY = window.scrollY || window.pageYOffset;
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      if (maxScroll > 0 && scrollY >= maxScroll - 20) {
+        isStacked = true;
+      }
+
       card.classList.toggle('is-stacked', isStacked);
     });
   }
 
   window.addEventListener('scroll', handleCardStacking, { passive: true });
-  window.addEventListener('resize', handleCardStacking, { passive: true });
+  window.addEventListener('resize', () => {
+    updateHeaderHeight();
+    handleCardStacking();
+  }, { passive: true });
 
   // Clear search and filters trigger
   clearBtn?.addEventListener('click', () => {
