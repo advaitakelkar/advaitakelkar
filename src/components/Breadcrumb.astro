@@ -89,7 +89,7 @@ if (activeProject) {
   </div>
 
   <!-- Select Category & Project Dropdown Menu (outside links wrapper to prevent clipping) -->
-  <div class:list={["breadcrumb__project-nav", "is-active"]}>
+  <div class:list={["breadcrumb__project-nav", isProjectPage && "is-active"]}>
     {prevProjectUrl && (
       <a href={prevProjectUrl} class="breadcrumb__arrow breadcrumb__arrow--prev" title="Previous Project" aria-label="Previous Project">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
@@ -101,7 +101,7 @@ if (activeProject) {
     <!-- Custom Dropdown Menu System -->
     <div class="breadcrumb__custom-dropdown" id="breadcrumb-custom-dropdown">
       <button class="breadcrumb__dropdown-trigger" id="breadcrumb-dropdown-trigger" aria-haspopup="true" aria-expanded="false" type="button">
-        <span id="breadcrumb-dropdown-trigger-text">{currentProjectName ? currentProjectName : 'Select Project'}</span>
+        <span id="breadcrumb-dropdown-trigger-text">{isProjectPage && currentProjectName ? currentProjectName : 'Search projects'}</span>
         <span class="breadcrumb__select-arrow" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
             <polyline points="6 9 12 15 18 9"></polyline>
@@ -124,6 +124,14 @@ if (activeProject) {
 
         <!-- Column 2: Projects -->
         <div class="breadcrumb__menu-column breadcrumb__menu-column--projects">
+          <!-- Back button for mobile viewports -->
+          <button class="breadcrumb__back-btn" type="button" aria-label="Back to categories">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+            <span>Back</span>
+          </button>
+          
           <!-- All projects list -->
           <div class="breadcrumb__proj-list is-active" data-cat-id="all">
             {projects.map(p => (
@@ -301,8 +309,12 @@ if (activeProject) {
     border-radius: 8px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
     display: none; /* toggled via js */
-    grid-template-columns: 85px 175px;
     overflow: hidden;
+    
+    /* Default categories-only width */
+    grid-template-columns: 95px;
+    width: 95px;
+    transition: width 0.15s ease, grid-template-columns 0.15s ease;
   }
 
   /* When docked on mobile bottom, let the dropdown open upwards! */
@@ -316,6 +328,29 @@ if (activeProject) {
 
   .breadcrumb__dropdown-panel.is-open {
     display: grid;
+  }
+
+  /* Show projects column on desktop when active category is hovered */
+  @media (min-width: 768px) {
+    .breadcrumb__dropdown-panel.has-active-cat {
+      grid-template-columns: 95px 175px;
+      width: 270px;
+    }
+  }
+
+  /* Align to the right of trigger on mobile viewports so it opens leftward */
+  @media (max-width: 767px) {
+    .breadcrumb__dropdown-panel {
+      left: auto;
+      right: 0;
+      grid-template-columns: 150px;
+      width: 150px;
+    }
+    
+    .breadcrumb__dropdown-panel.show-projects {
+      grid-template-columns: 180px;
+      width: 180px;
+    }
   }
 
   .breadcrumb__menu-column {
@@ -338,8 +373,68 @@ if (activeProject) {
   }
 
   .breadcrumb__menu-column--projects {
+    display: none; /* hidden by default */
     padding: 6px 0;
     background-color: var(--_tokens---color--bg);
+    width: 175px;
+  }
+
+  /* Show projects column on desktop when category active */
+  @media (min-width: 768px) {
+    .breadcrumb__dropdown-panel.has-active-cat .breadcrumb__menu-column--projects {
+      display: flex;
+      flex-direction: column;
+    }
+  }
+
+  /* Stacked/replaced behavior on mobile */
+  @media (max-width: 767px) {
+    .breadcrumb__dropdown-panel.show-projects .breadcrumb__menu-column--categories {
+      display: none;
+    }
+
+    .breadcrumb__dropdown-panel.show-projects .breadcrumb__menu-column--projects {
+      display: flex;
+      flex-direction: column;
+    }
+  }
+
+  /* Back button for mobile categories navigation */
+  .breadcrumb__back-btn {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: none;
+    border: none;
+    border-bottom: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+    color: var(--_tokens---color--muted);
+    font-family: inherit;
+    font-size: 9px;
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    transition: color 0.15s, background-color 0.15s;
+    flex-shrink: 0;
+  }
+
+  .breadcrumb__back-btn svg {
+    width: 10px;
+    height: 10px;
+  }
+
+  .breadcrumb__back-btn:hover {
+    color: var(--_tokens---color--fg);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 4%, transparent);
+  }
+
+  @media (max-width: 767px) {
+    .breadcrumb__back-btn {
+      display: flex;
+    }
   }
 
   .breadcrumb__cat-item {
@@ -450,17 +545,11 @@ if (activeProject) {
       trigger.setAttribute('aria-expanded', String(isOpen));
 
       if (isOpen) {
-        // Reset category view to the current project's category on open
-        const activeCatProjItem = dropdown.querySelector('.breadcrumb__proj-list:not([data-cat-id="all"]) .breadcrumb__proj-item.is-active');
-        if (activeCatProjItem) {
-          const parentList = activeCatProjItem.closest('.breadcrumb__proj-list');
-          const catId = parentList ? parentList.getAttribute('data-cat-id') : null;
-          if (catId && catId !== 'all') {
-            activateCategory(catId);
-          }
-        } else {
-          activateCategory('all');
-        }
+        // Reset panel to show categories only when opened
+        panel.classList.remove('has-active-cat');
+        panel.classList.remove('show-projects');
+        catItems.forEach(item => item.classList.remove('is-active'));
+        projLists.forEach(list => list.classList.remove('is-active'));
       }
     });
 
@@ -468,6 +557,8 @@ if (activeProject) {
     document.addEventListener('click', (e) => {
       if (!dropdown.contains(e.target as Node)) {
         panel.classList.remove('is-open');
+        panel.classList.remove('has-active-cat');
+        panel.classList.remove('show-projects');
         trigger.setAttribute('aria-expanded', 'false');
       }
     });
@@ -483,6 +574,13 @@ if (activeProject) {
       projLists.forEach(list => {
         list.classList.toggle('is-active', list.getAttribute('data-cat-id') === catId);
       });
+
+      if (catId) {
+        panel.classList.add('has-active-cat');
+        if (window.innerWidth < 768) {
+          panel.classList.add('show-projects');
+        }
+      }
     }
 
     catItems.forEach(item => {
@@ -490,7 +588,9 @@ if (activeProject) {
 
       // Desktop Hover
       item.addEventListener('mouseenter', () => {
-        activateCategory(catId);
+        if (window.innerWidth >= 768) {
+          activateCategory(catId);
+        }
       });
 
       // Mobile Click
@@ -498,6 +598,16 @@ if (activeProject) {
         e.stopPropagation();
         activateCategory(catId);
       });
+    });
+
+    // Mobile Back Button
+    const backBtn = dropdown.querySelector('.breadcrumb__back-btn');
+    backBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      panel.classList.remove('show-projects');
+      panel.classList.remove('has-active-cat');
+      catItems.forEach(item => item.classList.remove('is-active'));
+      projLists.forEach(list => list.classList.remove('is-active'));
     });
 
     // Helper to update active project in the DOM on non-project page load
@@ -509,10 +619,16 @@ if (activeProject) {
       const activeEl = projItems[idx];
       const activeName = activeEl.querySelector('.breadcrumb__proj-name')?.textContent?.trim() || activeEl.textContent?.trim() || '';
       
-      // Update trigger text
+      // Update trigger text only if on a project page
       const triggerText = document.getElementById('breadcrumb-dropdown-trigger-text');
       if (triggerText) {
-        triggerText.textContent = activeName;
+        const path = window.location.pathname.replace(/\/$/, '') || '/';
+        const isProjPage = path.startsWith('/projects/') && path !== '/projects';
+        if (isProjPage) {
+          triggerText.textContent = activeName;
+        } else {
+          triggerText.textContent = 'Search projects';
+        }
       }
       
       // Update active class in all proj lists
