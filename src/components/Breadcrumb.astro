@@ -7,9 +7,12 @@ export interface Props {
 
 const { currentPath = '/' } = Astro.props;
 
-// Fetch and sort all projects alphabetically by ID
+// Fetch projects and categories
 const allProjects = await getCollection('projects');
+const allCats = await getCollection('categories');
+
 const projects = [...allProjects].sort((a, b) => a.id.localeCompare(b.id));
+const categories = [...allCats].sort((a, b) => a.data.displayName.localeCompare(b.data.displayName));
 
 // Normalize path for matching (ignoring trailing slash)
 const normalizedPath = currentPath.replace(/\/$/, '') || '/';
@@ -20,8 +23,9 @@ const isAbout = normalizedPath === '/about';
 const isProjectsIndex = normalizedPath === '/projects';
 const isProjectPage = normalizedPath.startsWith('/projects/') && !isProjectsIndex;
 
-// Extract current project ID if on a project page
+// Extract current project ID and category ID if on a project page
 let currentProjectId = '';
+let currentProjectCatId = '';
 let prevProjectUrl = '';
 let nextProjectUrl = '';
 
@@ -29,6 +33,11 @@ if (isProjectPage) {
   // Extract id from path (e.g. /projects/carlo -> carlo)
   const parts = normalizedPath.split('/').filter(Boolean);
   currentProjectId = parts[1] || '';
+  
+  const currentProject = projects.find(p => p.id === currentProjectId);
+  if (currentProject && currentProject.data.category) {
+    currentProjectCatId = currentProject.data.category.id;
+  }
   
   const idx = projects.findIndex(p => p.id === currentProjectId);
   if (idx !== -1) {
@@ -54,7 +63,7 @@ if (isProjectPage) {
     <a href="/projects" class:list={["breadcrumb__link", isProjectsIndex && "is-active"]}>Projects</a>
     <span class="breadcrumb__sep" aria-hidden="true">/</span>
 
-    <!-- Select Project Dropdown / Navigation Container -->
+    <!-- Select Category & Project Dropdowns -->
     <div class:list={["breadcrumb__project-nav", isProjectPage && "is-active"]}>
       {isProjectPage && prevProjectUrl && (
         <a href={prevProjectUrl} class="breadcrumb__arrow breadcrumb__arrow--prev" title="Previous Project" aria-label="Previous Project">
@@ -64,11 +73,29 @@ if (isProjectPage) {
         </a>
       )}
 
+      <!-- Category dropdown -->
       <div class="breadcrumb__select-wrap">
-        <select id="breadcrumb-project-select" class="breadcrumb__select" aria-label="Quick nav projects">
+        <select id="breadcrumb-category-select" class="breadcrumb__select breadcrumb__select--category" aria-label="Filter projects by category">
+          <option value="">All Categories</option>
+          {categories.map(c => (
+            <option value={c.id} selected={currentProjectCatId === c.id}>
+              {c.data.displayName}
+            </option>
+          ))}
+        </select>
+        <span class="breadcrumb__select-arrow" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </span>
+      </div>
+
+      <!-- Projects dropdown -->
+      <div class="breadcrumb__select-wrap">
+        <select id="breadcrumb-project-select" class="breadcrumb__select breadcrumb__select--project" aria-label="Quick nav projects">
           <option value="" disabled selected={!isProjectPage}>&lt; Select Project &gt;</option>
           {projects.map(p => (
-            <option value={`/projects/${p.id}`} selected={currentProjectId === p.id}>
+            <option value={`/projects/${p.id}`} data-category={p.data.category ? p.data.category.id : ''} selected={currentProjectId === p.id}>
               {p.data.name}
             </option>
           ))}
@@ -178,12 +205,20 @@ if (isProjectPage) {
     padding: 6px 30px 6px 12px;
     cursor: pointer;
     outline: none;
-    min-width: 160px;
-    max-width: 200px;
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
     transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+  }
+
+  .breadcrumb__select--category {
+    min-width: 110px;
+    max-width: 130px;
+  }
+
+  .breadcrumb__select--project {
+    min-width: 140px;
+    max-width: 180px;
   }
 
   .breadcrumb__project-nav.is-active .breadcrumb__select {
@@ -251,22 +286,66 @@ if (isProjectPage) {
 </style>
 
 <script>
-  // Setup event listener to navigate on selection change
-  function setupProjectSelect() {
-    const select = document.getElementById('breadcrumb-project-select') as HTMLSelectElement | null;
-    if (select) {
-      select.addEventListener('change', (e) => {
-        const val = select.value;
-        if (val) {
-          window.location.href = val;
-        }
+  // Setup event listener to filter projects by category and navigate on project selection
+  function setupDoubleDropdown() {
+    const catSelect = document.getElementById('breadcrumb-category-select') as HTMLSelectElement | null;
+    const projSelect = document.getElementById('breadcrumb-project-select') as HTMLSelectElement | null;
+    if (!catSelect || !projSelect) return;
+
+    // Save all original options except the placeholder
+    const originalOptions = Array.from(projSelect.querySelectorAll('option')).filter(opt => opt.value !== "");
+    const placeholder = projSelect.querySelector('option[value=""]') as HTMLOptionElement | null;
+
+    function updateProjectsList(catId: string, currentUrl?: string) {
+      // Clear current options
+      projSelect!.innerHTML = '';
+      
+      // Re-add placeholder
+      if (placeholder) {
+        projSelect!.appendChild(placeholder);
+      }
+
+      // Filter and append options
+      const matches = catId 
+        ? originalOptions.filter(opt => opt.getAttribute('data-category') === catId)
+        : originalOptions;
+
+      matches.forEach(opt => {
+        // Clone option so we don't lose the original reference
+        const clone = opt.cloneNode(true) as HTMLOptionElement;
+        projSelect!.appendChild(clone);
       });
+
+      // If a currentUrl is provided and matches one of the options, select it
+      if (currentUrl && matches.some(opt => opt.value === currentUrl)) {
+        projSelect!.value = currentUrl;
+      } else {
+        projSelect!.value = "";
+      }
     }
+
+    // Listen to Category dropdown changes
+    catSelect.addEventListener('change', () => {
+      updateProjectsList(catSelect.value);
+    });
+
+    // Listen to Project dropdown changes (navigation)
+    projSelect.addEventListener('change', () => {
+      const val = projSelect.value;
+      if (val) {
+        window.location.href = val;
+      }
+    });
+
+    // Initial setup: filter by current selected category on page load
+    const initialCat = catSelect.value;
+    const currentUrl = window.location.pathname.replace(/\/$/, '');
+    updateProjectsList(initialCat, currentUrl);
   }
 
   // Run on page load
-  setupProjectSelect();
+  setupDoubleDropdown();
 
   // Support Astro View Transitions if enabled
-  document.addEventListener('astro:after-swap', setupProjectSelect);
+  document.addEventListener('astro:after-swap', setupDoubleDropdown);
 </script>
