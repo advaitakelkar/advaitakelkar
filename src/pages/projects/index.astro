@@ -156,9 +156,16 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
               </div>
             </div>
 
-            <!-- Row 2: short intro (left) · image (right, natural proportion) -->
+            <!-- Row 2: short intro + description (left) · image (right, natural proportion) -->
             <div class="project-card__row project-card__row2">
-              <p class="project-card__intro">{p.data.smallIntro}</p>
+              <div class="project-card__text-block">
+                <p class="project-card__intro">{p.data.smallIntro}</p>
+                {p.data.description && (
+                  <p class="project-card__desc">
+                    {p.data.description.replace(/<[^>]*>/g, '').substring(0, 220) + (p.data.description.replace(/<[^>]*>/g, '').length > 220 ? '...' : '')}
+                  </p>
+                )}
+              </div>
               <a href={`/projects/${p.id}`} class="project-card__img-wrap soft-image-container">
                 {p.data.coverImage ? (
                   <img src={p.data.coverImage} alt={p.data.name} loading="lazy" />
@@ -258,9 +265,9 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   .projects-header {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
+    align-items: flex-start;
+    justify-content: flex-start;
+    text-align: left;
     gap: 6px;
     margin-bottom: 20px;
   }
@@ -281,13 +288,13 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     margin: 0;
   }
 
-  /* Search Bar — centered on the page, taller for breathing room */
+  /* Search Bar — left-aligned, taller for breathing room */
   .projects-search-bar {
     display: flex;
     gap: 12px;
-    margin: 0 auto 18px;
+    margin: 0 0 18px;
     width: 100%;
-    max-width: 780px;
+    max-width: 100%;
   }
 
   .projects-search-input {
@@ -301,11 +308,16 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     color: var(--_tokens---color--fg);
     border-radius: 12px;
     outline: none;
-    transition: background-color 0.2s;
+    opacity: 0.35; /* grayed out by default */
+    transition: background-color 0.2s, opacity 0.3s ease;
   }
 
   .projects-search-input::placeholder { color: var(--_tokens---color--muted); }
-  .projects-search-input:focus { background-color: color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent); }
+  .projects-search-input:focus,
+  .projects-search-input:not(:placeholder-shown),
+  .projects-search-input.is-active {
+    opacity: 1; /* activated */
+  }
 
   .projects-search-clear {
     height: 66px;
@@ -320,7 +332,14 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     border-radius: 12px;
     cursor: pointer;
     white-space: nowrap;
-    transition: background-color 0.2s, color 0.2s;
+    opacity: 0.35; /* grayed out by default */
+    transition: background-color 0.2s, color 0.2s, opacity 0.3s ease;
+  }
+
+  .projects-search-input:focus ~ .projects-search-clear,
+  .projects-search-input:not(:placeholder-shown) ~ .projects-search-clear,
+  .projects-search-clear:hover {
+    opacity: 1; /* activated */
   }
 
   .projects-search-clear:hover {
@@ -334,9 +353,10 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     flex-direction: row;
     gap: 32px;
     align-items: center;
+    justify-content: space-between;
     width: 100%;
-    max-width: 780px;
-    margin: 0 auto;
+    max-width: 100%;
+    margin: 0;
   }
 
   .filter-group {
@@ -348,6 +368,14 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   .filter-group--tags {
     flex: 1;
     min-width: 0;
+    opacity: 0.35; /* grayed out by default */
+    transition: opacity 0.3s ease;
+  }
+
+  .filter-group--tags:hover,
+  .filter-group--tags:focus-within,
+  .filter-group--tags.is-active {
+    opacity: 1; /* activated */
   }
 
   .filter-label {
@@ -363,6 +391,14 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     position: relative;
     display: inline-block;
     flex-shrink: 0;
+    opacity: 0.35; /* grayed out by default */
+    transition: opacity 0.3s ease;
+  }
+
+  .filter-select-wrap:hover,
+  .filter-select-wrap:focus-within,
+  .filter-select-wrap.is-active {
+    opacity: 1; /* activated */
   }
 
   .filter-select {
@@ -525,7 +561,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     top: calc(250px + var(--card-index, 0) * 54px);
     background-color: var(--_tokens---color--bg);
     border-top: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
-    padding: 18px 0;
+    padding: clamp(1.5rem, 3vw, 3rem);
     transition: box-shadow 0.3s ease;
     box-shadow: 0 -8px 24px -12px rgba(0, 0, 0, 0.3);
   }
@@ -620,14 +656,14 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
   .project-card__row {
     display: flex;
-    align-items: flex-start;
+    align-items: center; /* centrally align all text in the row vertically */
     justify-content: space-between;
     gap: 32px;
     width: 100%;
   }
 
   /* Row 1: name + tag/year */
-  .project-card__row1 { align-items: baseline; }
+  .project-card__row1 { align-items: center; }
 
   .project-card__title-link { text-decoration: none; color: var(--_tokens---color--fg); }
 
@@ -643,7 +679,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
   .project-card__r1-right {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 14px;
     flex-shrink: 0;
   }
@@ -655,25 +691,42 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   }
 
   .project-card__year {
-    font-size: var(--_tokens---type--small);
+    font-size: var(--_tokens---type--micro); /* micro text size */
     font-weight: 500;
     color: var(--_tokens---color--fg);
   }
 
-  /* Row 2: intro + image (natural proportion) */
-  .project-card__row2 { align-items: flex-start; }
+  /* Row 2: intro + description + image */
+  .project-card__row2 { align-items: center; }
+
+  .project-card__text-block {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
 
   .project-card__intro {
-    flex: 1;
     font-size: var(--_tokens---type--small);
-    line-height: 1.6;
+    font-weight: 600; /* semibold */
+    line-height: 1.5;
     color: var(--_tokens---color--muted);
     margin: 0;
     max-width: 62ch;
   }
 
+  .project-card__desc {
+    font-size: var(--_tokens---type--micro); /* micro size */
+    line-height: 1.55;
+    color: var(--_tokens---color--muted);
+    margin: 0;
+    max-width: 62ch;
+    opacity: 0.85;
+  }
+
   .project-card__img-wrap {
-    width: clamp(200px, 28vw, 360px);
+    width: clamp(160px, 20vw, 240px); /* reduced image size */
     flex-shrink: 0;
     overflow: hidden;
     border-radius: 8px;
@@ -703,12 +756,12 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   .project-card__metaline {
     display: flex;
     flex-wrap: wrap;
-    align-items: baseline;
+    align-items: center;
     gap: 4px 4px;
     font-size: var(--_tokens---type--micro);
   }
 
-  .project-card__meta-item { display: inline-flex; align-items: baseline; gap: 5px; }
+  .project-card__meta-item { display: inline-flex; align-items: center; gap: 5px; }
   .project-card__meta-sep { color: color-mix(in srgb, var(--_tokens---color--fg) 25%, transparent); margin-right: 4px; }
   .project-card__meta-label { color: var(--_tokens---color--muted); font-weight: 300; letter-spacing: 0.04em; }
   .project-card__meta-val { color: var(--_tokens---color--fg); font-weight: 400; }
@@ -930,7 +983,28 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     });
   }
 
+  function updateFieldActivation() {
+    // 1. Search input
+    if (searchInput) {
+      if (searchInput.value.trim()) searchInput.classList.add('is-active');
+      else searchInput.classList.remove('is-active');
+    }
+    // 2. Category select dropdown
+    const selectWrap = document.querySelector('.filter-select-wrap');
+    if (catSelect && selectWrap) {
+      if (catSelect.value) selectWrap.classList.add('is-active');
+      else selectWrap.classList.remove('is-active');
+    }
+    // 3. Tag group wrapper
+    const tagGroup = document.querySelector('.filter-group--tags');
+    if (tagGroup) {
+      if (activeTag) tagGroup.classList.add('is-active');
+      else tagGroup.classList.remove('is-active');
+    }
+  }
+
   function applyFilter() {
+    updateFieldActivation();
     const query = searchQuery.trim().toLowerCase();
     const keywords = query.split(/\s+/).filter(Boolean);
 

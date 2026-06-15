@@ -79,6 +79,17 @@ const projectsData = sorted.map(p => ({
     <!-- Featured Slider -->
     {featured.length > 0 && (
       <div class="home-slider" aria-label="Featured projects">
+        <div class="home-slider__dots" role="tablist" aria-label="Slide navigation">
+          {featured.map((_, i) => (
+            <button
+              class={`home-slider__dot${i === 0 ? ' is-active' : ''}`}
+              role="tab"
+              aria-selected={i === 0 ? 'true' : 'false'}
+              aria-label={`Slide ${i + 1}`}
+              data-dot={i}
+            />
+          ))}
+        </div>
         <div class="home-slider__track" id="slider-track">
           {featured.map((p, i) => (
             <a
@@ -103,17 +114,6 @@ const projectsData = sorted.map(p => ({
                 </span>
               </div>
             </a>
-          ))}
-        </div>
-        <div class="home-slider__dots" role="tablist" aria-label="Slide navigation">
-          {featured.map((_, i) => (
-            <button
-              class={`home-slider__dot${i === 0 ? ' is-active' : ''}`}
-              role="tab"
-              aria-selected={i === 0 ? 'true' : 'false'}
-              aria-label={`Slide ${i + 1}`}
-              data-dot={i}
-            />
           ))}
         </div>
       </div>
@@ -144,23 +144,25 @@ const projectsData = sorted.map(p => ({
       </a>
     </nav>
 
-    <!-- Quick Search: simplified, shows project name + tag only -->
-    <div class="home-search__header">
-      <h2 class="home-search__title">Projects Quick Search</h2>
-    </div>
-    <div class="home-search__bar">
-      <input
-        type="search"
-        id="qs-input"
-        class="home-search__input"
-        placeholder="Search projects by name or tag..."
-        autocomplete="off"
-        aria-label="Search projects"
-      />
-      <button class="home-search__clear" id="qs-clear" type="button">@Clear All</button>
-    </div>
-    <p class="home-search__count" id="qs-count" aria-live="polite"></p>
-    <div class="home-search__grid" id="qs-grid" role="list"></div>
+    <!-- Quick Search footer element -->
+    <footer class="home-search-footer" id="home-search-footer">
+      <div class="home-search__header">
+        <h2 class="home-search__title">Projects Quick Search</h2>
+      </div>
+      <div class="home-search__bar">
+        <input
+          type="search"
+          id="qs-input"
+          class="home-search__input"
+          placeholder="Search projects by name or tag..."
+          autocomplete="off"
+          aria-label="Search projects"
+        />
+        <button class="home-search__clear" id="qs-clear" type="button">@Clear All</button>
+      </div>
+      <p class="home-search__count" id="qs-count" aria-live="polite"></p>
+      <div class="home-search__grid" id="qs-grid" role="list"></div>
+    </footer>
   </section>
 
 </PageLayout>
@@ -225,8 +227,22 @@ const projectsData = sorted.map(p => ({
 
   render('');
 
-  input?.addEventListener('input', () => render(input.value));
-  clearBtn?.addEventListener('click', () => { if (input) { input.value = ''; render(''); input.focus(); } });
+  input?.addEventListener('input', () => {
+    render(input.value);
+    if (input.value.trim()) {
+      input.classList.add('is-active');
+    } else {
+      input.classList.remove('is-active');
+    }
+  });
+  clearBtn?.addEventListener('click', () => {
+    if (input) {
+      input.value = '';
+      input.classList.remove('is-active');
+      render('');
+      input.focus();
+    }
+  });
 
   // ── Slider ──────────────────────────────────────────────────
   const track = document.getElementById('slider-track');
@@ -431,7 +447,8 @@ const projectsData = sorted.map(p => ({
     min-height: 0;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
+    margin-top: -8px; /* reduce spacing from paragraph */
   }
 
   .home-slider__track {
@@ -441,7 +458,7 @@ const projectsData = sorted.map(p => ({
     scrollbar-width: none;
     gap: 32px;
     flex: 1;
-    min-height: 180px;
+    min-height: 200px;
     align-items: center;
     position: relative;
   }
@@ -452,19 +469,19 @@ const projectsData = sorted.map(p => ({
   .home-slider__track::before,
   .home-slider__track::after {
     content: '';
-    flex: 0 0 25vw;
+    flex: 0 0 20vw;
   }
 
   .home-slider__slide {
-    flex: 0 0 50vw;
+    flex: 0 0 60vw; /* a little bigger */
     scroll-snap-align: center; /* snap to center! */
     display: flex;
     flex-direction: column;
     gap: 12px;
     text-decoration: none;
     color: var(--_tokens---color--fg);
-    min-width: 280px;
-    max-width: 720px;
+    min-width: 320px; /* a little bigger */
+    max-width: 860px; /* a little bigger */
   }
 
   .home-slider__image-wrap {
@@ -502,8 +519,8 @@ const projectsData = sorted.map(p => ({
   }
 
   .home-slider__name {
-    font-size: var(--_tokens---type--small);
-    font-weight: 400;
+    font-size: 1.45rem; /* larger font size */
+    font-weight: 500;
     letter-spacing: -0.01em;
   }
 
@@ -511,9 +528,14 @@ const projectsData = sorted.map(p => ({
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 16px;
-    height: 16px;
+    width: 24px; /* larger arrow container */
+    height: 24px;
     transition: transform 0.3s ease;
+  }
+
+  .home-slider__arrow svg {
+    width: 20px; /* larger arrow SVG */
+    height: 20px;
   }
 
   .home-slider__slide:hover .home-slider__arrow {
@@ -531,7 +553,7 @@ const projectsData = sorted.map(p => ({
     display: flex;
     justify-content: center;
     gap: 8px;
-    padding: 16px 0 0;
+    padding: 0 0 16px; /* padding on the bottom, in between intro and slider */
   }
 
   .home-slider__dot {
@@ -549,7 +571,16 @@ const projectsData = sorted.map(p => ({
     transform: scale(1.3);
   }
 
-  /* ══ 3. Projects Quick Search ══════════════════════════════ */
+  /* ══ 3. Projects Quick Search Footer ═══════════════════════ */
+  .home-search-footer {
+    margin-top: auto; /* push to the bottom to behave as a footer element */
+    width: 100%;
+    border-top: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+    padding-top: 32px;
+    padding-bottom: 24px;
+    box-sizing: border-box;
+  }
+
   .home-search__header {
     margin-bottom: 16px;
   }
@@ -579,11 +610,16 @@ const projectsData = sorted.map(p => ({
     color: var(--_tokens---color--fg);
     border-radius: 8px;
     outline: none;
-    transition: background-color 0.2s;
+    opacity: 0.35; /* grayed out by default */
+    transition: background-color 0.2s, opacity 0.3s ease;
   }
 
   .home-search__input::placeholder { color: var(--_tokens---color--muted); }
-  .home-search__input:focus { background-color: color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent); }
+  .home-search__input:focus,
+  .home-search__input:not(:placeholder-shown),
+  .home-search__input.is-active {
+    opacity: 1; /* activated on focus / input */
+  }
 
   .home-search__clear {
     height: 42px;
@@ -598,7 +634,14 @@ const projectsData = sorted.map(p => ({
     border-radius: 8px;
     cursor: pointer;
     white-space: nowrap;
-    transition: background-color 0.2s, color 0.2s;
+    opacity: 0.35; /* grayed out by default */
+    transition: background-color 0.2s, color 0.2s, opacity 0.3s ease;
+  }
+
+  .home-search__input:focus ~ .home-search__clear,
+  .home-search__input:not(:placeholder-shown) ~ .home-search__clear,
+  .home-search__clear:hover {
+    opacity: 1; /* activated on search/hover */
   }
 
   .home-search__clear:hover {
