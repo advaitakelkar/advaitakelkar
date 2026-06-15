@@ -165,7 +165,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
                 <p class="project-card__intro">{p.data.smallIntro}</p>
                 {p.data.description && (
                   <p class="project-card__desc">
-                    {p.data.description.replace(/<[^>]*>/g, '').substring(0, 220) + (p.data.description.replace(/<[^>]*>/g, '').length > 220 ? '...' : '')}
+                    {p.data.description.replace(/<[^>]*>/g, '').substring(0, 120) + (p.data.description.replace(/<[^>]*>/g, '').length > 120 ? '...' : '')}
                   </p>
                 )}
               </div>
@@ -200,8 +200,8 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       })}
     </div>
 
-    <!-- Pagination Controls -->
-    <div class="pagination-container" id="projects-pagination"></div>
+    <!-- Dummy spacer element to allow the last card to scroll and stack naturally -->
+    <div class="project-cards-spacer" id="project-cards-spacer"></div>
     </div> <!-- End projects-top-section -->
 
     <!-- Bottom Section: Bubbles interface -->
@@ -568,7 +568,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     top: calc(var(--header-height, 240px) + var(--card-index, 0) * 54px);
     background-color: var(--_tokens---color--bg);
     border-top: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
-    padding: clamp(1.5rem, 3vw, 3rem);
+    padding: clamp(16px, 2vw, 24px); /* reduced height padding */
     transition: box-shadow 0.3s ease;
     box-shadow: 0 -8px 24px -12px rgba(0, 0, 0, 0.3);
   }
@@ -653,7 +653,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   .project-card__full {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 10px; /* reduced gap */
   }
 
   .project-card.is-stacked .project-card__full {
@@ -675,7 +675,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   .project-card__title-link { text-decoration: none; color: var(--_tokens---color--fg); }
 
   .project-card__title {
-    font-size: var(--_tokens---type--medium);
+    font-size: clamp(1.25rem, 2.2vw, 1.6rem); /* reduced title height */
     font-weight: 500;
     line-height: 1.1;
     letter-spacing: -0.02em;
@@ -717,7 +717,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   .project-card__intro {
     font-size: var(--_tokens---type--small);
     font-weight: 600; /* semibold */
-    line-height: 1.5;
+    line-height: 1.4; /* slightly tighter */
     color: var(--_tokens---color--muted);
     margin: 0;
     max-width: 62ch;
@@ -733,7 +733,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   }
 
   .project-card__img-wrap {
-    width: clamp(160px, 20vw, 240px); /* reduced image size */
+    width: clamp(110px, 14vw, 170px); /* further reduced image size to reduce card height */
     flex-shrink: 0;
     overflow: hidden;
     border-radius: 8px;
@@ -778,42 +778,10 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     font-size: var(--_tokens---type--small);
   }
 
-  /* Pagination styles - Dot buttons */
-  .pagination-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 16px;
-    margin-top: 48px;
-    margin-bottom: 24px;
-  }
-
-  .pagination-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    border: none;
-    background-color: var(--_tokens---color--muted);
-    cursor: pointer;
-    padding: 0;
-    transition: background-color 0.2s, transform 0.2s, opacity 0.2s;
-    opacity: 0.5;
-  }
-
-  .pagination-dot:hover {
-    background-color: var(--_tokens---color--fg);
-    opacity: 1;
-  }
-
-  .pagination-dot.is-active {
-    background-color: var(--_tokens---color--fg);
-    transform: scale(1.3);
-    opacity: 1;
-  }
-
-  .pagination-dot:disabled {
-    opacity: 0.15;
-    cursor: not-allowed;
+  /* Spacer to allow the last card to stack naturally */
+  .project-cards-spacer {
+    height: 40vh;
+    pointer-events: none;
   }
 
   .projects-top-section {
@@ -925,7 +893,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   const searchInput = document.getElementById('projects-search-input') as HTMLInputElement;
   const clearBtn = document.getElementById('projects-search-clear');
   const countLabel = document.querySelector('.projects-count');
-  const paginationContainer = document.getElementById('projects-pagination');
+  const spacer = document.getElementById('project-cards-spacer');
 
   const catSelect = document.getElementById('cat-select') as HTMLSelectElement;
   const tagPicker = document.getElementById('tag-picker');
@@ -933,64 +901,26 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   let searchQuery = '';
   let activeCat = '';
   let activeTag = '';
-  let currentPage = 1;
-  const ITEMS_PER_PAGE = 10;
-
-  function renderPagination(totalItems, matchingCards) {
-    if (!paginationContainer) return;
-    paginationContainer.innerHTML = '';
-
-    const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
-    if (totalPages <= 1) return;
-
-    for (let i = 1; i <= totalPages; i++) {
-      const dot = document.createElement('button');
-      dot.className = `pagination-dot${i === currentPage ? ' is-active' : ''}`;
-      dot.setAttribute('aria-label', `Page ${i}`);
-      dot.addEventListener('click', () => {
-        currentPage = i;
-        applyVisibility(matchingCards);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      });
-      paginationContainer.appendChild(dot);
-    }
-  }
 
   function applyVisibility(matchingCards) {
-    const totalMatching = matchingCards.length;
-    const totalPages = Math.ceil(totalMatching / ITEMS_PER_PAGE);
-
-    if (currentPage > totalPages && totalPages > 0) {
-      currentPage = totalPages;
-    }
-    if (currentPage < 1) {
-      currentPage = 1;
-    }
-
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const endIndex = startIndex + ITEMS_PER_PAGE;
-
     cards.forEach(card => {
       card.hidden = true;
     });
 
     matchingCards.forEach((card, idx) => {
-      if (idx >= startIndex && idx < endIndex) {
-        card.hidden = false;
-        // Dynamically compute the stacking index for visible cards on this page
-        card.style.setProperty('--card-index', String(idx - startIndex));
-      } else {
-        card.hidden = true;
-      }
+      card.hidden = false;
+      // Dynamically compute the stacking index for visible cards on this page
+      card.style.setProperty('--card-index', String(idx));
     });
 
     if (countLabel) {
-      const showStart = totalMatching > 0 ? startIndex + 1 : 0;
-      const showEnd = Math.min(endIndex, totalMatching);
-      countLabel.textContent = `Showing ${showStart} to ${showEnd} of ${totalMatching} works`;
+      countLabel.textContent = `${matchingCards.length} of ${cards.length} works`;
     }
 
-    renderPagination(totalMatching, matchingCards);
+    // Toggle spacer display based on visibility of cards
+    if (spacer) {
+      spacer.style.display = matchingCards.length > 0 ? 'block' : 'none';
+    }
   }
 
   // Bottom bubbles: always present, grey by default, highlight on search match
@@ -1086,14 +1016,12 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   // Input typing listener
   searchInput?.addEventListener('input', (e) => {
     searchQuery = (e.target as HTMLInputElement).value;
-    currentPage = 1;
     applyFilter();
   });
 
   // Select dropdown filter listeners
   catSelect?.addEventListener('change', (e) => {
     activeCat = (e.target as HTMLSelectElement).value;
-    currentPage = 1;
     applyFilter();
   });
 
@@ -1136,7 +1064,6 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     tagPicker?.querySelectorAll('.tag-picker-item').forEach(b => b.classList.remove('is-active'));
     allTagBtn.classList.add('is-active');
     activeTag = '';
-    currentPage = 1;
     applyFilter();
     setTimeout(updateScrollArrows, 50);
   });
@@ -1148,7 +1075,6 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
     const filter = (btn as HTMLElement).dataset.filter ?? '';
     activeTag = filter;
-    currentPage = 1;
 
     // Set active state on clicked button and remove from all others (including All tag button)
     allTagBtn?.classList.remove('is-active');
@@ -1184,14 +1110,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       const rect = card.getBoundingClientRect();
       const computedTop = parseFloat(window.getComputedStyle(card).top);
       // Stuck check: card rect.top meets its sticky top constraint
-      let isStacked = rect.top <= computedTop + 2;
-
-      // Force stack if we've scrolled all the way to the bottom of the page (closes last item)
-      const scrollY = window.scrollY || window.pageYOffset;
-      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-      if (maxScroll > 0 && scrollY >= maxScroll - 20) {
-        isStacked = true;
-      }
+      const isStacked = rect.top <= computedTop + 2;
 
       card.classList.toggle('is-stacked', isStacked);
     });
@@ -1210,7 +1129,6 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     searchQuery = '';
     activeCat = '';
     activeTag = '';
-    currentPage = 1;
     // Reset tag picker active states
     allTagBtn?.classList.add('is-active');
     tagPicker?.querySelectorAll('.tag-picker-item').forEach(btn => {
