@@ -16,7 +16,7 @@ const featured = allProjects
   .filter(p => p.data.featured)
   .sort((a, b) => (a.data.numbr ?? 999) - (b.data.numbr ?? 999));
 
-// All projects for quick search and portfolio tab
+// All projects for quick search
 const sorted = [...allProjects].sort((a, b) => {
   if (a.data.numbr && b.data.numbr) return a.data.numbr - b.data.numbr;
   if (a.data.numbr) return -1;
@@ -24,7 +24,7 @@ const sorted = [...allProjects].sort((a, b) => {
   return parseInt(b.data.year ?? '0') - parseInt(a.data.year ?? '0');
 });
 
-// Projects array for client-side search
+// Projects array for client-side search (name + tag are what's shown)
 const projectsData = sorted.map(p => ({
   id:      p.id,
   name:    p.data.name,
@@ -45,17 +45,18 @@ const projectsData = sorted.map(p => ({
   crumbs={[{ label: 'Home' }]}
   sections={[
     { id: 'home-hero-section', label: 'Intro & Featured' },
-    { id: 'home-search-section', label: 'Projects Quick Search' }
+    { id: 'home-search-section', label: 'Search & Navigate' }
   ]}
 >
 
-  <!-- Section 1: Hero (Intro + Slider) -->
+  <!-- ══ Section 1: Hero (About Me intro + Featured slider) ════════ -->
   <section class="home-section home-section--hero" id="home-hero-section">
     <div class="home-intro home-intro--animated">
       <div class="home-intro__header">
         <h1 class="home-intro__label" id="tagline-main" data-scramble>Architectural Designer and Researcher</h1>
       </div>
 
+      <!-- Small About Me — flexible, responsive 3-column structure -->
       <div class="home-intro__body">
         <div class="home-intro__column">
           <p class="home-intro__desc">
@@ -164,8 +165,9 @@ const projectsData = sorted.map(p => ({
     )}
   </section>
 
-  <!-- Section 2: Projects Quick Search -->
-  <section class="home-section home-section--search" id="home-search-section" aria-label="Project quick search">
+  <!-- ══ Section 2: Quick Search (top) + Page Navigation (below) ═══ -->
+  <section class="home-section home-section--search" id="home-search-section" aria-label="Project quick search and navigation">
+    <!-- Quick Search: simplified, shows project name + tag only -->
     <div class="home-search__header">
       <h2 class="home-search__title">Projects Quick Search</h2>
     </div>
@@ -174,7 +176,7 @@ const projectsData = sorted.map(p => ({
         type="search"
         id="qs-input"
         class="home-search__input"
-        placeholder="Search projects by name, tag, location, client, status, year..."
+        placeholder="Search projects by name or tag..."
         autocomplete="off"
         aria-label="Search projects"
       />
@@ -182,6 +184,28 @@ const projectsData = sorted.map(p => ({
     </div>
     <p class="home-search__count" id="qs-count" aria-live="polite"></p>
     <div class="home-search__grid" id="qs-grid" role="list"></div>
+
+    <!-- Page Navigation: links to About Me and Projects -->
+    <nav class="home-nav" aria-label="Primary pages">
+      <a href="/about" class="home-nav-row">
+        <span class="home-nav-row__text">About Me</span>
+        <span class="home-nav-row__arrow" aria-hidden="true">
+          <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+            <line x1="6" y1="18" x2="18" y2="6"></line>
+            <polyline points="10 6 18 6 18 14"></polyline>
+          </svg>
+        </span>
+      </a>
+      <a href="/projects" class="home-nav-row">
+        <span class="home-nav-row__text">Projects</span>
+        <span class="home-nav-row__arrow" aria-hidden="true">
+          <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+            <line x1="6" y1="18" x2="18" y2="6"></line>
+            <polyline points="10 6 18 6 18 14"></polyline>
+          </svg>
+        </span>
+      </a>
+    </nav>
   </section>
 
 </PageLayout>
@@ -222,7 +246,7 @@ const projectsData = sorted.map(p => ({
     if (q) {
       const keywords = q.split(/\s+/).filter(Boolean);
       matches = projects.filter(p => {
-        return keywords.every(kw => 
+        return keywords.every(kw =>
           p.name.toLowerCase().includes(kw) ||
           p.tags.toLowerCase().includes(kw)  ||
           p.cat.toLowerCase().includes(kw)  ||
@@ -350,7 +374,7 @@ const projectsData = sorted.map(p => ({
     scrollbar-width: thin;
   }
 
-  /* ══ 1. Intro ═══════════════════════════════════════════════ */
+  /* ══ 1. Intro (small About Me — 3 flexible columns) ═════════ */
   .home-intro {
     display: flex;
     flex-direction: column;
@@ -403,7 +427,7 @@ const projectsData = sorted.map(p => ({
     transform: translateY(15px);
     animation: fadeUpIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
-  
+
   .home-intro__column:nth-child(1) { animation-delay: 0.2s; }
   .home-intro__column:nth-child(2) { animation-delay: 0.4s; }
   .home-intro__column:nth-child(3) { animation-delay: 0.6s; }
@@ -676,7 +700,7 @@ const projectsData = sorted.map(p => ({
     margin-bottom: 24px;
   }
 
-  /* 3-column project grid */
+  /* 3-column project grid (name + tag cards) */
   .home-search__grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -696,7 +720,7 @@ const projectsData = sorted.map(p => ({
     }
   }
 
-  /* Rebuilt Card Sizing & Sibling elements style */
+  /* Card Sizing & Sibling elements style */
   .qs-card {
     display: flex;
     flex-direction: column;
@@ -768,9 +792,65 @@ const projectsData = sorted.map(p => ({
     line-height: 1;
   }
 
+  /* ══ 4. Page Navigation (links below search) ════════════════ */
+  .home-nav {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin-top: 48px;
+    padding-top: 8px;
+  }
+
+  .home-nav-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-decoration: none;
+    color: var(--_tokens---color--fg);
+    border-top: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+    padding-block: 22px;
+    transition: opacity 0.2s ease, padding-left 0.2s ease;
+  }
+
+  .home-nav-row:last-child {
+    border-bottom: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+  }
+
+  .home-nav-row:hover {
+    opacity: 0.75;
+    padding-left: 8px;
+  }
+
+  .home-nav-row__text {
+    font-size: var(--_tokens---type--big);
+    font-weight: 500;
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+  }
+
+  .home-nav-row__arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    color: var(--_tokens---color--muted);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), color 0.3s ease;
+  }
+
+  .home-nav-row__arrow svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .home-nav-row:hover .home-nav-row__arrow {
+    transform: rotate(45deg);
+    color: var(--_tokens---color--fg);
+  }
+
   @media (min-width: 1200px) {
-    :global(.page-breadcrumb) {
-      padding-inline: var(--_tokens---space--small) !important;
+    .home-section {
+      padding-inline: clamp(6rem, 12vw, 16rem);
     }
   }
 
@@ -809,6 +889,9 @@ const projectsData = sorted.map(p => ({
     .home-slider__track::before,
     .home-slider__track::after {
       flex: 0 0 12.5vw; /* (100vw - 75vw) / 2 */
+    }
+    .home-nav-row__text {
+      font-size: var(--_tokens---type--medium);
     }
   }
 
