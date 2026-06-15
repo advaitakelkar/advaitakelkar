@@ -209,6 +209,7 @@ if (activeProject) {
       </a>
     )}
   </div>
+  <div class="breadcrumb__backdrop" id="breadcrumb-backdrop"></div>
 </nav>
 
 <style>
@@ -217,6 +218,8 @@ if (activeProject) {
     align-items: center;
     width: 100%;
     gap: 7px;
+    position: relative;
+    z-index: 500;
   }
 
   .breadcrumb__list {
@@ -296,6 +299,8 @@ if (activeProject) {
     align-items: center;
     gap: 6px;
     flex-shrink: 0;
+    position: relative;
+    z-index: 500;
   }
 
   /* Custom Dropdown Menu System styling */
@@ -385,6 +390,7 @@ if (activeProject) {
     box-shadow: none;
     display: none; /* toggled via js */
     overflow: visible;
+    align-items: start;
     
     /* Default categories-only width */
     grid-template-columns: 110px;
@@ -599,8 +605,7 @@ if (activeProject) {
   .breadcrumb__proj-item:focus-visible,
   .breadcrumb__back-btn:focus-visible,
   .breadcrumb__arrow:focus-visible {
-    outline: 2px solid var(--_tokens---color--fg);
-    outline-offset: 4px;
+    outline: none !important;
     opacity: 1 !important;
   }
   /* Predictive Search Highlighting & Sorting rules */
@@ -628,6 +633,22 @@ if (activeProject) {
   .breadcrumb__dropdown-panel.has-search .breadcrumb__cat-item.is-match .breadcrumb__arrow-icon,
   .breadcrumb__dropdown-panel.has-search .breadcrumb__proj-item.is-match .breadcrumb__arrow-icon {
     opacity: 1;
+  }
+
+  .breadcrumb__backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.25);
+    z-index: 450;
+    display: none;
+    pointer-events: auto;
+  }
+
+  .breadcrumb__backdrop.is-open {
+    display: block;
   }
 </style>
 
@@ -660,6 +681,8 @@ if (activeProject) {
     if (searchInput) {
       searchInput.addEventListener('focus', () => {
         panel.classList.add('is-open');
+        const backdrop = document.getElementById('breadcrumb-backdrop');
+        if (backdrop) backdrop.classList.add('is-open');
         trigger.setAttribute('aria-expanded', 'true');
         activateCategory('all');
       });
@@ -865,6 +888,25 @@ if (activeProject) {
       if (!isOpen) {
         if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
           const path = window.location.pathname.replace(/\/$/, '') || '/';
+          const isProjDetail = path.startsWith('/projects/') && path !== '/projects';
+
+          if (isProjDetail) {
+            if (e.key === 'ArrowRight') {
+              const nextArrow = document.querySelector('.breadcrumb__arrow--next') as HTMLAnchorElement | null;
+              if (nextArrow) {
+                e.preventDefault();
+                window.location.href = nextArrow.getAttribute('href') || '';
+              }
+            } else if (e.key === 'ArrowLeft') {
+              const prevArrow = document.querySelector('.breadcrumb__arrow--prev') as HTMLAnchorElement | null;
+              if (prevArrow) {
+                e.preventDefault();
+                window.location.href = prevArrow.getAttribute('href') || '';
+              }
+            }
+            return;
+          }
+
           if (e.key === 'ArrowRight') {
             if (path === '/') {
               e.preventDefault();
@@ -872,7 +914,7 @@ if (activeProject) {
             } else if (path === '/about') {
               e.preventDefault();
               window.location.href = '/projects';
-            } else if (path === '/projects' || path.startsWith('/projects/')) {
+            } else if (path === '/projects') {
               const searchInput = document.getElementById('breadcrumb-search-input') as HTMLElement | null;
               if (searchInput) {
                 e.preventDefault();
@@ -880,7 +922,7 @@ if (activeProject) {
               }
             }
           } else if (e.key === 'ArrowLeft') {
-            if (path === '/projects' || path.startsWith('/projects/')) {
+            if (path === '/projects') {
               e.preventDefault();
               window.location.href = '/about';
             } else if (path === '/about') {
@@ -897,11 +939,26 @@ if (activeProject) {
         if (e.key === 'Escape') {
           e.preventDefault();
           panel.classList.remove('is-open');
+          panel.classList.remove('has-active-cat');
+          panel.classList.remove('show-projects');
+          const backdrop = document.getElementById('breadcrumb-backdrop');
+          if (backdrop) backdrop.classList.remove('is-open');
           trigger.setAttribute('aria-expanded', 'false');
           // Blur search input if focused to prevent immediate reopen
-          const searchInput = document.getElementById('breadcrumb-search-input') as HTMLElement | null;
+          const searchInput = document.getElementById('breadcrumb-search-input') as HTMLInputElement | null;
           if (searchInput) {
+            searchInput.value = '';
             searchInput.blur();
+            
+            // Also reset panel search states
+            const dropdown = document.getElementById('breadcrumb-custom-dropdown');
+            if (dropdown) {
+              panel.classList.remove('has-search');
+              const projItems = Array.from(dropdown.querySelectorAll('.breadcrumb__proj-list[data-cat-id="all"] .breadcrumb__proj-item')) as HTMLElement[];
+              const catItems = Array.from(dropdown.querySelectorAll('.breadcrumb__cat-item')) as HTMLElement[];
+              projItems.forEach(el => el.classList.remove('is-match'));
+              catItems.forEach(el => el.classList.remove('is-match'));
+            }
           }
           const projectsLink = document.querySelector('.breadcrumb__link--projects') as HTMLElement | null;
           if (projectsLink) {
@@ -928,8 +985,24 @@ if (activeProject) {
           if (e.key === 'ArrowLeft') {
             // Close dropdown and focus Projects link
             panel.classList.remove('is-open');
+            panel.classList.remove('has-active-cat');
+            panel.classList.remove('show-projects');
+            const backdrop = document.getElementById('breadcrumb-backdrop');
+            if (backdrop) backdrop.classList.remove('is-open');
             trigger.setAttribute('aria-expanded', 'false');
             active.blur();
+            const searchInput = active as HTMLInputElement;
+            searchInput.value = '';
+            // Also reset panel search states
+            const dropdown = document.getElementById('breadcrumb-custom-dropdown');
+            if (dropdown) {
+              panel.classList.remove('has-search');
+              const projItems = Array.from(dropdown.querySelectorAll('.breadcrumb__proj-list[data-cat-id="all"] .breadcrumb__proj-item')) as HTMLElement[];
+              const catItems = Array.from(dropdown.querySelectorAll('.breadcrumb__cat-item')) as HTMLElement[];
+              projItems.forEach(el => el.classList.remove('is-match'));
+              catItems.forEach(el => el.classList.remove('is-match'));
+            }
+            
             const projectsLink = document.querySelector('.breadcrumb__link--projects') as HTMLElement | null;
             if (projectsLink) {
               projectsLink.focus();
