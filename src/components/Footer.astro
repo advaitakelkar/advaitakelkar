@@ -242,34 +242,9 @@ const sorted = [...allProjects].sort((a, b) => {
   /* ── Pill/bubble search — multi-row paragraph; rows shift (looping) on hover/search ── */
   .proj-bubbles {
     display: flex;
-    flex-direction: column;
-    flex-wrap: nowrap;
+    flex-direction: row;
+    flex-wrap: wrap;
     gap: 7px;
-    --qs-shift: 0px;            /* shared shift; all rows move together */
-    /* soft fade at the right horizontal end only */
-    -webkit-mask-image: linear-gradient(to right, #000 0%, #000 95%, transparent 100%);
-    mask-image: linear-gradient(to right, #000 0%, #000 95%, transparent 100%);
-  }
-
-  /* Each visual row clips its overflow; never wraps */
-  .qs-row {
-    overflow: hidden;
-    width: 100%;
-  }
-
-  /* The moving track inside a row (holds the row's pills duplicated for a seamless loop) */
-  .qs-row__track {
-    display: flex;
-    flex-wrap: nowrap;
-    width: max-content;
-    gap: 7px;
-    transform: translateX(var(--qs-shift));
-    transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
-    will-change: transform;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .qs-row__track { transition: none; }
   }
 
   .proj-bubble {
@@ -386,59 +361,15 @@ const sorted = [...allProjects].sort((a, b) => {
     }
     const total = originals.length;
 
-    const setShift = (px: number) => g.style.setProperty('--qs-shift', px + 'px');
-    const curShift = () => parseFloat(getComputedStyle(g).getPropertyValue('--qs-shift')) || 0;
-
-    // Group the pills into visual rows by distributing them evenly into a balanced number of rows
-    // based on the container width, ensuring all rows are perfectly aligned in a straight line.
-    function buildRows() {
-      setShift(0);
-      g.querySelectorAll('.qs-row').forEach(r => r.remove());
-      originals.forEach(p => g.appendChild(p));        // flatten
-      g.style.flexDirection = 'row';                   // temporarily lay out in row to measure natural width
-
-      // Measure natural width of each element
-      const widths = originals.map(p => p.getBoundingClientRect().width || 120);
-      g.style.flexDirection = '';                      // reset to column
-
-      const totalWidth = widths.reduce((sum, w) => sum + w, 0);
-      const containerWidth = g.getBoundingClientRect().width || window.innerWidth;
-
-      // Calculate a balanced number of rows based on container width
-      // We cap the rows between 3 and 9 to keep it compact and aesthetic
-      const numRows = Math.min(9, Math.max(3, Math.ceil(totalWidth / (containerWidth - 40))));
-
-      const groups: HTMLElement[][] = Array.from({ length: numRows }, () => []);
-      originals.forEach((p, idx) => {
-        groups[idx % numRows].push(p);
-      });
-
-      groups.forEach(grp => {
-        const row = document.createElement('div'); row.className = 'qs-row';
-        const track = document.createElement('div'); track.className = 'qs-row__track';
-        grp.forEach(p => track.appendChild(p));
-        row.appendChild(track); g.appendChild(row);
-      });
-    }
-
-    // Shift every row together just enough to keep a pill (once grown) fully visible
-    function shiftToShow(pill: HTMLElement) {
-      const gr = g.getBoundingClientRect();
-      const margin = 14;
-      const tag = pill.querySelector('.proj-bubble__tag') as HTMLElement | null;
-      const grow = tag ? tag.scrollWidth + 8 : 0; // width the tag will add when revealed
-      const pr = pill.getBoundingClientRect();
-      const overflowR = (pr.right + grow) - (gr.right - margin);
-      if (overflowR > 0) { setShift(curShift() - overflowR); return; }
-      if (pr.left < gr.left + margin) setShift(Math.min(0, curShift() + ((gr.left + margin) - pr.left)));
-    }
+    // Clear and append in shuffled order directly to g (so they wrap naturally like a paragraph)
+    g.innerHTML = '';
+    originals.forEach(p => g.appendChild(p));
 
     function render(query: string) {
       const q = query.trim().toLowerCase();
       const keywords = q.split(/\s+/).filter(Boolean);
       g.classList.toggle('has-search', keywords.length > 0);
       const matched = new Set<string>();
-      let firstMatch: HTMLElement | null = null;
       Array.from(g.querySelectorAll('.proj-bubble')).forEach(el0 => {
         const el = el0 as HTMLElement;
         if (!keywords.length) { el.classList.remove('is-match'); el.classList.remove('is-tag-reveal'); return; }
@@ -448,7 +379,7 @@ const sorted = [...allProjects].sort((a, b) => {
         ].join(' ').toLowerCase();
         const isMatch = keywords.every(kw => hay.includes(kw));
         el.classList.toggle('is-match', isMatch);
-        if (isMatch) { if (el.dataset.name) matched.add(el.dataset.name); if (!firstMatch) firstMatch = el; }
+        if (isMatch) { if (el.dataset.name) matched.add(el.dataset.name); }
         const tagText = (el.querySelector('.proj-bubble__tag')?.textContent || '').toLowerCase();
         el.classList.toggle('is-tag-reveal', isMatch && keywords.some(kw => kw.length >= 3 && tagText.includes(kw)));
       });
@@ -457,23 +388,9 @@ const sorted = [...allProjects].sort((a, b) => {
           ? `Results ${total}   Showing Items 1 to ${matched.size} of ${total}`
           : `Results ${total}   Showing all items`;
       }
-      if (keywords.length && firstMatch) shiftToShow(firstMatch); else setShift(0);
     }
 
-    buildRows();
     render('');
-
-    // Hover → shift the paragraph so the hovered pill grows in view (delegated, so it
-    // survives row rebuilds and never double-binds)
-    let lastPill: HTMLElement | null = null;
-    g.addEventListener('mouseover', (e) => {
-      const pill = (e.target as HTMLElement).closest('.proj-bubble') as HTMLElement | null;
-      if (pill && pill !== lastPill) { lastPill = pill; shiftToShow(pill); }
-    });
-    g.addEventListener('mouseleave', () => {
-      lastPill = null;
-      if (!input || !input.value.trim()) setShift(0);
-    });
 
     input?.addEventListener('input', () => {
       render(input.value);
@@ -482,12 +399,6 @@ const sorted = [...allProjects].sort((a, b) => {
 
     clearBtn?.addEventListener('click', () => {
       if (input) { input.value = ''; input.classList.remove('is-active'); render(''); input.focus(); }
-    });
-
-    let rt: ReturnType<typeof setTimeout>;
-    window.addEventListener('resize', () => {
-      clearTimeout(rt);
-      rt = setTimeout(() => { buildRows(); render(input?.value || ''); }, 200);
     });
   }
 
