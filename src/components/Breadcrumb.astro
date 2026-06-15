@@ -1,57 +1,271 @@
 ---
+import { getCollection } from 'astro:content';
+
 export interface Props {
-  crumbs: Array<{ label: string; href?: string }>;
+  currentPath?: string;
 }
 
-const { crumbs } = Astro.props;
+const { currentPath = '/' } = Astro.props;
+
+// Fetch and sort all projects alphabetically by ID
+const allProjects = await getCollection('projects');
+const projects = [...allProjects].sort((a, b) => a.id.localeCompare(b.id));
+
+// Normalize path for matching (ignoring trailing slash)
+const normalizedPath = currentPath.replace(/\/$/, '') || '/';
+
+// Determine active state for parent links
+const isHome = normalizedPath === '/';
+const isAbout = normalizedPath === '/about';
+const isProjectsIndex = normalizedPath === '/projects';
+const isProjectPage = normalizedPath.startsWith('/projects/') && !isProjectsIndex;
+
+// Extract current project ID if on a project page
+let currentProjectId = '';
+let prevProjectUrl = '';
+let nextProjectUrl = '';
+
+if (isProjectPage) {
+  // Extract id from path (e.g. /projects/carlo -> carlo)
+  const parts = normalizedPath.split('/').filter(Boolean);
+  currentProjectId = parts[1] || '';
+  
+  const idx = projects.findIndex(p => p.id === currentProjectId);
+  if (idx !== -1) {
+    const prevIdx = (idx - 1 + projects.length) % projects.length;
+    const nextIdx = (idx + 1) % projects.length;
+    prevProjectUrl = `/projects/${projects[prevIdx].id}`;
+    nextProjectUrl = `/projects/${projects[nextIdx].id}`;
+  }
+}
 ---
 
-<nav class="breadcrumb" aria-label="Breadcrumb">
-  {crumbs.map((crumb, i) => (
-    <span class="breadcrumb__item">
-      {crumb.href
-        ? <a href={crumb.href} class="breadcrumb__link">{crumb.label}</a>
-        : <span class="breadcrumb__current">{crumb.label}</span>
-      }
-      {i < crumbs.length - 1 && <span class="breadcrumb__sep" aria-hidden="true"> // </span>}
-    </span>
-  ))}
+<nav class="breadcrumb" aria-label="Secondary navigation">
+  <div class="breadcrumb__list">
+    <!-- Home -->
+    <a href="/" class:list={["breadcrumb__link", isHome && "is-active"]}>Home</a>
+    <span class="breadcrumb__sep" aria-hidden="true">/</span>
+
+    <!-- About Me -->
+    <a href="/about" class:list={["breadcrumb__link", isAbout && "is-active"]}>About Me</a>
+    <span class="breadcrumb__sep" aria-hidden="true">/</span>
+
+    <!-- Projects -->
+    <a href="/projects" class:list={["breadcrumb__link", isProjectsIndex && "is-active"]}>Projects</a>
+    <span class="breadcrumb__sep" aria-hidden="true">/</span>
+
+    <!-- Select Project Dropdown / Navigation Container -->
+    <div class:list={["breadcrumb__project-nav", isProjectPage && "is-active"]}>
+      {isProjectPage && prevProjectUrl && (
+        <a href={prevProjectUrl} class="breadcrumb__arrow breadcrumb__arrow--prev" title="Previous Project" aria-label="Previous Project">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </a>
+      )}
+
+      <div class="breadcrumb__select-wrap">
+        <select id="breadcrumb-project-select" class="breadcrumb__select" aria-label="Quick nav projects">
+          <option value="" disabled selected={!isProjectPage}>&lt; Select Project &gt;</option>
+          {projects.map(p => (
+            <option value={`/projects/${p.id}`} selected={currentProjectId === p.id}>
+              {p.data.name}
+            </option>
+          ))}
+        </select>
+        <span class="breadcrumb__select-arrow" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </span>
+      </div>
+
+      {isProjectPage && nextProjectUrl && (
+        <a href={nextProjectUrl} class="breadcrumb__arrow breadcrumb__arrow--next" title="Next Project" aria-label="Next Project">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </a>
+      )}
+    </div>
+  </div>
 </nav>
 
 <style>
   .breadcrumb {
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .breadcrumb__list {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
     gap: 0;
     font-size: 10px;
     font-weight: 500;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--_tokens---color--muted);
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
   }
 
-  .breadcrumb__item {
-    display: flex;
-    align-items: center;
+  .breadcrumb__list::-webkit-scrollbar {
+    display: none;
   }
 
   .breadcrumb__link {
     color: var(--_tokens---color--muted);
     text-decoration: none;
-    transition: color 0.2s ease;
+    transition: color 0.2s ease, opacity 0.2s ease;
+    opacity: 0.6;
+    white-space: nowrap;
   }
 
   .breadcrumb__link:hover {
     color: var(--_tokens---color--fg);
+    opacity: 1;
   }
 
-  .breadcrumb__current {
+  .breadcrumb__link.is-active {
     color: var(--_tokens---color--fg);
+    opacity: 1;
+    font-weight: 700;
   }
 
   .breadcrumb__sep {
-    margin-inline: 0.4em;
+    margin-inline: 0.6em;
     opacity: 0.35;
+    user-select: none;
+    flex-shrink: 0;
+  }
+
+  /* Dropdown & Nav container styling */
+  .breadcrumb__project-nav {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .breadcrumb__project-nav.is-active .breadcrumb__select-wrap {
+    border-color: var(--_tokens---color--fg);
+  }
+
+  /* Custom Select container styling */
+  .breadcrumb__select-wrap {
+    position: relative;
+    display: inline-block;
+  }
+
+  .breadcrumb__select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    color: var(--_tokens---color--muted);
+    font-family: inherit;
+    font-size: 9px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border: 1.5px solid transparent;
+    border-radius: 6px;
+    padding: 6px 30px 6px 12px;
+    cursor: pointer;
+    outline: none;
+    min-width: 160px;
+    max-width: 200px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+  }
+
+  .breadcrumb__project-nav.is-active .breadcrumb__select {
+    color: var(--_tokens---color--fg);
+    font-weight: 700;
+  }
+
+  .breadcrumb__select:hover {
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
+    color: var(--_tokens---color--fg);
+  }
+
+  .breadcrumb__select option {
+    background-color: var(--_tokens---color--bg);
+    color: var(--_tokens---color--fg);
+    text-transform: none; /* Let option text preserve original capitalization */
+    letter-spacing: normal;
+    font-size: 14px; /* Highly readable in drop down menu */
+  }
+
+  .breadcrumb__select-arrow {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 10px;
+    height: 10px;
+    pointer-events: none;
+    color: currentColor;
+    opacity: 0.7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .breadcrumb__select-arrow svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Arrows */
+  .breadcrumb__arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    color: var(--_tokens---color--muted);
+    transition: background-color 0.2s, color 0.2s, transform 0.2s;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .breadcrumb__arrow:hover {
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
+    color: var(--_tokens---color--fg);
+  }
+
+  .breadcrumb__arrow svg {
+    width: 12px;
+    height: 12px;
   }
 </style>
+
+<script>
+  // Setup event listener to navigate on selection change
+  function setupProjectSelect() {
+    const select = document.getElementById('breadcrumb-project-select') as HTMLSelectElement | null;
+    if (select) {
+      select.addEventListener('change', (e) => {
+        const val = select.value;
+        if (val) {
+          window.location.href = val;
+        }
+      });
+    }
+  }
+
+  // Run on page load
+  setupProjectSelect();
+
+  // Support Astro View Transitions if enabled
+  document.addEventListener('astro:after-swap', setupProjectSelect);
+</script>

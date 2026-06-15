@@ -20,11 +20,9 @@ const currentPath = Astro.url.pathname;
     <SideNav currentPath={currentPath} label={label} />
 
     <main class="page-main">
-      {crumbs.length > 0 && (
-        <div class="page-breadcrumb">
-          <Breadcrumb crumbs={crumbs} />
-        </div>
-      )}
+      <div class="page-breadcrumb">
+        <Breadcrumb currentPath={currentPath} />
+      </div>
       <slot />
     </main>
   </div>
@@ -43,7 +41,7 @@ const currentPath = Astro.url.pathname;
     transition: padding 0.3s ease;
   }
 
-  /* Sticky magnetic breadcrumb bar */
+  /* Sticky breadcrumb bar */
   .page-breadcrumb {
     position: sticky;
     top: 0;
@@ -54,16 +52,9 @@ const currentPath = Astro.url.pathname;
     padding-inline: var(--_tokens---space--small);
     padding-block: 20px 16px; /* expanded vertical size */
     margin-bottom: var(--_tokens---space--small);
-    opacity: 0.85;
-    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s ease;
-    transform: translateY(-6px); /* tucked up slightly by default */
-  }
-
-  /* Magnetic pull down effect when hovered */
-  .page-breadcrumb:hover {
-    transform: translateY(0); /* slides down */
     opacity: 1;
-    background-color: color-mix(in srgb, var(--_tokens---color--bg) 96%, var(--_tokens---color--fg)); /* slight color variation */
+    border-bottom: 1px solid var(--_tokens---color--line);
+    transition: background-color 0.3s ease;
   }
 
   /* Padding for really big screens (above laptop screens, >= 1200px) */
@@ -78,11 +69,31 @@ const currentPath = Astro.url.pathname;
       margin-right: calc(-1 * clamp(6rem, 12vw, 16rem));
       padding-inline: clamp(6rem, 12vw, 16rem);
       padding-top: 24px;
-      transform: translateY(-10px);
     }
-    
-    .page-breadcrumb:hover {
-      transform: translateY(0);
+  }
+
+  /* Mobile Portrait docking on bottom */
+  @media (max-width: 767px) and (orientation: portrait) {
+    .page-breadcrumb {
+      position: fixed !important;
+      bottom: 0 !important;
+      top: auto !important;
+      left: 64px !important;
+      right: 0 !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+      margin-bottom: 0 !important;
+      padding-inline: var(--_tokens---space--small) !important;
+      padding-block: 16px !important;
+      background-color: var(--_tokens---color--bg) !important;
+      border-top: 1px solid var(--_tokens---color--line) !important;
+      border-bottom: none !important;
+      box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+      z-index: 150 !important;
+    }
+
+    .page-main {
+      padding-bottom: 80px !important;
     }
   }
 </style>
