@@ -431,7 +431,7 @@ if (activeProject) {
   .breadcrumb__menu-column {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 1px;
     padding: 8px;
     box-sizing: border-box;
   }
@@ -544,7 +544,7 @@ if (activeProject) {
   .breadcrumb__proj-list.is-active {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 1px;
   }
 
   .breadcrumb__proj-empty {
@@ -634,6 +634,22 @@ if (activeProject) {
     const panel = document.getElementById('breadcrumb-dropdown-panel');
     const dropdown = document.getElementById('breadcrumb-custom-dropdown');
     if (!trigger || !panel || !dropdown) return;
+
+    // Randomize/shuffle the projects in all project lists client-side on load
+    const listsToShuffle = dropdown.querySelectorAll('.breadcrumb__proj-list');
+    listsToShuffle.forEach(list => {
+      const items = Array.from(list.querySelectorAll('.breadcrumb__proj-item')) as HTMLElement[];
+      if (items.length <= 1) return;
+      
+      for (let i = items.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const temp = items[i];
+        items[i] = items[j];
+        items[j] = temp;
+      }
+      
+      items.forEach(item => list.appendChild(item));
+    });
 
     const searchInput = document.getElementById('breadcrumb-search-input') as HTMLInputElement | null;
 
@@ -846,10 +862,10 @@ if (activeProject) {
     window.addEventListener('keydown', (e) => {
       const active = document.activeElement as HTMLElement | null;
       
-      // Ignore if typing in an input (except our search input when pressing ArrowDown, ArrowRight, or ArrowLeft)
+      // Ignore if typing in an input (except our search input when pressing ArrowDown, ArrowRight, ArrowLeft, or Escape)
       if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)) {
         if (active.id === 'breadcrumb-search-input') {
-          if (e.key !== 'ArrowDown' && e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') {
+          if (e.key !== 'ArrowDown' && e.key !== 'ArrowRight' && e.key !== 'ArrowLeft' && e.key !== 'Escape') {
             return;
           }
         } else {
@@ -893,8 +909,24 @@ if (activeProject) {
         return;
       }
 
-      // 2. Arrow navigation when dropdown is open
-      if (isOpen && (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+      // 2. Navigation / Escape when dropdown is open
+      if (isOpen && (e.key === 'Escape' || e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          panel.classList.remove('is-open');
+          trigger.setAttribute('aria-expanded', 'false');
+          // Blur search input if focused to prevent immediate reopen
+          const searchInput = document.getElementById('breadcrumb-search-input') as HTMLElement | null;
+          if (searchInput) {
+            searchInput.blur();
+          }
+          const projectsLink = document.querySelector('.breadcrumb__link--projects') as HTMLElement | null;
+          if (projectsLink) {
+            projectsLink.focus();
+          }
+          return;
+        }
+
         e.preventDefault();
         const catItems = Array.from(panel.querySelectorAll('.breadcrumb__cat-item')) as HTMLElement[];
         const activeProjList = panel.querySelector('.breadcrumb__proj-list.is-active');
