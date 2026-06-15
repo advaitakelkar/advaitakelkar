@@ -609,16 +609,18 @@ if (activeProject) {
     opacity: 1 !important;
   }
   /* Predictive Search Highlighting & Sorting rules */
-  .breadcrumb__dropdown-panel.has-search .breadcrumb__cat-item:not(.is-match),
-  .breadcrumb__dropdown-panel.has-search .breadcrumb__proj-item:not(.is-match) {
+  .breadcrumb__dropdown-panel.has-search .breadcrumb__cat-item:not(.is-match) {
     background-color: var(--_tokens---color--bg);
     border-color: color-mix(in srgb, var(--_tokens---color--fg) 4%, transparent);
     color: color-mix(in srgb, var(--_tokens---color--muted) 25%, transparent);
     pointer-events: none;
   }
 
-  .breadcrumb__dropdown-panel.has-search .breadcrumb__cat-item:not(.is-match) .breadcrumb__arrow-icon,
-  .breadcrumb__dropdown-panel.has-search .breadcrumb__proj-item:not(.is-match) .breadcrumb__arrow-icon {
+  .breadcrumb__dropdown-panel.has-search .breadcrumb__proj-item:not(.is-match) {
+    display: none !important;
+  }
+
+  .breadcrumb__dropdown-panel.has-search .breadcrumb__cat-item:not(.is-match) .breadcrumb__arrow-icon {
     opacity: 0.15;
   }
 
@@ -968,6 +970,72 @@ if (activeProject) {
         }
 
         e.preventDefault();
+
+        // Check if active search mode is in progress
+        const isSearchActive = panel.classList.contains('has-search');
+        if (isSearchActive) {
+          const activeProjList = panel.querySelector('.breadcrumb__proj-list.is-active');
+          const matchingProjItems = activeProjList
+            ? (Array.from(activeProjList.querySelectorAll('.breadcrumb__proj-item.is-match')) as HTMLElement[])
+            : [];
+
+          if (active && active.id === 'breadcrumb-search-input') {
+            if (e.key === 'ArrowDown') {
+              if (matchingProjItems.length > 0) {
+                matchingProjItems[0].focus();
+              }
+            } else if (e.key === 'ArrowLeft') {
+              // Close dropdown and focus Projects link
+              panel.classList.remove('is-open');
+              panel.classList.remove('has-active-cat');
+              panel.classList.remove('show-projects');
+              const backdrop = document.getElementById('breadcrumb-backdrop');
+              if (backdrop) backdrop.classList.remove('is-open');
+              trigger.setAttribute('aria-expanded', 'false');
+              active.blur();
+              const searchInput = active as HTMLInputElement;
+              searchInput.value = '';
+              // Reset search matches
+              panel.classList.remove('has-search');
+              const dropdown = document.getElementById('breadcrumb-custom-dropdown');
+              if (dropdown) {
+                const projItems = Array.from(dropdown.querySelectorAll('.breadcrumb__proj-list[data-cat-id="all"] .breadcrumb__proj-item')) as HTMLElement[];
+                const catItems = Array.from(dropdown.querySelectorAll('.breadcrumb__cat-item')) as HTMLElement[];
+                projItems.forEach(el => el.classList.remove('is-match'));
+                catItems.forEach(el => el.classList.remove('is-match'));
+              }
+              const projectsLink = document.querySelector('.breadcrumb__link--projects') as HTMLElement | null;
+              if (projectsLink) {
+                projectsLink.focus();
+              }
+            }
+          } else if (active && matchingProjItems.includes(active)) {
+            const idx = matchingProjItems.indexOf(active);
+            if (e.key === 'ArrowDown') {
+              matchingProjItems[(idx + 1) % matchingProjItems.length].focus();
+            } else if (e.key === 'ArrowUp') {
+              if (idx === 0) {
+                const searchInput = document.getElementById('breadcrumb-search-input') as HTMLElement | null;
+                if (searchInput) {
+                  searchInput.focus();
+                }
+              } else {
+                matchingProjItems[idx - 1].focus();
+              }
+            } else if (e.key === 'ArrowLeft') {
+              const searchInput = document.getElementById('breadcrumb-search-input') as HTMLElement | null;
+              if (searchInput) {
+                searchInput.focus();
+              }
+            }
+          } else {
+            // Focus is somewhere else, focus the search input
+            const searchInput = document.getElementById('breadcrumb-search-input') as HTMLElement | null;
+            if (searchInput) searchInput.focus();
+          }
+          return;
+        }
+
         const catItems = Array.from(panel.querySelectorAll('.breadcrumb__cat-item')) as HTMLElement[];
         const activeProjList = panel.querySelector('.breadcrumb__proj-list.is-active');
         const projItems = activeProjList 
