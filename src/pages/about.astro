@@ -205,11 +205,14 @@ const skillsets = [
     <!-- Section 1: Profile header + Bio grid + Links -->
     <section class="about-section-snap about-section--intro" id="about-intro-section">
 
-      <!-- Full-width name header -->
+      <!-- Full-width name header: text left, photo right (top-aligned) -->
       <header class="profile-header">
-        <h1 class="profile-name" data-scramble>Advaita Kelkar</h1>
-        <p class="profile-role" data-scramble>Architectural Designer + Researcher</p>
-        <p class="profile-degree">Master of Architecture · SCAD ‘27 · Mumbai</p>
+        <div class="profile-header__text">
+          <h1 class="profile-name" data-scramble>Advaita Kelkar</h1>
+          <p class="profile-role" data-scramble>Architectural Designer + Researcher</p>
+          <p class="profile-degree">Master of Architecture · SCAD ‘27 · Mumbai</p>
+        </div>
+        <div class="profile-photo-circle" aria-hidden="true"></div>
       </header>
 
       <!-- Equal two-column grid: left = photo+bio, right = education -->
@@ -561,13 +564,33 @@ const skillsets = [
     min-width: 0;
   }
 
-  /* ══ Full-width profile header (above grid) ═════════════════ */
+  /* ══ Full-width profile header: name left, photo right top-aligned ══ */
   .profile-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 24px;
+    width: 100%;
+  }
+
+  .profile-header__text {
     display: flex;
     flex-direction: column;
     gap: 3px;
-    margin-bottom: 24px;
-    width: 100%;
+    min-width: 0;
+  }
+
+  .profile-photo-circle {
+    width: clamp(64px, 8vw, 100px);
+    height: clamp(64px, 8vw, 100px);
+    border-radius: 50%;
+    background-image: url('/images/admin/profile.jpg');
+    background-size: cover;
+    background-position: center top;
+    background-repeat: no-repeat;
+    flex-shrink: 0;
+    /* top edge aligns with name baseline via align-items: flex-start on parent */
   }
 
   /* ══ Circular profile photo (right col, top — beside name) ══ */
@@ -705,45 +728,45 @@ const skillsets = [
     }
   }
 
-  /* Resume / Portfolio download link rows */
+  /* ══ Resume / Portfolio / Projects — breadcrumb-style pill row ══ */
   .about-links {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    gap: 8px;
     margin-bottom: 24px;
     width: 100%;
+    align-items: stretch;
   }
 
   .about-links__note {
-    font-size: var(--_tokens---type--micro);
-    font-weight: 300;
-    letter-spacing: 0.04em;
-    margin-bottom: 12px;
+    display: none; /* hidden — pills are self-explanatory */
   }
 
   .about-link-row {
+    flex: 1;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 10px;
     text-decoration: none;
-    color: var(--_tokens---color--fg);
-    border-top: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
-    padding-block: 22px;
-    transition: opacity 0.2s ease, padding-left 0.2s ease;
-  }
-
-  .about-link-row:last-child {
-    border-bottom: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+    color: var(--_tokens---color--muted);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+    border-radius: 999px;
+    padding: 14px 22px;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
   }
 
   .about-link-row:hover {
-    opacity: 0.75;
-    padding-left: 8px;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
+    color: var(--_tokens---color--fg);
+    border-color: color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
   }
 
   .about-link-row__text {
     font-size: var(--_tokens---type--medium);
     font-weight: 500;
-    line-height: 0.95;
+    line-height: 1;
     letter-spacing: -0.03em;
   }
 
@@ -751,13 +774,16 @@ const skillsets = [
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
-    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+    opacity: 0.55;
   }
 
   .about-link-row:hover .about-link-row__arrow {
-    transform: rotate(45deg);
+    transform: translate(2px, -2px);
+    opacity: 1;
   }
 
   .link-arrow {
@@ -1135,37 +1161,18 @@ const skillsets = [
     }
   }
 
-  @media (max-width: 600px) {
-    /* Links become large pills on mobile */
+  /* As viewport shrinks — pills stack, compact height (name + arrow only) */
+  @media (max-width: 640px) {
     .about-links {
-      flex-direction: row;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-    .about-links__note {
-      width: 100%;
-      margin-bottom: 4px;
+      flex-direction: column;
+      gap: 6px;
     }
     .about-link-row {
-      flex: 1 1 calc(50% - 5px);
-      border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 14%, transparent);
-      border-top: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 14%, transparent);
-      border-radius: 999px;
-      padding: 14px 20px;
-      justify-content: center;
-      gap: 8px;
-    }
-    .about-link-row:last-child {
-      border-bottom: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 14%, transparent);
-      flex: 1 1 100%;
-    }
-    .about-link-row:hover {
-      padding-left: 20px;
+      flex: none;
+      padding: 10px 18px;
     }
     .about-link-row__text {
       font-size: var(--_tokens---type--small);
-      letter-spacing: -0.01em;
     }
     .about-tabs-container {
       gap: 8px;
