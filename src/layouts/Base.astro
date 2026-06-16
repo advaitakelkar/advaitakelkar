@@ -62,7 +62,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         width: 200px;
         height: 200px;
         fill: var(--_tokens---color--fg);   /* inline SVG → crisp vector at any size */
-        opacity: 0.08;          /* subtle watermark overlay */
+        opacity: 0.04;          /* subtle watermark overlay — blends with bg */
         transform-origin: center center;  /* rotate around its own center axis */
         transform: translate(0, 0) rotate(0deg);
         transition: fill 0.3s ease;
@@ -317,83 +317,132 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         const isTouch = window.matchMedia('(hover: none)').matches;
 
         let W = window.innerWidth, H = window.innerHeight;
-        // Size: rest is small; grows on cursor proximity but is CAPPED at half the
-        // viewport's smaller dimension (so never exceeds 50% of width OR height).
-        const REST = Math.max(120, Math.min(W, H) * 0.16);
-        const maxSize = () => Math.min(W, H) * 0.5;
+        const REST    = Math.max(100, Math.min(W, H) * 0.14);
+        const maxSize = () => Math.min(W, H) * 0.55;
+        const minSize = () => REST * 0.45;
         let size = REST, targetSize = REST;
 
-        // Physics state (centre position + velocity), gives it weight & bounce
-        let x = W * 0.7, y = H * 0.4;
-        let vx = (Math.random() * 2 - 1) * 3 + 2;
-        let vy = (Math.random() * 2 - 1) * 2;
+        // Physics state
+        let x = W * 0.65, y = H * 0.35;
+        let vx = (Math.random() * 2 - 1) * 2.5 + 1.5;
+        let vy = (Math.random() * 2 - 1) * 1.5;
         let rot = 0, vrot = 0;
 
-        const GRAV = 0.07;     // gravity → weight
-        const BOUNCE = 0.9;    // restitution at the walls
-        const AIR = 0.995;     // air friction
-        const MOUSE_R = 280;   // cursor influence radius
-        const MOUSE_F = 0.55;  // cursor push strength
-        let mx = -9999, my = -9999, kick = 0;
+        const GRAV      = 0.06;   // downward weight
+        const BOUNCE    = 0.82;   // wall restitution
+        const AIR       = 0.992;  // air drag
+        const ATTRACT_R = 420;    // radius where mouse gravity pulls
+        const ATTRACT_F = 0.38;   // gravitational pull strength
+        const HIT_R     = 55;     // distance (from ball centre) that counts as a "hit"
 
-        const onMove = (e: MouseEvent) => { mx = e.clientX; my = e.clientY; };
+        let mx = -9999, my = -9999;
+        let prevMy = -9999;
+        let kick = 0;
+        let scrollVrot = 0;
+        let lastScrollY = window.scrollY;
+
+        // Mouse move → track position + y-delta for grow/shrink
+        const onMove = (e: MouseEvent) => {
+          mx = e.clientX; my = e.clientY;
+          if (prevMy > -9000) {
+            const dy = my - prevMy;                       // +dy = moving down = shrink
+            targetSize = Math.max(minSize(), Math.min(maxSize(), targetSize - dy * 0.55));
+          }
+          prevMy = my;
+        };
+
+        // Scroll → spin
+        const onScroll = () => {
+          const dy = window.scrollY - lastScrollY;
+          lastScrollY = window.scrollY;
+          scrollVrot += dy * 0.55;                       // scroll spins the logo
+          // slight grow burst on scroll
+          targetSize = Math.min(maxSize(), targetSize + Math.abs(dy) * 0.4);
+        };
+
         const onResize = () => { W = window.innerWidth; H = window.innerHeight; };
-        window.addEventListener('mousemove', onMove, { passive: true });
-        window.addEventListener('resize', onResize, { passive: true });
+        window.addEventListener('mousemove', onMove,   { passive: true });
+        window.addEventListener('scroll',   onScroll,  { passive: true });
+        window.addEventListener('resize',   onResize,  { passive: true });
 
         let frameId: number;
         function step() {
           const r = size / 2;
-          vy += GRAV; // weight
 
-          // Cursor interaction: gently push the logo away + grow when it's near
-          if (!isTouch) {
-            const ddx = x - mx, ddy = y - my;
-            const dm = Math.hypot(ddx, ddy) || 1;
-            if (dm < MOUSE_R) {
-              const f = (1 - dm / MOUSE_R) * MOUSE_F;
+          // --- Gravity ---
+          vy += GRAV;
+
+          // --- Mouse gravity attraction (pulls ball toward cursor) ---
+          if (!isTouch && mx > -9000) {
+            const ddx = mx - x, ddy = my - y;           // vector toward mouse
+            const dm  = Math.hypot(ddx, ddy) || 1;
+
+            if (dm < ATTRACT_R) {
+              // Gravitational pull — stronger from far, weaker up close (tractor feel)
+              const f = (1 - dm / ATTRACT_R) * ATTRACT_F;
               vx += (ddx / dm) * f;
               vy += (ddy / dm) * f;
-              targetSize = REST + (1 - dm / MOUSE_R) * (maxSize() - REST);
+            }
+
+            // Hit! — mouse is inside ball → explosive kick
+            if (dm < HIT_R + r) {
+              const nx = ddx / dm || 1, ny = ddy / dm || 1;
+              const kick_v = 9 + Math.random() * 5;
+              vx -= nx * kick_v;                         // bounce away from cursor
+              vy -= ny * kick_v;
+              vrot += (Math.random() - 0.5) * 28;       // spin
+              targetSize = Math.min(maxSize(), size * 1.7); // burst big
+            } else if (dm < ATTRACT_R) {
+              // Quietly grow as it approaches (but not on hit)
+              targetSize = REST + (1 - dm / ATTRACT_R) * (maxSize() * 0.45 - REST) * 0.6 + REST * 0.1;
             } else {
-              targetSize = REST;
+              targetSize = Math.max(targetSize * 0.98, REST); // gentle decay back
             }
           }
 
+          // --- Drag + integrate ---
           vx *= AIR; vy *= AIR;
           x += vx; y += vy;
 
-          // Bounce off the four edges (kept fully on-screen)
-          if (x - r < 0)      { x = r;     vx =  Math.abs(vx) * BOUNCE; }
-          else if (x + r > W) { x = W - r; vx = -Math.abs(vx) * BOUNCE; }
-          if (y - r < 0)      { y = r;     vy =  Math.abs(vy) * BOUNCE; }
-          else if (y + r > H) { y = H - r; vy = -Math.abs(vy) * BOUNCE; }
+          // --- Bounce off all four walls ---
+          if (x - r < 0)      { x = r;     vx =  Math.abs(vx) * BOUNCE; vrot += 4; }
+          else if (x + r > W) { x = W - r; vx = -Math.abs(vx) * BOUNCE; vrot -= 4; }
+          if (y - r < 0)      { y = r;     vy =  Math.abs(vy) * BOUNCE; vrot += (Math.random()-0.5)*6; }
+          else if (y + r > H) { y = H - r; vy = -Math.abs(vy) * BOUNCE; vrot += (Math.random()-0.5)*6; }
 
-          // Keep it lively: nudge if it's gone too sluggish
+          // --- Anti-stall nudge ---
           const speed = Math.hypot(vx, vy);
-          if (speed < 0.7) { if (++kick > 70) { vx += (Math.random() * 2 - 1) * 3; vy -= Math.random() * 3 + 1.5; kick = 0; } }
-          else kick = 0;
+          if (speed < 0.6) {
+            if (++kick > 80) {
+              vx += (Math.random() * 2 - 1) * 3.5;
+              vy -= Math.random() * 3 + 1;
+              kick = 0;
+            }
+          } else kick = 0;
 
-          // Rolling rotation from horizontal velocity, with inertia
-          vrot += (vx * 0.6 - vrot) * 0.08;
-          rot += vrot;
+          // --- Rotation: rolling + scroll spin ---
+          scrollVrot *= 0.93;                             // scroll spin decays
+          vrot += (vx * 0.55 - vrot) * 0.07;            // rolling from horizontal vel
+          vrot += scrollVrot * 0.18;                     // scroll contribution
+          rot  += vrot;
 
-          size += (targetSize - size) * 0.1; // weighty grow/shrink
+          // --- Size ease ---
+          size += (targetSize - size) * 0.09;
 
           const s = Math.round(size);
-          wl.style.width = s + 'px';
+          wl.style.width  = s + 'px';
           wl.style.height = s + 'px';
-          wl.style.transform = `translate(${Math.round(x - s / 2)}px, ${Math.round(y - s / 2)}px) rotate(${rot}deg)`;
+          wl.style.transform = `translate(${Math.round(x - s/2)}px,${Math.round(y - s/2)}px) rotate(${rot.toFixed(2)}deg)`;
           frameId = requestAnimationFrame(step);
         }
 
         wl.style.width = wl.style.height = REST + 'px';
         frameId = requestAnimationFrame(step);
 
-        // Cleanup for view transitions
         return () => {
           window.removeEventListener('mousemove', onMove);
-          window.removeEventListener('resize', onResize);
+          window.removeEventListener('scroll',   onScroll);
+          window.removeEventListener('resize',   onResize);
           cancelAnimationFrame(frameId);
         };
       }
