@@ -358,20 +358,26 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         if (!container || !templateEl) return;
 
         let W = window.innerWidth, H = window.innerHeight;
-        const NAV_W = 44; // left nav bar width
+        const NAV_W = 44;   // left nav bar width (44px bar)
+        const BREADCRUMB_H = 48; // breadcrumb bar height — balls stay below this
+
+        // Animated left boundary — lerps toward nav panel's right edge when open
+        // SideNav sets window.__navPanelTarget when it opens/closes
+        let navLeftBound = NAV_W;
 
         // ── Constants ──
-        const GRAV       = 0.22;    // downward gravity per frame
-        const BOUNCE     = 0.50;    // energy kept per wall/floor bounce
-        const DRAG       = 0.987;   // per-frame air drag
-        const MAX_SPEED  = 26;      // px/frame cap (allows high launch velocity)
-        const MAX_BALLS  = 28;
-        const FADE_DUR   = 60;
-        const SPAWN_CD   = 55;      // min frames between nav-contact spawns
-        const PUSH_FORCE = 20;      // spacebar impulse strength
-        const NAV_PROX   = 260;     // px: spacebar only affects balls within this distance from nav
-        const GROW_PROX  = 0.10;    // baseSize units added per frame of ball-ball proximity
-        const MAX_GROW   = 3.2;     // ball can grow to 3.2× its spawn base size
+        const GRAV         = 0.11;   // light gravity — carrom float
+        const BOUNCE_SIDE  = 1.06;   // side/top walls ADD 6% speed each hit
+        const BOUNCE_FLOOR = 0.60;   // floor REMOVES 40% speed so ball settles
+        const DRAG         = 0.9988; // near-zero air drag — energy persists
+        const MAX_SPEED    = 32;     // hard speed cap
+        const MAX_BALLS    = 28;
+        const FADE_DUR     = 60;
+        const SPAWN_CD     = 55;     // min frames between nav-contact spawns
+        const PUSH_FORCE   = 22;     // spacebar impulse strength
+        const NAV_PROX     = 260;    // px: spacebar only affects balls within this distance from nav
+        const GROW_PROX    = 0.10;   // baseSize units added per frame of ball-ball proximity
+        const MAX_GROW     = 3.2;    // ball can grow to 3.2× its spawn base size
 
         type Ball = {
           el: SVGElement;
@@ -403,22 +409,26 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           return el;
         }
 
-        // All balls spawn from top-left corner with rightward throw
+        // All balls enter from the LEFT edge (just past nav bar) with strong rightward throw
+        // — ball crosses the full viewport width and hits the RIGHT wall first
         function spawnBall(vxOverride?: number, vyOverride?: number, useTemplate = false): Ball {
-          const base     = randBaseSize();
-          const startSz  = base * 0.3; // starts small, grows to full size
-          const vx = vxOverride !== undefined ? vxOverride : 13 + Math.random() * 10;
-          const vy = vyOverride !== undefined ? vyOverride : 4  + Math.random() * 4;
+          const base    = randBaseSize();
+          const startSz = base * 0.3; // starts small, grows organically
+          // High rightward velocity → guaranteed right-wall first impact
+          const vx = vxOverride !== undefined ? vxOverride : 20 + Math.random() * 8;
+          // Slight vertical variation — keeps trajectory interesting, not purely horizontal
+          const vy = vyOverride !== undefined ? vyOverride : (Math.random() - 0.4) * 5;
           const el = useTemplate ? templateEl! : makeEl(startSz);
           if (useTemplate) {
-            el.style.width  = startSz + 'px';
-            el.style.height = startSz + 'px';
+            el.style.width   = startSz + 'px';
+            el.style.height  = startSz + 'px';
             el.style.opacity = '0.05';
           }
           const b: Ball = {
             el,
-            x: NAV_W + 18 + Math.random() * 20,  // top-left entry zone
-            y: -startSz - 10,                      // above screen
+            // Enter from left edge, positioned at a random height in the upper half
+            x: NAV_W + startSz * 0.5 + 2,
+            y: H * 0.08 + Math.random() * H * 0.45,
             vx, vy,
             size: startSz, baseSize: base, spawnBase: base,
             rot: Math.random() * 360, vrot: 0,
@@ -464,6 +474,11 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
         function step() {
           if (spawnCooldown > 0) spawnCooldown--;
+
+          // ── Nav paddle: smoothly lerp left boundary toward panel's current right edge ──
+          // SideNav sets window.__navPanelTarget when it opens/closes
+          const navTarget = ((window as any).__navPanelTarget as number) || NAV_W;
+          navLeftBound += (navTarget - navLeftBound) * 0.09;
 
           // ── Ball-ball: proximity → both grow; overlap → soft repulsion only ──
           // Per-frame growth budget: cap so many simultaneous neighbors don't stack-explode size
@@ -516,12 +531,16 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
               b.el.style.opacity = (0.05 * b.fadeTick / FADE_DUR).toFixed(4);
             }
 
-            // Gravity
+            // Gravity (down) + gentle corner attractor (toward bottom-right)
             b.vy += GRAV;
+            // Pull toward bottom-right corner — subtle rightward + downward bias
+            const pullX = (W - 80 - b.x) / W;
+            const pullY = (H - 80 - b.y) / H;
+            b.vx += pullX * 0.018;
+            b.vy += pullY * 0.010;
 
-            // Drag — increases slightly the more bounces this ball has had
-            const d = DRAG - Math.min(b.bounces * 0.0004, 0.012);
-            b.vx *= d; b.vy *= d;
+            // Uniform air drag — very low, energy persists between bounces
+            b.vx *= DRAG; b.vy *= DRAG;
 
             // Speed cap
             const spd = Math.hypot(b.vx, b.vy);
@@ -533,36 +552,36 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
             b.size += (b.baseSize - b.size) * 0.035;
             const r = b.size * 0.5;
 
-            // ── Wall bounces (each reduces velocity via BOUNCE) ──
-            // Left wall = nav bar edge
-            if (b.x - r < NAV_W) {
-              b.x  = NAV_W + r;
-              b.vx = Math.abs(b.vx) * BOUNCE;
+            // ── Wall bounces ──
+            // Left wall = animated nav panel right edge (paddle) — SIDE bounce (gains speed)
+            if (b.x - r < navLeftBound) {
+              b.x  = navLeftBound + r;
+              b.vx = Math.abs(b.vx) * BOUNCE_SIDE;
               b.vrot -= b.vx * 0.3;
               b.bounces++;
-              // Nav contact → spawn a new ball from top-left (duplicate)
-              if (spawnCooldown === 0 && balls.length < MAX_BALLS && b.fadeTick < 0) {
+              // Contact with the fixed nav bar (not the open panel) → spawn duplicate
+              if (navLeftBound < NAV_W + 20 && spawnCooldown === 0 && balls.length < MAX_BALLS && b.fadeTick < 0) {
                 spawnBall();
                 spawnCooldown = SPAWN_CD;
               }
             }
-            // Right wall
+            // Right wall — SIDE bounce (gains speed)
             if (b.x + r > W) {
               b.x  = W - r;
-              b.vx = -Math.abs(b.vx) * BOUNCE;
+              b.vx = -Math.abs(b.vx) * BOUNCE_SIDE;
               b.vrot += Math.abs(b.vx) * 0.3;
               b.bounces++;
             }
-            // Top wall
-            if (b.y - r < 0) {
-              b.y  = r;
-              b.vy = Math.abs(b.vy) * BOUNCE;
+            // Top wall = bottom of breadcrumb bar — balls stay below it
+            if (b.y - r < BREADCRUMB_H) {
+              b.y  = BREADCRUMB_H + r;
+              b.vy = Math.abs(b.vy) * BOUNCE_SIDE;
               b.bounces++;
             }
-            // Floor
+            // Floor — FLOOR bounce (loses speed so ball eventually settles)
             if (b.y + r > H) {
               b.y  = H - r;
-              b.vy = -Math.abs(b.vy) * BOUNCE;
+              b.vy = -Math.abs(b.vy) * BOUNCE_FLOOR;
               b.vrot += b.vx * 0.4;
               b.bounces++;
             }
