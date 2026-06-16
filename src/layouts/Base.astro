@@ -369,7 +369,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         const BOUNCE_SIDE    = 0.78;    // walls absorb energy
         const BOUNCE_FLOOR   = 0.48;    // floor settles balls
         const DRAG           = 0.990;
-        const MAX_SPEED      = 14;
+        const MAX_SPEED      = 55;   // high enough for first ball's launch velocity
         const MAX_BALLS      = 20;
         const FADE_DUR       = 90;
         const SPAWN_CD       = 70;
@@ -399,9 +399,9 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         let spawnCooldown = 0;
         let lastScrollY   = window.scrollY;
 
-        // Spawn big: 14–20% of shorter viewport side
+        // Subsequent balls: 13–18% of viewport
         function randBaseSize(): number {
-          return Math.min(W, H) * (0.14 + Math.random() * 0.06);
+          return Math.min(W, H) * (0.13 + Math.random() * 0.05);
         }
 
         function makeEl(size: number): SVGElement {
@@ -415,7 +415,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         // Balls enter from left edge at FULL base size (big → shrinks over time)
         function spawnBall(vxOverride?: number, vyOverride?: number, useTemplate = false): Ball {
           const base    = randBaseSize();
-          const startSz = base;  // start big
+          const startSz = base;
           const vx = vxOverride !== undefined ? vxOverride : 7 + Math.random() * 5;
           const vy = vyOverride !== undefined ? vyOverride : (Math.random() - 0.5) * 3;
           const el = useTemplate ? templateEl! : makeEl(startSz);
@@ -437,8 +437,22 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           return b;
         }
 
-        // First ball: high-speed carrom throw — crosses the full viewport fast
-        spawnBall(22 + Math.random() * 8, (Math.random() - 0.4) * 6, true);
+        // ── First ball: huge + extreme velocity — right wall → floor → nav → duplicate ──
+        // Size: 24–28% of the shorter viewport side
+        const firstBase = Math.min(W, H) * (0.24 + Math.random() * 0.04);
+        templateEl.style.width   = firstBase + 'px';
+        templateEl.style.height  = firstBase + 'px';
+        templateEl.style.opacity = '0.05';
+        balls.push({
+          el: templateEl!,
+          x: NAV_W + firstBase * 0.5 + 2,
+          y: H * 0.20 + Math.random() * H * 0.15,   // upper third so it arcs down to floor
+          vx: 42 + Math.random() * 8,                // very fast rightward throw
+          vy: 3  + Math.random() * 3,                // slight downward so it hits floor after right wall
+          size: firstBase, baseSize: firstBase, spawnBase: firstBase,
+          rot: Math.random() * 360, vrot: 0,
+          born: birthClock++, fadeTick: -1, bounces: 0
+        });
 
         // ── Spacebar / nav-bar click: push balls near the nav ──
         function navPush() {
@@ -514,7 +528,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
                 b.baseSize = Math.min(b.spawnBase, b.baseSize + g);
               }
 
-              // Contact: push apart maintaining CELL_GAP clearance
+              // Contact: push apart + size-swing pulse (spring snaps back via normal size lerp)
               if (dist < sumR) {
                 const overlap = (sumR - dist) * 0.52;
                 const nx = dx / dist, ny = dy / dist;
@@ -523,6 +537,9 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
                 const nudge = 0.22;
                 a.vx -= nx * nudge; a.vy -= ny * nudge;
                 b.vx += nx * nudge; b.vy += ny * nudge;
+                // Size pulse: temporarily swell — spring equation damps it back naturally
+                a.size = Math.min(a.size * 1.13, a.spawnBase * 1.25);
+                b.size = Math.min(b.size * 1.13, b.spawnBase * 1.25);
               }
             }
           }
