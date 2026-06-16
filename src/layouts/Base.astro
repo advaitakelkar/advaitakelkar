@@ -28,6 +28,61 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonicalURL} />
     {ogImage && <meta property="og:image" content={ogImage} />}
+
+    <!-- ── Scheme: runs synchronously in <head> → no FOUC, correct on every page load ── -->
+    <script is:inline>
+      (function () {
+        var ALL_SCH = ['sch1','sch2','sch3','sch4','sch5','sch6','sch7','sch8','sch9'];
+        var VALID   = ['default','sch1','sch2','sch3','sch4','sch5','sch6','sch7','sch8','sch9'];
+
+        function setClass(id) {
+          ALL_SCH.forEach(function (s) { document.documentElement.classList.remove(s); });
+          if (id !== 'default') document.documentElement.classList.add(id);
+        }
+
+        function randomSch() {
+          return 'sch' + Math.ceil(Math.random() * 9);
+        }
+
+        // Reload detection — Navigation Timing Level 2
+        var navEntry = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
+        var isReload = navEntry ? navEntry.type === 'reload' : false;
+
+        var stored = sessionStorage.getItem('aks');
+        var valid  = stored && VALID.indexOf(stored) !== -1;
+
+        if (isReload || !valid) {
+          // Hard reload or first-ever visit → fresh random, clear manual mode
+          var cls = randomSch();
+          setClass(cls);
+          sessionStorage.setItem('aks', cls);
+          sessionStorage.removeItem('aks-mode');
+        } else {
+          // Page navigation → restore scheme + manual mode if set
+          setClass(stored);
+          var storedMode = sessionStorage.getItem('aks-mode');
+          if (storedMode === 'dark')  document.documentElement.classList.add('mode-dark');
+          if (storedMode === 'light') document.documentElement.classList.add('mode-light');
+        }
+
+        // ── Keyboard cycling: < = prev scheme  > = next scheme ──
+        document.addEventListener('keydown', function (e) {
+          var tag = (e.target && e.target.tagName) || '';
+          if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) return;
+          if (e.key !== '<' && e.key !== '>') return;
+          var cur = sessionStorage.getItem('aks') || 'default';
+          var idx = VALID.indexOf(cur);
+          if (idx < 0) idx = 0;
+          var next = e.key === '>'
+            ? VALID[(idx + 1) % VALID.length]
+            : VALID[(idx - 1 + VALID.length) % VALID.length];
+          setClass(next);
+          sessionStorage.setItem('aks', next);
+          // Tell SideNav to sync its active-option highlight
+          document.dispatchEvent(new CustomEvent('aks-scheme', { detail: next }));
+        });
+      })();
+    </script>
   </head>
   <body>
     <!-- Global background watermark logo (inline SVG → crisp vector at any size) -->
@@ -75,19 +130,6 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     </style>
 
     <slot />
-    <script>
-      // Scheme persistence: restore from sessionStorage
-      const stored = sessionStorage.getItem('aks');
-      if (stored && /^sch[1-9]$/.test(stored)) {
-        document.documentElement.className = stored;
-      } else {
-        // Random scheme on first load
-        const n = Math.ceil(Math.random() * 9);
-        const cls = `sch${n}`;
-        document.documentElement.className = cls;
-        sessionStorage.setItem('aks', cls);
-      }
-    </script>
     <script>
       // Global Arrow Hover Random Rotation
       document.addEventListener('mouseover', (e) => {

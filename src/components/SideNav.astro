@@ -74,6 +74,17 @@ const schemes = [
             <span class="sn-scheme__name">{s.label}</span>
           </button>
         ))}
+        <!-- Mode toggle: half-dark / half-light circle -->
+        <hr class="sn-scheme__divider" aria-hidden="true" />
+        <button
+          class="sn-scheme__option"
+          id="sn-mode-btn"
+          title="Toggle dark / light"
+          aria-label="Toggle dark / light mode"
+        >
+          <span class="sn-scheme__swatch sn-mode-swatch"></span>
+          <span class="sn-scheme__name">Mode</span>
+        </button>
       </div>
     </div>
 
@@ -354,6 +365,26 @@ const schemes = [
     .sn-scheme__swatch {
       background: var(--sw-d);
     }
+  }
+
+  /* Mode toggle divider */
+  .sn-scheme__divider {
+    width: 16px;
+    height: 1px;
+    background: color-mix(in srgb, var(--_tokens---color--fg) 18%, transparent);
+    border: none;
+    margin: 4px 0;
+    flex-shrink: 0;
+  }
+
+  /* Mode toggle swatch — diagonal split showing both halves of current scheme */
+  .sn-mode-swatch {
+    background: linear-gradient(
+      135deg,
+      var(--_tokens---color--fg) 50%,
+      var(--_tokens---color--bg) 50%
+    ) !important;
+    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 25%, transparent) !important;
   }
 
   /* Hide name — colors only */
@@ -757,10 +788,11 @@ const schemes = [
   }
 
   function applyScheme(id: string) {
-    // Remove all sch classes
+    // Remove all sch classes, add new one
     document.documentElement.classList.remove(...SCHEMES.filter(s => s !== 'default'));
     if (id !== 'default') document.documentElement.classList.add(id);
-    sessionStorage.setItem('aks', id === 'default' ? '' : id);
+    // Store id directly — 'default' is stored as the string 'default' (not empty string)
+    sessionStorage.setItem('aks', id);
     updateActiveOption();
     closeScheme();
   }
@@ -805,13 +837,36 @@ const schemes = [
     if (schemeOpen && !schemeEl.contains(e.target as Node)) closeScheme();
   });
 
-  // Restore persisted scheme on load
-  const saved = sessionStorage.getItem('aks');
-  if (saved && SCHEMES.includes(saved)) {
-    document.documentElement.classList.remove(...SCHEMES.filter(s => s !== 'default'));
-    document.documentElement.classList.add(saved);
-  }
+  // Scheme already applied by the <head> inline script — just sync the active highlight
   updateActiveOption();
+
+  // Keyboard cycling (< / >) dispatches 'aks-scheme' — keep dropdown in sync
+  document.addEventListener('aks-scheme', () => updateActiveOption());
+
+  // ── Dark / light mode toggle ──────────────────────────────
+  const modeBtn = document.getElementById('sn-mode-btn');
+
+  function getEffectiveDark(): boolean {
+    if (document.documentElement.classList.contains('mode-dark')) return true;
+    if (document.documentElement.classList.contains('mode-light')) return false;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+
+  modeBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isDark = getEffectiveDark();
+    document.documentElement.classList.remove('mode-dark', 'mode-light');
+    if (isDark) {
+      // Force light
+      document.documentElement.classList.add('mode-light');
+      sessionStorage.setItem('aks-mode', 'light');
+    } else {
+      // Force dark
+      document.documentElement.classList.add('mode-dark');
+      sessionStorage.setItem('aks-mode', 'dark');
+    }
+    closeScheme();
+  });
 
   // ── Infinite project wheel ─────────────────────────────────
   const wheel = document.getElementById('sn-wheel');
