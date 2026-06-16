@@ -484,8 +484,17 @@ const skillsets = [
 <style>
   /* Snapping layout overrides */
   :global(html) {
-    scroll-snap-type: y mandatory;
+    scroll-snap-type: y proximity; /* gentle: snaps section tops into place but lets tall sections scroll freely */
     scroll-behavior: smooth;
+    scroll-padding-top: 64px; /* snapped section headings land clear of the fixed top breadcrumb */
+  }
+
+  /* On mobile portrait the breadcrumb docks to the bottom, so clear that instead */
+  @media (max-width: 767px) and (orientation: portrait) {
+    :global(html) {
+      scroll-padding-top: 12px;
+      scroll-padding-bottom: 76px;
+    }
   }
 
   .about-page {
@@ -495,14 +504,15 @@ const skillsets = [
 
   .about-section-snap {
     scroll-snap-align: start;
-    height: 100dvh;
+    scroll-margin-top: 64px; /* heading clears the fixed top breadcrumb when snapped/anchored */
+    height: auto;
     min-height: 100dvh;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
     padding-inline: var(--_tokens---space--small);
     transition: padding 0.3s ease;
-    overflow: hidden;
+    overflow: visible; /* never clip a section's own content */
   }
 
   .about-section--intro {
@@ -635,7 +645,7 @@ const skillsets = [
   .about-section--skillset {
     justify-content: flex-start;
     padding-top: calc(clamp(4rem, 8vh, 6rem) + 48px); /* space for fixed breadcrumbs */
-    overflow-y: auto; /* scrollable skillset */
+    overflow: visible; /* let the skillset grid + footer flow naturally in the page scroll */
   }
 
 
