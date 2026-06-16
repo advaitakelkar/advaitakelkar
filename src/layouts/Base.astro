@@ -315,229 +315,224 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         const templateEl = document.getElementById('watermark-logo') as SVGElement | null;
         if (!container || !templateEl) return;
 
-        const isTouch = window.matchMedia('(hover: none)').matches;
         let W = window.innerWidth, H = window.innerHeight;
+        const NAV_W = 44; // side nav bar width — left boundary
 
-        // ── Size bounds: 2% – 10% of the shorter viewport dimension ──
-        const minSz = () => Math.min(W, H) * 0.02;
-        const maxSz = () => Math.min(W, H) * 0.10;
-
-        // Natural size fractions for 10 initial balls (spread 3%–8%)
-        const INIT_FRACS  = [0.030, 0.035, 0.040, 0.045, 0.050, 0.055, 0.060, 0.065, 0.070, 0.080];
-        const INIT_MASSES = [0.35,  0.42,  0.50,  0.55,  0.62,  0.70,  0.78,  0.85,  0.92,  1.00];
-
-        const GRAV           = 0.038;
-        const BOUNCE         = 0.55;
-        const BALL_ATTRACT_R = 320;
-        const BALL_ATTRACT_F = 0.006;
-        const MOUSE_ATTR_R   = 380;
-        const MOUSE_ATTR_F   = 0.20;
-        const MOUSE_SIZE_R   = 480;   // radius within which mouse inflates a ball
-        const MAX_SPEED      = 6;
-        const MAX_BALLS      = 50;
-        const FADE_FRAMES    = 90;    // frames to fade out oldest when cap hit
+        // ── Constants ──
+        const GRAV_BASE  = 0.14;   // base downward gravity per frame
+        const BOUNCE     = 0.62;   // energy kept on wall bounce
+        const AIR        = 0.991;  // per-frame drag multiplier
+        const MAX_SPEED  = 11;     // px/frame cap
+        const MAX_BALLS  = 50;
+        const FADE_DUR   = 70;     // frames to fade out oldest
+        const SPAWN_CD   = 65;     // minimum frames between spawns
+        const PUSH_FORCE = 14;     // velocity impulse from spacebar/nav-click
 
         type Ball = {
           el: SVGElement;
           x: number; y: number;
           vx: number; vy: number;
-          natFrac: number;   // natural size as fraction of min(W,H)
-          size: number;      // current rendered diameter
-          mass: number;
-          air: number;
-          born: number;      // spawn order (lower = older)
-          fadeTick: number;  // countdown frames; -1 = alive
+          size: number;            // fixed diameter in px
+          rot: number; vrot: number;
+          born: number;
+          fadeTick: number;        // -1 = alive; >=0 = counting down to removal
         };
 
         const balls: Ball[] = [];
-        let birthClock = 0;
+        let birthClock  = 0;
+        let spawnCooldown = 0;
+        let scrollGrav  = 0;       // extra gravity from scroll (+ = down, – = up)
+        let lastScrollY = window.scrollY;
+
+        // Random ball size: 5%–13% of the shorter viewport side
+        function randSize(): number {
+          return Math.min(W, H) * (0.05 + Math.random() * 0.08);
+        }
 
         function makeEl(size: number): SVGElement {
           const el = templateEl!.cloneNode(true) as SVGElement;
           el.removeAttribute('id');
-          el.style.cssText = `width:${size}px;height:${size}px;position:absolute;top:0;left:0;opacity:0.04;`;
+          el.style.cssText = `position:absolute;top:0;left:0;width:${size}px;height:${size}px;opacity:0.05;will-change:transform;`;
           container!.appendChild(el);
           return el;
         }
 
-        function addBall(
-          useTemplate: boolean,
-          x: number, y: number, vx: number, vy: number,
-          natFrac: number, mass: number
-        ): Ball {
-          const sz  = Math.min(W, H) * natFrac;
-          const el  = useTemplate ? templateEl! : makeEl(sz);
+        function spawnBall(x: number, y: number, vx: number, vy: number, useTemplate = false): Ball {
+          const size = randSize();
+          const el   = useTemplate ? templateEl! : makeEl(size);
           if (useTemplate) {
-            el.style.width  = sz + 'px';
-            el.style.height = sz + 'px';
-            el.style.opacity = '0.04';
+            el.style.width   = size + 'px';
+            el.style.height  = size + 'px';
+            el.style.opacity = '0.05';
           }
-          const b: Ball = {
-            el, x, y, vx, vy,
-            natFrac, size: sz, mass,
-            air: 0.984 - (1 - mass) * 0.016,
-            born: birthClock++,
-            fadeTick: -1
-          };
+          const b: Ball = { el, x, y, vx, vy, size, rot: Math.random() * 360, vrot: 0, born: birthClock++, fadeTick: -1 };
           balls.push(b);
           return b;
         }
 
-        // ── 10 balls drop from above, spread across screen ──
-        for (let i = 0; i < 10; i++) {
-          const frac = INIT_FRACS[i];
-          const sz   = Math.min(W, H) * frac;
-          const xPos = (W / 11) * (i + 1) + (Math.random() - 0.5) * W * 0.07;
-          const yPos = -sz * 1.5 - Math.random() * H * 0.5;
-          addBall(i === 0, xPos, yPos, (Math.random()-0.5)*2, Math.random()*1.2+0.4, frac, INIT_MASSES[i]);
+        // ── Start: 1 ball drops from above-center with initial velocity ──
+        spawnBall(
+          NAV_W + W * 0.35 + Math.random() * W * 0.3,
+          -60,
+          (Math.random() - 0.5) * 3.5,
+          1.5 + Math.random() * 1.5,
+          true
+        );
+
+        // ── Push all balls away from the nav bar (spacebar / bar click) ──
+        function navPush() {
+          for (const b of balls) {
+            if (b.fadeTick >= 0) continue;
+            const dx = b.x - NAV_W;
+            const dy = b.y - H * 0.5;
+            const dist = Math.hypot(dx, dy) || 1;
+            b.vx += (dx / dist) * PUSH_FORCE;
+            b.vy += (dy / dist) * PUSH_FORCE * 0.55;
+          }
         }
 
-        let mx = -9999, my = -9999;
-        let spawnCooldown = 0;
+        // ── Event listeners ──
+        const onScroll = () => {
+          const dy = window.scrollY - lastScrollY;
+          lastScrollY = window.scrollY;
+          scrollGrav += dy * 0.07;
+          scrollGrav = Math.max(-5, Math.min(5, scrollGrav));
+        };
 
-        const onMove   = (e: MouseEvent) => { mx = e.clientX; my = e.clientY; };
+        const onKeydown = (e: KeyboardEvent) => {
+          const active = document.activeElement as HTMLElement | null;
+          if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)) return;
+          if (e.key === ' ' || e.code === 'Space') navPush();
+        };
+
         const onResize = () => { W = window.innerWidth; H = window.innerHeight; };
-        window.addEventListener('mousemove', onMove,   { passive: true });
-        window.addEventListener('resize',   onResize,  { passive: true });
+
+        window.addEventListener('scroll',  onScroll,  { passive: true });
+        window.addEventListener('resize',  onResize,  { passive: true });
+        document.addEventListener('keydown', onKeydown);
+
+        // Hook into the index bar click too
+        const snBar = document.getElementById('sn-bar');
+        snBar?.addEventListener('click', navPush);
 
         let frameId: number;
 
         function step() {
+          scrollGrav *= 0.92; // scroll gravity decays each frame
           if (spawnCooldown > 0) spawnCooldown--;
 
-          const mn = minSz(), mx2 = maxSz();
-
-          // ── Spawn on mouse-touch, up to MAX_BALLS ──
-          if (!isTouch && spawnCooldown === 0 && mx > -9000) {
-            if (balls.length < MAX_BALLS) {
-              for (const b of balls) {
-                if (b.fadeTick >= 0) continue;
-                if (Math.hypot(mx - b.x, my - b.y) < b.size / 2) {
-                  const ang    = Math.random() * Math.PI * 2;
-                  const newFrac = INIT_FRACS[Math.floor(Math.random() * INIT_FRACS.length)];
-                  const newMass = 0.35 + Math.random() * 0.65;
-                  addBall(
-                    false,
-                    b.x + Math.cos(ang) * b.size,
-                    b.y + Math.sin(ang) * b.size,
-                    b.vx + (Math.random()-0.5)*4,
-                    b.vy + (Math.random()-0.5)*4 - 1,
-                    newFrac, newMass
-                  );
-                  spawnCooldown = 80;
-                  break;
+          // ── Ball-ball: position correction + elastic collision ──
+          for (let i = 0; i < balls.length; i++) {
+            for (let j = i + 1; j < balls.length; j++) {
+              const a = balls[i], b = balls[j];
+              const dx = b.x - a.x, dy = b.y - a.y;
+              const dist = Math.hypot(dx, dy) || 0.001;
+              const minD = (a.size + b.size) * 0.5 + 2;
+              if (dist < minD) {
+                const overlap = (minD - dist) * 0.5;
+                const nx = dx / dist, ny = dy / dist;
+                a.x -= nx * overlap; a.y -= ny * overlap;
+                b.x += nx * overlap; b.y += ny * overlap;
+                // Elastic exchange along normal
+                const dvx = a.vx - b.vx, dvy = a.vy - b.vy;
+                const dot = dvx * nx + dvy * ny;
+                if (dot > 0) {
+                  const imp = (1 + 0.55) * dot * 0.5; // e=0.55, equal mass
+                  a.vx -= imp * nx; a.vy -= imp * ny;
+                  b.vx += imp * nx; b.vy += imp * ny;
+                  // Slight spin exchange on impact
+                  a.vrot += imp * 0.4 * (Math.random() - 0.5);
+                  b.vrot -= imp * 0.4 * (Math.random() - 0.5);
                 }
               }
             }
-
-            // ── At cap: begin fading the oldest alive ball ──
-            if (balls.length >= MAX_BALLS) {
-              let oldest: Ball | null = null;
-              for (const b of balls) {
-                if (b.fadeTick < 0 && (!oldest || b.born < oldest.born)) oldest = b;
-              }
-              if (oldest) oldest.fadeTick = FADE_FRAMES;
-            }
           }
 
-          // ── Physics pass ──
+          // ── Per-ball physics ──
           for (let i = 0; i < balls.length; i++) {
             const b = balls[i];
+            const r = b.size * 0.5;
 
-            // Fade-out countdown
+            // Fade out countdown
             if (b.fadeTick >= 0) {
               b.fadeTick--;
-              b.el.style.opacity = (0.04 * b.fadeTick / FADE_FRAMES).toFixed(4);
+              b.el.style.opacity = (0.05 * b.fadeTick / FADE_DUR).toFixed(4);
             }
 
-            const r = b.size / 2;
+            // Gravity (base + scroll influence)
+            b.vy += GRAV_BASE + scrollGrav;
 
-            // Gravity
-            b.vy += GRAV * (0.55 + b.mass * 0.70);
+            // Drag
+            b.vx *= AIR; b.vy *= AIR;
 
-            // Mouse attraction (velocity)
-            if (!isTouch && mx > -9000) {
-              const dx = mx - b.x, dy = my - b.y;
-              const dm = Math.hypot(dx, dy) || 1;
-              if (dm < MOUSE_ATTR_R) {
-                const f = (1 - dm / MOUSE_ATTR_R) * MOUSE_ATTR_F / b.mass;
-                b.vx += (dx / dm) * f;
-                b.vy += (dy / dm) * f;
-              }
-            }
-
-            // ── Circle packing: position correction + elastic bounce ──
-            for (let j = i + 1; j < balls.length; j++) {
-              const o  = balls[j];
-              const dx = o.x - b.x, dy = o.y - b.y;
-              const dm = Math.hypot(dx, dy) || 0.001;
-              const minD = (b.size + o.size) / 2 + 2; // 2 px gap
-
-              if (dm < minD) {
-                // Positional separation — push both out of overlap
-                const overlap = (minD - dm) / 2;
-                const nx = dx / dm, ny = dy / dm;
-                b.x -= nx * overlap; b.y -= ny * overlap;
-                o.x += nx * overlap; o.y += ny * overlap;
-
-                // Elastic velocity exchange along collision normal
-                const dvx = b.vx - o.vx, dvy = b.vy - o.vy;
-                const dot = dvx * nx + dvy * ny;
-                if (dot > 0) { // approaching
-                  const e  = 0.45;
-                  const im = 1 / b.mass + 1 / o.mass;
-                  const j2 = (1 + e) * dot / im;
-                  b.vx -= j2 / b.mass * nx; b.vy -= j2 / b.mass * ny;
-                  o.vx += j2 / o.mass * nx; o.vy += j2 / o.mass * ny;
-                }
-              } else if (dm < BALL_ATTRACT_R) {
-                // Gentle long-range attraction keeps cluster together
-                const f = (1 - dm / BALL_ATTRACT_R) * BALL_ATTRACT_F;
-                b.vx += (dx / dm) * f / b.mass;
-                b.vy += (dy / dm) * f / b.mass;
-                o.vx -= (dx / dm) * f / o.mass;
-                o.vy -= (dy / dm) * f / o.mass;
-              }
-            }
-
-            // Drag + speed cap + integrate
-            b.vx *= b.air; b.vy *= b.air;
+            // Speed cap
             const spd = Math.hypot(b.vx, b.vy);
-            if (spd > MAX_SPEED) { b.vx = b.vx/spd*MAX_SPEED; b.vy = b.vy/spd*MAX_SPEED; }
+            if (spd > MAX_SPEED) { b.vx = b.vx / spd * MAX_SPEED; b.vy = b.vy / spd * MAX_SPEED; }
+
             b.x += b.vx; b.y += b.vy;
 
-            // Wall bounce (no rotation kick)
-            if      (b.x - r < 0)  { b.x = r;     b.vx =  Math.abs(b.vx) * BOUNCE; }
-            else if (b.x + r > W)  { b.x = W - r; b.vx = -Math.abs(b.vx) * BOUNCE; }
-            if      (b.y - r < 0)  { b.y = r;     b.vy =  Math.abs(b.vy) * BOUNCE; }
-            else if (b.y + r > H)  { b.y = H - r; b.vy = -Math.abs(b.vy) * BOUNCE; }
-
-            // Anti-stall nudge
-            if (Math.hypot(b.vx, b.vy) < 0.25) {
-              b.vx += (Math.random()-0.5) * 1.5;
-              b.vy -= Math.random() * 0.8 + 0.2;
+            // ── Wall bounces ──
+            // Left wall = right edge of nav bar
+            if (b.x - r < NAV_W) {
+              b.x  = NAV_W + r;
+              b.vx = Math.abs(b.vx) * BOUNCE;
+              b.vrot -= b.vx * 0.35; // rolls rightward
+              // Spawn new ball on nav-bar contact
+              if (spawnCooldown === 0 && balls.length < MAX_BALLS && b.fadeTick < 0) {
+                spawnBall(
+                  NAV_W + r + 4,
+                  b.y + (Math.random() - 0.5) * b.size * 0.8,
+                  Math.abs(b.vx) * (0.4 + Math.random() * 0.7),
+                  (Math.random() - 0.5) * 4
+                );
+                spawnCooldown = SPAWN_CD;
+              }
+            } else if (b.x + r > W) {
+              b.x  = W - r;
+              b.vx = -Math.abs(b.vx) * BOUNCE;
+              b.vrot += Math.abs(b.vx) * 0.35; // rolls back leftward
+            }
+            // Top wall
+            if (b.y - r < 0) {
+              b.y  = r;
+              b.vy = Math.abs(b.vy) * BOUNCE;
+            }
+            // Floor
+            else if (b.y + r > H) {
+              b.y  = H - r;
+              b.vy = -Math.abs(b.vy) * BOUNCE;
+              b.vrot += b.vx * 0.45; // rolls along floor
             }
 
-            // ── Size: proximity to mouse inflates toward maxSz, else natural ──
-            let targetSz: number;
-            if (!isTouch && mx > -9000) {
-              const dm = Math.hypot(mx - b.x, my - b.y);
-              const t  = Math.max(0, 1 - dm / MOUSE_SIZE_R); // 0=far, 1=on top
-              const natSz = Math.min(W, H) * b.natFrac;
-              targetSz = natSz + (mx2 - natSz) * t;
-            } else {
-              targetSz = Math.min(W, H) * b.natFrac;
+            // Anti-stall: tiny random nudge if nearly still
+            if (Math.hypot(b.vx, b.vy) < 0.35 && b.fadeTick < 0) {
+              b.vx += (Math.random() - 0.5) * 1.8;
+              b.vy -= Math.random() * 0.9 + 0.15;
             }
-            targetSz = Math.max(mn, Math.min(mx2, targetSz));
-            b.size  += (targetSz - b.size) * 0.09;
 
+            // ── Rotation: settles toward rolling velocity, slight decay ──
+            const targetVrot = b.vx * 0.28;
+            b.vrot += (targetVrot - b.vrot) * 0.10;
+            b.vrot  = Math.max(-9, Math.min(9, b.vrot));
+            b.rot  += b.vrot;
+
+            // ── Render ──
             const s = Math.round(b.size);
-            b.el.style.width     = s + 'px';
-            b.el.style.height    = s + 'px';
-            b.el.style.transform = `translate(${Math.round(b.x - s/2)}px,${Math.round(b.y - s/2)}px)`;
+            b.el.style.width  = s + 'px';
+            b.el.style.height = s + 'px';
+            b.el.style.transform = `translate(${Math.round(b.x - r)}px,${Math.round(b.y - r)}px) rotate(${b.rot.toFixed(1)}deg)`;
           }
 
-          // Remove fully faded balls
+          // ── Start fading oldest when at cap ──
+          if (balls.length >= MAX_BALLS) {
+            let oldest: Ball | null = null;
+            for (const b of balls) {
+              if (b.fadeTick < 0 && (!oldest || b.born < oldest.born)) oldest = b;
+            }
+            if (oldest) oldest.fadeTick = FADE_DUR;
+          }
+
+          // ── Remove fully faded ──
           for (let i = balls.length - 1; i >= 0; i--) {
             if (balls[i].fadeTick === 0) {
               balls[i].el.remove();
@@ -551,8 +546,10 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         frameId = requestAnimationFrame(step);
 
         return () => {
-          window.removeEventListener('mousemove', onMove);
-          window.removeEventListener('resize',   onResize);
+          window.removeEventListener('scroll',  onScroll);
+          window.removeEventListener('resize',  onResize);
+          document.removeEventListener('keydown', onKeydown);
+          snBar?.removeEventListener('click', navPush);
           cancelAnimationFrame(frameId);
           balls.slice(1).forEach(b => b.el.remove());
           balls.length = 0;
