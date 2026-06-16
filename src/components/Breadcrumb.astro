@@ -7,9 +7,11 @@ export interface Props {
 
 const { currentPath = '/' } = Astro.props;
 
-// Fetch projects and categories
+// Fetch projects, categories, and tags
 const allProjects = await getCollection('projects');
 const allCats = await getCollection('categories');
+const allTags = await getCollection('tags');
+const tagNameMap = Object.fromEntries(allTags.map(t => [t.id, t.data.name]));
 
 const categoryDisplayNames: Record<string, string> = {
   'studio-823': '823',
@@ -21,6 +23,14 @@ const categoryDisplayNames: Record<string, string> = {
 };
 
 const getCatDisplayName = (id: string, def: string) => categoryDisplayNames[id] || def;
+
+// Rich, searchable string for each project (name + category + tags + meta)
+const projSearchStr = (p: any) => [
+  p.data.name,
+  p.data.category ? (categoryDisplayNames[p.data.category.id] || p.data.category.id) : '',
+  ...((p.data.tags ?? []).map((t: any) => tagNameMap[t.id] || t.id)),
+  p.data.location, p.data.client, p.data.status, p.data.program, p.data.year
+].filter(Boolean).join(' ').toLowerCase();
 
 const projects = [...allProjects].sort((a, b) => a.data.name.localeCompare(b.data.name));
 const categories = [...allCats].sort((a, b) => 
@@ -166,7 +176,7 @@ if (activeProject) {
           <!-- All projects list -->
           <div class="breadcrumb__proj-list is-active" data-cat-id="all">
             {projects.map(p => (
-              <a href={`/projects/${p.id}`} class:list={["breadcrumb__proj-item", currentProjectId === p.id && "is-active"]} data-cat-id={p.data.category?.id || ''}>
+              <a href={`/projects/${p.id}`} class:list={["breadcrumb__proj-item", currentProjectId === p.id && "is-active"]} data-cat-id={p.data.category?.id || ''} data-search={projSearchStr(p)}>
                 <span class="breadcrumb__proj-name">{p.data.name}</span>
                 <svg class="link-arrow breadcrumb__arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
                   <line x1="6" y1="18" x2="18" y2="6"></line>
@@ -185,7 +195,7 @@ if (activeProject) {
                   <div class="breadcrumb__proj-empty">No projects</div>
                 ) : (
                   catProjects.map(p => (
-                    <a href={`/projects/${p.id}`} class:list={["breadcrumb__proj-item", currentProjectId === p.id && "is-active"]} data-cat-id={p.data.category?.id || ''}>
+                    <a href={`/projects/${p.id}`} class:list={["breadcrumb__proj-item", currentProjectId === p.id && "is-active"]} data-cat-id={p.data.category?.id || ''} data-search={projSearchStr(p)}>
                       <span class="breadcrumb__proj-name">{p.data.name}</span>
                       <svg class="link-arrow breadcrumb__arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
                         <line x1="6" y1="18" x2="18" y2="6"></line>
@@ -741,8 +751,12 @@ if (activeProject) {
         
         let hasMatches = false;
         projItems.forEach(el => {
-          const nameText = el.querySelector('.breadcrumb__proj-name')?.textContent || el.textContent || '';
-          const matches = nameText.toLowerCase().includes(query);
+          // Search across name + category + tags + meta (data-search), not just the name
+          const haystack = (el.dataset.search
+            || el.querySelector('.breadcrumb__proj-name')?.textContent
+            || el.textContent || '').toLowerCase();
+          // Match every whitespace-separated term so multi-word queries work
+          const matches = query.split(/\s+/).filter(Boolean).every(term => haystack.includes(term));
           if (matches) {
             el.classList.add('is-match');
             hasMatches = true;
@@ -758,17 +772,28 @@ if (activeProject) {
       });
     }
 
-    // Commented out for strict selection mode: has to select a project or you cannot exit
-    /*
+    // Shared close helper — fully resets the dropdown back to the current page
+    function closeDropdown() {
+      panel.classList.remove('is-open', 'has-active-cat', 'show-projects', 'has-search');
+      const backdrop = document.getElementById('breadcrumb-backdrop');
+      if (backdrop) backdrop.classList.remove('is-open');
+      trigger.setAttribute('aria-expanded', 'false');
+      const si = document.getElementById('breadcrumb-search-input') as HTMLInputElement | null;
+      if (si) { si.value = ''; si.blur(); }
+      dropdown.querySelectorAll('.is-match').forEach(el => el.classList.remove('is-match'));
+    }
+    (window as any).closeBreadcrumbDropdown = closeDropdown;
+
+    // Click the backdrop (anywhere off the menu) to exit easily back to the page
+    const backdropEl = document.getElementById('breadcrumb-backdrop');
+    backdropEl?.addEventListener('click', closeDropdown);
+
+    // Click outside the dropdown also exits
     document.addEventListener('click', (e) => {
-      if (!dropdown.contains(e.target as Node)) {
-        panel.classList.remove('is-open');
-        panel.classList.remove('has-active-cat');
-        panel.classList.remove('show-projects');
-        trigger.setAttribute('aria-expanded', 'false');
+      if (panel.classList.contains('is-open') && !dropdown.contains(e.target as Node)) {
+        closeDropdown();
       }
     });
-    */
 
     // Handle category hover / click selections to filter projects list
     const catItems = Array.from(dropdown.querySelectorAll('.breadcrumb__cat-item')) as HTMLButtonElement[];
@@ -905,6 +930,18 @@ if (activeProject) {
       const trigger = document.getElementById('breadcrumb-dropdown-trigger') as HTMLElement | null;
       if (!panel || !trigger) return;
       const isOpen = panel.classList.contains('is-open');
+
+      // Type-to-search from anywhere inside the open dropdown — never restricts searching
+      if (isOpen && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const si = document.getElementById('breadcrumb-search-input') as HTMLInputElement | null;
+        if (si && document.activeElement !== si) {
+          e.preventDefault();
+          si.focus();
+          si.value += e.key;
+          si.dispatchEvent(new Event('input', { bubbles: true }));
+          return;
+        }
+      }
 
       // 1. Arrow navigation when dropdown is closed (direct page turners)
       if (!isOpen) {

@@ -237,27 +237,22 @@ const schemes = [
     justify-content: center;
     flex-shrink: 0;
     text-decoration: none;
-    width: 28px; /* Slimmed logo */
-    height: 28px;
+    width: 36px; /* enlarged logo */
+    height: 36px;
     margin-bottom: 20px;
-    transition: transform 0.1s linear; /* Smooth scroll rotation transition */
   }
 
   .sn-bar__mark {
-    width: 28px; /* Slimmed logo */
-    height: 28px;
+    width: 36px; /* enlarged logo */
+    height: 36px;
     background-color: var(--_tokens---color--fg);
     -webkit-mask: url('/ak-logo.svg') center / contain no-repeat;
     mask: url('/ak-logo.svg') center / contain no-repeat;
     flex-shrink: 0;
     transition: background-color 0.3s ease;
-    /* Living logo: Continuous slow rotation and breathing glow */
-    animation: rotate-logo var(--logo-speed, 20s) linear infinite, glow-logo 4s ease-in-out infinite;
-  }
-
-  @keyframes rotate-logo {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+    /* Rotation is driven by scroll velocity in JS; keep only the breathing glow here */
+    animation: glow-logo 4s ease-in-out infinite;
+    will-change: transform;
   }
 
   @keyframes glow-logo {
@@ -675,51 +670,31 @@ const schemes = [
   const logo      = document.getElementById('sn-logo')!;
   const logoMark  = document.getElementById('sn-logo-mark')!;
 
-  // ── Living Logo Activity & Scroll Controls ─────────────────
-  let lastScrollTop = 0;
-  let scrollRotation = 0;
-  let currentSpeed = 20; // 20s rotation speed (slow)
-  let targetSpeed = 20;
+  // ── Logo spin driven by scroll velocity ────────────────────
+  // Spins rapidly while the page is scrolling, then decelerates rapidly once it stops.
+  let logoAngle = 0;
+  let logoAngVel = 0;
+  let lastScrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
 
-  // Rotate logo container on page scroll
   window.addEventListener('scroll', () => {
-    const st = window.pageYOffset || document.documentElement.scrollTop;
-    const diff = st - lastScrollTop;
-    scrollRotation += diff * 0.15; // sensitivity coefficient
-    lastScrollTop = st <= 0 ? 0 : st;
-    if (logo) {
-      logo.style.transform = `rotate(${scrollRotation}deg)`;
-    }
+    const y = window.pageYOffset || document.documentElement.scrollTop || 0;
+    const delta = y - lastScrollY;
+    lastScrollY = y;
+    // Each pixel of scroll feeds angular velocity; clamp so it stays tasteful
+    logoAngVel += delta * 0.5;
+    logoAngVel = Math.max(-45, Math.min(45, logoAngVel));
   }, { passive: true });
 
-  // Boost logo velocity on interaction
-  function boostLogo(speed = 2) {
-    targetSpeed = speed; // Spin faster (smaller animation period)
-  }
-
-  // Activity listeners
-  window.addEventListener('mousemove', () => boostLogo(2.5), { passive: true });
-  window.addEventListener('keydown', () => boostLogo(1.5), { passive: true });
-  window.addEventListener('scroll', () => boostLogo(3), { passive: true });
-
-  // Hyper-boost logo speed when clicking the index bar
-  bar.addEventListener('click', () => boostLogo(0.4));
-
-  // Velocity controller loop with smooth decay
-  function updateVelocity() {
-    currentSpeed = currentSpeed + (targetSpeed - currentSpeed) * 0.04;
+  function spinLogo() {
+    logoAngle += logoAngVel;
+    logoAngVel *= 0.80; // rapid deceleration when scrolling stops
+    if (Math.abs(logoAngVel) < 0.01) logoAngVel = 0;
     if (logoMark) {
-      logoMark.style.setProperty('--logo-speed', `${currentSpeed}s`);
+      logoMark.style.transform = `rotate(${logoAngle}deg)`;
     }
-
-
-    if (targetSpeed < 20) {
-      targetSpeed += 0.15; // Slow down gradually
-      if (targetSpeed > 20) targetSpeed = 20;
-    }
-    requestAnimationFrame(updateVelocity);
+    requestAnimationFrame(spinLogo);
   }
-  requestAnimationFrame(updateVelocity);
+  requestAnimationFrame(spinLogo);
   const schemeEl  = document.getElementById('sn-scheme')!;
   const schemeBtn = document.getElementById('sn-scheme-btn')!;
   const dropdown  = document.getElementById('sn-scheme-dropdown')!;

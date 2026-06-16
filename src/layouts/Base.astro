@@ -16,7 +16,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/ak-logo.svg" />
     <meta name="generator" content={Astro.generator} />
 
     <title>{title} — AK</title>
@@ -329,15 +329,24 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
         const isTouch = window.matchMedia('(hover: none)').matches;
 
-        // Mouse move listener to update targetScale (breathing based on mouse position)
+        // Peak scale = whatever makes the logo span ~80% of the viewport width
+        // (it then bleeds well off the bottom-right corner as you reach it).
+        function peakScale() {
+          const baseSize = watermarkLogo!.offsetWidth || 200;
+          return Math.max(2, (window.innerWidth * 0.8) / baseSize);
+        }
+
+        // Mouse move listener to update targetScale — grows dramatically toward the corner
         const onMouseMove = (e: MouseEvent) => {
           if (isTouch) return;
           const dx = window.innerWidth - e.clientX;
           const dy = window.innerHeight - e.clientY;
           const dist = Math.sqrt(dx * dx + dy * dy);
           const maxD = Math.sqrt(window.innerWidth**2 + window.innerHeight**2) || 1000;
-          // Proximity scale: grows from 1.0 (far away) up to 1.8 (close to bottom-right corner)
-          targetScale = 1.0 + (1 - dist / maxD) * 0.8;
+          // Proximity 0 (far / top-left) .. 1 (at the bottom-right corner), steepened
+          let proximity = Math.max(0, 1 - dist / maxD);
+          proximity = Math.pow(proximity, 1.7); // ramp up faster as you approach
+          targetScale = 1.0 + proximity * (peakScale() - 1.0);
         };
 
         // Scroll listener to update targetRotation (smooth roll on scroll)
@@ -346,10 +355,10 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           const scrollPct = docHeight > 0 ? window.scrollY / docHeight : 0;
           // One full page scroll rotates it by 360 degrees
           targetRotation = scrollPct * 360;
-          
+
           if (isTouch) {
-            // On mobile touch devices, grow slightly with scroll percentage
-            targetScale = 1.0 + scrollPct * 0.3;
+            // On touch devices, grow toward the big peak as the page is scrolled
+            targetScale = 1.0 + scrollPct * (peakScale() - 1.0) * 0.85;
           }
         };
 
@@ -367,14 +376,8 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           frameId = requestAnimationFrame(updateLogo);
         }
         
-        // Start values based on center of screen
-        if (isTouch) {
-          targetScale = 1.0;
-        } else {
-          const maxD = Math.sqrt(window.innerWidth**2 + window.innerHeight**2) || 1000;
-          const dist = Math.sqrt((window.innerWidth/2)**2 + (window.innerHeight/2)**2);
-          targetScale = 1.0 + (1 - dist / maxD) * 0.8;
-        }
+        // Start subtle at rest; it grows as the cursor nears the bottom-right corner
+        targetScale = 1.0;
         currentScale = targetScale;
         
         frameId = requestAnimationFrame(updateLogo);
