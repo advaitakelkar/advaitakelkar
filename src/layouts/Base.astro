@@ -372,6 +372,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         const MAX_BALLS   = 18;
         const SPAWN_CD_G  = 55;     // global spawn cooldown (frames)
         const SPAWN_CD_B  = 100;    // per-ball spawn cooldown (frames)
+        const MIN_SIZE_FRAC = 0.055; // minimum size — balls never shrink below this
 
         type Ball = {
           el: SVGElement;
@@ -407,11 +408,11 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         // ── 5 balls burst outward from center — different sizes + directions ──
         const cx = W * 0.50, cy = H * 0.42;
         const init: [number, number, number][] = [
-          [0.210, 18,  5.0],   // [sizeFrac, angleDeg, speed]
-          [0.170, 90,  5.8],
-          [0.230, 162, 4.6],
-          [0.185, 234, 5.4],
-          [0.200, 306, 4.9],
+          [0.38, 18,  5.0],   // [sizeFrac, angleDeg, speed]
+          [0.32, 90,  5.8],
+          [0.40, 162, 4.6],
+          [0.34, 234, 5.4],
+          [0.36, 306, 4.9],
         ];
         init.forEach(([frac, deg, spd], i) => {
           const f     = frac + Math.random() * 0.02;
@@ -466,8 +467,8 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
                 if (dist < spawnZone && gSpawnCd === 0 && a.cd === 0 && b.cd === 0
                     && balls.length + toSpawn.length < MAX_BALLS) {
                   // Both parents shrink by ~18%
-                  a.sizeFrac *= 0.82;
-                  b.sizeFrac *= 0.82;
+                  a.sizeFrac = Math.max(MIN_SIZE_FRAC, a.sizeFrac * 0.82);
+                  b.sizeFrac = Math.max(MIN_SIZE_FRAC, b.sizeFrac * 0.82);
                   // Child is ~30–40% of the average parent size
                   const childFrac = (a.sizeFrac + b.sizeFrac) * 0.5 * (0.30 + Math.random() * 0.10);
                   const childEl   = makeEl(Math.min(W, H) * childFrac);
