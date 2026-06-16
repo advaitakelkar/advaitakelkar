@@ -376,7 +376,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         const SPAWN_CD_B = 120;
         const SVG_W      = 595.2;   // logo viewBox width
         const SVG_H      = 841.92;  // logo viewBox height
-        const SAMPLES    = 12;      // outline sample points per logo
+        const SAMPLES    = 24;      // outline sample points per logo (8 per path)
 
         type Ball = {
           el: SVGSVGElement;
@@ -387,14 +387,13 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           baseSize: number;
           rot: number; vrot: number;
           cd: number;
-          pts: Float32Array;          // SAMPLES×2 interleaved x,y in SVG viewBox coords
-          paths: SVGGeometryElement[]; // cached paths for isPointInFill
+          hull: Float32Array; // convex hull of all paths in SVG viewBox coords
         };
 
         const balls: Ball[] = [];
         let gSpawnCd = 0;
 
-        // Sample SAMPLES points uniformly along each path's outline
+        // Sample SAMPLES points uniformly along ALL paths' outlines
         function samplePts(el: SVGSVGElement): Float32Array {
           const pathEls = el.querySelectorAll('path') as NodeListOf<SVGPathElement>;
           const out     = new Float32Array(SAMPLES * 2);
@@ -411,6 +410,47 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           return out;
         }
 
+        // Jarvis-march convex hull of pts (Float32Array of interleaved x,y)
+        // Returns CCW hull in SVG viewBox coords (Y-down, so visually CW)
+        function convexHull(pts: Float32Array): Float32Array {
+          const n = pts.length >> 1;
+          if (n < 3) return pts.slice();
+          // Lowest-then-leftmost start point
+          let s = 0;
+          for (let i = 1; i < n; i++) {
+            const yi = pts[i*2+1], ys = pts[s*2+1];
+            if (yi > ys || (yi === ys && pts[i*2] < pts[s*2])) s = i;
+          }
+          const out: number[] = [];
+          let cur = s;
+          do {
+            out.push(pts[cur*2], pts[cur*2+1]);
+            let nxt = (cur + 1) % n;
+            for (let i = 0; i < n; i++) {
+              if (i === cur) continue;
+              const ax = pts[nxt*2] - pts[cur*2], ay = pts[nxt*2+1] - pts[cur*2+1];
+              const bx = pts[i*2]   - pts[cur*2], by = pts[i*2+1]   - pts[cur*2+1];
+              // In Y-down: negative cross → i is more CW than nxt
+              if (ax*by - ay*bx < 0) nxt = i;
+            }
+            cur = nxt;
+          } while (cur !== s && out.length < n * 4);
+          return new Float32Array(out);
+        }
+
+        // Ray-casting point-in-polygon (works for any simple polygon, any winding)
+        function ptInHull(px: number, py: number, hull: Float32Array): boolean {
+          const n = hull.length >> 1;
+          let inside = false;
+          for (let i = 0, j = n - 1; i < n; j = i++) {
+            const xi = hull[i*2], yi = hull[i*2+1];
+            const xj = hull[j*2], yj = hull[j*2+1];
+            if (((yi > py) !== (yj > py)) && px < (xj - xi) * (py - yi) / (yj - yi) + xi)
+              inside = !inside;
+          }
+          return inside;
+        }
+
         function makeEl(size: number): SVGSVGElement {
           const el = templateEl!.cloneNode(true) as SVGSVGElement;
           el.removeAttribute('id');
@@ -420,11 +460,10 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         }
 
         function makeBall(el: SVGSVGElement, x: number, y: number, vx: number, vy: number, frac: number): Ball {
-          const base  = Math.min(W, H) * frac;
-          const pts   = samplePts(el);
-          const paths = Array.from(el.querySelectorAll('path')) as SVGGeometryElement[];
+          const base = Math.min(W, H) * frac;
+          const hull = convexHull(samplePts(el));
           return { el, x, y, vx, vy, size: base, sizeFrac: frac, baseSize: base,
-                   rot: Math.random() * 360, vrot: 0, cd: 0, pts, paths };
+                   rot: Math.random() * 360, vrot: 0, cd: 0, hull };
         }
 
         // SVG viewBox coords → world (viewport pixel) coords for ball b
@@ -443,19 +482,9 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           const rad = b.rot * Math.PI / 180;
           const cos = Math.cos(rad), sin = Math.sin(rad);
           const dx  = wx - b.x, dy = wy - b.y;
-          // Inverse rotation: transpose of rotation matrix
-          const px  = r + cos * dx + sin * dy;
+          const px  = r + cos * dx + sin * dy;  // inverse rotation
           const py  = r - sin * dx + cos * dy;
           return [px * SVG_W / b.size, py * SVG_H / b.size];
-        }
-
-        // Check if SVG-space point (sx, sy) is inside any filled path of ball b
-        // isPointInFill uses the path's own coordinate system = SVG viewBox coords
-        function ptInFill(sx: number, sy: number, b: Ball): boolean {
-          for (const path of b.paths) {
-            if (path.isPointInFill({ x: sx, y: sy })) return true;
-          }
-          return false;
         }
 
         // ── 5 balls burst outward from center ──
@@ -533,31 +562,35 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
               // and vice-versa. Spikes entering gaps produce zero overlap → allowed.
               let overlapCount = 0;
 
-              for (let k = 0; k < SAMPLES; k++) {
-                const [wx, wy] = svgToWorld(b.pts[k*2], b.pts[k*2+1], b);
+              // Check hull vertices of b against a's hull, and vice-versa.
+              // Hull covers ALL 3 paths as one solid shape — gaps between arms filled in.
+              const bnv = b.hull.length >> 1, anv = a.hull.length >> 1;
+              const totalVerts = bnv + anv;
+              for (let k = 0; k < bnv; k++) {
+                const [wx, wy] = svgToWorld(b.hull[k*2], b.hull[k*2+1], b);
                 const [sx, sy] = worldToSvg(wx, wy, a);
-                if (sx >= 0 && sx <= SVG_W && sy >= 0 && sy <= SVG_H) {
-                  if (ptInFill(sx, sy, a)) overlapCount++;
-                }
+                if (ptInHull(sx, sy, a.hull)) overlapCount++;
               }
-              for (let k = 0; k < SAMPLES; k++) {
-                const [wx, wy] = svgToWorld(a.pts[k*2], a.pts[k*2+1], a);
+              for (let k = 0; k < anv; k++) {
+                const [wx, wy] = svgToWorld(a.hull[k*2], a.hull[k*2+1], a);
                 const [sx, sy] = worldToSvg(wx, wy, b);
-                if (sx >= 0 && sx <= SVG_W && sy >= 0 && sy <= SVG_H) {
-                  if (ptInFill(sx, sy, b)) overlapCount++;
-                }
+                if (ptInHull(sx, sy, b.hull)) overlapCount++;
               }
 
               if (overlapCount > 0) {
-                // Collision force proportional to how much the shapes overlap
-                const strength = (overlapCount / (SAMPLES * 2)) * 2.5;
+                // Collision force proportional to hull overlap depth
+                const strength = (overlapCount / totalVerts) * 3.0;
                 const nx = dx / dist, ny = dy / dist;
                 a.vx -= nx * strength; a.vy -= ny * strength;
                 b.vx += nx * strength; b.vy += ny * strength;
+                // Hard positional correction so hulls never rest overlapping
+                const push = (overlapCount / totalVerts) * nr * 0.15;
+                a.x -= nx * push; a.y -= ny * push;
+                b.x += nx * push; b.y += ny * push;
 
-                // Cellular division when filled regions significantly overlap
+                // Cellular division on significant hull overlap
                 const slots = MAX_BALLS - (balls.length - toRemove.size + toSpawn.length);
-                if (overlapCount >= 2 && gSpawnCd === 0 && a.cd === 0 && b.cd === 0 && slots >= 4) {
+                if (overlapCount >= 4 && gSpawnCd === 0 && a.cd === 0 && b.cd === 0 && slots >= 4) {
                   const perpX = -dy / dist, perpY = dx / dist;
                   const kick  = 2.5 + Math.random() * 1.5;
 
