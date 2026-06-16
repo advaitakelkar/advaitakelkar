@@ -42,7 +42,7 @@ const sorted = [...allProjects].sort((a, b) => {
   </div>
   <p class="home-search__count" id="qs-count" aria-live="polite"></p>
   
-  <!-- Pill/bubble search — multi-row paragraph; each row slides left on hover -->
+  <!-- Pill/bubble search — multi-row paragraph; rows are nowrap + clipped (stagger) -->
   <div class="proj-bubbles" id="qs-grid" role="list" style="margin-top: 28px; border-top: none; padding-top: 0;">
     {sorted.map(p => {
       const tagsArr = (p.data.tags ?? []).map(t => tagMap[t.id] || t.id);
@@ -239,12 +239,23 @@ const sorted = [...allProjects].sort((a, b) => {
     margin-bottom: 24px;
   }
 
-  /* ── Pill/bubble search — multi-row paragraph; rows shift (looping) on hover/search ── */
+  /* ── Pill/bubble search — multi-row paragraph; each row is nowrap + clipped,
+     so a growing pill pushes its row-mates right (clipped) without reflowing. ── */
   .proj-bubbles {
     display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
+    flex-direction: column;
     gap: 7px;
+  }
+
+  /* Each row: left-aligned, never wraps, clips overflow on the right edge */
+  .qs-row {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    gap: 7px;
+    width: 100%;
+    overflow: hidden;
   }
 
   .proj-bubble {
@@ -361,9 +372,42 @@ const sorted = [...allProjects].sort((a, b) => {
     }
     const total = originals.length;
 
-    // Clear and append in shuffled order directly to g (so they wrap naturally like a paragraph)
+    // Clear and append in shuffled order directly to g
     g.innerHTML = '';
     originals.forEach(p => g.appendChild(p));
+
+    // Group pills into rows that match the natural wrap of a paragraph, then wrap
+    // each group in a nowrap+clipped .qs-row. Measured in the collapsed (rest) state.
+    function buildRows() {
+      const pills = Array.from(g.querySelectorAll('.proj-bubble')) as HTMLElement[];
+      if (!pills.length) return;
+      // Flatten + temporarily render as a wrapping row to measure line breaks
+      g.style.flexDirection = 'row';
+      g.style.flexWrap = 'wrap';
+      pills.forEach(p => g.appendChild(p));
+      const rows: HTMLElement[][] = [];
+      let cur: HTMLElement[] | null = null;
+      let lastTop: number | null = null;
+      pills.forEach(p => {
+        const top = p.offsetTop;
+        if (lastTop === null || Math.abs(top - lastTop) > 6) {
+          cur = []; rows.push(cur); lastTop = top;
+        }
+        cur!.push(p);
+      });
+      // Reset container to stacked-rows layout and rebuild as .qs-row groups
+      g.style.flexDirection = '';
+      g.style.flexWrap = '';
+      g.innerHTML = '';
+      rows.forEach(rowPills => {
+        const row = document.createElement('div');
+        row.className = 'qs-row';
+        rowPills.forEach(p => row.appendChild(p));
+        g.appendChild(row);
+      });
+    }
+
+    buildRows();
 
     function render(query: string) {
       const q = query.trim().toLowerCase();
@@ -399,6 +443,16 @@ const sorted = [...allProjects].sort((a, b) => {
 
     clearBtn?.addEventListener('click', () => {
       if (input) { input.value = ''; input.classList.remove('is-active'); render(''); input.focus(); }
+    });
+
+    // Rebuild rows on resize so the paragraph re-wraps to the new width
+    let resizeTimer: number | undefined;
+    window.addEventListener('resize', () => {
+      window.clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(() => {
+        buildRows();
+        render(input?.value || '');
+      }, 180);
     });
   }
 
