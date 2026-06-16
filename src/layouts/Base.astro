@@ -318,60 +318,90 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         const isTouch = window.matchMedia('(hover: none)').matches;
         let W = window.innerWidth, H = window.innerHeight;
 
-        const REST        = Math.max(100, Math.min(W, H) * 0.14);
-        const getMaxSize  = () => Math.min(W, H) * 0.55;
-        const getMinSize  = () => REST * 0.45;
-        const MAX_BALLS   = 10;
+        // Base size — bigger than before
+        const BASE = Math.max(140, Math.min(W, H) * 0.20);
+        const MAX_BALLS = 50;
 
-        // Physics constants
-        const GRAV          = 0.06;
-        const BOUNCE        = 0.82;
-        const AIR           = 0.992;
-        const MOUSE_R       = 420;    // mouse attraction radius
-        const MOUSE_F       = 0.38;   // mouse pull strength
-        const BALL_REPEL_F  = 5.0;    // repulsion when balls would overlap
-        const BALL_ATTRACT_R = 300;   // range for inter-ball gentle attraction
-        const BALL_ATTRACT_F = 0.012;
+        // Size multipliers and matching masses for the 10 initial balls
+        // Bigger = heavier (higher mass = more inertia, less reactive)
+        const INIT_SCALES  = [0.45, 0.55, 0.65, 0.80, 0.90, 1.05, 1.20, 1.45, 1.70, 2.10];
+        const INIT_MASSES  = [0.30, 0.38, 0.45, 0.55, 0.62, 0.72, 0.82, 0.90, 0.96, 1.00];
 
-        // Ball state array — each entry is a plain object
-        const balls: Array<{
+        const GRAV           = 0.045;
+        const BOUNCE         = 0.60;   // lose energy on wall hit → calmer
+        const BALL_REPEL_F   = 5.5;
+        const BALL_ATTRACT_R = 380;
+        const BALL_ATTRACT_F = 0.009;
+        const MOUSE_R        = 400;
+        const MOUSE_F        = 0.22;
+        const MAX_SPEED      = 7;      // px/frame cap
+
+        type BallState = {
           el: SVGElement; x: number; y: number;
-          vx: number; vy: number; size: number; targetSize: number;
+          vx: number; vy: number;
+          nat: number;           // natural (assigned) size
+          size: number;          // current rendered size
+          targetSize: number;
           rot: number; vrot: number;
-        }> = [];
+          mass: number;
+          air: number;           // per-ball drag (heavier = less drag)
+        };
 
-        function cloneBall(x: number, y: number, vx = 0, vy = 0) {
+        const balls: BallState[] = [];
+
+        function makeBallEl(nat: number): SVGElement {
           const el = templateEl!.cloneNode(true) as SVGElement;
           el.removeAttribute('id');
+          el.style.width  = nat + 'px';
+          el.style.height = nat + 'px';
           container!.appendChild(el);
-          const s = REST * (0.85 + Math.random() * 0.3);
-          el.style.width = s + 'px';
-          el.style.height = s + 'px';
-          return {
-            el, x, y, vx, vy, size: s, targetSize: REST,
-            rot: Math.random() * 360, vrot: (Math.random() - 0.5) * 3
-          };
+          return el;
         }
 
-        // First ball reuses the existing element
-        balls.push({
-          el: templateEl,
-          x: W * 0.65, y: H * 0.35,
-          vx: (Math.random() * 2 - 1) * 2.5 + 1.5,
-          vy: (Math.random() * 2 - 1) * 1.5,
-          size: REST, targetSize: REST, rot: 0, vrot: 0
-        });
+        function addBall(
+          useTemplate: boolean,
+          x: number, y: number,
+          vx: number, vy: number,
+          nat: number, mass: number
+        ): BallState {
+          const el = useTemplate ? templateEl! : makeBallEl(nat);
+          if (useTemplate) { el.style.width = nat + 'px'; el.style.height = nat + 'px'; }
+          // Lighter balls have slightly more air drag so they feel floaty
+          const air = 0.985 - (1 - mass) * 0.018;
+          const b: BallState = {
+            el, x, y, vx, vy,
+            nat, size: nat, targetSize: nat,
+            rot: Math.random() * 360,
+            vrot: (Math.random() - 0.5) * 2,
+            mass, air
+          };
+          balls.push(b);
+          return b;
+        }
+
+        // ── Spawn 10 balls falling from above the viewport ──
+        for (let i = 0; i < 10; i++) {
+          const nat  = BASE * INIT_SCALES[i];
+          const mass = INIT_MASSES[i];
+          // Spread across screen width, staggered vertical start
+          const xPos = (W / 11) * (i + 1) + (Math.random() - 0.5) * W * 0.08;
+          const yPos = -nat * 1.2 - Math.random() * H * 0.6;
+          const vx0  = (Math.random() - 0.5) * 2.5;
+          const vy0  = Math.random() * 1.5 + 0.5;
+          addBall(i === 0, xPos, yPos, vx0, vy0, nat, mass);
+        }
 
         let mx = -9999, my = -9999, prevMy = -9999;
         let scrollVrot = 0, lastScrollY = window.scrollY;
-        let spawnCooldown = 0; // frames before next spawn is allowed
+        let spawnCooldown = 0;
 
         const onMove = (e: MouseEvent) => {
           mx = e.clientX; my = e.clientY;
           if (prevMy > -9000) {
             const dy = my - prevMy;
+            // Mouse Y drag: grow upward, shrink downward
             balls.forEach(b => {
-              b.targetSize = Math.max(getMinSize(), Math.min(getMaxSize(), b.targetSize - dy * 0.55));
+              b.targetSize = Math.max(b.nat * 0.5, Math.min(b.nat * 1.6, b.targetSize - dy * 0.35));
             });
           }
           prevMy = my;
@@ -380,9 +410,9 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         const onScroll = () => {
           const dy = window.scrollY - lastScrollY;
           lastScrollY = window.scrollY;
-          scrollVrot += dy * 0.55;
+          scrollVrot += dy * 0.35;
           balls.forEach(b => {
-            b.targetSize = Math.min(getMaxSize(), b.targetSize + Math.abs(dy) * 0.4);
+            b.targetSize = Math.min(b.nat * 1.5, b.targetSize + Math.abs(dy) * 0.3);
           });
         };
 
@@ -394,109 +424,113 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         let frameId: number;
 
         function step() {
-          // Tick cooldown
           if (spawnCooldown > 0) spawnCooldown--;
 
-          // ── Spawn check: mouse overlaps a ball → duplicate (max 10) ──
+          // ── Spawn on mouse-touch: clone hit ball, max 50 total ──
           if (!isTouch && spawnCooldown === 0 && balls.length < MAX_BALLS && mx > -9000) {
             for (const b of balls) {
               if (Math.hypot(mx - b.x, my - b.y) < b.size / 2) {
                 const ang  = Math.random() * Math.PI * 2;
-                const dist = b.size * 0.9;
-                balls.push(cloneBall(
-                  b.x + Math.cos(ang) * dist,
-                  b.y + Math.sin(ang) * dist,
-                  b.vx + (Math.random() - 0.5) * 7,
-                  b.vy + (Math.random() - 0.5) * 7 - 2
-                ));
-                spawnCooldown = 100; // ~1.7 s at 60fps
+                const gap  = b.size * 0.95;
+                const newNat  = b.nat * (0.7 + Math.random() * 0.7); // varied size
+                const newMass = Math.max(0.3, Math.min(1.0, b.mass + (Math.random()-0.5)*0.4));
+                addBall(
+                  false,
+                  b.x + Math.cos(ang) * gap,
+                  b.y + Math.sin(ang) * gap,
+                  b.vx + (Math.random()-0.5)*5,
+                  b.vy + (Math.random()-0.5)*5 - 1.5,
+                  newNat, newMass
+                );
+                spawnCooldown = 80;
                 break;
               }
             }
           }
 
-          // Scroll spin decays once per frame
-          scrollVrot *= 0.93;
+          scrollVrot *= 0.91; // decay scroll spin once per frame
 
           for (let i = 0; i < balls.length; i++) {
-            const b  = balls[i];
-            const r  = b.size / 2;
-            const mS = getMaxSize();
+            const b = balls[i];
+            const r = b.size / 2;
 
-            // Gravity
-            b.vy += GRAV;
+            // ── Gravity (heavier balls feel slightly more pull) ──
+            b.vy += GRAV * (0.6 + b.mass * 0.8);
 
             // ── Mouse attraction ──
             if (!isTouch && mx > -9000) {
               const dx = mx - b.x, dy = my - b.y;
               const dm = Math.hypot(dx, dy) || 1;
               if (dm < MOUSE_R) {
-                const f = (1 - dm / MOUSE_R) * MOUSE_F;
+                const f = (1 - dm / MOUSE_R) * MOUSE_F / b.mass;
                 b.vx += (dx / dm) * f;
                 b.vy += (dy / dm) * f;
                 if (dm > r) {
-                  // Grow gently as it approaches (but not while overlapping)
-                  b.targetSize = REST + (1 - dm / MOUSE_R) * (mS * 0.45 - REST) * 0.6 + REST * 0.1;
+                  b.targetSize = b.nat + (1 - dm / MOUSE_R) * b.nat * 0.35;
                 }
               } else {
-                b.targetSize = Math.max(b.targetSize * 0.98, REST);
+                // Ease back to natural size
+                b.targetSize += (b.nat - b.targetSize) * 0.04;
               }
             }
 
-            // ── Inter-ball physics: repel when overlapping, attract from range ──
+            // ── Inter-ball: repel on contact, attract from afar ──
             for (let j = 0; j < balls.length; j++) {
               if (j === i) continue;
               const o  = balls[j];
               const dx = o.x - b.x, dy = o.y - b.y;
               const dm = Math.hypot(dx, dy) || 1;
-              const minDist = (b.size + o.size) / 2 + 12; // gap buffer
+              const minD = (b.size + o.size) / 2 + 8;
 
-              if (dm < minDist) {
-                // Strong repulsion — prevents any overlap
-                const f = (minDist - dm) / minDist * BALL_REPEL_F;
+              if (dm < minD) {
+                // Repel — scaled by mass so heavier balls push lighter ones more
+                const f = (minD - dm) / minD * BALL_REPEL_F / b.mass;
                 b.vx -= (dx / dm) * f;
                 b.vy -= (dy / dm) * f;
               } else if (dm < BALL_ATTRACT_R) {
-                // Gentle gravitational pull between balls
-                const f = (1 - dm / BALL_ATTRACT_R) * BALL_ATTRACT_F;
+                const f = (1 - dm / BALL_ATTRACT_R) * BALL_ATTRACT_F / b.mass;
                 b.vx += (dx / dm) * f;
                 b.vy += (dy / dm) * f;
               }
             }
 
-            // Air drag + integrate
-            b.vx *= AIR; b.vy *= AIR;
-            b.x  += b.vx; b.y += b.vy;
+            // ── Drag + speed cap + integrate ──
+            b.vx *= b.air;
+            b.vy *= b.air;
+            const spd = Math.hypot(b.vx, b.vy);
+            if (spd > MAX_SPEED) { b.vx = b.vx / spd * MAX_SPEED; b.vy = b.vy / spd * MAX_SPEED; }
+            b.x += b.vx; b.y += b.vy;
 
-            // Wall bounce
-            if      (b.x - r < 0)  { b.x = r;     b.vx =  Math.abs(b.vx) * BOUNCE; b.vrot += 3; }
-            else if (b.x + r > W)  { b.x = W - r; b.vx = -Math.abs(b.vx) * BOUNCE; b.vrot -= 3; }
+            // ── Wall bounce ──
+            if      (b.x - r < 0)  { b.x = r;     b.vx =  Math.abs(b.vx) * BOUNCE; b.vrot += 2; }
+            else if (b.x + r > W)  { b.x = W - r; b.vx = -Math.abs(b.vx) * BOUNCE; b.vrot -= 2; }
             if      (b.y - r < 0)  { b.y = r;     b.vy =  Math.abs(b.vy) * BOUNCE; }
             else if (b.y + r > H)  { b.y = H - r; b.vy = -Math.abs(b.vy) * BOUNCE; }
 
-            // Anti-stall: if barely moving, give a random kick
-            if (Math.hypot(b.vx, b.vy) < 0.5) {
-              b.vx += (Math.random() * 2 - 1) * 2.5;
-              b.vy -= Math.random() * 2 + 0.5;
+            // Anti-stall
+            if (Math.hypot(b.vx, b.vy) < 0.3) {
+              b.vx += (Math.random()-0.5) * 2;
+              b.vy -= Math.random() * 1.2 + 0.3;
             }
 
-            // Rotation: rolling from horizontal vel + scroll spin
-            b.vrot += (b.vx * 0.55 - b.vrot) * 0.07 + scrollVrot * 0.12;
+            // ── Rotation: rolls with horizontal vel, spun by scroll ──
+            const targetVrot = b.vx * 0.40 + scrollVrot * 0.10 / b.mass;
+            b.vrot += (targetVrot - b.vrot) * 0.06;
+            b.vrot  = Math.max(-6, Math.min(6, b.vrot)); // cap spin
             b.rot  += b.vrot;
 
-            // Size ease
-            b.size += (b.targetSize - b.size) * 0.09;
+            // ── Size ease ──
+            b.size += (b.targetSize - b.size) * 0.07;
 
             const s = Math.round(b.size);
             b.el.style.width     = s + 'px';
             b.el.style.height    = s + 'px';
-            b.el.style.transform = `translate(${Math.round(b.x - s / 2)}px,${Math.round(b.y - s / 2)}px) rotate(${b.rot.toFixed(2)}deg)`;
+            b.el.style.transform = `translate(${Math.round(b.x - s/2)}px,${Math.round(b.y - s/2)}px) rotate(${b.rot.toFixed(2)}deg)`;
           }
 
           frameId = requestAnimationFrame(step);
         }
 
-        templateEl.style.width = templateEl.style.height = REST + 'px';
         frameId = requestAnimationFrame(step);
 
         return () => {
@@ -504,7 +538,6 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           window.removeEventListener('scroll',   onScroll);
           window.removeEventListener('resize',   onResize);
           cancelAnimationFrame(frameId);
-          // Remove all cloned balls; leave the original element intact
           balls.slice(1).forEach(b => b.el.remove());
           balls.length = 0;
         };
