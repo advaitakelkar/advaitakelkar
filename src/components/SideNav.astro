@@ -26,18 +26,19 @@ const wheelProjects = [...allProjects].sort(
   (a, b) => parseInt(b.data.year ?? '0') - parseInt(a.data.year ?? '0')
 );
 
-// Color schemes for dropdown
+// Color schemes — all light variants; dark mode flips bg↔fg via CSS
+// fg doubles as the dark-mode bg for swatch rendering
 const schemes = [
-  { id: 'default', label: 'Void',     bg: '#111111', fg: '#ffffff' },
-  { id: 'sch1',    label: 'Ocean',    bg: '#0D5072', fg: '#7FEEFF' },
-  { id: 'sch2',    label: 'Moss',     bg: '#ECE7E2', fg: '#4A7766' },
-  { id: 'sch3',    label: 'Crimson',  bg: '#F5F5DA', fg: '#7B021D' },
-  { id: 'sch4',    label: 'Dusk',     bg: '#6C5383', fg: '#D7E7C3' },
-  { id: 'sch5',    label: 'Midnight', bg: '#0B1A35', fg: '#D2B96A' },
-  { id: 'sch6',    label: 'Cobalt',   bg: '#191265', fg: '#EBEBDF' },
-  { id: 'sch7',    label: 'Sapphire', bg: '#275CCC', fg: '#F5E4CF' },
-  { id: 'sch8',    label: 'Garden',   bg: '#BAD797', fg: '#670626' },
-  { id: 'sch9',    label: 'Forest',   bg: '#033631', fg: '#FFEDA8' },
+  { id: 'default', label: 'Void',     bg: '#ffffff', fg: '#111111' },
+  { id: 'sch1',    label: 'Moss',     bg: '#ECE7E2', fg: '#4A7766' },
+  { id: 'sch2',    label: 'Forest',   bg: '#FFEDA8', fg: '#033631' },
+  { id: 'sch3',    label: 'Dusk',     bg: '#D7E7C3', fg: '#6C5383' },
+  { id: 'sch4',    label: 'Midnight', bg: '#D2B96A', fg: '#0B1A35' },
+  { id: 'sch5',    label: 'Dune',     bg: '#eae0c8', fg: '#536878' },
+  { id: 'sch6',    label: 'Ember',    bg: '#ffe4a1', fg: '#97322D' },
+  { id: 'sch7',    label: 'Nomad',    bg: '#edcdc2', fg: '#0093AF' },
+  { id: 'sch8',    label: 'Shore',    bg: '#F2E0D0', fg: '#6E88B0' },
+  { id: 'sch9',    label: 'Reverie',  bg: '#CBC9FF', fg: '#3F6048' },
 ];
 ---
 
@@ -69,9 +70,7 @@ const schemes = [
             title={s.label}
             aria-label={s.label}
           >
-            <span class="sn-scheme__swatch" style={`background:${s.bg}`}>
-              <span class="sn-scheme__swatch-fg" style={`background:${s.fg}`}></span>
-            </span>
+            <span class="sn-scheme__swatch" style={`--sw-l:${s.bg};--sw-d:${s.fg};`}></span>
             <span class="sn-scheme__name">{s.label}</span>
           </button>
         ))}
@@ -288,15 +287,13 @@ const schemes = [
 
   .sn-scheme__btn:hover { transform: scale(1.1); }
 
-  /* Half-fill indicator showing current scheme — borderless */
+  /* Solid circle — current scheme bg with fg border */
   .sn-scheme__indicator {
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background: linear-gradient(to right,
-      var(--_tokens---color--fg) 50%,
-      color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent) 50%
-    );
+    background: var(--_tokens---color--bg);
+    border: 1.5px solid var(--_tokens---color--fg);
   }
 
   /* Dropdown — drops linearly DOWN inside the index bar, icons stacked one below the other */
@@ -343,23 +340,20 @@ const schemes = [
     outline-offset: 2px;
   }
 
-  /* Color swatch — small circular dot, no border (minimal) */
+  /* Single-color swatch — shows light bg; dark mode shows dark bg */
   .sn-scheme__swatch {
     width: 20px;
     height: 20px;
     border-radius: 50%;
     flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    background: var(--sw-l);
     border: none;
   }
 
-  .sn-scheme__swatch-fg {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    flex-shrink: 0;
+  @media (prefers-color-scheme: dark) {
+    .sn-scheme__swatch {
+      background: var(--sw-d);
+    }
   }
 
   /* Hide name — colors only */
