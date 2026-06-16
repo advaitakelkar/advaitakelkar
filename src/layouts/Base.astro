@@ -357,22 +357,24 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         const templateEl = document.getElementById('watermark-logo') as SVGElement | null;
         if (!container || !templateEl) return;
 
+        // Hide template — we always use clones so every ball can be cleanly removed
+        templateEl.style.display = 'none';
+
         let W = window.innerWidth, H = window.innerHeight;
         const NAV_W        = 44;
         const BREADCRUMB_H = 48;
         let navLeftBound   = NAV_W;
 
         // ── Physics ──
-        const GRAV        = 0.055;  // enough gravity to collect bottom-right
-        const BOUNCE      = 0.65;   // elastic — loses 35% per wall hit
-        const DRAG        = 0.992;
-        const MAX_SPEED   = 7;
-        const REPEL_GAP   = 12;     // min gap between surfaces
-        const REPEL_AURA  = 3.0;    // repulsion starts at 3× sumR
-        const MAX_BALLS   = 18;
-        const SPAWN_CD_G  = 55;     // global spawn cooldown (frames)
-        const SPAWN_CD_B  = 100;    // per-ball spawn cooldown (frames)
-        const MIN_SIZE_FRAC = 0.055; // minimum size — balls never shrink below this
+        const GRAV       = 0.055;
+        const BOUNCE     = 0.65;
+        const DRAG       = 0.992;
+        const MAX_SPEED  = 7;
+        const REPEL_GAP  = 4;     // tight packing — ~4px min gap between surfaces
+        const REPEL_AURA = 1.8;   // repulsion starts at 1.8× sumR (was 3×)
+        const MAX_BALLS  = 36;
+        const SPAWN_CD_G = 80;    // global spawn cooldown
+        const SPAWN_CD_B = 120;   // per-ball spawn cooldown
 
         type Ball = {
           el: SVGElement;
@@ -382,17 +384,13 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           sizeFrac: number;   // fraction of min(W,H) — always viewport-relative
           baseSize: number;   // computed each frame from sizeFrac × scaleNav
           rot: number; vrot: number;
-          cd: number;         // per-ball spawn cooldown
+          cd: number;
         };
 
         const balls: Ball[] = [];
-        let gSpawnCd = 0;   // global spawn cooldown
+        let gSpawnCd = 0;
 
-        function makeEl(size: number, useTemplate = false): SVGElement {
-          if (useTemplate) {
-            templateEl!.style.width = size + 'px'; templateEl!.style.height = size + 'px';
-            templateEl!.style.opacity = '0.05'; return templateEl!;
-          }
+        function makeEl(size: number): SVGElement {
           const el = templateEl!.cloneNode(true) as SVGElement;
           el.removeAttribute('id');
           el.style.cssText = `position:absolute;top:0;left:0;width:${size}px;height:${size}px;opacity:0.05;will-change:transform;`;
@@ -405,20 +403,20 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           return { el, x, y, vx, vy, size: base, sizeFrac: frac, baseSize: base, rot: Math.random() * 360, vrot: 0, cd: 0 };
         }
 
-        // ── 5 balls burst outward from center — different sizes + directions ──
+        // ── 5 balls burst outward from center — 20% larger than before ──
         const cx = W * 0.50, cy = H * 0.42;
         const init: [number, number, number][] = [
-          [0.38, 18,  5.0],   // [sizeFrac, angleDeg, speed]
-          [0.32, 90,  5.8],
-          [0.40, 162, 4.6],
-          [0.34, 234, 5.4],
-          [0.36, 306, 4.9],
+          [0.456, 18,  5.0],   // [sizeFrac, angleDeg, speed]
+          [0.384, 90,  5.8],
+          [0.480, 162, 4.6],
+          [0.408, 234, 5.4],
+          [0.432, 306, 4.9],
         ];
-        init.forEach(([frac, deg, spd], i) => {
+        init.forEach(([frac, deg, spd]) => {
           const f     = frac + Math.random() * 0.02;
           const angle = (deg + (Math.random() - 0.5) * 30) * Math.PI / 180;
           const s     = spd + Math.random() * 1.2;
-          const el    = makeEl(Math.min(W, H) * f, i === 0);
+          const el    = makeEl(Math.min(W, H) * f);
           balls.push(makeBall(el, cx + (Math.random()-0.5)*30, cy + (Math.random()-0.5)*30,
             Math.cos(angle)*s, Math.sin(angle)*s, f));
         });
@@ -431,20 +429,26 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         function step() {
           if (gSpawnCd > 0) gSpawnCd--;
 
-          // Nav lerp — scaleNav only < 1 when nav is actually open
           const navTarget  = ((window as any).__navPanelTarget as number) || NAV_W;
           navLeftBound    += (navTarget - navLeftBound) * 0.07;
           const navIsOpen  = navLeftBound > NAV_W + 40;
-          // scaleNav: 1 when nav closed (no effect), shrinks proportionally when open
           const scaleNav   = navIsOpen
             ? Math.max(0.18, (W - navLeftBound) / (W - NAV_W))
             : 1;
 
-          // ── Ball-ball: repulsion + proximity multiplication ──
+          // Minimum size = profile photo: clamp(64px, 8vw, 100px) expressed as sizeFrac
+          const profilePx = Math.max(64, Math.min(W * 0.08, 100));
+          const minFrac   = profilePx / Math.min(W, H);
+
+          // ── Ball-ball: repulsion + cellular division ──
           const toSpawn: Ball[] = [];
+          const toRemove = new Set<Ball>();
+
           for (let i = 0; i < balls.length; i++) {
             for (let j = i + 1; j < balls.length; j++) {
               const a = balls[i], b = balls[j];
+              if (toRemove.has(a) || toRemove.has(b)) continue;
+
               const dx = b.x - a.x, dy = b.y - a.y;
               const dist = Math.hypot(dx, dy) || 0.001;
               const sumR = (a.size + b.size) * 0.5 + REPEL_GAP;
@@ -457,39 +461,43 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
                 const nx = dx / dist, ny = dy / dist;
                 a.vx -= nx * f; a.vy -= ny * f;
                 b.vx += nx * f; b.vy += ny * f;
-                // Speed bleed — balls slow as they interact
                 const bleed = 1 - t * 0.005;
                 a.vx *= bleed; a.vy *= bleed;
                 b.vx *= bleed; b.vy *= bleed;
 
-                // ── Proximity multiplication: spawn child when two balls are close ──
-                const spawnZone = sumR * 1.6;
-                if (dist < spawnZone && gSpawnCd === 0 && a.cd === 0 && b.cd === 0
-                    && balls.length + toSpawn.length < MAX_BALLS) {
-                  // Both parents shrink by ~18%
-                  a.sizeFrac = Math.max(MIN_SIZE_FRAC, a.sizeFrac * 0.82);
-                  b.sizeFrac = Math.max(MIN_SIZE_FRAC, b.sizeFrac * 0.82);
-                  // Child is ~30–40% of the average parent size
-                  const childFrac = (a.sizeFrac + b.sizeFrac) * 0.5 * (0.30 + Math.random() * 0.10);
-                  const childEl   = makeEl(Math.min(W, H) * childFrac);
-                  // Launch child perpendicular to the collision axis with some outward kick
+                // ── Cellular division: both balls split when close ──
+                const spawnZone = sumR * 1.3;
+                const slots = MAX_BALLS - (balls.length - toRemove.size + toSpawn.length);
+                if (dist < spawnZone && gSpawnCd === 0 && a.cd === 0 && b.cd === 0 && slots >= 4) {
                   const perpX = -dy / dist, perpY = dx / dist;
-                  const kick  = 3.5 + Math.random() * 2;
-                  const childB = makeBall(childEl,
-                    (a.x + b.x) * 0.5, (a.y + b.y) * 0.5,
-                    perpX * kick * (Math.random() > 0.5 ? 1 : -1),
-                    perpY * kick * (Math.random() > 0.5 ? 1 : -1),
-                    childFrac);
-                  childB.size = Math.min(W, H) * childFrac * 0.3; // start small, grow in
-                  childB.cd   = SPAWN_CD_B;
-                  toSpawn.push(childB);
-                  a.cd = b.cd = SPAWN_CD_B;
+                  const kick  = 2.5 + Math.random() * 1.5;
+
+                  const divide = (p: Ball) => {
+                    if (p.sizeFrac <= minFrac * 1.5) return; // too small to divide
+                    const cf = Math.max(minFrac, p.sizeFrac * 0.70);
+                    const c1el = makeEl(Math.min(W, H) * cf);
+                    const c2el = makeEl(Math.min(W, H) * cf);
+                    const c1 = makeBall(c1el, p.x, p.y,
+                      p.vx + perpX * kick * (Math.random() > 0.5 ? 1 : -1),
+                      p.vy + perpY * kick, cf);
+                    const c2 = makeBall(c2el, p.x, p.y,
+                      p.vx - perpX * kick * (Math.random() > 0.5 ? 1 : -1),
+                      p.vy - perpY * kick, cf);
+                    c1.size = p.size * 0.35; // children start small and grow in
+                    c2.size = p.size * 0.35;
+                    c1.cd = c2.cd = SPAWN_CD_B;
+                    toSpawn.push(c1, c2);
+                    toRemove.add(p);
+                  };
+
+                  divide(a);
+                  divide(b);
                   gSpawnCd = SPAWN_CD_G;
                 }
               }
 
-              // Hard separation
-              if (dist < sumR) {
+              // Hard separation (skip if either is about to be removed)
+              if (!toRemove.has(a) && !toRemove.has(b) && dist < sumR) {
                 const push = (sumR - dist) * 0.48;
                 const nx = dx / dist, ny = dy / dist;
                 a.x -= nx * push; a.y -= ny * push;
@@ -497,24 +505,29 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
               }
             }
           }
+
+          // Remove divided parents from DOM and balls array
+          toRemove.forEach(p => {
+            p.el.remove();
+            const idx = balls.indexOf(p);
+            if (idx >= 0) balls.splice(idx, 1);
+          });
           balls.push(...toSpawn);
 
           // ── Per-ball physics ──
           for (const b of balls) {
             if (b.cd > 0) b.cd--;
 
-            // baseSize: always viewport-relative × nav scale only
-            // — stays correct on ANY viewport resize, only shrinks when nav is open
+            // baseSize: viewport-relative, only shrinks when nav is open
             b.baseSize = Math.min(W, H) * b.sizeFrac * scaleNav;
 
-            // Gravity — fish still obey gravity, collect bottom-right
             b.vy += GRAV;
 
-            // Bottom-right corner attractor — steady pull, not too aggressive
+            // Bottom-right corner attractor
             b.vx += ((W - 80 - b.x) / W) * 0.022;
             b.vy += ((H - 80 - b.y) / H) * 0.014;
 
-            // Nav wall soft repulsion — pushes balls right when nav opens
+            // Nav wall soft repulsion
             const leftGap = b.x - navLeftBound - b.size * 0.5;
             if (leftGap < b.size * 1.2) {
               b.vx += (1 - Math.max(0, leftGap / (b.size * 1.2))) * 0.35;
@@ -527,17 +540,16 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
             b.x += b.vx; b.y += b.vy;
 
-            // Size lerps slowly to baseSize
             b.size += (b.baseSize - b.size) * 0.05;
             const r = b.size * 0.5;
 
-            // ── Elastic wall bounces ──
+            // Elastic wall bounces
             if (b.x - r < navLeftBound) { b.x = navLeftBound + r; b.vx =  Math.abs(b.vx) * BOUNCE; }
             if (b.x + r > W)            { b.x = W - r;            b.vx = -Math.abs(b.vx) * BOUNCE; }
             if (b.y - r < BREADCRUMB_H) { b.y = BREADCRUMB_H + r; b.vy =  Math.abs(b.vy) * BOUNCE; }
             if (b.y + r > H)            { b.y = H - r;            b.vy = -Math.abs(b.vy) * BOUNCE; }
 
-            // ── Fish rotation — aligns gently with travel direction ──
+            // Fish rotation — aligns gently with travel direction
             const heading = Math.atan2(b.vy, b.vx) * 180 / Math.PI;
             const diff    = ((heading - b.rot + 540) % 360) - 180;
             b.vrot       += diff * 0.0018;
@@ -559,8 +571,9 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         return () => {
           window.removeEventListener('resize', onResize);
           cancelAnimationFrame(frameId);
-          balls.slice(1).forEach(b => b.el.remove());
+          balls.forEach(b => b.el.remove());
           balls.length = 0;
+          templateEl!.style.display = ''; // restore template
         };
       }
 
