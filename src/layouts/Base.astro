@@ -358,47 +358,50 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         if (!container || !templateEl) return;
 
         let W = window.innerWidth, H = window.innerHeight;
-        const NAV_W = 44;   // left nav bar width (44px bar)
-        const BREADCRUMB_H = 48; // breadcrumb bar height — balls stay below this
+        const NAV_W        = 44;
+        const BREADCRUMB_H = 48;
 
-        // Animated left boundary — lerps toward nav panel's right edge when open
-        // SideNav sets window.__navPanelTarget when it opens/closes
+        // Lerped left boundary — tracks nav panel opening/closing
         let navLeftBound = NAV_W;
 
         // ── Constants ──
-        const GRAV         = 0.11;   // light gravity — carrom float
-        const BOUNCE_SIDE  = 1.06;   // side/top walls ADD 6% speed each hit
-        const BOUNCE_FLOOR = 0.60;   // floor REMOVES 40% speed so ball settles
-        const DRAG         = 0.9988; // near-zero air drag — energy persists
-        const MAX_SPEED    = 32;     // hard speed cap
-        const MAX_BALLS    = 28;
-        const FADE_DUR     = 60;
-        const SPAWN_CD     = 55;     // min frames between nav-contact spawns
-        const PUSH_FORCE   = 22;     // spacebar impulse strength
-        const NAV_PROX     = 260;    // px: spacebar only affects balls within this distance from nav
-        const GROW_PROX    = 0.10;   // baseSize units added per frame of ball-ball proximity
-        const MAX_GROW     = 3.2;    // ball can grow to 3.2× its spawn base size
+        const GRAV           = 0.07;    // gentle — fish-in-water float
+        const BOUNCE_SIDE    = 0.78;    // walls absorb energy
+        const BOUNCE_FLOOR   = 0.48;    // floor settles balls
+        const DRAG           = 0.990;
+        const MAX_SPEED      = 14;
+        const MAX_BALLS      = 20;
+        const FADE_DUR       = 90;
+        const SPAWN_CD       = 70;
+        const PUSH_FORCE     = 18;
+        const NAV_PROX       = 280;
+        const CELL_GAP       = 10;       // minimum px gap between ball surfaces
+        const NATURAL_SHRINK = 0.00035;  // fractional deflation per frame
+        const MIN_SIZE_RATIO = 0.14;     // fade out below 14% of spawn size
+        const PACK_GROW      = 0.018;    // grow per frame when in aura (resists shrink when clustered)
+        const AURA_MULT      = 2.4;      // attraction zone = 2.4× sumR
 
         type Ball = {
           el: SVGElement;
           x: number; y: number;
           vx: number; vy: number;
-          size: number;         // rendered size (animates toward baseSize)
-          baseSize: number;     // target size; grows via proximity
-          spawnBase: number;    // original size at birth (caps MAX_GROW)
+          size: number;
+          baseSize: number;
+          spawnBase: number;
           rot: number; vrot: number;
           born: number;
-          fadeTick: number;     // -1 alive; >=0 counting down
-          bounces: number;      // total wall bounces (drag increases slightly)
+          fadeTick: number;
+          bounces: number;
         };
 
         const balls: Ball[] = [];
         let birthClock    = 0;
         let spawnCooldown = 0;
+        let lastScrollY   = window.scrollY;
 
-        // Base size: 4%–9% of the shorter viewport side
+        // Spawn big: 14–20% of shorter viewport side
         function randBaseSize(): number {
-          return Math.min(W, H) * (0.04 + Math.random() * 0.05);
+          return Math.min(W, H) * (0.14 + Math.random() * 0.06);
         }
 
         function makeEl(size: number): SVGElement {
@@ -409,15 +412,12 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           return el;
         }
 
-        // All balls enter from the LEFT edge (just past nav bar) with strong rightward throw
-        // — ball crosses the full viewport width and hits the RIGHT wall first
+        // Balls enter from left edge at FULL base size (big → shrinks over time)
         function spawnBall(vxOverride?: number, vyOverride?: number, useTemplate = false): Ball {
           const base    = randBaseSize();
-          const startSz = base * 0.3; // starts small, grows organically
-          // High rightward velocity → guaranteed right-wall first impact
-          const vx = vxOverride !== undefined ? vxOverride : 20 + Math.random() * 8;
-          // Slight vertical variation — keeps trajectory interesting, not purely horizontal
-          const vy = vyOverride !== undefined ? vyOverride : (Math.random() - 0.4) * 5;
+          const startSz = base;  // start big
+          const vx = vxOverride !== undefined ? vxOverride : 7 + Math.random() * 5;
+          const vy = vyOverride !== undefined ? vyOverride : (Math.random() - 0.5) * 3;
           const el = useTemplate ? templateEl! : makeEl(startSz);
           if (useTemplate) {
             el.style.width   = startSz + 'px';
@@ -426,9 +426,8 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           }
           const b: Ball = {
             el,
-            // Enter from left edge, positioned at a random height in the upper half
             x: NAV_W + startSz * 0.5 + 2,
-            y: H * 0.08 + Math.random() * H * 0.45,
+            y: H * 0.10 + Math.random() * H * 0.40,
             vx, vy,
             size: startSz, baseSize: base, spawnBase: base,
             rot: Math.random() * 360, vrot: 0,
@@ -438,21 +437,19 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           return b;
         }
 
-        // ── Initial ball — thrown from top-left with high velocity ──
         spawnBall(undefined, undefined, true);
 
-        // ── Spacebar: push only balls near the nav bar ──
+        // ── Spacebar / nav-bar click: push balls near the nav ──
         function navPush() {
           for (const b of balls) {
             if (b.fadeTick >= 0) continue;
             const distFromNav = b.x - NAV_W;
-            if (distFromNav > NAV_PROX) continue; // ignore distant balls
-            const pct = 1 - distFromNav / NAV_PROX; // stronger when closer
-            const dx  = b.x - NAV_W;
-            const dy  = b.y - H * 0.5;
+            if (distFromNav > NAV_PROX) continue;
+            const pct = 1 - distFromNav / NAV_PROX;
+            const dx  = b.x - NAV_W, dy = b.y - H * 0.5;
             const mag = Math.hypot(dx, dy) || 1;
             b.vx += (dx / mag) * PUSH_FORCE * pct;
-            b.vy += (dy / mag) * PUSH_FORCE * 0.4 * pct;
+            b.vy += (dy / mag) * PUSH_FORCE * 0.35 * pct;
           }
         }
 
@@ -464,7 +461,21 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
         const onResize = () => { W = window.innerWidth; H = window.innerHeight; };
 
+        // Scroll → knock balls downward so they fall and re-settle at bottom-right
+        const onScroll = () => {
+          const cur   = window.scrollY;
+          const delta = cur - lastScrollY;
+          lastScrollY = cur;
+          if (delta > 2) {
+            for (const b of balls) {
+              if (b.fadeTick >= 0) continue;
+              b.vy += Math.min(delta * 0.05 + 1.2, 6);
+            }
+          }
+        };
+
         window.addEventListener('resize', onResize, { passive: true });
+        window.addEventListener('scroll', onScroll, { passive: true });
         document.addEventListener('keydown', onKeydown);
 
         const snBar = document.getElementById('sn-bar');
@@ -475,49 +486,43 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         function step() {
           if (spawnCooldown > 0) spawnCooldown--;
 
-          // ── Nav paddle: smoothly lerp left boundary toward panel's current right edge ──
-          // SideNav sets window.__navPanelTarget when it opens/closes
+          // Nav paddle lerp
           const navTarget = ((window as any).__navPanelTarget as number) || NAV_W;
           navLeftBound += (navTarget - navLeftBound) * 0.09;
 
-          // ── Ball-ball: proximity → both grow; overlap → soft repulsion only ──
-          // Per-frame growth budget: cap so many simultaneous neighbors don't stack-explode size
-          const MAX_GROW_PER_FRAME = 0.5; // px max per ball per frame regardless of neighbor count
-          const growBudget = new Float32Array(balls.length); // accumulator per ball index
-
+          // ── Ball-ball: aura → attract + pack-grow; contact → repel with gap ──
           for (let i = 0; i < balls.length; i++) {
             for (let j = i + 1; j < balls.length; j++) {
               const a = balls[i], b = balls[j];
               if (a.fadeTick >= 0 || b.fadeTick >= 0) continue;
               const dx = b.x - a.x, dy = b.y - a.y;
               const dist = Math.hypot(dx, dy) || 0.001;
-              const sumR = (a.size + b.size) * 0.5;
+              // sumR includes mandatory cell gap → balls never actually touch
+              const sumR = (a.size + b.size) * 0.5 + CELL_GAP;
 
-              // Grow both balls when they enter each other's aura
-              if (dist < sumR * 2.2) {
-                growBudget[i] += GROW_PROX;
-                growBudget[j] += GROW_PROX;
+              // Aura zone: gentle mutual attraction + slight growth (packing effect)
+              if (dist < sumR * AURA_MULT && dist > sumR) {
+                const t  = 1 - (dist - sumR) / (sumR * (AURA_MULT - 1));
+                const f  = t * 0.010;
+                const nx = dx / dist, ny = dy / dist;
+                a.vx += nx * f; a.vy += ny * f;
+                b.vx -= nx * f; b.vy -= ny * f;
+                // Packing growth: slows natural deflation when clustered
+                const g = PACK_GROW * t * 0.4;
+                a.baseSize = Math.min(a.spawnBase, a.baseSize + g);
+                b.baseSize = Math.min(b.spawnBase, b.baseSize + g);
               }
 
-              // Soft positional repulsion — keep them separated, no velocity swap
-              if (dist < sumR + 1) {
-                const overlap = (sumR + 1 - dist) * 0.55;
+              // Contact: push apart maintaining CELL_GAP clearance
+              if (dist < sumR) {
+                const overlap = (sumR - dist) * 0.52;
                 const nx = dx / dist, ny = dy / dist;
                 a.x -= nx * overlap; a.y -= ny * overlap;
                 b.x += nx * overlap; b.y += ny * overlap;
-                // Tiny gentle nudge (damps, doesn't accelerate)
-                const nudge = 0.3;
-                a.vx -= nx * nudge * 0.5; a.vy -= ny * nudge * 0.5;
-                b.vx += nx * nudge * 0.5; b.vy += ny * nudge * 0.5;
+                const nudge = 0.22;
+                a.vx -= nx * nudge; a.vy -= ny * nudge;
+                b.vx += nx * nudge; b.vy += ny * nudge;
               }
-            }
-          }
-
-          // Apply capped growth from proximity accumulator
-          for (let i = 0; i < balls.length; i++) {
-            if (growBudget[i] > 0) {
-              const g = Math.min(growBudget[i], MAX_GROW_PER_FRAME);
-              balls[i].baseSize = Math.min(balls[i].spawnBase * MAX_GROW, balls[i].baseSize + g);
             }
           }
 
@@ -525,81 +530,83 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           for (let i = 0; i < balls.length; i++) {
             const b = balls[i];
 
-            // Fade countdown
             if (b.fadeTick >= 0) {
               b.fadeTick--;
               b.el.style.opacity = (0.05 * b.fadeTick / FADE_DUR).toFixed(4);
             }
 
-            // Gravity (down) + gentle corner attractor (toward bottom-right)
+            // Natural deflation
+            b.baseSize = Math.max(b.spawnBase * MIN_SIZE_RATIO, b.baseSize * (1 - NATURAL_SHRINK));
+
+            // Gravity + corner attractor (bottom-right)
             b.vy += GRAV;
-            // Pull toward bottom-right corner — subtle rightward + downward bias
             const pullX = (W - 80 - b.x) / W;
             const pullY = (H - 80 - b.y) / H;
-            b.vx += pullX * 0.018;
-            b.vy += pullY * 0.010;
+            b.vx += pullX * 0.014;
+            b.vy += pullY * 0.007;
 
-            // Uniform air drag — very low, energy persists between bounces
             b.vx *= DRAG; b.vy *= DRAG;
 
-            // Speed cap
             const spd = Math.hypot(b.vx, b.vy);
             if (spd > MAX_SPEED) { b.vx = b.vx / spd * MAX_SPEED; b.vy = b.vy / spd * MAX_SPEED; }
 
             b.x += b.vx; b.y += b.vy;
 
-            // Animate size smoothly toward baseSize (grows organically)
-            b.size += (b.baseSize - b.size) * 0.035;
+            // Size tracks baseSize smoothly
+            b.size += (b.baseSize - b.size) * 0.04;
             const r = b.size * 0.5;
 
-            // ── Wall bounces ──
-            // Left wall = animated nav panel right edge (paddle) — SIDE bounce (gains speed)
+            // ── Walls ──
             if (b.x - r < navLeftBound) {
               b.x  = navLeftBound + r;
               b.vx = Math.abs(b.vx) * BOUNCE_SIDE;
-              b.vrot -= b.vx * 0.3;
+              b.vrot -= b.vx * 0.12;
               b.bounces++;
-              // Contact with the fixed nav bar (not the open panel) → spawn duplicate
+              // Nav bar contact → spawn duplicate
               if (navLeftBound < NAV_W + 20 && spawnCooldown === 0 && balls.length < MAX_BALLS && b.fadeTick < 0) {
                 spawnBall();
                 spawnCooldown = SPAWN_CD;
               }
             }
-            // Right wall — SIDE bounce (gains speed)
             if (b.x + r > W) {
               b.x  = W - r;
               b.vx = -Math.abs(b.vx) * BOUNCE_SIDE;
-              b.vrot += Math.abs(b.vx) * 0.3;
+              b.vrot += Math.abs(b.vx) * 0.12;
               b.bounces++;
             }
-            // Top wall = bottom of breadcrumb bar — balls stay below it
             if (b.y - r < BREADCRUMB_H) {
               b.y  = BREADCRUMB_H + r;
               b.vy = Math.abs(b.vy) * BOUNCE_SIDE;
               b.bounces++;
             }
-            // Floor — FLOOR bounce (loses speed so ball eventually settles)
             if (b.y + r > H) {
               b.y  = H - r;
               b.vy = -Math.abs(b.vy) * BOUNCE_FLOOR;
-              b.vrot += b.vx * 0.4;
+              b.vrot += b.vx * 0.15;
               b.bounces++;
             }
 
-            // ── Rotation: rolls with horizontal velocity ──
-            const targetVrot = b.vx * 0.22;
-            b.vrot += (targetVrot - b.vrot) * 0.08;
-            b.vrot  = Math.max(-10, Math.min(10, b.vrot));
+            // ── Rotation: slow and smooth — fishes, not spinning tops ──
+            const targetVrot = b.vx * 0.07;
+            b.vrot += (targetVrot - b.vrot) * 0.05;
+            b.vrot  = Math.max(-2.0, Math.min(2.0, b.vrot)); // hard cap
             b.rot  += b.vrot;
 
-            // ── Render ──
+            // Render
             const s = Math.round(b.size);
             b.el.style.width  = s + 'px';
             b.el.style.height = s + 'px';
             b.el.style.transform = `translate(${Math.round(b.x - r)}px,${Math.round(b.y - r)}px) rotate(${b.rot.toFixed(1)}deg)`;
           }
 
-          // ── Fade oldest when at cap ──
+          // ── Fade balls that have shrunk to minimum ──
+          for (const b of balls) {
+            if (b.fadeTick < 0 && b.baseSize <= b.spawnBase * MIN_SIZE_RATIO + 0.5) {
+              b.fadeTick = FADE_DUR;
+            }
+          }
+
+          // ── Also fade oldest when at hard cap ──
           if (balls.length >= MAX_BALLS) {
             let oldest: Ball | null = null;
             for (const b of balls) {
@@ -622,7 +629,8 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         frameId = requestAnimationFrame(step);
 
         return () => {
-          window.removeEventListener('resize',  onResize);
+          window.removeEventListener('resize', onResize);
+          window.removeEventListener('scroll', onScroll);
           document.removeEventListener('keydown', onKeydown);
           snBar?.removeEventListener('click', navPush);
           cancelAnimationFrame(frameId);

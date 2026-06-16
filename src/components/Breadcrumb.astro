@@ -87,7 +87,11 @@ if (activeProject) {
   <div class:list={["breadcrumb__list", isProjectPage && "breadcrumb__list--project-page"]}>
     <!-- Home -->
     <a href="/" class:list={["breadcrumb__link", "breadcrumb__link--home", isHome && "is-active"]}>
-      <span class="crumb-full">Home</span><span class="crumb-short">Hom</span>
+      <span class="crumb-full">Home</span>
+      <svg class="crumb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+      </svg>
       <svg class="link-arrow breadcrumb__arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
         <line x1="6" y1="18" x2="18" y2="6"></line>
         <polyline points="10 6 18 6 18 14"></polyline>
@@ -97,7 +101,10 @@ if (activeProject) {
 
     <!-- About -->
     <a href="/about" class:list={["breadcrumb__link", "breadcrumb__link--about", isAbout && "is-active"]}>
-      <span class="crumb-full">About</span><span class="crumb-short">Abt</span>
+      <span class="crumb-full">About</span>
+      <svg class="crumb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">
+        <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+      </svg>
       <svg class="link-arrow breadcrumb__arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
         <line x1="6" y1="18" x2="18" y2="6"></line>
         <polyline points="10 6 18 6 18 14"></polyline>
@@ -107,7 +114,10 @@ if (activeProject) {
 
     <!-- Projects -->
     <a href="/projects" class:list={["breadcrumb__link", "breadcrumb__link--projects", isProjectsIndex && "is-active"]}>
-      <span class="crumb-full">Projects</span><span class="crumb-short">Pro</span>
+      <span class="crumb-full">Projects</span>
+      <svg class="crumb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">
+        <circle cx="12" cy="12" r="9"></circle>
+      </svg>
       <svg class="link-arrow breadcrumb__arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
         <line x1="6" y1="18" x2="18" y2="6"></line>
         <polyline points="10 6 18 6 18 14"></polyline>
@@ -613,11 +623,24 @@ if (activeProject) {
     height: 1em;
   }
 
-  /* Abbreviated crumb labels on mobile */
-  .crumb-short { display: none; }
+  /* Desktop: show text, hide icon */
+  .crumb-icon { display: none; }
+
+  /* Mobile: show icon, hide text */
   @media (max-width: 640px) {
     .crumb-full  { display: none; }
-    .crumb-short { display: inline; }
+    .crumb-icon  {
+      display: inline-block;
+      width: 11px;
+      height: 11px;
+      flex-shrink: 0;
+      vertical-align: middle;
+    }
+    /* Hide the search trigger's internal arrow on mobile */
+    .breadcrumb__dropdown-trigger .breadcrumb__arrow-icon { display: none; }
+    /* Hide prev/next project arrow buttons on mobile */
+    .breadcrumb__arrow--prev,
+    .breadcrumb__arrow--next { display: none; }
   }
 
   /* Mobile Portrait responsive optimization: on project pages hide Home & About Me to fit dropdowns */
@@ -726,6 +749,12 @@ if (activeProject) {
     });
 
     const searchInput = document.getElementById('breadcrumb-search-input') as HTMLInputElement | null;
+
+    // Disable text search on mobile — dropdown still opens via tap, but no keyboard
+    if (searchInput && window.innerWidth <= 640) {
+      searchInput.setAttribute('readonly', 'true');
+      searchInput.setAttribute('inputmode', 'none');
+    }
 
     // Toggle dropdown panel open/close on click/focus
     if (searchInput) {
