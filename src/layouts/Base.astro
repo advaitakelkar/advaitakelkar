@@ -360,49 +360,37 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         let W = window.innerWidth, H = window.innerHeight;
         const NAV_W        = 44;
         const BREADCRUMB_H = 48;
+        let navLeftBound   = NAV_W;
 
-        // Lerped left boundary — tracks nav panel opening/closing
-        let navLeftBound = NAV_W;
-
-        // ── Constants ──
-        const GRAV           = 0.07;    // gentle — fish-in-water float
-        const BOUNCE_SIDE    = 0.78;    // walls absorb energy
-        const BOUNCE_FLOOR   = 0.48;    // floor settles balls
-        const DRAG           = 0.990;
-        const MAX_SPEED      = 55;   // high enough for first ball's launch velocity
-        const MAX_BALLS      = 20;
-        const FADE_DUR       = 90;
-        const SPAWN_CD       = 70;
-        const PUSH_FORCE     = 18;
-        const NAV_PROX       = 280;
-        const CELL_GAP       = 10;       // minimum px gap between ball surfaces
-        const NATURAL_SHRINK = 0.00035;  // fractional deflation per frame
-        const MIN_SIZE_RATIO = 0.14;     // fade out below 14% of spawn size
-        const PACK_GROW      = 0.018;    // grow per frame when in aura (resists shrink when clustered)
-        const AURA_MULT      = 2.4;      // attraction zone = 2.4× sumR
+        // ── Physics constants (carrom model — walls add speed) ──
+        const GRAV        = 0.11;
+        const BOUNCE_SIDE = 1.06;   // side/top walls ADD 6% speed — carrom energy
+        const BOUNCE_FLOOR= 0.60;   // floor removes 40% — balls eventually settle
+        const DRAG        = 0.9988;
+        const MAX_SPEED   = 55;
+        const MAX_BALLS   = 24;
+        const FADE_DUR    = 90;
+        const CELL_GAP    = 8;      // px clearance between ball surfaces
+        const DIV_CD      = 80;     // min frames between any division event
 
         type Ball = {
           el: SVGElement;
           x: number; y: number;
           vx: number; vy: number;
-          size: number;
+          size: number;             // rendered (lerps to baseSize)
           baseSize: number;
           spawnBase: number;
           rot: number; vrot: number;
           born: number;
           fadeTick: number;
-          bounces: number;
         };
 
         const balls: Ball[] = [];
-        let birthClock    = 0;
-        let spawnCooldown = 0;
-        let lastScrollY   = window.scrollY;
-
-        // Subsequent balls: 13–18% of viewport
-        function randBaseSize(): number {
-          return Math.min(W, H) * (0.13 + Math.random() * 0.05);
-        }
+        let birthClock  = 0;
+        let divCooldown = 0;        // global throttle on division events
+        let packMode    = false;    // true while nav panel is open
+        let everPacked  = false;    // latched true once nav has been opened once
+        let lastScrollY = window.scrollY;
 
         function makeEl(size: number): SVGElement {
           const el = templateEl!.cloneNode(true) as SVGElement;
@@ -412,218 +400,200 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           return el;
         }
 
-        // Balls enter from left edge at FULL base size (big → shrinks over time)
-        function spawnBall(vxOverride?: number, vyOverride?: number, useTemplate = false): Ball {
-          const base    = randBaseSize();
-          const startSz = base;
-          const vx = vxOverride !== undefined ? vxOverride : 7 + Math.random() * 5;
-          const vy = vyOverride !== undefined ? vyOverride : (Math.random() - 0.5) * 3;
-          const el = useTemplate ? templateEl! : makeEl(startSz);
-          if (useTemplate) {
-            el.style.width   = startSz + 'px';
-            el.style.height  = startSz + 'px';
-            el.style.opacity = '0.05';
-          }
-          const b: Ball = {
-            el,
-            x: NAV_W + startSz * 0.5 + 2,
-            y: H * 0.10 + Math.random() * H * 0.40,
-            vx, vy,
-            size: startSz, baseSize: base, spawnBase: base,
-            rot: Math.random() * 360, vrot: 0,
-            born: birthClock++, fadeTick: -1, bounces: 0
-          };
-          balls.push(b);
-          return b;
+        function makeBall(el: SVGElement, x: number, y: number, vx: number, vy: number, base: number): Ball {
+          return { el, x, y, vx, vy, size: base, baseSize: base, spawnBase: base,
+            rot: Math.random() * 360, vrot: 0, born: birthClock++, fadeTick: -1 };
         }
 
-        // ── 5 initial balls — all launched from left edge with high velocity ──
-        // Ball 0 uses the template element; balls 1–4 get cloned elements
-        const initConfigs = [
-          // [ sizeFraction, vx, vy, yFraction ]  — all fast, varied trajectories
-          [0.26, 44, 4,   0.20],
+        // ── 5 big balls launched from left edge with carrom force ──
+        const initConfigs: [number, number, number, number][] = [
+          // [sizeFrac, vx, vy, yFrac]
+          [0.26, 44,  4,  0.20],
           [0.20, 36, -3,  0.35],
-          [0.22, 40, 6,   0.12],
-          [0.18, 32, 2,   0.45],
+          [0.22, 40,  6,  0.12],
+          [0.18, 32,  2,  0.45],
           [0.24, 38, -1,  0.28],
-        ] as const;
-
-        initConfigs.forEach(([sz, vx, vy, yf], i) => {
-          const base    = Math.min(W, H) * (sz + Math.random() * 0.02);
-          const vxRand  = vx + Math.random() * 6;
-          const vyRand  = vy + (Math.random() - 0.5) * 2;
-          const el      = i === 0 ? templateEl! : makeEl(base);
-          if (i === 0) {
-            el.style.width   = base + 'px';
-            el.style.height  = base + 'px';
-            el.style.opacity = '0.05';
-          }
-          balls.push({
-            el,
-            x: NAV_W + base * 0.5 + 2,
-            y: H * yf + Math.random() * H * 0.08,
-            vx: vxRand, vy: vyRand,
-            size: base, baseSize: base, spawnBase: base,
-            rot: Math.random() * 360, vrot: 0,
-            born: birthClock++, fadeTick: -1, bounces: 0
-          });
+        ];
+        initConfigs.forEach(([sz, vx0, vy0, yf], i) => {
+          const base   = Math.min(W, H) * (sz + Math.random() * 0.02);
+          const el     = i === 0 ? templateEl! : makeEl(base);
+          if (i === 0) { el.style.width = base + 'px'; el.style.height = base + 'px'; el.style.opacity = '0.05'; }
+          const b = makeBall(el,
+            NAV_W + base * 0.5 + 2,
+            H * yf + Math.random() * H * 0.08,
+            vx0 + Math.random() * 6,
+            vy0 + (Math.random() - 0.5) * 2,
+            base
+          );
+          balls.push(b);
         });
 
-        // ── Spacebar / nav-bar click: push balls near the nav ──
-        function navPush() {
-          for (const b of balls) {
-            if (b.fadeTick >= 0) continue;
-            const distFromNav = b.x - NAV_W;
-            if (distFromNav > NAV_PROX) continue;
-            const pct = 1 - distFromNav / NAV_PROX;
-            const dx  = b.x - NAV_W, dy = b.y - H * 0.5;
-            const mag = Math.hypot(dx, dy) || 1;
-            b.vx += (dx / mag) * PUSH_FORCE * pct;
-            b.vy += (dy / mag) * PUSH_FORCE * 0.35 * pct;
-          }
-        }
-
+        const onResize  = () => { W = window.innerWidth; H = window.innerHeight; };
+        const onScroll  = () => {
+          const cur = window.scrollY, delta = cur - lastScrollY; lastScrollY = cur;
+          if (delta > 2) balls.forEach(b => { if (b.fadeTick < 0) b.vy += Math.min(delta * 0.05 + 1.2, 6); });
+        };
         const onKeydown = (e: KeyboardEvent) => {
           const active = document.activeElement as HTMLElement | null;
           if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)) return;
-          if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); navPush(); }
-        };
-
-        const onResize = () => { W = window.innerWidth; H = window.innerHeight; };
-
-        // Scroll → knock balls downward so they fall and re-settle at bottom-right
-        const onScroll = () => {
-          const cur   = window.scrollY;
-          const delta = cur - lastScrollY;
-          lastScrollY = cur;
-          if (delta > 2) {
-            for (const b of balls) {
-              if (b.fadeTick >= 0) continue;
-              b.vy += Math.min(delta * 0.05 + 1.2, 6);
-            }
-          }
+          if (e.key === ' ' || e.code === 'Space') e.preventDefault(); // nav open handled by SideNav
         };
 
         window.addEventListener('resize', onResize, { passive: true });
         window.addEventListener('scroll', onScroll, { passive: true });
         document.addEventListener('keydown', onKeydown);
-
         const snBar = document.getElementById('sn-bar');
-        snBar?.addEventListener('click', navPush);
+        snBar?.addEventListener('click', () => {}); // nav toggle handled by SideNav
 
         let frameId: number;
 
         function step() {
-          if (spawnCooldown > 0) spawnCooldown--;
+          if (divCooldown > 0) divCooldown--;
 
-          // Nav paddle lerp
+          // Nav paddle lerp — SideNav sets window.__navPanelTarget on open/close
           const navTarget = ((window as any).__navPanelTarget as number) || NAV_W;
           navLeftBound += (navTarget - navLeftBound) * 0.09;
 
-          // ── Ball-ball: aura → attract + pack-grow; contact → repel with gap ──
+          // ── Detect pack mode from nav state ──
+          const navIsOpen = navLeftBound > NAV_W + 40;
+          if (navIsOpen && !packMode)  { packMode = true; }
+          if (!navIsOpen && packMode)  { packMode = false; everPacked = true; }
+
+          // ── Ball-ball interactions ──
+          const toSpawn: Ball[] = [];
+          const divided = new Set<number>(); // indices that divided this frame (one division per ball per frame)
+
           for (let i = 0; i < balls.length; i++) {
             for (let j = i + 1; j < balls.length; j++) {
               const a = balls[i], b = balls[j];
               if (a.fadeTick >= 0 || b.fadeTick >= 0) continue;
               const dx = b.x - a.x, dy = b.y - a.y;
               const dist = Math.hypot(dx, dy) || 0.001;
-              // sumR includes mandatory cell gap → balls never actually touch
               const sumR = (a.size + b.size) * 0.5 + CELL_GAP;
 
-              // Aura zone: gentle mutual attraction + slight growth (packing effect)
-              if (dist < sumR * AURA_MULT && dist > sumR) {
-                const t  = 1 - (dist - sumR) / (sumR * (AURA_MULT - 1));
-                const f  = t * 0.010;
-                const nx = dx / dist, ny = dy / dist;
-                a.vx += nx * f; a.vy += ny * f;
-                b.vx -= nx * f; b.vy -= ny * f;
-                // Packing growth: slows natural deflation when clustered
-                const g = PACK_GROW * t * 0.4;
-                a.baseSize = Math.min(a.spawnBase, a.baseSize + g);
-                b.baseSize = Math.min(b.spawnBase, b.baseSize + g);
-              }
+              if (packMode) {
+                // Pack mode: pure repulsion only — no division
+                if (dist < sumR) {
+                  const overlap = (sumR - dist) * 0.55;
+                  const nx = dx / dist, ny = dy / dist;
+                  a.x -= nx * overlap; a.y -= ny * overlap;
+                  b.x += nx * overlap; b.y += ny * overlap;
+                  a.vx -= nx * 0.3; a.vy -= ny * 0.3;
+                  b.vx += nx * 0.3; b.vy += ny * 0.3;
+                }
+              } else if (!everPacked) {
+                // Active phase: contact → divide + spawn child
+                if (dist < sumR && divCooldown === 0 && !divided.has(i) && !divided.has(j) && balls.length + toSpawn.length < MAX_BALLS) {
+                  const combined = a.baseSize + b.baseSize;
+                  const ratio = 0.25 + Math.random() * 0.50; // 25–75% random split
+                  const newBase = combined * (0.18 + Math.random() * 0.14); // child: 18–32% of combined
 
-              // Contact: push apart + size-swing pulse (spring snaps back via normal size lerp)
-              if (dist < sumR) {
-                const overlap = (sumR - dist) * 0.52;
-                const nx = dx / dist, ny = dy / dist;
-                a.x -= nx * overlap; a.y -= ny * overlap;
-                b.x += nx * overlap; b.y += ny * overlap;
-                const nudge = 0.22;
-                a.vx -= nx * nudge; a.vy -= ny * nudge;
-                b.vx += nx * nudge; b.vy += ny * nudge;
-                // Size pulse: temporarily swell — spring equation damps it back naturally
-                a.size = Math.min(a.size * 1.13, a.spawnBase * 1.25);
-                b.size = Math.min(b.size * 1.13, b.spawnBase * 1.25);
+                  // Redistribute parent sizes
+                  a.baseSize = Math.max(combined * ratio,       a.spawnBase * 0.18);
+                  b.baseSize = Math.max(combined * (1 - ratio), b.spawnBase * 0.18);
+                  a.spawnBase = a.baseSize; b.spawnBase = b.baseSize;
+
+                  // Speed reduction on contact
+                  a.vx *= 0.50; a.vy *= 0.50;
+                  b.vx *= 0.50; b.vy *= 0.50;
+
+                  // Child spawns at midpoint with avg velocity + random kick
+                  const childEl = makeEl(newBase);
+                  const childVx = (a.vx + b.vx) * 0.5 + (Math.random() - 0.5) * 12;
+                  const childVy = (a.vy + b.vy) * 0.5 + (Math.random() - 0.5) * 12;
+                  toSpawn.push(makeBall(childEl, (a.x + b.x) * 0.5, (a.y + b.y) * 0.5, childVx, childVy, newBase));
+
+                  divided.add(i); divided.add(j);
+                  divCooldown = DIV_CD;
+                } else if (dist < sumR) {
+                  // Soft repulsion when can't divide
+                  const overlap = (sumR - dist) * 0.52;
+                  const nx = dx / dist, ny = dy / dist;
+                  a.x -= nx * overlap; a.y -= ny * overlap;
+                  b.x += nx * overlap; b.y += ny * overlap;
+                  a.vx -= nx * 0.2; a.vy -= ny * 0.2;
+                  b.vx += nx * 0.2; b.vy += ny * 0.2;
+                  // Size pulse on contact
+                  a.size = Math.min(a.size * 1.10, a.spawnBase * 1.20);
+                  b.size = Math.min(b.size * 1.10, b.spawnBase * 1.20);
+                }
+              } else {
+                // Post-pack phase: balls drift freely, just prevent overlap
+                if (dist < sumR) {
+                  const overlap = (sumR - dist) * 0.45;
+                  const nx = dx / dist, ny = dy / dist;
+                  a.x -= nx * overlap; a.y -= ny * overlap;
+                  b.x += nx * overlap; b.y += ny * overlap;
+                }
               }
             }
           }
+
+          // Add newly spawned children
+          balls.push(...toSpawn);
 
           // ── Per-ball physics ──
           for (let i = 0; i < balls.length; i++) {
             const b = balls[i];
 
+            // Fade countdown
             if (b.fadeTick >= 0) {
               b.fadeTick--;
               b.el.style.opacity = (0.05 * b.fadeTick / FADE_DUR).toFixed(4);
             }
 
-            // Natural deflation
-            b.baseSize = Math.max(b.spawnBase * MIN_SIZE_RATIO, b.baseSize * (1 - NATURAL_SHRINK));
+            if (packMode) {
+              // Pack: strong attractor toward center of available space, heavy damping
+              const packCX = (navLeftBound + W) * 0.5;
+              const packCY = H * 0.62;
+              b.vx += (packCX - b.x) * 0.045;
+              b.vy += (packCY - b.y) * 0.045;
+              b.vx *= 0.82; b.vy *= 0.82;
+            } else {
+              // Normal carrom physics
+              b.vy += GRAV;
+              // Corner attractor — bottom-right
+              b.vx += ((W - 80 - b.x) / W) * 0.018;
+              b.vy += ((H - 80 - b.y) / H) * 0.010;
+              b.vx *= DRAG; b.vy *= DRAG;
+            }
 
-            // Gravity + corner attractor (bottom-right)
-            b.vy += GRAV;
-            const pullX = (W - 80 - b.x) / W;
-            const pullY = (H - 80 - b.y) / H;
-            b.vx += pullX * 0.014;
-            b.vy += pullY * 0.007;
-
-            b.vx *= DRAG; b.vy *= DRAG;
-
+            // Speed cap
             const spd = Math.hypot(b.vx, b.vy);
             if (spd > MAX_SPEED) { b.vx = b.vx / spd * MAX_SPEED; b.vy = b.vy / spd * MAX_SPEED; }
 
             b.x += b.vx; b.y += b.vy;
 
-            // Size tracks baseSize smoothly
+            // Size lerp to baseSize
             b.size += (b.baseSize - b.size) * 0.04;
             const r = b.size * 0.5;
 
-            // ── Walls ──
+            // ── Wall bounces (carrom model) ──
             if (b.x - r < navLeftBound) {
-              b.x  = navLeftBound + r;
-              b.vx = Math.abs(b.vx) * BOUNCE_SIDE;
+              b.x = navLeftBound + r;
+              b.vx = Math.abs(b.vx) * (packMode ? 0.6 : BOUNCE_SIDE);
               b.vrot -= b.vx * 0.12;
-              b.bounces++;
-              // Nav bar contact → spawn duplicate
-              if (navLeftBound < NAV_W + 20 && spawnCooldown === 0 && balls.length < MAX_BALLS && b.fadeTick < 0) {
-                spawnBall();
-                spawnCooldown = SPAWN_CD;
-              }
             }
             if (b.x + r > W) {
-              b.x  = W - r;
-              b.vx = -Math.abs(b.vx) * BOUNCE_SIDE;
+              b.x = W - r;
+              b.vx = -Math.abs(b.vx) * (packMode ? 0.6 : BOUNCE_SIDE);
               b.vrot += Math.abs(b.vx) * 0.12;
-              b.bounces++;
             }
             if (b.y - r < BREADCRUMB_H) {
-              b.y  = BREADCRUMB_H + r;
-              b.vy = Math.abs(b.vy) * BOUNCE_SIDE;
-              b.bounces++;
+              b.y = BREADCRUMB_H + r;
+              b.vy = Math.abs(b.vy) * (packMode ? 0.6 : BOUNCE_SIDE);
             }
             if (b.y + r > H) {
-              b.y  = H - r;
-              b.vy = -Math.abs(b.vy) * BOUNCE_FLOOR;
+              b.y = H - r;
+              b.vy = -Math.abs(b.vy) * (packMode ? 0.4 : BOUNCE_FLOOR);
               b.vrot += b.vx * 0.15;
-              b.bounces++;
             }
 
-            // ── Rotation: slow and smooth — fishes, not spinning tops ──
+            // ── Rotation: slow and smooth ──
             const targetVrot = b.vx * 0.07;
             b.vrot += (targetVrot - b.vrot) * 0.05;
-            b.vrot  = Math.max(-2.0, Math.min(2.0, b.vrot)); // hard cap
-            b.rot  += b.vrot;
+            b.vrot = Math.max(-2.0, Math.min(2.0, b.vrot));
+            b.rot += b.vrot;
 
             // Render
             const s = Math.round(b.size);
@@ -632,28 +602,16 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
             b.el.style.transform = `translate(${Math.round(b.x - r)}px,${Math.round(b.y - r)}px) rotate(${b.rot.toFixed(1)}deg)`;
           }
 
-          // ── Fade balls that have shrunk to minimum ──
-          for (const b of balls) {
-            if (b.fadeTick < 0 && b.baseSize <= b.spawnBase * MIN_SIZE_RATIO + 0.5) {
-              b.fadeTick = FADE_DUR;
-            }
-          }
-
-          // ── Also fade oldest when at hard cap ──
+          // ── Fade oldest when at cap ──
           if (balls.length >= MAX_BALLS) {
             let oldest: Ball | null = null;
-            for (const b of balls) {
-              if (b.fadeTick < 0 && (!oldest || b.born < oldest.born)) oldest = b;
-            }
+            for (const b of balls) { if (b.fadeTick < 0 && (!oldest || b.born < oldest.born)) oldest = b; }
             if (oldest) oldest.fadeTick = FADE_DUR;
           }
 
           // ── Remove fully faded ──
           for (let i = balls.length - 1; i >= 0; i--) {
-            if (balls[i].fadeTick === 0) {
-              balls[i].el.remove();
-              balls.splice(i, 1);
-            }
+            if (balls[i].fadeTick === 0) { balls[i].el.remove(); balls.splice(i, 1); }
           }
 
           frameId = requestAnimationFrame(step);
@@ -665,7 +623,6 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           window.removeEventListener('resize', onResize);
           window.removeEventListener('scroll', onScroll);
           document.removeEventListener('keydown', onKeydown);
-          snBar?.removeEventListener('click', navPush);
           cancelAnimationFrame(frameId);
           balls.slice(1).forEach(b => b.el.remove());
           balls.length = 0;
