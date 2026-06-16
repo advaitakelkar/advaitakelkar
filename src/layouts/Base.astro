@@ -57,25 +57,16 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
       .watermark-logo {
         position: absolute;
-        bottom: 100px;
-        right: 100px;
+        top: 0;
+        left: 0;
         width: 200px;
         height: 200px;
         fill: var(--_tokens---color--fg);   /* inline SVG → crisp vector at any size */
         opacity: 0.08;          /* subtle watermark overlay */
         transform-origin: center center;  /* rotate around its own center axis */
-        transform: rotate(0deg);
+        transform: translate(0, 0) rotate(0deg);
         transition: fill 0.3s ease;
         will-change: width, height, transform;
-      }
-
-      @media (max-width: 768px) {
-        .watermark-logo {
-          bottom: 60px;
-          right: 60px;
-          width: 120px;
-          height: 120px;
-        }
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -320,77 +311,89 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     </script>
     <script>
       function initWatermarkLogo() {
-        const watermarkLogo = document.getElementById('watermark-logo');
-        if (!watermarkLogo) return;
-
-        const REST_SIZE = 200; // px at rest (bottom-right corner)
-        let currentRotation = 0;
-        let targetRotation = 0;
-        let currentSize = REST_SIZE;
-        let targetSize = REST_SIZE;
-        let frameId: number;
+        const wl = document.getElementById('watermark-logo') as HTMLElement | null;
+        if (!wl) return;
 
         const isTouch = window.matchMedia('(hover: none)').matches;
 
-        // Peak size — ~2.4x the viewport width (≈3x the previous peak), capped for memory.
-        // It bleeds far off the bottom-right corner as you reach it.
-        function peakSize() {
-          return Math.min(window.innerWidth * 2.4, 4200);
+        let W = window.innerWidth, H = window.innerHeight;
+        // Size: rest is small; grows on cursor proximity but is CAPPED at half the
+        // viewport's smaller dimension (so never exceeds 50% of width OR height).
+        const REST = Math.max(120, Math.min(W, H) * 0.16);
+        const maxSize = () => Math.min(W, H) * 0.5;
+        let size = REST, targetSize = REST;
+
+        // Physics state (centre position + velocity), gives it weight & bounce
+        let x = W * 0.7, y = H * 0.4;
+        let vx = (Math.random() * 2 - 1) * 3 + 2;
+        let vy = (Math.random() * 2 - 1) * 2;
+        let rot = 0, vrot = 0;
+
+        const GRAV = 0.07;     // gravity → weight
+        const BOUNCE = 0.9;    // restitution at the walls
+        const AIR = 0.995;     // air friction
+        const MOUSE_R = 280;   // cursor influence radius
+        const MOUSE_F = 0.55;  // cursor push strength
+        let mx = -9999, my = -9999, kick = 0;
+
+        const onMove = (e: MouseEvent) => { mx = e.clientX; my = e.clientY; };
+        const onResize = () => { W = window.innerWidth; H = window.innerHeight; };
+        window.addEventListener('mousemove', onMove, { passive: true });
+        window.addEventListener('resize', onResize, { passive: true });
+
+        let frameId: number;
+        function step() {
+          const r = size / 2;
+          vy += GRAV; // weight
+
+          // Cursor interaction: gently push the logo away + grow when it's near
+          if (!isTouch) {
+            const ddx = x - mx, ddy = y - my;
+            const dm = Math.hypot(ddx, ddy) || 1;
+            if (dm < MOUSE_R) {
+              const f = (1 - dm / MOUSE_R) * MOUSE_F;
+              vx += (ddx / dm) * f;
+              vy += (ddy / dm) * f;
+              targetSize = REST + (1 - dm / MOUSE_R) * (maxSize() - REST);
+            } else {
+              targetSize = REST;
+            }
+          }
+
+          vx *= AIR; vy *= AIR;
+          x += vx; y += vy;
+
+          // Bounce off the four edges (kept fully on-screen)
+          if (x - r < 0)      { x = r;     vx =  Math.abs(vx) * BOUNCE; }
+          else if (x + r > W) { x = W - r; vx = -Math.abs(vx) * BOUNCE; }
+          if (y - r < 0)      { y = r;     vy =  Math.abs(vy) * BOUNCE; }
+          else if (y + r > H) { y = H - r; vy = -Math.abs(vy) * BOUNCE; }
+
+          // Keep it lively: nudge if it's gone too sluggish
+          const speed = Math.hypot(vx, vy);
+          if (speed < 0.7) { if (++kick > 70) { vx += (Math.random() * 2 - 1) * 3; vy -= Math.random() * 3 + 1.5; kick = 0; } }
+          else kick = 0;
+
+          // Rolling rotation from horizontal velocity, with inertia
+          vrot += (vx * 0.6 - vrot) * 0.08;
+          rot += vrot;
+
+          size += (targetSize - size) * 0.1; // weighty grow/shrink
+
+          const s = Math.round(size);
+          wl.style.width = s + 'px';
+          wl.style.height = s + 'px';
+          wl.style.transform = `translate(${Math.round(x - s / 2)}px, ${Math.round(y - s / 2)}px) rotate(${rot}deg)`;
+          frameId = requestAnimationFrame(step);
         }
 
-        // Mouse move listener — grows dramatically toward the corner (sized, not scaled, so it stays crisp)
-        const onMouseMove = (e: MouseEvent) => {
-          if (isTouch) return;
-          const dx = window.innerWidth - e.clientX;
-          const dy = window.innerHeight - e.clientY;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          const maxD = Math.sqrt(window.innerWidth**2 + window.innerHeight**2) || 1000;
-          // Proximity 0 (far / top-left) .. 1 (at the bottom-right corner), steepened
-          let proximity = Math.max(0, 1 - dist / maxD);
-          proximity = Math.pow(proximity, 1.7); // ramp up faster as you approach
-          targetSize = REST_SIZE + proximity * (peakSize() - REST_SIZE);
-        };
+        wl.style.width = wl.style.height = REST + 'px';
+        frameId = requestAnimationFrame(step);
 
-        // Scroll listener to update targetRotation (smooth roll on scroll)
-        const onScroll = () => {
-          const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-          const scrollPct = docHeight > 0 ? window.scrollY / docHeight : 0;
-          // One full page scroll rotates it by 360 degrees
-          targetRotation = scrollPct * 360;
-
-          if (isTouch) {
-            // On touch devices, grow toward the big peak as the page is scrolled
-            targetSize = REST_SIZE + scrollPct * (peakSize() - REST_SIZE) * 0.85;
-          }
-        };
-
-        window.addEventListener('mousemove', onMouseMove, { passive: true });
-        window.addEventListener('scroll', onScroll, { passive: true });
-
-        // Smooth interpolation animation loop
-        function updateLogo() {
-          currentRotation += (targetRotation - currentRotation) * 0.08;
-          currentSize += (targetSize - currentSize) * 0.08;
-
-          if (watermarkLogo) {
-            const s = Math.round(currentSize);
-            watermarkLogo.style.width = s + 'px';
-            watermarkLogo.style.height = s + 'px';
-            watermarkLogo.style.transform = `rotate(${currentRotation}deg)`;
-          }
-          frameId = requestAnimationFrame(updateLogo);
-        }
-
-        // Start subtle at rest; it grows as the cursor nears the bottom-right corner
-        targetSize = REST_SIZE;
-        currentSize = targetSize;
-
-        frameId = requestAnimationFrame(updateLogo);
-
-        // Cleanup function for view transitions
+        // Cleanup for view transitions
         return () => {
-          window.removeEventListener('mousemove', onMouseMove);
-          window.removeEventListener('scroll', onScroll);
+          window.removeEventListener('mousemove', onMove);
+          window.removeEventListener('resize', onResize);
           cancelAnimationFrame(frameId);
         };
       }
