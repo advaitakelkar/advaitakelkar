@@ -437,21 +437,36 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           return b;
         }
 
-        // ── First ball: huge + extreme velocity — right wall → floor → nav → duplicate ──
-        // Size: 24–28% of the shorter viewport side
-        const firstBase = Math.min(W, H) * (0.24 + Math.random() * 0.04);
-        templateEl.style.width   = firstBase + 'px';
-        templateEl.style.height  = firstBase + 'px';
-        templateEl.style.opacity = '0.05';
-        balls.push({
-          el: templateEl!,
-          x: NAV_W + firstBase * 0.5 + 2,
-          y: H * 0.20 + Math.random() * H * 0.15,   // upper third so it arcs down to floor
-          vx: 42 + Math.random() * 8,                // very fast rightward throw
-          vy: 3  + Math.random() * 3,                // slight downward so it hits floor after right wall
-          size: firstBase, baseSize: firstBase, spawnBase: firstBase,
-          rot: Math.random() * 360, vrot: 0,
-          born: birthClock++, fadeTick: -1, bounces: 0
+        // ── 5 initial balls — all launched from left edge with high velocity ──
+        // Ball 0 uses the template element; balls 1–4 get cloned elements
+        const initConfigs = [
+          // [ sizeFraction, vx, vy, yFraction ]  — all fast, varied trajectories
+          [0.26, 44, 4,   0.20],
+          [0.20, 36, -3,  0.35],
+          [0.22, 40, 6,   0.12],
+          [0.18, 32, 2,   0.45],
+          [0.24, 38, -1,  0.28],
+        ] as const;
+
+        initConfigs.forEach(([sz, vx, vy, yf], i) => {
+          const base    = Math.min(W, H) * (sz + Math.random() * 0.02);
+          const vxRand  = vx + Math.random() * 6;
+          const vyRand  = vy + (Math.random() - 0.5) * 2;
+          const el      = i === 0 ? templateEl! : makeEl(base);
+          if (i === 0) {
+            el.style.width   = base + 'px';
+            el.style.height  = base + 'px';
+            el.style.opacity = '0.05';
+          }
+          balls.push({
+            el,
+            x: NAV_W + base * 0.5 + 2,
+            y: H * yf + Math.random() * H * 0.08,
+            vx: vxRand, vy: vyRand,
+            size: base, baseSize: base, spawnBase: base,
+            rot: Math.random() * 360, vrot: 0,
+            born: birthClock++, fadeTick: -1, bounces: 0
+          });
         });
 
         // ── Spacebar / nav-bar click: push balls near the nav ──
