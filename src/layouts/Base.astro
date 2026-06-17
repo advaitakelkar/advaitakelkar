@@ -371,22 +371,18 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         let navLeftBound   = NAV_W;
 
         // ── Physics ──
-        const GRAV        = 0.14;   // strong gravity → balls pack at bottom
-        const BOUNCE      = 0.68;
-        const DRAG        = 0.997;
-        const MAX_SPEED   = 18;     // high cap — smaller balls can move faster
+        const GRAV        = 0.055;
+        const BOUNCE      = 0.65;
+        const DRAG        = 0.992;
+        const MAX_SPEED   = 7;
         const MAX_BALLS   = 50;
         const SPAWN_CD_G  = 80;
         const SPAWN_CD_B  = 120;
-        // Fibonacci size levels — extended to F8 (balls can start off-screen)
-        const FIB_FRACS   = [0, 0.040, 0.065, 0.105, 0.170, 0.275, 0.445, 0.720, 1.165];
-        //                        F1    F2    F3    F4    F5    F6    F7    F8
-        const FIB_MAX     = 8;  // highest level (F8)
-        const FIB_FLOOR   = 2;  // lowest level balls can reach (F2 — F1 retired)
+        const FIB_FRACS   = [0, 0.040, 0.065, 0.105, 0.170, 0.275, 0.445]; // index 0 unused; F1..F6
         const RESTITUTION = 0.55;
         const PACK_GAP    = 6;
         const COLLISION_DAMP = 0.55;
-        const WIND_FORCE  = 4.5; // rightward impulse magnitude when nav opens
+        const WIND_FORCE  = 4.5; // rightward impulse when nav opens
 
         type Ball = {
           el: SVGSVGElement;
@@ -402,13 +398,13 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
         const balls: Ball[] = [];
         let gSpawnCd = 0;
-        let prevNavIsOpen = false; // track nav open/close edge for wind blast
+        let prevNavIsOpen = false;
 
         function makeEl(size: number): SVGSVGElement {
           const el = templateEl!.cloneNode(true) as SVGSVGElement;
           el.removeAttribute('id');
           el.classList.add('watermark-ball');
-          el.style.cssText = `position:absolute;top:0;left:0;width:${size}px;height:${size}px;opacity:0.1;will-change:transform;`;
+          el.style.cssText = `position:absolute;top:0;left:0;width:${size}px;height:${size}px;opacity:0.05;will-change:transform;`;
           container!.appendChild(el);
           return el;
         }
@@ -419,16 +415,16 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
                    rot: Math.random() * 360, vrot: 0, cd: 0, fibLevel: fibLv };
         }
 
-        // ── 5 balls burst from center — start at F7 (large, may be off-screen) ──
+        // ── 5 balls burst outward from center at F6 ──
         const cx = W * 0.50, cy = H * 0.42;
         const initAngles = [18, 90, 162, 234, 306];
         initAngles.forEach((deg) => {
-          const f     = FIB_FRACS[7]; // F7 — very large starting size
+          const f     = FIB_FRACS[6];
           const angle = (deg + (Math.random() - 0.5) * 30) * Math.PI / 180;
-          const s     = 14 + Math.random() * 4; // explosive burst velocity
+          const s     = 5.0 + Math.random() * 1.2;
           const el    = makeEl(Math.min(W, H) * f);
-          balls.push(makeBall(el, cx + (Math.random()-0.5)*40, cy + (Math.random()-0.5)*40,
-            Math.cos(angle)*s, Math.sin(angle)*s, f, 7));
+          balls.push(makeBall(el, cx + (Math.random()-0.5)*30, cy + (Math.random()-0.5)*30,
+            Math.cos(angle)*s, Math.sin(angle)*s, f, 6));
         });
 
         const onResize = () => { W = window.innerWidth; H = window.innerHeight; };
@@ -447,17 +443,17 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           if (gSpawnCd > 0) gSpawnCd--;
 
           const navTarget  = ((window as any).__navPanelTarget as number) || NAV_W;
-          navLeftBound    += (navTarget - navLeftBound) * 0.30; // fast snap
+          navLeftBound    += (navTarget - navLeftBound) * 0.30;
           const navIsOpen  = navLeftBound > NAV_W + 40;
           const scaleNav   = navIsOpen ? Math.max(0.18, (W - navLeftBound) / (W - NAV_W)) : 1;
 
-          // Minimum size matches profile photo CSS: clamp(64px, 8vw, 100px)
           const profilePx = Math.max(64, Math.min(W * 0.08, 100));
           const minFrac   = profilePx / Math.min(W, H);
 
           const toSpawn: Ball[] = [];
           const toRemove = new Set<Ball>();
 
+          // ── Collision & Fibonacci division loop ──
           for (let i = 0; i < balls.length; i++) {
             for (let j = i + 1; j < balls.length; j++) {
               const a = balls[i], b = balls[j];
@@ -469,7 +465,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
               const rb   = b.size * 0.5;
               const minD = ra + rb + PACK_GAP;
 
-              if (dist >= minD * 1.5) continue; // fast skip
+              if (dist >= minD * 1.5) continue;
 
               const nx = dx / dist, ny = dy / dist;
 
@@ -480,10 +476,9 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
                 b.x += nx * push; b.y += ny * push;
               }
 
-              // Relative approach velocity along collision axis
               const dvn = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
 
-              // Damp approach velocity (restitution)
+              // Restitution impulse
               if (dvn < 0) {
                 const impulse = dvn * RESTITUTION;
                 a.vx += nx * impulse;
@@ -492,47 +487,36 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
                 b.vy -= ny * impulse;
               }
 
-              // Collision event: triggered when dvn < -1.5
-              // CHAINED: one shared roll for the pair — 2/8 (25%) grow, 6/8 (75%) shrink.
-              // Both balls always transform the same way (chain together in Fibonacci sequence).
+              // Fibonacci division — both balls shrink one step on hard impact
               if (dvn < -1.5) {
                 const slots = MAX_BALLS - (balls.length - toRemove.size + toSpawn.length);
                 if (gSpawnCd === 0 && a.cd === 0 && b.cd === 0 && slots >= 4) {
                   const perpX = -ny, perpY = nx;
                   const kick  = 2.5 + Math.random() * 1.5;
 
-                  // Single shared roll: 2-in-8 chance to grow, 6-in-8 to shrink
-                  const grow = Math.random() < (2 / 8);
-
-                  const transform = (parent: Ball, kickSign: number) => {
-                    const newLevel = grow
-                      ? Math.min(FIB_MAX, parent.fibLevel + 1)    // grow: ×φ up the scale (cap F8)
-                      : Math.max(FIB_FLOOR, parent.fibLevel - 1); // shrink: ÷φ down the scale (floor F2)
-
-                    const cf   = FIB_FRACS[newLevel];
+                  const divide = (parent: Ball, kickSign: number) => {
+                    if (parent.fibLevel <= 1) return; // F1 can't divide further
+                    const cl  = parent.fibLevel - 1;
+                    const cf  = FIB_FRACS[cl];
                     const c1el = makeEl(Math.min(W, H) * cf);
                     const c2el = makeEl(Math.min(W, H) * cf);
-
                     const dampedVx = parent.vx * COLLISION_DAMP;
                     const dampedVy = parent.vy * COLLISION_DAMP;
-                    // Smaller children kick harder — more aggressive behaviour at small scale
-                    const aggressiveFactor = 1 + (FIB_MAX - newLevel) * 0.25;
                     const c1 = makeBall(c1el, parent.x, parent.y,
-                      dampedVx + perpX * kick * kickSign * aggressiveFactor,
-                      dampedVy + perpY * kick * kickSign * aggressiveFactor, cf, newLevel);
+                      dampedVx + perpX * kick * kickSign,
+                      dampedVy + perpY * kick * kickSign, cf, cl);
                     const c2 = makeBall(c2el, parent.x, parent.y,
-                      dampedVx - perpX * kick * kickSign * aggressiveFactor,
-                      dampedVy - perpY * kick * kickSign * aggressiveFactor, cf, newLevel);
-                    // Start visually at parent size, lerp to real baseSize
-                    c1.size = parent.size * (grow ? 0.6 : 0.35);
-                    c2.size = parent.size * (grow ? 0.6 : 0.35);
+                      dampedVx - perpX * kick * kickSign,
+                      dampedVy - perpY * kick * kickSign, cf, cl);
+                    c1.size = parent.size * 0.35;
+                    c2.size = parent.size * 0.35;
                     c1.cd = c2.cd = SPAWN_CD_B;
                     toSpawn.push(c1, c2);
                     toRemove.add(parent);
                   };
 
-                  transform(a, 1);
-                  transform(b, -1);
+                  divide(a, 1);
+                  divide(b, -1);
                   gSpawnCd = SPAWN_CD_G;
                 }
               }
@@ -542,35 +526,31 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           toRemove.forEach(p => { p.el.remove(); const i = balls.indexOf(p); if (i >= 0) balls.splice(i, 1); });
           balls.push(...toSpawn);
 
-          // ── Wind blast: rising edge when nav opens — push all balls rightward ──
+          // ── Wind blast: fires once on nav open — proximity-weighted rightward push ──
           const navJustOpened = navIsOpen && !prevNavIsOpen;
           prevNavIsOpen = navIsOpen;
 
-          // ── PHASE 1: Per-ball physics (velocity + position, no DOM writes) ──
+          // ── PHASE 1: Per-ball physics (no DOM writes yet) ──
           for (const b of balls) {
             if (b.cd > 0) b.cd--;
 
-            // Smaller balls (lower fibLevel) are more aggressive: more gravity pull, higher speed cap
-            const aggrScale = 1 + (FIB_MAX - b.fibLevel) * 0.18; // F2 gets most, F8 gets least
-            const ballSpeedCap = MAX_SPEED * aggrScale;
-
             b.baseSize = Math.min(W, H) * b.sizeFrac * scaleNav;
-            b.vy += GRAV * aggrScale; // smaller = falls faster
+            b.vy += GRAV;
 
-            // Nav left-side push (continuous)
+            // Nav left-side push
             const leftGap = b.x - navLeftBound - b.size * 0.5;
             if (leftGap < b.size * 1.2) {
               b.vx += (1 - Math.max(0, leftGap / (b.size * 1.2))) * 0.35;
             }
 
-            // ── Wind blast — fires once when nav opens ──
+            // Wind blast — balls near the nav get pushed harder rightward
             if (navJustOpened) {
               const proximity = 1 - Math.max(0, Math.min(1, (b.x - navLeftBound) / (W - navLeftBound)));
               b.vx += WIND_FORCE * (0.3 + proximity * 0.7);
               b.vy += (Math.random() - 0.5) * WIND_FORCE * 0.5;
             }
 
-            // ── Mouse repulsion ──
+            // Mouse repulsion
             const mdx   = b.x - mouseX, mdy = b.y - mouseY;
             const mdist = Math.hypot(mdx, mdy) || 0.001;
             const maura = b.size * 2.0;
@@ -583,7 +563,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
             b.vx *= DRAG; b.vy *= DRAG;
             const spd = Math.hypot(b.vx, b.vy);
-            if (spd > ballSpeedCap) { b.vx = b.vx / spd * ballSpeedCap; b.vy = b.vy / spd * ballSpeedCap; }
+            if (spd > MAX_SPEED) { b.vx = b.vx / spd * MAX_SPEED; b.vy = b.vy / spd * MAX_SPEED; }
 
             b.x += b.vx; b.y += b.vy;
             b.size += (b.baseSize - b.size) * 0.18;
@@ -594,21 +574,17 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
             if (b.y - r < BREADCRUMB_H) { b.y = BREADCRUMB_H + r; b.vy =  Math.abs(b.vy) * BOUNCE; }
             if (b.y + r > H)            { b.y = H - r;            b.vy = -Math.abs(b.vy) * BOUNCE; }
 
-            // Fully independent random rotation — smaller balls spin faster
-            const spinNoise = (Math.random() - 0.5) * 0.06 * aggrScale;
-            b.vrot += spinNoise;
-            b.vrot *= 0.94;
-            const maxSpin = 1.2 * aggrScale;
-            b.vrot = Math.max(-maxSpin, Math.min(maxSpin, b.vrot));
-            b.rot += b.vrot;
+            // Rotation tracks heading (gentle, organic feel)
+            const heading = Math.atan2(b.vy, b.vx) * 180 / Math.PI;
+            const diff    = ((heading - b.rot + 540) % 360) - 180;
+            b.vrot       += diff * 0.0018;
+            b.vrot       *= 0.88;
+            b.vrot        = Math.max(-0.8, Math.min(0.8, b.vrot));
+            b.rot        += b.vrot;
           }
 
-          // ── PHASE 2: Hard separation sweep — guaranteed no-overlap before paint ──
-          // Iterates up to SEP_ITERS times each frame, resolving any remaining
-          // positional overlap purely by pushing circle centres apart. Completely
-          // independent of the collision/division logic above. Exits early if the
-          // scene is already clean. This is the source-of-truth that prevents any
-          // two circles from ever visually intersecting.
+          // ── PHASE 2: Hard separation sweep — no two circles ever visually overlap ──
+          // Up to 8 iterations per frame; exits early when scene is already clean.
           const SEP_ITERS = 8;
           for (let iter = 0; iter < SEP_ITERS; iter++) {
             let anyOverlap = false;
@@ -622,10 +598,8 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
                   anyOverlap = true;
                   const overlap = minD - dist;
                   const nx = dx / dist, ny = dy / dist;
-                  // Push both centres apart by half the overlap each
                   a.x -= nx * overlap * 0.5; a.y -= ny * overlap * 0.5;
                   b.x += nx * overlap * 0.5; b.y += ny * overlap * 0.5;
-                  // Keep inside bounds after correction
                   const ra = a.size * 0.5, rb = b.size * 0.5;
                   a.x = Math.max(navLeftBound + ra, Math.min(W - ra, a.x));
                   a.y = Math.max(BREADCRUMB_H  + ra, Math.min(H - ra, a.y));
@@ -634,17 +608,16 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
                 }
               }
             }
-            if (!anyOverlap) break; // converged early — skip remaining iterations
+            if (!anyOverlap) break;
           }
 
-          // ── PHASE 3: DOM commit — write final positions once, after separation ──
-          // Positions here are guaranteed overlap-free by the sweep above.
+          // ── PHASE 3: DOM commit — positions are overlap-free ──
           for (const b of balls) {
             const r = b.size * 0.5;
             const s = Math.round(b.size);
             b.el.style.width  = s + 'px';
             b.el.style.height = s + 'px';
-            b.el.style.transform = `translate(${Math.round(b.x - r)}px,${Math.round(b.y - r)}px) rotate(${b.rot.toFixed(1)}deg)`;
+            b.el.style.transform = `translate(${Math.round(b.x - r)}px,${Math.round(b.y - r)}px) rotate(${Math.round(b.rot)}deg)`;
           }
 
           frameId = requestAnimationFrame(step);
