@@ -124,6 +124,11 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         will-change: width, height, transform;
       }
 
+      /* Physics balls — same-tint fill, very low opacity */
+      .watermark-ball {
+        fill: color-mix(in srgb, var(--_tokens---color--fg) 100%, var(--_tokens---color--bg) 0%);
+      }
+
       @media (prefers-reduced-motion: reduce) {
         .watermark-logo { animation: none; }
       }
@@ -366,16 +371,17 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         let navLeftBound   = NAV_W;
 
         // ── Physics ──
-        const GRAV       = 0.055;
-        const BOUNCE     = 0.65;
-        const DRAG       = 0.992;
-        const MAX_SPEED  = 7;
-        const MAX_BALLS  = 50;
-        const SPAWN_CD_G = 80;
-        const SPAWN_CD_B = 120;
-        const FIB_FRACS  = [0, 0.040, 0.065, 0.105, 0.170, 0.275, 0.445]; // index 0 unused; F1..F6
+        const GRAV        = 0.08;   // stronger gravity → more arc movement
+        const BOUNCE      = 0.68;
+        const DRAG        = 0.997;  // less drag → balls travel further between bounces
+        const MAX_SPEED   = 14;     // higher cap → energetic initial burst
+        const MAX_BALLS   = 50;
+        const SPAWN_CD_G  = 80;
+        const SPAWN_CD_B  = 120;
+        const FIB_FRACS   = [0, 0.040, 0.065, 0.105, 0.170, 0.275, 0.445]; // index 0 unused; F1..F6
         const RESTITUTION = 0.55;
-        const PACK_GAP   = 6; // px gap maintained between circle edges
+        const PACK_GAP    = 6;      // px gap maintained between circle edges
+        const COLLISION_DAMP = 0.55; // velocity scale applied to both balls after a split/grow event
 
         type Ball = {
           el: SVGSVGElement;
@@ -395,7 +401,8 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         function makeEl(size: number): SVGSVGElement {
           const el = templateEl!.cloneNode(true) as SVGSVGElement;
           el.removeAttribute('id');
-          el.style.cssText = `position:absolute;top:0;left:0;width:${size}px;height:${size}px;opacity:0.05;will-change:transform;`;
+          el.classList.add('watermark-ball');
+          el.style.cssText = `position:absolute;top:0;left:0;width:${size}px;height:${size}px;opacity:0.028;will-change:transform;`;
           container!.appendChild(el);
           return el;
         }
@@ -412,7 +419,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         initAngles.forEach((deg) => {
           const f     = FIB_FRACS[6];
           const angle = (deg + (Math.random() - 0.5) * 30) * Math.PI / 180;
-          const s     = 5.0 + Math.random() * 1.2;
+          const s     = 12 + Math.random() * 3; // high initial burst velocity
           const el    = makeEl(Math.min(W, H) * f);
           balls.push(makeBall(el, cx + (Math.random()-0.5)*30, cy + (Math.random()-0.5)*30,
             Math.cos(angle)*s, Math.sin(angle)*s, f, 6));
@@ -479,39 +486,44 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
                 b.vy -= ny * impulse;
               }
 
-              // Division rule: triggered when approach velocity dvn < -1.5
+              // Collision event: triggered when approach velocity dvn < -1.5
+              // 50% chance: shrink (fibLevel - 1)  |  50% chance: grow (fibLevel + 1, capped F6)
+              // Both balls transform simultaneously. Velocity strongly damped after event.
               if (dvn < -1.5) {
                 const slots = MAX_BALLS - (balls.length - toRemove.size + toSpawn.length);
                 if (gSpawnCd === 0 && a.cd === 0 && b.cd === 0 && slots >= 4) {
-                  // Fibonacci division table: parent fibLevel -> child fibLevel
-                  // F6->F5, F5->F4, F4->F3, F3->F2, F2->F1, F1->can't divide
-                  const childLevel = (parent: Ball): number => parent.fibLevel - 1;
-
                   const perpX = -ny, perpY = nx;
                   const kick  = 2.5 + Math.random() * 1.5;
 
-                  const divide = (parent: Ball, kickSign: number) => {
-                    if (parent.fibLevel <= 1) return; // can't divide
-                    const cl  = childLevel(parent);
-                    const cf  = FIB_FRACS[cl];
+                  const transform = (parent: Ball, kickSign: number) => {
+                    const grow = Math.random() < 0.5; // 50/50 shrink or grow
+                    const newLevel = grow
+                      ? Math.min(6, parent.fibLevel + 1)  // grow: step up (cap F6)
+                      : Math.max(1, parent.fibLevel - 1); // shrink: step down (floor F1)
+
+                    const cf  = FIB_FRACS[newLevel];
                     const c1el = makeEl(Math.min(W, H) * cf);
                     const c2el = makeEl(Math.min(W, H) * cf);
+
+                    // Post-collision children kick apart perpendicularly, damped velocity
+                    const dampedVx = parent.vx * COLLISION_DAMP;
+                    const dampedVy = parent.vy * COLLISION_DAMP;
                     const c1 = makeBall(c1el, parent.x, parent.y,
-                      parent.vx + perpX * kick * kickSign,
-                      parent.vy + perpY * kick * kickSign, cf, cl);
+                      dampedVx + perpX * kick * kickSign,
+                      dampedVy + perpY * kick * kickSign, cf, newLevel);
                     const c2 = makeBall(c2el, parent.x, parent.y,
-                      parent.vx - perpX * kick * kickSign,
-                      parent.vy - perpY * kick * kickSign, cf, cl);
-                    // Children start at fraction of parent size, lerp to real baseSize
-                    c1.size = parent.size * 0.35;
-                    c2.size = parent.size * 0.35;
+                      dampedVx - perpX * kick * kickSign,
+                      dampedVy - perpY * kick * kickSign, cf, newLevel);
+                    // Children start visually at parent size, lerp to their real baseSize
+                    c1.size = parent.size * (grow ? 0.6 : 0.35);
+                    c2.size = parent.size * (grow ? 0.6 : 0.35);
                     c1.cd = c2.cd = SPAWN_CD_B;
                     toSpawn.push(c1, c2);
                     toRemove.add(parent);
                   };
 
-                  divide(a, 1);
-                  divide(b, -1);
+                  transform(a, 1);
+                  transform(b, -1);
                   gSpawnCd = SPAWN_CD_G;
                 }
               }
