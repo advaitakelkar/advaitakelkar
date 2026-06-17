@@ -130,6 +130,17 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         fill: color-mix(in srgb, var(--_tokens---color--bg) 60%, black);
       }
 
+      /* Dead (zombie) balls: filled circle, slightly more opaque + a slow pulse */
+      .watermark-ball--dead {
+        fill: color-mix(in srgb, var(--_tokens---color--fg) 30%, var(--_tokens---color--bg));
+        animation: dead-pulse 2.4s ease-in-out infinite;
+      }
+
+      @keyframes dead-pulse {
+        0%, 100% { opacity: 0.14; }
+        50%       { opacity: 0.22; }
+      }
+
       @media (prefers-reduced-motion: reduce) {
         .watermark-logo { animation: none; }
       }
@@ -392,22 +403,29 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           el: SVGSVGElement;
           x: number; y: number;
           vx: number; vy: number;
-          size: number;           // current rendered size (lerps toward baseSize)
-          radius: number;         // size * 0.5, kept in sync every frame
-          sizeFrac: number;       // current target size as fraction of min(W,H)
-          maxSizeFrac: number;    // ceiling for this ball's fibLevel
-          baseSize: number;       // target px = min(W,H) * sizeFrac
+          size: number;
+          radius: number;
+          sizeFrac: number;
+          maxSizeFrac: number;
+          baseSize: number;
           rot: number; vrot: number;
-          cd: number;             // size-change cooldown
-          fibLevel: number;       // Fibonacci level (MIN_FIB..MAX_FIB)
-          idleFrames: number;     // F7 only: frames spent static and away from all walls
+          cd: number;
+          fibLevel: number;
+          idleFrames: number;
+          isDead: boolean;      // true = zombie mode (filled circle, random motion)
         };
 
         const balls: Ball[] = [];
         let gSpawnCd      = 0;
         let prevNavIsOpen = false;
         let navLeftBound  = NAV_W;
-        let fibCount      = new Array(MAX_FIB + 1).fill(0); // per-frame histogram
+        let fibCount      = new Array(MAX_FIB + 1).fill(0);
+
+        // ── F7 stepped-Fibonacci oscillator state ──
+        const F7_STEP_FRAMES = 80;   // frames between each Fibonacci step (~1.3 s at 60 fps)
+        let f7TargetLevel = MIN_FIB; // the level F7 is currently lerping toward
+        let f7StepDir     = 1;       // +1 = ascending, -1 = descending
+        let f7StepCd      = F7_STEP_FRAMES;
 
         // ── Utility ──
         const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
@@ -424,8 +442,22 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           return el;
         }
 
-        function makeBall(el: SVGSVGElement, x: number, y: number, vx: number, vy: number, fib: number): Ball {
-          const frac = FIB_FRACS[fib];
+        // Creates a filled-circle SVG for dead (zombie) balls
+        function makeDeadEl(size: number): SVGSVGElement {
+          const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+          svg.setAttribute('viewBox', '0 0 100 100');
+          svg.classList.add('watermark-ball', 'watermark-ball--dead');
+          svg.style.cssText = `position:absolute;top:0;left:0;width:${size}px;height:${size}px;opacity:0.18;will-change:transform;`;
+          const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          circle.setAttribute('cx', '50'); circle.setAttribute('cy', '50'); circle.setAttribute('r', '48');
+          circle.setAttribute('fill', 'currentColor');
+          svg.appendChild(circle);
+          container!.appendChild(svg);
+          return svg;
+        }
+
+        function makeBall(el: SVGSVGElement, x: number, y: number, vx: number, vy: number, fib: number, dead = false): Ball {
+          const frac = FIB_FRACS[Math.max(MIN_FIB, Math.min(MAX_FIB, fib))];
           const base = Math.min(W, H) * frac;
           return {
             el, x, y, vx, vy,
@@ -433,7 +465,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
             sizeFrac: frac, maxSizeFrac: frac, baseSize: base,
             rot: Math.random() * 360,
             vrot: (Math.random() - 0.5) * 0.6,
-            cd: 0, fibLevel: fib, idleFrames: 0,
+            cd: 0, fibLevel: fib, idleFrames: 0, isDead: dead,
           };
         }
 
@@ -612,16 +644,32 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
                 b.vx -= nx * imp; b.vy -= ny * imp;
               }
 
-              // F7 special: touches anything → randomly grow or shrink it
-              // At max (F6) → always shrink; at min (F3) → always grow; otherwise 50/50
+              // F7 special: touches anything → randomly grow or shrink it (25% grow / 75% shrink)
+              // At max (F6) → always shrink; at min (F3) → always grow; else 25/75
+              // Dead ball touching F7 → resurrect as F6
               const touching = (dist - a.radius - b.radius) <= PACK_GAP + 8;
               if (touching && (a.fibLevel === MAX_FIB || b.fibLevel === MAX_FIB)) {
+                const f7   = a.fibLevel === MAX_FIB ? a : b;
                 const nonF7 = a.fibLevel === MAX_FIB ? b : a;
-                if (nonF7.cd === 0 && gSpawnCd === 0) {
+                void f7;
+                if (nonF7.isDead && gSpawnCd === 0) {
+                  // Resurrect: dead ball → F6
+                  const rEl = makeEl(Math.min(W, H) * FIB_FRACS[MAX_FIB - 1]);
+                  const rb  = makeBall(rEl, nonF7.x, nonF7.y,
+                    (Math.random() - 0.5) * 4, -3 - Math.random() * 2, MAX_FIB - 1);
+                  const collapseToLvl = Math.max(MIN_FIB, MAX_FIB - 3);
+                  rb.size = Math.min(W, H) * FIB_FRACS[collapseToLvl];
+                  rb.radius = rb.size * 0.5;
+                  rb.cd = SPAWN_CD_B;
+                  balls.push(rb);
+                  nonF7.el.remove();
+                  balls.splice(balls.indexOf(nonF7), 1);
+                  gSpawnCd = SPAWN_CD_G;
+                } else if (!nonF7.isDead && nonF7.cd === 0 && gSpawnCd === 0) {
                   let doGrow: boolean;
-                  if (nonF7.fibLevel >= MAX_FIB - 1)   doGrow = false;  // at F6 cap — must shrink
-                  else if (nonF7.fibLevel <= MIN_FIB)   doGrow = true;   // at F3 floor — must grow
-                  else                                   doGrow = Math.random() < 0.5;
+                  if (nonF7.fibLevel >= MAX_FIB - 1)   doGrow = false;  // at F6 — must shrink
+                  else if (nonF7.fibLevel <= MIN_FIB)   doGrow = true;   // at F3 — must grow
+                  else                                   doGrow = Math.random() < 0.25; // 25% grow
                   if (doGrow) {
                     if (growBall(nonF7)) gSpawnCd = SPAWN_CD_G;
                   } else {
@@ -630,7 +678,24 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
                     if (shrinkBall(nonF7, perpX * kick, perpY * kick)) gSpawnCd = SPAWN_CD_G;
                   }
                 }
-              } else if (touching && dvn < -1.2 && gSpawnCd === 0) {
+              } else if (touching && !a.isDead && !b.isDead &&
+                         a.fibLevel === MIN_FIB && b.fibLevel === MIN_FIB &&
+                         dvn < -1.8 && gSpawnCd === 0) {
+                // Death: two F3 balls collide hard → merge into one dead filled circle
+                const mx  = (a.x + b.x) * 0.5, my = (a.y + b.y) * 0.5;
+                const deadSize = Math.min(W, H) * FIB_FRACS[MIN_FIB] * 0.6;
+                const dEl = makeDeadEl(deadSize);
+                const db  = makeBall(dEl, mx, my,
+                  (a.vx + b.vx) * 0.3, (a.vy + b.vy) * 0.3, MIN_FIB, true);
+                db.size = deadSize; db.radius = deadSize * 0.5;
+                db.baseSize = deadSize; db.sizeFrac = FIB_FRACS[MIN_FIB] * 0.6;
+                db.maxSizeFrac = db.sizeFrac;
+                balls.push(db);
+                a.el.remove(); b.el.remove();
+                balls.splice(balls.indexOf(a), 1);
+                const bIdx = balls.indexOf(b); if (bIdx >= 0) balls.splice(bIdx, 1);
+                gSpawnCd = SPAWN_CD_G;
+              } else if (touching && dvn < -1.2 && gSpawnCd === 0 && !a.isDead && !b.isDead) {
                 // Normal size-change logic for non-F7 collisions
                 const target = a.size >= b.size ? a : b;
 
@@ -699,22 +764,46 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
             b.baseSize = Math.min(W, H) * b.sizeFrac * navScale;
 
-            // F7 special: constantly breathes between F3 size and F6 size via sine wave
+            // F7 stepped-Fibonacci oscillator: steps up/down through levels on a timer
             if (b.fibLevel === MAX_FIB) {
-              const t = 0.5 + 0.5 * Math.sin(Date.now() * 0.0008); // ~7.85 s full cycle
-              const breathFrac = FIB_FRACS[MIN_FIB] + (FIB_FRACS[MAX_FIB - 1] - FIB_FRACS[MIN_FIB]) * t;
+              if (f7StepCd <= 0) {
+                // Advance one Fibonacci step
+                f7TargetLevel += f7StepDir;
+                if (f7TargetLevel >= MAX_FIB - 1) { f7TargetLevel = MAX_FIB - 1; f7StepDir = -1; }
+                else if (f7TargetLevel <= MIN_FIB) { f7TargetLevel = MIN_FIB;     f7StepDir =  1; }
+                f7StepCd = F7_STEP_FRAMES;
+              } else { f7StepCd--; }
+              const breathFrac  = FIB_FRACS[f7TargetLevel];
               b.sizeFrac    = breathFrac;
-              b.maxSizeFrac = breathFrac; // prevent passive-regrowth from fighting the oscillator
+              b.maxSizeFrac = breathFrac;
               b.baseSize    = Math.min(W, H) * breathFrac * navScale;
             }
 
             // Passive regrowth when uncrowded (no cooldown needed — gentle lerp)
-            if (b.cd === 0 && b.sizeFrac < b.maxSizeFrac * 0.995 && b.fibLevel !== MAX_FIB) {
+            if (b.cd === 0 && b.sizeFrac < b.maxSizeFrac * 0.995 && b.fibLevel !== MAX_FIB && !b.isDead) {
               b.sizeFrac = Math.min(b.maxSizeFrac, b.sizeFrac * 1.010);
               b.baseSize = Math.min(W, H) * b.sizeFrac * navScale;
             }
 
             // Gravity — bigger balls fall harder; spacebar doubles it
+            // Dead balls: skip all normal physics, just drift randomly
+            if (b.isDead) {
+              b.vx += (Math.random() - 0.5) * 0.35;
+              b.vy += (Math.random() - 0.5) * 0.35;
+              const dspd = Math.hypot(b.vx, b.vy);
+              if (dspd > 2.5) { b.vx = b.vx / dspd * 2.5; b.vy = b.vy / dspd * 2.5; }
+              b.x += b.vx; b.y += b.vy;
+              b.radius = b.size * 0.5;
+              // Wall bounce
+              if (b.x - b.radius < navLeftBound) { b.x = navLeftBound + b.radius; b.vx =  Math.abs(b.vx); }
+              if (b.x + b.radius > W)            { b.x = W - b.radius;            b.vx = -Math.abs(b.vx); }
+              if (b.y - b.radius < BREADCRUMB_H) { b.y = BREADCRUMB_H + b.radius; b.vy =  Math.abs(b.vy); }
+              if (b.y + b.radius > H)            { b.y = H - b.radius;            b.vy = -Math.abs(b.vy); }
+              b.rot += 0.8; // slow constant spin
+              b.el.style.transform = `translate(${b.x - b.radius}px,${b.y - b.radius}px) rotate(${b.rot}deg)`;
+              continue; // skip all other physics
+            }
+
             const gravMultiplier = spaceDown ? 2.0 : 1.0;
             b.vy += ballGrav * gravMultiplier;
 
