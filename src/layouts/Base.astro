@@ -362,52 +362,56 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         const templateEl = document.getElementById('watermark-logo') as SVGSVGElement | null;
         if (!container || !templateEl) return;
 
-        // Hide template — all balls use clones for clean removal
         templateEl.style.display = 'none';
 
         let W = window.innerWidth, H = window.innerHeight;
+
+        // ── Constants (single source of truth — no duplicates) ──
         const NAV_W        = 44;
         const BREADCRUMB_H = 48;
-        let navLeftBound   = NAV_W;
-
-        // ── Physics ──
-        const GRAV        = 0.1275; // 0.5x more gravity than the previous tune
-        const BOUNCE      = 0.65;
-        const DRAG        = 0.992;
-        const MAX_SPEED   = 7;
-        const MAX_BALLS   = 100;
-        const MIN_FIB_LEVEL = 3;
-        const START_BALLS = 10;
-        const COMFORT_W   = 920;
-        const COMFORT_H   = 620;
-        const SPAWN_CD_G  = 100;
-        const SPAWN_CD_B  = 100;
-        const FIB_FRACS   = [0, 0.040, 0.065, 0.105, 0.170, 0.275, 0.445]; // index 0 unused; F1..F6
-        const RESTITUTION = 0.55;
-        const PACK_GAP    = 10;
-        const COLLISION_DAMP = 0.55;
-        const WIND_FORCE  = 4.5; // rightward impulse when nav opens
+        const MIN_FIB      = 3;       // smallest allowed Fibonacci level
+        const MAX_FIB      = 6;       // largest allowed Fibonacci level (exactly 1 at all times)
+        const FIB_FRACS    = [0, 0.040, 0.065, 0.105, 0.170, 0.275, 0.445];
+        // Pyramid target count per level: F6=1, F5=2, F4=4, F3=fills the rest
+        const TARGET_COUNT = [0, 0, 0, 99, 4, 2, 1]; // index = fibLevel; 99 = no cap on F3
+        const GRAV_BASE    = 0.10;    // base gravity — scaled per ball by sizeRatio
+        const BOUNCE       = 0.65;
+        const DRAG         = 0.993;
+        const PACK_GAP     = 10;      // px gap between ball edges
+        const RESTITUTION  = 0.55;
+        const WIND_FORCE   = 5.0;
+        const MAX_SPEED_SM = 9.0;     // speed cap for smallest ball (F3)
+        const MAX_SPEED_LG = 2.5;     // speed cap for largest ball (F6)
+        const VROT_MAX_SM  = 2.2;     // max rotation speed for smallest
+        const VROT_MAX_LG  = 0.25;    // max rotation speed for largest
+        const SPAWN_CD_G   = 90;      // global cooldown frames after any size event
+        const SPAWN_CD_B   = 110;     // per-ball cooldown frames after a size event
 
         type Ball = {
           el: SVGSVGElement;
           x: number; y: number;
           vx: number; vy: number;
-          size: number;
-          radius: number;
-          sizeFrac: number;
-          maxSizeFrac: number;
-          baseSize: number;
+          size: number;           // current rendered size (lerps toward baseSize)
+          radius: number;         // size * 0.5, kept in sync every frame
+          sizeFrac: number;       // current target size as fraction of min(W,H)
+          maxSizeFrac: number;    // ceiling for this ball's fibLevel
+          baseSize: number;       // target px = min(W,H) * sizeFrac
           rot: number; vrot: number;
-          cd: number;
-          fibLevel: number;
-          isAnchor: boolean;
+          cd: number;             // size-change cooldown
+          fibLevel: number;       // Fibonacci level (MIN_FIB..MAX_FIB)
         };
 
         const balls: Ball[] = [];
-        let gSpawnCd = 0;
+        let gSpawnCd      = 0;
         let prevNavIsOpen = false;
-        // Per-frame histogram of balls per Fibonacci level — used for diversity enforcement
-        let fibLevelCount: number[] = new Array(7).fill(0);
+        let navLeftBound  = NAV_W;
+        let fibCount      = new Array(MAX_FIB + 1).fill(0); // per-frame histogram
+
+        // ── Utility ──
+        const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+        // sizeRatio: 0 = smallest (MIN_FIB), 1 = largest (MAX_FIB)
+        const sr = (b: Ball) => (b.fibLevel - MIN_FIB) / Math.max(1, MAX_FIB - MIN_FIB);
 
         function makeEl(size: number): SVGSVGElement {
           const el = templateEl!.cloneNode(true) as SVGSVGElement;
@@ -418,288 +422,234 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           return el;
         }
 
-        function makeBall(el: SVGSVGElement, x: number, y: number, vx: number, vy: number, frac: number, fibLv: number, isAnchor = false): Ball {
+        function makeBall(el: SVGSVGElement, x: number, y: number, vx: number, vy: number, fib: number): Ball {
+          const frac = FIB_FRACS[fib];
           const base = Math.min(W, H) * frac;
-          return { el, x, y, vx, vy, size: base, radius: base * 0.5, sizeFrac: frac, maxSizeFrac: frac, baseSize: base,
-                   rot: Math.random() * 360, vrot: 0, cd: 0, fibLevel: fibLv, isAnchor };
+          return {
+            el, x, y, vx, vy,
+            size: base, radius: base * 0.5,
+            sizeFrac: frac, maxSizeFrac: frac, baseSize: base,
+            rot: Math.random() * 360,
+            vrot: (Math.random() - 0.5) * 0.6,
+            cd: 0, fibLevel: fib,
+          };
         }
 
-        function packGapFor(a: Ball, b: Ball) {
-          return PACK_GAP;
-        }
-
-        function shrinkBall(ball: Ball, impulseX = 0, impulseY = 0) {
+        // Shrink a ball one Fibonacci step (diversity-aware: jumps to sparsest level below)
+        function shrinkBall(ball: Ball, impulseX = 0, impulseY = 0): boolean {
           if (ball.cd > 0) return false;
-          // Diversity: prefer jumping to a less-populated level below
-          const prevLvl = Math.max(MIN_FIB_LEVEL, ball.fibLevel - 1);
-          const avgPL = Math.max(1, balls.length / (6 - MIN_FIB_LEVEL + 1));
-          const currOvercrowded = (fibLevelCount[ball.fibLevel] || 0) > avgPL * 1.3;
-          const prevUnderused   = (fibLevelCount[prevLvl] || 0) < avgPL * 0.7;
-          if (prevLvl !== ball.fibLevel && currOvercrowded && prevUnderused) {
-            // Jump fibLevel directly to the sparse level below
-            ball.fibLevel    = prevLvl;
-            ball.maxSizeFrac = FIB_FRACS[prevLvl];
-            ball.sizeFrac    = FIB_FRACS[prevLvl] * 0.92;
-          } else {
-            ball.sizeFrac = Math.max(FIB_FRACS[MIN_FIB_LEVEL] * 0.74, ball.sizeFrac * 0.82);
+          // Find the most underpopulated level below
+          let targetLvl = ball.fibLevel - 1;
+          for (let l = ball.fibLevel - 1; l >= MIN_FIB; l--) {
+            if ((fibCount[l] || 0) < (fibCount[targetLvl] || 0)) targetLvl = l;
           }
-          ball.baseSize = Math.min(W, H) * ball.sizeFrac;
+          targetLvl = Math.max(MIN_FIB, targetLvl);
+          if (targetLvl === ball.fibLevel) return false;
+          ball.fibLevel    = targetLvl;
+          ball.maxSizeFrac = FIB_FRACS[targetLvl];
+          ball.sizeFrac    = FIB_FRACS[targetLvl] * 0.88;
+          ball.baseSize    = Math.min(W, H) * ball.sizeFrac;
           ball.vx = ball.vx * 0.45 + impulseX;
           ball.vy = ball.vy * 0.45 + impulseY;
           ball.cd = SPAWN_CD_B;
           return true;
         }
 
-        function growBall(ball: Ball) {
-          if (ball.cd > 0 || ball.sizeFrac >= ball.maxSizeFrac * 0.995) return false;
-          // Diversity: prefer jumping to a less-populated level above
-          const nextLvl = Math.min(6, ball.fibLevel + 1);
-          const avgPL = Math.max(1, balls.length / (6 - MIN_FIB_LEVEL + 1));
-          const currOvercrowded = (fibLevelCount[ball.fibLevel] || 0) > avgPL * 1.3;
-          const nextUnderused   = nextLvl !== ball.fibLevel && (fibLevelCount[nextLvl] || 0) < avgPL * 0.7;
-          if (currOvercrowded && nextUnderused) {
-            ball.fibLevel    = nextLvl;
-            ball.maxSizeFrac = FIB_FRACS[nextLvl];
-          }
-          ball.sizeFrac = Math.min(ball.maxSizeFrac, ball.sizeFrac * 1.08);
-          ball.baseSize = Math.min(W, H) * ball.sizeFrac;
-          ball.cd = Math.floor(SPAWN_CD_B * 0.5);
+        // Grow a ball one Fibonacci step (only if pyramid has room)
+        function growBall(ball: Ball): boolean {
+          if (ball.cd > 0) return false;
+          const nextLvl = ball.fibLevel + 1;
+          if (nextLvl > MAX_FIB) return false;
+          if ((fibCount[nextLvl] || 0) >= (TARGET_COUNT[nextLvl] ?? 0)) return false;
+          ball.fibLevel    = nextLvl;
+          ball.maxSizeFrac = FIB_FRACS[nextLvl];
+          ball.sizeFrac    = FIB_FRACS[nextLvl] * 0.80;
+          ball.baseSize    = Math.min(W, H) * ball.sizeFrac;
+          ball.cd = SPAWN_CD_B;
           return true;
         }
 
-        // ── 10 starting pieces: 5 big, 3 bigger, 2 largest; one largest anchors the center. ──
-        const cx = W * 0.50, cy = H * 0.48;
-        const startLayout = [
-          { level: 6, scale: 1.25, angle: 0,   dist: 0,    anchor: true },
-          { level: 6, scale: 1.04, angle: 180, dist: 0.28 },
-          { level: 5, scale: 1.20, angle: 36,  dist: 0.31 },
-          { level: 5, scale: 1.10, angle: 292, dist: 0.34 },
-          { level: 5, scale: 1.02, angle: 112, dist: 0.36 },
-          { level: 4, scale: 1.26, angle: 228, dist: 0.38 },
-          { level: 4, scale: 1.18, angle: 72,  dist: 0.43 },
-          { level: 4, scale: 1.10, angle: 324, dist: 0.44 },
-          { level: 4, scale: 1.04, angle: 150, dist: 0.46 },
-          { level: 4, scale: 0.98, angle: 260, dist: 0.47 },
-        ];
-        startLayout.slice(0, START_BALLS).forEach((item) => {
-          const angle = item.angle * Math.PI / 180;
-          const radius = Math.min(W, H) * item.dist;
-          const f = FIB_FRACS[item.level] * item.scale;
-          const speed = item.anchor ? 0 : 2.8 + (6 - item.level) * 0.55;
-          const el = makeEl(Math.min(W, H) * f);
+        // ── Initial layout: pyramid (1×F6, 2×F5, 3×F4, 4×F3) ──
+        const cx = W * 0.50, cy = H * 0.46;
+        ([
+          { fib: 6, angle:   0, dist: 0.00 },  // the one big ball — center
+          { fib: 5, angle:  60, dist: 0.22 },
+          { fib: 5, angle: 240, dist: 0.22 },
+          { fib: 4, angle: 150, dist: 0.36 },
+          { fib: 4, angle: 300, dist: 0.36 },
+          { fib: 4, angle:  30, dist: 0.40 },
+          { fib: 3, angle: 120, dist: 0.50 },
+          { fib: 3, angle: 210, dist: 0.50 },
+          { fib: 3, angle: 330, dist: 0.50 },
+          { fib: 3, angle: 270, dist: 0.54 },
+        ] as { fib: number; angle: number; dist: number }[]).forEach(({ fib, angle, dist }) => {
+          const rad   = angle * Math.PI / 180;
+          const r     = Math.min(W, H) * dist;
+          const speed = fib === MAX_FIB ? 0.3 : (MAX_FIB + 1 - fib) * 1.3 + Math.random() * 1.5;
+          const el    = makeEl(Math.min(W, H) * FIB_FRACS[fib]);
           balls.push(makeBall(
             el,
-            cx + Math.cos(angle) * radius,
-            cy + Math.sin(angle) * radius,
-            Math.cos(angle + Math.PI / 2) * speed,
-            Math.sin(angle + Math.PI / 2) * speed,
-            f,
-            item.level,
-            Boolean(item.anchor)
+            cx + Math.cos(rad) * r,
+            cy + Math.sin(rad) * r,
+            Math.cos(rad + Math.PI / 2) * speed,
+            Math.sin(rad + Math.PI / 2) * speed,
+            fib,
           ));
         });
 
-        const onResize = () => { W = window.innerWidth; H = window.innerHeight; };
-        window.addEventListener('resize', onResize, { passive: true });
-
-        // ── Mouse repulsion tracking ──
-        let mouseX = -9999, mouseY = -9999;
-        const onMouseMove = (e: MouseEvent) => { mouseX = e.clientX; mouseY = e.clientY; };
+        // ── Event listeners ──
+        const onResize    = () => { W = window.innerWidth; H = window.innerHeight; };
+        const onMouseMove  = (e: MouseEvent) => { mouseX = e.clientX; mouseY = e.clientY; };
         const onMouseLeave = () => { mouseX = -9999; mouseY = -9999; };
-        window.addEventListener('mousemove', onMouseMove, { passive: true });
-        window.addEventListener('mouseleave', onMouseLeave, { passive: true });
+        window.addEventListener('resize',     onResize,    { passive: true });
+        window.addEventListener('mousemove',  onMouseMove, { passive: true });
+        window.addEventListener('mouseleave', onMouseLeave,{ passive: true });
 
+        let mouseX = -9999, mouseY = -9999;
         let frameId: number;
 
         function step() {
           if (gSpawnCd > 0) gSpawnCd--;
 
-          const navTarget  = ((window as any).__navPanelTarget as number) || NAV_W;
-          navLeftBound    += (navTarget - navLeftBound) * 0.30;
-          const navIsOpen  = navLeftBound > NAV_W + 40;
-          const usableW    = Math.max(1, W - navLeftBound);
-          const usableH    = Math.max(1, H - BREADCRUMB_H);
-          const compactSpace = usableW < COMFORT_W || usableH < COMFORT_H;
-          const spaceRatio = Math.min(1, (usableW * usableH) / (COMFORT_W * COMFORT_H));
-          const spaceScale = compactSpace
-            ? Math.max(0.68, Math.min(1, 0.78 + Math.sqrt(spaceRatio) * 0.22))
-            : 1;
-          const navScale = navIsOpen && compactSpace
-            ? Math.max(0.74, Math.min(1, usableW / (W - NAV_W)))
-            : 1;
-          const responsiveScale = Math.min(spaceScale, navScale);
-          const navPressure = navIsOpen && usableW / Math.max(1, W - NAV_W) < 0.96;
+          // Nav tracking
+          const navTarget = ((window as any).__navPanelTarget as number) || NAV_W;
+          navLeftBound   += (navTarget - navLeftBound) * 0.30;
+          const navIsOpen = navLeftBound > NAV_W + 40;
+          const usableW   = Math.max(1, W - navLeftBound);
+          const navScale  = navIsOpen ? Math.max(0.22, usableW / (W - NAV_W)) : 1;
 
-          const toRemove = new Set<Ball>();
-
-          // Calculate area fill ratio to determine if desktop is crowded or empty
-          // Also build a Fibonacci level histogram for diversity enforcement
-          fibLevelCount.fill(0);
+          // ── Per-frame histogram & fill ratio ──
+          fibCount.fill(0);
           let totalArea = 0;
           for (const b of balls) {
             const r = b.size * 0.5;
             totalArea += Math.PI * r * r;
-            if (b.fibLevel >= 1 && b.fibLevel <= 6) fibLevelCount[b.fibLevel]++;
+            if (b.fibLevel >= MIN_FIB && b.fibLevel <= MAX_FIB) fibCount[b.fibLevel]++;
           }
-          const activeLevels = 6 - MIN_FIB_LEVEL + 1;
-          const avgPerLevel  = Math.max(1, balls.length / activeLevels);
-          const availArea = Math.max(1000, usableW * usableH);
+          const availArea = Math.max(1000, usableW * (H - BREADCRUMB_H));
           const fillRatio = totalArea / availArea;
-          const shrinkThreshold = compactSpace ? 0.36 : 0.58;
-          const growThreshold = compactSpace ? 0.16 : 0.24;
 
-          // ── Collision & Fibonacci division loop ──
+          // ── Collision loop ──
           for (let i = 0; i < balls.length; i++) {
             for (let j = i + 1; j < balls.length; j++) {
               const a = balls[i], b = balls[j];
-              if (toRemove.has(a) || toRemove.has(b)) continue;
 
-              const dx   = b.x - a.x, dy = b.y - a.y;
+              const dx = b.x - a.x, dy = b.y - a.y;
               const dist = Math.hypot(dx, dy) || 0.001;
-              const ra   = a.radius;
-              const rb   = b.radius;
-              const gap  = packGapFor(a, b);
-              const minD = ra + rb + gap;
-              const edgeDistance = dist - (ra + rb);
-              const almostTouching = edgeDistance <= gap + 8;
+              const minD = a.radius + b.radius + PACK_GAP;
 
-              if (dist >= minD * 1.25) continue;
+              if (dist >= minD * 1.3) continue;
 
               const nx = dx / dist, ny = dy / dist;
 
-              // Circle packing: push apart if overlapping
+              // Push apart (positional correction)
               if (dist < minD) {
                 const push = (minD - dist) * 0.5;
-                const aWeight = a.isAnchor ? 0.15 : 1;
-                const bWeight = b.isAnchor ? 0.15 : 1;
-                const weightTotal = aWeight + bWeight;
-                a.x -= nx * push * (bWeight / weightTotal) * 2; a.y -= ny * push * (bWeight / weightTotal) * 2;
-                b.x += nx * push * (aWeight / weightTotal) * 2; b.y += ny * push * (aWeight / weightTotal) * 2;
+                a.x -= nx * push; a.y -= ny * push;
+                b.x += nx * push; b.y += ny * push;
               }
 
+              // Elastic velocity impulse
               const dvn = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
-
-              // Restitution impulse
               if (dvn < 0) {
-                const impulse = dvn * RESTITUTION;
-                a.vx += nx * impulse;
-                a.vy += ny * impulse;
-                b.vx -= nx * impulse;
-                b.vy -= ny * impulse;
+                const imp = dvn * RESTITUTION;
+                a.vx += nx * imp; a.vy += ny * imp;
+                b.vx -= nx * imp; b.vy -= ny * imp;
               }
 
-              const big = a.size >= b.size ? a : b;
-              const small = big === a ? b : a;
-              const sizeDelta = big.size / Math.max(1, small.size);
-              if (almostTouching && dvn < -0.8 && sizeDelta > 1.55 && small.cd === 0) {
-                const kick = 1.7 + Math.min(2.4, sizeDelta * 0.35);
-                shrinkBall(big, (big === a ? -nx : nx) * kick, (big === a ? -ny : ny) * kick);
-                small.cd = Math.max(small.cd, 34);
-              }
+              // Size-change event on hard impact
+              const touching = (dist - a.radius - b.radius) <= PACK_GAP + 8;
+              if (touching && dvn < -1.2 && gSpawnCd === 0) {
+                const target = a.size >= b.size ? a : b;
 
-              // Space-aware + diversity-aware: shrink when crowded or overcrowded level
-              if (almostTouching && dvn < -1.5) {
-                let action = "none";
-                const rProb = Math.random();
-                
-                // Fill ratio drives base probabilities
-                let shrinkProb = Math.max(0, (fillRatio - 0.15) / 0.20);
-                let growProb   = Math.max(0, (0.08 - fillRatio) / 0.06);
+                // Pyramid enforcement: how overcrowded is this level?
+                const cap  = TARGET_COUNT[target.fibLevel] ?? 1;
+                const cur  = fibCount[target.fibLevel] ?? 0;
+                const overcrowded = cur > cap;
 
-                // Diversity bias: if either ball's level is overcrowded, push transformation
-                const aCount = fibLevelCount[a.fibLevel] || 0;
-                const bCount = fibLevelCount[b.fibLevel] || 0;
-                const aOvercrowded = aCount > avgPerLevel * 1.4;
-                const bOvercrowded = bCount > avgPerLevel * 1.4;
-                if (aOvercrowded || bOvercrowded) {
-                  // Figure out which direction helps: is the level below or above less crowded?
-                  const target  = a.size >= b.size ? a : b;
-                  const downLvl = Math.max(MIN_FIB_LEVEL, target.fibLevel - 1);
-                  const upLvl   = Math.min(6, target.fibLevel + 1);
-                  const downSparse = (fibLevelCount[downLvl] || 0) < avgPerLevel * 0.75;
-                  const upSparse   = (fibLevelCount[upLvl]   || 0) < avgPerLevel * 0.75;
-                  if (downSparse) shrinkProb = Math.min(0.85, shrinkProb + 0.30);
-                  if (upSparse)   growProb   = Math.min(0.30, growProb   + 0.20);
-                  // If neither is sparser, still nudge shrink so they mix
-                  if (!downSparse && !upSparse) shrinkProb = Math.min(0.85, shrinkProb + 0.15);
-                }
+                // Shrink probability: fill-ratio base + pyramid pressure
+                let shrinkP = Math.max(0, (fillRatio - 0.12) / 0.22);
+                if (overcrowded) shrinkP = Math.max(shrinkP, 0.65);
+                shrinkP = Math.min(0.88, shrinkP);
 
-                shrinkProb = Math.min(shrinkProb, 0.85);
-                growProb   = Math.min(growProb, 0.30);
+                // Grow only when near-empty AND next level has room
+                const nextHasRoom = target.fibLevel < MAX_FIB &&
+                  (fibCount[target.fibLevel + 1] || 0) < (TARGET_COUNT[target.fibLevel + 1] ?? 0);
+                const growP = (fillRatio < 0.08 && nextHasRoom) ? 0.28 : 0;
 
-                if (rProb < shrinkProb) action = "shrink";
-                else if (rProb < shrinkProb + growProb) action = "grow";
-
-                if (action === "shrink") {
-                  if (gSpawnCd === 0 && a.cd === 0 && b.cd === 0) {
-                    const perpX = -ny, perpY = nx;
-                    const kick  = 2.5 + Math.random() * 1.5;
-                    const target = a.size > b.size ? a : b;
-                    shrinkBall(target, perpX * kick, perpY * kick);
-                    if (a.cd > 0 || b.cd > 0) gSpawnCd = SPAWN_CD_G;
-                  }
+                const rng = Math.random();
+                if (rng < shrinkP && target.cd === 0) {
+                  const perpX = -ny, perpY = nx;
+                  const kick  = 2.0 + Math.random() * 2.0;
+                  if (shrinkBall(target, perpX * kick, perpY * kick)) gSpawnCd = SPAWN_CD_G;
+                } else if (rng < shrinkP + growP && target.cd === 0) {
+                  if (growBall(target)) gSpawnCd = SPAWN_CD_G;
                 }
               }
             }
           }
 
-          toRemove.forEach(p => { p.el.remove(); const i = balls.indexOf(p); if (i >= 0) balls.splice(i, 1); });
-          // ── Wind blast: fires once on nav open — proximity-weighted rightward push ──
+          // ── F6 singleton enforcement ──
+          // If somehow more than 1 F6 ball exists, immediately demote extras
+          if (fibCount[MAX_FIB] > 1) {
+            let demoted = 0;
+            for (const b of balls) {
+              if (b.fibLevel === MAX_FIB && demoted < fibCount[MAX_FIB] - 1 && b.cd === 0) {
+                b.fibLevel    = MAX_FIB - 1;
+                b.maxSizeFrac = FIB_FRACS[MAX_FIB - 1];
+                b.sizeFrac    = FIB_FRACS[MAX_FIB - 1] * 0.90;
+                b.baseSize    = Math.min(W, H) * b.sizeFrac;
+                b.cd          = SPAWN_CD_B;
+                demoted++;
+              }
+            }
+          }
+
+          // ── Wind blast on nav open (fires once on rising edge) ──
           const navJustOpened = navIsOpen && !prevNavIsOpen;
           prevNavIsOpen = navIsOpen;
-          const smallestBallSize = balls.reduce((min, b) => Math.min(min, b.size), Infinity);
-          const mouseRepelRadius = Number.isFinite(smallestBallSize) ? smallestBallSize * 0.5 : 0;
 
-          // ── PHASE 1: Per-ball physics (no DOM writes yet) ──
+          // ── PHASE 1: Per-ball physics ──
           for (const b of balls) {
             if (b.cd > 0) b.cd--;
 
-            const sizeRatio = (b.fibLevel - MIN_FIB_LEVEL) / (6 - MIN_FIB_LEVEL);
-            const ballGrav = GRAV * (0.5 + sizeRatio * 1.25);
-            const ballSpeedCap = MAX_SPEED * (1.75 - sizeRatio * 0.9);
+            const ratio        = sr(b);                                   // 0=F3, 1=F6
+            const ballGrav     = GRAV_BASE * lerp(0.35, 1.30, ratio);   // big=heavy, small=light
+            const ballSpeedCap = lerp(MAX_SPEED_SM, MAX_SPEED_LG, ratio);
+            const ballVrotMax  = lerp(VROT_MAX_SM,  VROT_MAX_LG,  ratio);
 
-            b.baseSize = Math.min(W, H) * b.sizeFrac * responsiveScale;
-            growBall(b); // grow back when space allows
+            b.baseSize = Math.min(W, H) * b.sizeFrac * navScale;
 
-            if (b.isAnchor) {
-              const anchorX = navLeftBound + usableW * 0.5;
-              const anchorY = BREADCRUMB_H + usableH * 0.5;
-              b.vx += (anchorX - b.x) * 0.012;
-              b.vy += (anchorY - b.y) * 0.012;
-              b.vx *= 0.92;
-              b.vy *= 0.92;
-            } else {
-              b.vy += ballGrav;
+            // Passive regrowth when uncrowded (no cooldown needed — gentle lerp)
+            if (b.cd === 0 && b.sizeFrac < b.maxSizeFrac * 0.995) {
+              b.sizeFrac = Math.min(b.maxSizeFrac, b.sizeFrac * 1.010);
+              b.baseSize = Math.min(W, H) * b.sizeFrac * navScale;
             }
 
+            // Gravity — bigger balls fall harder
+            b.vy += ballGrav;
+
             // Nav left-side push
-            const leftGap = b.x - navLeftBound - b.size * 0.5;
+            const leftGap = b.x - navLeftBound - b.radius;
             if (leftGap < b.size * 1.2) {
               b.vx += (1 - Math.max(0, leftGap / (b.size * 1.2))) * 0.35;
             }
 
-            // Wind blast — balls near the nav get pushed harder rightward
+            // Wind blast — proximity-weighted rightward impulse
             if (navJustOpened) {
-              const proximity = 1 - Math.max(0, Math.min(1, (b.x - navLeftBound) / (W - navLeftBound)));
+              const proximity = 1 - Math.max(0, Math.min(1, (b.x - navLeftBound) / usableW));
               b.vx += WIND_FORCE * (0.3 + proximity * 0.7);
-              b.vy += (Math.random() - 0.5) * WIND_FORCE * 0.5;
+              b.vy += (Math.random() - 0.5) * WIND_FORCE * 0.4;
             }
 
             // Mouse repulsion
             const mdx   = b.x - mouseX, mdy = b.y - mouseY;
             const mdist = Math.hypot(mdx, mdy) || 0.001;
-            const noTouchRadius = b.size * 0.5 + mouseRepelRadius;
-            const maura = noTouchRadius + b.size * 1.35;
+            const maura = b.size * 2.0;
             if (mdist < maura) {
-              const mt = 1 - Math.max(0, mdist - noTouchRadius) / (maura - noTouchRadius);
-              const mf = mt * mt * 1.35;
-              b.vx += (mdx / mdist) * mf;
-              b.vy += (mdy / mdist) * mf;
-              if (mdist < noTouchRadius) {
-                const push = noTouchRadius - mdist;
-                b.x += (mdx / mdist) * push;
-                b.y += (mdy / mdist) * push;
-              }
+              const mt = 1 - mdist / maura;
+              b.vx += (mdx / mdist) * mt * mt * 1.0;
+              b.vy += (mdy / mdist) * mt * mt * 1.0;
             }
 
             b.vx *= DRAG; b.vy *= DRAG;
@@ -707,62 +657,57 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
             if (spd > ballSpeedCap) { b.vx = b.vx / spd * ballSpeedCap; b.vy = b.vy / spd * ballSpeedCap; }
 
             b.x += b.vx; b.y += b.vy;
-            b.size += (b.baseSize - b.size) * 0.18;
-            b.radius = b.size * 0.5;
-            const r = b.radius;
+            b.size   += (b.baseSize - b.size) * 0.15;
+            b.radius  = b.size * 0.5;
 
-            if (b.x - r < navLeftBound) { b.x = navLeftBound + r; b.vx =  Math.abs(b.vx) * BOUNCE; }
-            if (b.x + r > W)            { b.x = W - r;            b.vx = -Math.abs(b.vx) * BOUNCE; }
-            if (b.y - r < BREADCRUMB_H) { b.y = BREADCRUMB_H + r; b.vy =  Math.abs(b.vy) * BOUNCE; }
-            if (b.y + r > H)            { b.y = H - r;            b.vy = -Math.abs(b.vy) * BOUNCE; }
+            // Wall bounce
+            if (b.x - b.radius < navLeftBound) { b.x = navLeftBound + b.radius; b.vx =  Math.abs(b.vx) * BOUNCE; }
+            if (b.x + b.radius > W)            { b.x = W - b.radius;            b.vx = -Math.abs(b.vx) * BOUNCE; }
+            if (b.y - b.radius < BREADCRUMB_H) { b.y = BREADCRUMB_H + b.radius; b.vy =  Math.abs(b.vy) * BOUNCE; }
+            if (b.y + b.radius > H)            { b.y = H - b.radius;            b.vy = -Math.abs(b.vy) * BOUNCE; }
 
-            // Rotation tracks heading (gentle, organic feel)
-            const heading = Math.atan2(b.vy, b.vx) * 180 / Math.PI;
-            const diff    = ((heading - b.rot + 540) % 360) - 180;
-            b.vrot       += diff * 0.0018;
-            b.vrot       *= 0.88;
-            b.vrot        = Math.max(-0.8, Math.min(0.8, b.vrot));
-            b.rot        += b.vrot;
+            // Rotation — small=fast & jittery, big=slow & smooth
+            const rotBlend = lerp(0.014, 0.003, ratio); // how fast rot tracks heading
+            const rotDamp  = lerp(0.80,  0.94,  ratio); // small: spins freely, big: damped
+            const heading  = Math.atan2(b.vy, b.vx) * 180 / Math.PI;
+            const diff     = ((heading - b.rot + 540) % 360) - 180;
+            b.vrot += diff * rotBlend;
+            b.vrot *= rotDamp;
+            b.vrot  = Math.max(-ballVrotMax, Math.min(ballVrotMax, b.vrot));
+            b.rot  += b.vrot;
           }
 
-          // ── PHASE 2: Hard separation sweep — no two circles ever visually overlap ──
-          // Up to 8 iterations per frame; exits early when scene is already clean.
-          const SEP_ITERS = 8;
-          for (let iter = 0; iter < SEP_ITERS; iter++) {
+          // ── PHASE 2: Hard separation sweep (up to 8 iterations) ──
+          for (let iter = 0; iter < 8; iter++) {
             let anyOverlap = false;
             for (let i = 0; i < balls.length; i++) {
               for (let j = i + 1; j < balls.length; j++) {
                 const a = balls[i], b = balls[j];
                 const dx   = b.x - a.x, dy = b.y - a.y;
                 const dist = Math.hypot(dx, dy) || 0.001;
-                const minD = (a.size + b.size) * 0.5 + packGapFor(a, b);
+                const minD = a.radius + b.radius + PACK_GAP;
                 if (dist < minD) {
                   anyOverlap = true;
                   const overlap = minD - dist;
                   const nx = dx / dist, ny = dy / dist;
-                  const aWeight = a.isAnchor ? 0.15 : 1;
-                  const bWeight = b.isAnchor ? 0.15 : 1;
-                  const weightTotal = aWeight + bWeight;
-                  a.x -= nx * overlap * (bWeight / weightTotal); a.y -= ny * overlap * (bWeight / weightTotal);
-                  b.x += nx * overlap * (aWeight / weightTotal); b.y += ny * overlap * (aWeight / weightTotal);
-                  const ra = a.size * 0.5, rb = b.size * 0.5;
-                  a.x = Math.max(navLeftBound + ra, Math.min(W - ra, a.x));
-                  a.y = Math.max(BREADCRUMB_H  + ra, Math.min(H - ra, a.y));
-                  b.x = Math.max(navLeftBound + rb, Math.min(W - rb, b.x));
-                  b.y = Math.max(BREADCRUMB_H  + rb, Math.min(H - rb, b.y));
+                  a.x -= nx * overlap * 0.5; a.y -= ny * overlap * 0.5;
+                  b.x += nx * overlap * 0.5; b.y += ny * overlap * 0.5;
+                  a.x = Math.max(navLeftBound + a.radius, Math.min(W - a.radius, a.x));
+                  a.y = Math.max(BREADCRUMB_H  + a.radius, Math.min(H - a.radius, a.y));
+                  b.x = Math.max(navLeftBound + b.radius, Math.min(W - b.radius, b.x));
+                  b.y = Math.max(BREADCRUMB_H  + b.radius, Math.min(H - b.radius, b.y));
                 }
               }
             }
             if (!anyOverlap) break;
           }
 
-          // ── PHASE 3: DOM commit — positions are overlap-free ──
+          // ── PHASE 3: DOM commit ──
           for (const b of balls) {
-            const r = b.size * 0.5;
             const s = Math.round(b.size);
             b.el.style.width  = s + 'px';
             b.el.style.height = s + 'px';
-            b.el.style.transform = `translate(${Math.round(b.x - r)}px,${Math.round(b.y - r)}px) rotate(${Math.round(b.rot)}deg)`;
+            b.el.style.transform = `translate(${Math.round(b.x - b.radius)}px,${Math.round(b.y - b.radius)}px) rotate(${Math.round(b.rot)}deg)`;
           }
 
           frameId = requestAnimationFrame(step);
@@ -771,8 +716,8 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         frameId = requestAnimationFrame(step);
 
         return () => {
-          window.removeEventListener('resize', onResize);
-          window.removeEventListener('mousemove', onMouseMove);
+          window.removeEventListener('resize',     onResize);
+          window.removeEventListener('mousemove',  onMouseMove);
           window.removeEventListener('mouseleave', onMouseLeave);
           cancelAnimationFrame(frameId);
           balls.forEach(b => b.el.remove());
