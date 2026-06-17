@@ -400,6 +400,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           rot: number; vrot: number;
           cd: number;             // size-change cooldown
           fibLevel: number;       // Fibonacci level (MIN_FIB..MAX_FIB)
+          idleFrames: number;     // F7 only: frames spent static and away from all walls
         };
 
         const balls: Ball[] = [];
@@ -432,7 +433,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
             sizeFrac: frac, maxSizeFrac: frac, baseSize: base,
             rot: Math.random() * 360,
             vrot: (Math.random() - 0.5) * 0.6,
-            cd: 0, fibLevel: fib,
+            cd: 0, fibLevel: fib, idleFrames: 0,
           };
         }
 
@@ -738,6 +739,24 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
             if (b.x + b.radius > W)            { b.x = W - b.radius;            b.vx = -Math.abs(b.vx) * BOUNCE; }
             if (b.y - b.radius < BREADCRUMB_H) { b.y = BREADCRUMB_H + b.radius; b.vy =  Math.abs(b.vy) * BOUNCE; }
             if (b.y + b.radius > H)            { b.y = H - b.radius;            b.vy = -Math.abs(b.vy) * BOUNCE; }
+
+            // ── F7 idle decay: if the singleton is static and not hugging any wall, shrink ──
+            if (b.fibLevel === MAX_FIB) {
+              const spd      = Math.hypot(b.vx, b.vy);
+              const nearWall = (b.x - b.radius - navLeftBound) < b.size  // left wall
+                            || (W - (b.x + b.radius))          < b.size  // right wall
+                            || (b.y - b.radius - BREADCRUMB_H) < b.size  // top wall
+                            || (H - (b.y + b.radius))           < b.size; // bottom wall
+              if (spd < 0.5 && !nearWall) {
+                b.idleFrames++;
+              } else {
+                b.idleFrames = 0;
+              }
+              if (b.idleFrames > 180 && b.cd === 0) { // ~3 s at 60 fps
+                shrinkBall(b, (Math.random() - 0.5) * 1.5, (Math.random() - 0.5) * 1.5);
+                b.idleFrames = 0;
+              }
+            }
 
             // Rotation — small=fast & jittery, big=slow & smooth
             const rotBlend = lerp(0.014, 0.003, ratio); // how fast rot tracks heading
