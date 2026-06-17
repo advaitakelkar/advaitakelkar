@@ -370,13 +370,12 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         const BOUNCE     = 0.65;
         const DRAG       = 0.992;
         const MAX_SPEED  = 7;
-        const REPEL_AURA = 1.8;   // soft repulsion zone
-        const MAX_BALLS  = 36;
+        const MAX_BALLS  = 50;
         const SPAWN_CD_G = 80;
         const SPAWN_CD_B = 120;
-        const SVG_W      = 595.2;   // logo viewBox width
-        const SVG_H      = 841.92;  // logo viewBox height
-        const SAMPLES    = 24;      // outline sample points per logo (8 per path)
+        const FIB_FRACS  = [0, 0.040, 0.065, 0.105, 0.170, 0.275, 0.445]; // index 0 unused; F1..F6
+        const RESTITUTION = 0.55;
+        const PACK_GAP   = 6; // px gap maintained between circle edges
 
         type Ball = {
           el: SVGSVGElement;
@@ -387,69 +386,11 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           baseSize: number;
           rot: number; vrot: number;
           cd: number;
-          hull: Float32Array; // convex hull of all paths in SVG viewBox coords
+          fibLevel: number;
         };
 
         const balls: Ball[] = [];
         let gSpawnCd = 0;
-
-        // Sample SAMPLES points uniformly along ALL paths' outlines
-        function samplePts(el: SVGSVGElement): Float32Array {
-          const pathEls = el.querySelectorAll('path') as NodeListOf<SVGPathElement>;
-          const out     = new Float32Array(SAMPLES * 2);
-          const perPath = Math.ceil(SAMPLES / pathEls.length);
-          let idx = 0;
-          pathEls.forEach(p => {
-            const len = p.getTotalLength();
-            for (let i = 0; i < perPath && idx < SAMPLES; i++, idx++) {
-              const pt = p.getPointAtLength((i / perPath) * len);
-              out[idx * 2]     = pt.x;
-              out[idx * 2 + 1] = pt.y;
-            }
-          });
-          return out;
-        }
-
-        // Jarvis-march convex hull of pts (Float32Array of interleaved x,y)
-        // Returns CCW hull in SVG viewBox coords (Y-down, so visually CW)
-        function convexHull(pts: Float32Array): Float32Array {
-          const n = pts.length >> 1;
-          if (n < 3) return pts.slice();
-          // Lowest-then-leftmost start point
-          let s = 0;
-          for (let i = 1; i < n; i++) {
-            const yi = pts[i*2+1], ys = pts[s*2+1];
-            if (yi > ys || (yi === ys && pts[i*2] < pts[s*2])) s = i;
-          }
-          const out: number[] = [];
-          let cur = s;
-          do {
-            out.push(pts[cur*2], pts[cur*2+1]);
-            let nxt = (cur + 1) % n;
-            for (let i = 0; i < n; i++) {
-              if (i === cur) continue;
-              const ax = pts[nxt*2] - pts[cur*2], ay = pts[nxt*2+1] - pts[cur*2+1];
-              const bx = pts[i*2]   - pts[cur*2], by = pts[i*2+1]   - pts[cur*2+1];
-              // In Y-down: negative cross → i is more CW than nxt
-              if (ax*by - ay*bx < 0) nxt = i;
-            }
-            cur = nxt;
-          } while (cur !== s && out.length < n * 4);
-          return new Float32Array(out);
-        }
-
-        // Ray-casting point-in-polygon (works for any simple polygon, any winding)
-        function ptInHull(px: number, py: number, hull: Float32Array): boolean {
-          const n = hull.length >> 1;
-          let inside = false;
-          for (let i = 0, j = n - 1; i < n; j = i++) {
-            const xi = hull[i*2], yi = hull[i*2+1];
-            const xj = hull[j*2], yj = hull[j*2+1];
-            if (((yi > py) !== (yj > py)) && px < (xj - xi) * (py - yi) / (yj - yi) + xi)
-              inside = !inside;
-          }
-          return inside;
-        }
 
         function makeEl(size: number): SVGSVGElement {
           const el = templateEl!.cloneNode(true) as SVGSVGElement;
@@ -459,50 +400,22 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           return el;
         }
 
-        function makeBall(el: SVGSVGElement, x: number, y: number, vx: number, vy: number, frac: number): Ball {
+        function makeBall(el: SVGSVGElement, x: number, y: number, vx: number, vy: number, frac: number, fibLv: number): Ball {
           const base = Math.min(W, H) * frac;
-          const hull = convexHull(samplePts(el));
           return { el, x, y, vx, vy, size: base, sizeFrac: frac, baseSize: base,
-                   rot: Math.random() * 360, vrot: 0, cd: 0, hull };
-        }
-
-        // SVG viewBox coords → world (viewport pixel) coords for ball b
-        function svgToWorld(sx: number, sy: number, b: Ball): [number, number] {
-          const r   = b.size * 0.5;
-          const rad = b.rot * Math.PI / 180;
-          const cos = Math.cos(rad), sin = Math.sin(rad);
-          const dx  = sx * b.size / SVG_W - r;
-          const dy  = sy * b.size / SVG_H - r;
-          return [b.x + cos * dx - sin * dy, b.y + sin * dx + cos * dy];
-        }
-
-        // World coords → SVG viewBox coords for ball b
-        function worldToSvg(wx: number, wy: number, b: Ball): [number, number] {
-          const r   = b.size * 0.5;
-          const rad = b.rot * Math.PI / 180;
-          const cos = Math.cos(rad), sin = Math.sin(rad);
-          const dx  = wx - b.x, dy = wy - b.y;
-          const px  = r + cos * dx + sin * dy;  // inverse rotation
-          const py  = r - sin * dx + cos * dy;
-          return [px * SVG_W / b.size, py * SVG_H / b.size];
+                   rot: Math.random() * 360, vrot: 0, cd: 0, fibLevel: fibLv };
         }
 
         // ── 5 balls burst outward from center ──
         const cx = W * 0.50, cy = H * 0.42;
-        const init: [number, number, number][] = [
-          [0.456, 18,  5.0],
-          [0.384, 90,  5.8],
-          [0.480, 162, 4.6],
-          [0.408, 234, 5.4],
-          [0.432, 306, 4.9],
-        ];
-        init.forEach(([frac, deg, spd]) => {
-          const f     = frac + Math.random() * 0.02;
+        const initAngles = [18, 90, 162, 234, 306];
+        initAngles.forEach((deg) => {
+          const f     = FIB_FRACS[6];
           const angle = (deg + (Math.random() - 0.5) * 30) * Math.PI / 180;
-          const s     = spd + Math.random() * 1.2;
+          const s     = 5.0 + Math.random() * 1.2;
           const el    = makeEl(Math.min(W, H) * f);
           balls.push(makeBall(el, cx + (Math.random()-0.5)*30, cy + (Math.random()-0.5)*30,
-            Math.cos(angle)*s, Math.sin(angle)*s, f));
+            Math.cos(angle)*s, Math.sin(angle)*s, f, 6));
         });
 
         const onResize = () => { W = window.innerWidth; H = window.innerHeight; };
@@ -539,79 +452,66 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
               const dx   = b.x - a.x, dy = b.y - a.y;
               const dist = Math.hypot(dx, dy) || 0.001;
-              const nr   = (a.size + b.size) * 0.5; // nominal radius sum
+              const ra   = a.size * 0.5;
+              const rb   = b.size * 0.5;
+              const minD = ra + rb + PACK_GAP;
 
-              // Fast pre-filter: skip pairs definitely out of shape range
-              if (dist > nr * REPEL_AURA) continue;
+              if (dist >= minD * 1.5) continue; // fast skip
 
-              // ── Soft repulsion (circle-based — smooth background force) ──
-              const aura = nr * REPEL_AURA;
-              if (dist < aura) {
-                const t  = 1 - dist / aura;
-                const f  = t * t * 0.12;
-                const nx = dx / dist, ny = dy / dist;
-                a.vx -= nx * f; a.vy -= ny * f;
-                b.vx += nx * f; b.vy += ny * f;
-                const bleed = 1 - t * 0.004;
-                a.vx *= bleed; a.vy *= bleed;
-                b.vx *= bleed; b.vy *= bleed;
-              }
+              const nx = dx / dist, ny = dy / dist;
 
-              // ── Shape-aware collision via SVG outline hit testing ──
-              // Check how many of b's outline sample points fall inside a's filled region
-              // and vice-versa. Spikes entering gaps produce zero overlap → allowed.
-              let overlapCount = 0;
-
-              // Check hull vertices of b against a's hull, and vice-versa.
-              // Hull covers ALL 3 paths as one solid shape — gaps between arms filled in.
-              const bnv = b.hull.length >> 1, anv = a.hull.length >> 1;
-              const totalVerts = bnv + anv;
-              for (let k = 0; k < bnv; k++) {
-                const [wx, wy] = svgToWorld(b.hull[k*2], b.hull[k*2+1], b);
-                const [sx, sy] = worldToSvg(wx, wy, a);
-                if (ptInHull(sx, sy, a.hull)) overlapCount++;
-              }
-              for (let k = 0; k < anv; k++) {
-                const [wx, wy] = svgToWorld(a.hull[k*2], a.hull[k*2+1], a);
-                const [sx, sy] = worldToSvg(wx, wy, b);
-                if (ptInHull(sx, sy, b.hull)) overlapCount++;
-              }
-
-              if (overlapCount > 0) {
-                // Collision force proportional to hull overlap depth
-                const strength = (overlapCount / totalVerts) * 3.0;
-                const nx = dx / dist, ny = dy / dist;
-                a.vx -= nx * strength; a.vy -= ny * strength;
-                b.vx += nx * strength; b.vy += ny * strength;
-                // Hard positional correction so hulls never rest overlapping
-                const push = (overlapCount / totalVerts) * nr * 0.15;
+              // Circle packing: push apart if overlapping
+              if (dist < minD) {
+                const push = (minD - dist) * 0.5;
                 a.x -= nx * push; a.y -= ny * push;
                 b.x += nx * push; b.y += ny * push;
+              }
 
-                // Cellular division on significant hull overlap
+              // Relative approach velocity along collision axis
+              const dvn = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+
+              // Damp approach velocity (restitution)
+              if (dvn < 0) {
+                const impulse = dvn * RESTITUTION;
+                a.vx += nx * impulse;
+                a.vy += ny * impulse;
+                b.vx -= nx * impulse;
+                b.vy -= ny * impulse;
+              }
+
+              // Division rule: triggered when approach velocity dvn < -1.5
+              if (dvn < -1.5) {
                 const slots = MAX_BALLS - (balls.length - toRemove.size + toSpawn.length);
-                if (overlapCount >= 4 && gSpawnCd === 0 && a.cd === 0 && b.cd === 0 && slots >= 4) {
-                  const perpX = -dy / dist, perpY = dx / dist;
+                if (gSpawnCd === 0 && a.cd === 0 && b.cd === 0 && slots >= 4) {
+                  // Fibonacci division table: parent fibLevel -> child fibLevel
+                  // F6->F5, F5->F4, F4->F3, F3->F2, F2->F1, F1->can't divide
+                  const childLevel = (parent: Ball): number => parent.fibLevel - 1;
+
+                  const perpX = -ny, perpY = nx;
                   const kick  = 2.5 + Math.random() * 1.5;
 
-                  const divide = (p: Ball) => {
-                    if (p.sizeFrac <= minFrac * 1.5) return;
-                    const cf   = Math.max(minFrac, p.sizeFrac * 0.70);
+                  const divide = (parent: Ball, kickSign: number) => {
+                    if (parent.fibLevel <= 1) return; // can't divide
+                    const cl  = childLevel(parent);
+                    const cf  = FIB_FRACS[cl];
                     const c1el = makeEl(Math.min(W, H) * cf);
                     const c2el = makeEl(Math.min(W, H) * cf);
-                    const c1 = makeBall(c1el, p.x, p.y,
-                      p.vx + perpX * kick * (Math.random() > 0.5 ? 1 : -1), p.vy + perpY * kick, cf);
-                    const c2 = makeBall(c2el, p.x, p.y,
-                      p.vx - perpX * kick * (Math.random() > 0.5 ? 1 : -1), p.vy - perpY * kick, cf);
-                    c1.size = p.size * 0.35;
-                    c2.size = p.size * 0.35;
+                    const c1 = makeBall(c1el, parent.x, parent.y,
+                      parent.vx + perpX * kick * kickSign,
+                      parent.vy + perpY * kick * kickSign, cf, cl);
+                    const c2 = makeBall(c2el, parent.x, parent.y,
+                      parent.vx - perpX * kick * kickSign,
+                      parent.vy - perpY * kick * kickSign, cf, cl);
+                    // Children start at fraction of parent size, lerp to real baseSize
+                    c1.size = parent.size * 0.35;
+                    c2.size = parent.size * 0.35;
                     c1.cd = c2.cd = SPAWN_CD_B;
                     toSpawn.push(c1, c2);
-                    toRemove.add(p);
+                    toRemove.add(parent);
                   };
 
-                  divide(a);
-                  divide(b);
+                  divide(a, 1);
+                  divide(b, -1);
                   gSpawnCd = SPAWN_CD_G;
                 }
               }
@@ -627,8 +527,6 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
             b.baseSize = Math.min(W, H) * b.sizeFrac * scaleNav;
             b.vy += GRAV;
-            b.vx += ((W - 80 - b.x) / W) * 0.022;
-            b.vy += ((H - 80 - b.y) / H) * 0.014;
 
             const leftGap = b.x - navLeftBound - b.size * 0.5;
             if (leftGap < b.size * 1.2) {
@@ -638,7 +536,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
             // ── Mouse repulsion — logos flee from cursor ──
             const mdx  = b.x - mouseX, mdy = b.y - mouseY;
             const mdist = Math.hypot(mdx, mdy) || 0.001;
-            const maura = b.size * 1.6; // repulsion zone: 1.6× ball radius from cursor
+            const maura = b.size * 2.0; // repulsion zone: 2.0× ball radius from cursor
             if (mdist < maura) {
               const mt = 1 - mdist / maura;
               const mf = mt * mt * 0.9; // strong at centre, fades at edge
