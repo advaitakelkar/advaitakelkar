@@ -371,11 +371,11 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         let navLeftBound   = NAV_W;
 
         // ── Physics ──
-        const GRAV        = 0.055;
+        const GRAV        = 0.085;  // Base gravity increased
         const BOUNCE      = 0.65;
         const DRAG        = 0.992;
         const MAX_SPEED   = 7;
-        const MAX_BALLS   = 50;
+        const MAX_BALLS   = 70;     // Increased capacity
         const SPAWN_CD_G  = 80;
         const SPAWN_CD_B  = 120;
         const FIB_FRACS   = [0, 0.040, 0.065, 0.105, 0.170, 0.275, 0.445]; // index 0 unused; F1..F6
@@ -453,6 +453,15 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           const toSpawn: Ball[] = [];
           const toRemove = new Set<Ball>();
 
+          // Calculate area fill ratio to determine if desktop is crowded or empty
+          let totalArea = 0;
+          for (const b of balls) {
+            const r = b.size * 0.5;
+            totalArea += Math.PI * r * r;
+          }
+          const availArea = Math.max(1000, (W - navLeftBound) * (H - BREADCRUMB_H));
+          const fillRatio = totalArea / availArea;
+
           // ── Collision & Fibonacci division loop ──
           for (let i = 0; i < balls.length; i++) {
             for (let j = i + 1; j < balls.length; j++) {
@@ -487,37 +496,59 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
                 b.vy -= ny * impulse;
               }
 
-              // Fibonacci division — both balls shrink one step on hard impact
+              // Space-aware scaling: shrink if crowded, grow if very empty, otherwise just occupy space
               if (dvn < -1.5) {
-                const slots = MAX_BALLS - (balls.length - toRemove.size + toSpawn.length);
-                if (gSpawnCd === 0 && a.cd === 0 && b.cd === 0 && slots >= 4) {
-                  const perpX = -ny, perpY = nx;
-                  const kick  = 2.5 + Math.random() * 1.5;
+                let action = "none";
+                const rProb = Math.random();
+                
+                // If fill ratio > 0.40, start getting crowded -> high shrink chance
+                let shrinkProb = Math.max(0, (fillRatio - 0.40) / 0.25);
+                // If fill ratio < 0.20, plenty of space -> moderate grow chance
+                let growProb   = Math.max(0, (0.20 - fillRatio) / 0.15);
+                
+                shrinkProb = Math.min(shrinkProb, 0.85); // Cap shrink chance
+                growProb   = Math.min(growProb, 0.40);   // Cap grow chance
 
-                  const divide = (parent: Ball, kickSign: number) => {
-                    if (parent.fibLevel <= 1) return; // F1 can't divide further
-                    const cl  = parent.fibLevel - 1;
-                    const cf  = FIB_FRACS[cl];
-                    const c1el = makeEl(Math.min(W, H) * cf);
-                    const c2el = makeEl(Math.min(W, H) * cf);
-                    const dampedVx = parent.vx * COLLISION_DAMP;
-                    const dampedVy = parent.vy * COLLISION_DAMP;
-                    const c1 = makeBall(c1el, parent.x, parent.y,
-                      dampedVx + perpX * kick * kickSign,
-                      dampedVy + perpY * kick * kickSign, cf, cl);
-                    const c2 = makeBall(c2el, parent.x, parent.y,
-                      dampedVx - perpX * kick * kickSign,
-                      dampedVy - perpY * kick * kickSign, cf, cl);
-                    c1.size = parent.size * 0.35;
-                    c2.size = parent.size * 0.35;
-                    c1.cd = c2.cd = SPAWN_CD_B;
-                    toSpawn.push(c1, c2);
-                    toRemove.add(parent);
-                  };
+                if (rProb < shrinkProb) action = "shrink";
+                else if (rProb < shrinkProb + growProb) action = "grow";
 
-                  divide(a, 1);
-                  divide(b, -1);
-                  gSpawnCd = SPAWN_CD_G;
+                if (action !== "none") {
+                  const slots = MAX_BALLS - (balls.length - toRemove.size + toSpawn.length);
+                  if (gSpawnCd === 0 && a.cd === 0 && b.cd === 0 && slots >= 4) {
+                    const perpX = -ny, perpY = nx;
+                    const kick  = 2.5 + Math.random() * 1.5;
+
+                    const transform = (parent: Ball, kickSign: number) => {
+                      const newLevel = action === "grow"
+                        ? Math.min(6, parent.fibLevel + 1)
+                        : Math.max(2, parent.fibLevel - 1); // F2 is the new smallest size
+                      
+                      if (newLevel === parent.fibLevel) return; // Can't go past bounds
+
+                      const cf  = FIB_FRACS[newLevel];
+                      const c1el = makeEl(Math.min(W, H) * cf);
+                      const c2el = makeEl(Math.min(W, H) * cf);
+                      const dampedVx = parent.vx * COLLISION_DAMP;
+                      const dampedVy = parent.vy * COLLISION_DAMP;
+                      const c1 = makeBall(c1el, parent.x, parent.y,
+                        dampedVx + perpX * kick * kickSign,
+                        dampedVy + perpY * kick * kickSign, cf, newLevel);
+                      const c2 = makeBall(c2el, parent.x, parent.y,
+                        dampedVx - perpX * kick * kickSign,
+                        dampedVy - perpY * kick * kickSign, cf, newLevel);
+                      c1.size = parent.size * (action === "grow" ? 0.6 : 0.35);
+                      c2.size = parent.size * (action === "grow" ? 0.6 : 0.35);
+                      c1.cd = c2.cd = SPAWN_CD_B;
+                      toSpawn.push(c1, c2);
+                      toRemove.add(parent);
+                    };
+
+                    transform(a, 1);
+                    transform(b, -1);
+                    if (toRemove.has(a) || toRemove.has(b)) {
+                      gSpawnCd = SPAWN_CD_G;
+                    }
+                  }
                 }
               }
             }
@@ -534,8 +565,15 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           for (const b of balls) {
             if (b.cd > 0) b.cd--;
 
+            // Size ratio maps from F2 (0) to F6 (1)
+            const sizeRatio = (b.fibLevel - 2) / 4;
+            // Larger balls have more gravity weight, smaller are lighter
+            const ballGrav = GRAV * (0.6 + sizeRatio * 0.8);
+            // Smaller balls move faster, larger are slower
+            const ballSpeedCap = MAX_SPEED * (1.6 - sizeRatio * 0.8);
+
             b.baseSize = Math.min(W, H) * b.sizeFrac * scaleNav;
-            b.vy += GRAV;
+            b.vy += ballGrav;
 
             // Nav left-side push
             const leftGap = b.x - navLeftBound - b.size * 0.5;
@@ -563,7 +601,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
             b.vx *= DRAG; b.vy *= DRAG;
             const spd = Math.hypot(b.vx, b.vy);
-            if (spd > MAX_SPEED) { b.vx = b.vx / spd * MAX_SPEED; b.vy = b.vy / spd * MAX_SPEED; }
+            if (spd > ballSpeedCap) { b.vx = b.vx / spd * ballSpeedCap; b.vy = b.vy / spd * ballSpeedCap; }
 
             b.x += b.vx; b.y += b.vy;
             b.size += (b.baseSize - b.size) * 0.18;

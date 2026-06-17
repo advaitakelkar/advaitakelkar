@@ -1,6 +1,7 @@
 ---
 import { getCollection } from 'astro:content';
 import PageLayout from '../../layouts/PageLayout.astro';
+import PasswordGate from '../../components/PasswordGate.astro';
 
 export async function getStaticPaths() {
   const categories = await getCollection('categories');
@@ -26,23 +27,25 @@ const projects = allProjects
     { label: category.data.displayName },
   ]}
 >
-  <section class="cat-page">
-    <header class="cat-header">
-      <h1 class="cat-title">{category.data.displayName}</h1>
-      <p class="cat-count text-muted">{projects.length} project{projects.length !== 1 ? 's' : ''}</p>
-    </header>
+  <PasswordGate title={category.data.displayName}>
+    <section class="cat-page">
+      <header class="cat-header">
+        <h1 class="cat-title">{category.data.displayName}</h1>
+        <p class="cat-count text-muted">{projects.length} project{projects.length !== 1 ? 's' : ''}</p>
+      </header>
 
-    <div class="project-list">
-      {projects.map(p => (
-        <a href={`/projects/${p.id}`} class="project-row">
-          <span class="project-row__name">{p.data.name}</span>
-          <span class="project-row__meta text-muted">
-            {p.data.year}{p.data.location ? ` · ${p.data.location}` : ''}
-          </span>
-        </a>
-      ))}
-    </div>
-  </section>
+      <div class="project-list">
+        {projects.map(p => (
+          <a href={`/projects/${p.id}`} class="project-row">
+            <span class="project-row__name">{p.data.name}</span>
+            <span class="project-row__meta text-muted">
+              {p.data.year}{p.data.location ? ` · ${p.data.location}` : ''}
+            </span>
+          </a>
+        ))}
+      </div>
+    </section>
+  </PasswordGate>
 </PageLayout>
 
 <style>
