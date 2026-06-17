@@ -393,7 +393,9 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           x: number; y: number;
           vx: number; vy: number;
           size: number;
+          radius: number;
           sizeFrac: number;
+          maxSizeFrac: number;
           baseSize: number;
           rot: number; vrot: number;
           cd: number;
@@ -416,20 +418,17 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
         function makeBall(el: SVGSVGElement, x: number, y: number, vx: number, vy: number, frac: number, fibLv: number, isAnchor = false): Ball {
           const base = Math.min(W, H) * frac;
-          return { el, x, y, vx, vy, size: base, sizeFrac: frac, baseSize: base,
+          return { el, x, y, vx, vy, size: base, radius: base * 0.5, sizeFrac: frac, maxSizeFrac: frac, baseSize: base,
                    rot: Math.random() * 360, vrot: 0, cd: 0, fibLevel: fibLv, isAnchor };
         }
 
         function packGapFor(a: Ball, b: Ball) {
-          const avgLevel = (a.fibLevel + b.fibLevel) * 0.5;
-          const smallness = Math.max(0, (6 - avgLevel) / (6 - MIN_FIB_LEVEL));
-          return PACK_GAP + smallness * 42;
+          return PACK_GAP;
         }
 
         function shrinkBall(ball: Ball, impulseX = 0, impulseY = 0) {
-          if (ball.cd > 0 || ball.fibLevel <= MIN_FIB_LEVEL) return false;
-          ball.fibLevel -= 1;
-          ball.sizeFrac = FIB_FRACS[ball.fibLevel];
+          if (ball.cd > 0) return false;
+          ball.sizeFrac = Math.max(FIB_FRACS[MIN_FIB_LEVEL] * 0.74, ball.sizeFrac * 0.82);
           ball.baseSize = Math.min(W, H) * ball.sizeFrac;
           ball.vx = ball.vx * 0.45 + impulseX;
           ball.vy = ball.vy * 0.45 + impulseY;
@@ -437,19 +436,27 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           return true;
         }
 
-        // ── 10 starting pieces: one oversized center, then the top three size tiers. ──
+        function growBall(ball: Ball) {
+          if (ball.cd > 0 || ball.sizeFrac >= ball.maxSizeFrac * 0.995) return false;
+          ball.sizeFrac = Math.min(ball.maxSizeFrac, ball.sizeFrac * 1.08);
+          ball.baseSize = Math.min(W, H) * ball.sizeFrac;
+          ball.cd = Math.floor(SPAWN_CD_B * 0.5);
+          return true;
+        }
+
+        // ── 10 starting pieces: 5 big, 3 bigger, 2 largest; one largest anchors the center. ──
         const cx = W * 0.50, cy = H * 0.48;
         const startLayout = [
-          { level: 6, scale: 1.24, angle: 0,   dist: 0,    anchor: true },
-          { level: 6, scale: 0.88, angle: 24,  dist: 0.31 },
-          { level: 6, scale: 0.78, angle: 154, dist: 0.33 },
-          { level: 5, scale: 1.00, angle: 278, dist: 0.32 },
-          { level: 5, scale: 0.92, angle: 78,  dist: 0.47 },
-          { level: 5, scale: 0.82, angle: 214, dist: 0.46 },
-          { level: 4, scale: 1.00, angle: 332, dist: 0.48 },
-          { level: 4, scale: 0.92, angle: 116, dist: 0.58 },
-          { level: 4, scale: 0.84, angle: 188, dist: 0.58 },
-          { level: 4, scale: 0.76, angle: 42,  dist: 0.60 },
+          { level: 6, scale: 1.25, angle: 0,   dist: 0,    anchor: true },
+          { level: 6, scale: 1.04, angle: 180, dist: 0.28 },
+          { level: 5, scale: 1.20, angle: 36,  dist: 0.31 },
+          { level: 5, scale: 1.10, angle: 292, dist: 0.34 },
+          { level: 5, scale: 1.02, angle: 112, dist: 0.36 },
+          { level: 4, scale: 1.26, angle: 228, dist: 0.38 },
+          { level: 4, scale: 1.18, angle: 72,  dist: 0.43 },
+          { level: 4, scale: 1.10, angle: 324, dist: 0.44 },
+          { level: 4, scale: 1.04, angle: 150, dist: 0.46 },
+          { level: 4, scale: 0.98, angle: 260, dist: 0.47 },
         ];
         startLayout.slice(0, START_BALLS).forEach((item) => {
           const angle = item.angle * Math.PI / 180;
@@ -498,11 +505,8 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
             ? Math.max(0.74, Math.min(1, usableW / (W - NAV_W)))
             : 1;
           const responsiveScale = Math.min(spaceScale, navScale);
+          const navPressure = navIsOpen && usableW / Math.max(1, W - NAV_W) < 0.96;
 
-          const profilePx = Math.max(64, Math.min(W * 0.08, 100));
-          const minFrac   = profilePx / Math.min(W, H);
-
-          const toSpawn: Ball[] = [];
           const toRemove = new Set<Ball>();
 
           // Calculate area fill ratio to determine if desktop is crowded or empty
@@ -524,12 +528,14 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
               const dx   = b.x - a.x, dy = b.y - a.y;
               const dist = Math.hypot(dx, dy) || 0.001;
-              const ra   = a.size * 0.5;
-              const rb   = b.size * 0.5;
+              const ra   = a.radius;
+              const rb   = b.radius;
               const gap  = packGapFor(a, b);
               const minD = ra + rb + gap;
+              const edgeDistance = dist - (ra + rb);
+              const almostTouching = edgeDistance <= gap + 8;
 
-              if (dist >= minD * 1.5) continue;
+              if (dist >= minD * 1.25) continue;
 
               const nx = dx / dist, ny = dy / dist;
 
@@ -557,14 +563,14 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
               const big = a.size >= b.size ? a : b;
               const small = big === a ? b : a;
               const sizeDelta = big.size / Math.max(1, small.size);
-              if (dvn < -0.8 && sizeDelta > 1.55 && small.cd === 0) {
+              if (navPressure && almostTouching && dvn < -0.8 && sizeDelta > 1.55 && small.cd === 0) {
                 const kick = 1.7 + Math.min(2.4, sizeDelta * 0.35);
                 shrinkBall(big, (big === a ? -nx : nx) * kick, (big === a ? -ny : ny) * kick);
                 small.cd = Math.max(small.cd, 34);
               }
 
-              // Space-aware scaling: full desktop holds size; compact spaces scale by actual room.
-              if (dvn < -1.5) {
+              // Size changes are only allowed when the left navigation compresses the field.
+              if (navPressure && almostTouching && dvn < -1.5) {
                 let action = "none";
                 const rProb = Math.random();
                 
@@ -577,7 +583,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
                 if (rProb < shrinkProb) action = "shrink";
                 else if (rProb < shrinkProb + growProb) action = "grow";
 
-                if (action === "shrink" && compactSpace) {
+                if (action === "shrink") {
                   if (gSpawnCd === 0 && a.cd === 0 && b.cd === 0) {
                     const perpX = -ny, perpY = nx;
                     const kick  = 2.5 + Math.random() * 1.5;
@@ -594,8 +600,6 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           }
 
           toRemove.forEach(p => { p.el.remove(); const i = balls.indexOf(p); if (i >= 0) balls.splice(i, 1); });
-          balls.push(...toSpawn);
-
           // ── Wind blast: fires once on nav open — proximity-weighted rightward push ──
           const navJustOpened = navIsOpen && !prevNavIsOpen;
           prevNavIsOpen = navIsOpen;
@@ -611,6 +615,8 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
             const ballSpeedCap = MAX_SPEED * (1.75 - sizeRatio * 0.9);
 
             b.baseSize = Math.min(W, H) * b.sizeFrac * responsiveScale;
+            if (!navPressure) growBall(b);
+
             if (b.isAnchor) {
               const anchorX = navLeftBound + usableW * 0.5;
               const anchorY = BREADCRUMB_H + usableH * 0.5;
@@ -658,7 +664,8 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
             b.x += b.vx; b.y += b.vy;
             b.size += (b.baseSize - b.size) * 0.18;
-            const r = b.size * 0.5;
+            b.radius = b.size * 0.5;
+            const r = b.radius;
 
             if (b.x - r < navLeftBound) { b.x = navLeftBound + r; b.vx =  Math.abs(b.vx) * BOUNCE; }
             if (b.x + r > W)            { b.x = W - r;            b.vx = -Math.abs(b.vx) * BOUNCE; }
