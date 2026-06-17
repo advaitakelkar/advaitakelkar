@@ -370,10 +370,10 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         const NAV_W        = 44;
         const BREADCRUMB_H = 48;
         const MIN_FIB      = 3;       // smallest allowed Fibonacci level
-        const MAX_FIB      = 6;       // largest allowed Fibonacci level (exactly 1 at all times)
-        const FIB_FRACS    = [0, 0.040, 0.065, 0.105, 0.170, 0.275, 0.445];
-        // Pyramid target count per level: F6=1, F5=2, F4=4, F3=fills the rest
-        const TARGET_COUNT = [0, 0, 0, 99, 4, 2, 1]; // index = fibLevel; 99 = no cap on F3
+        const MAX_FIB      = 7;       // F7 is the one big singleton at top
+        const FIB_FRACS    = [0, 0.040, 0.065, 0.105, 0.170, 0.275, 0.445, 0.720];
+        // Pyramid: F7=1 (singleton), F6=2, F5=4, F4=8, F3=fills the rest
+        const TARGET_COUNT = [0, 0, 0, 99, 8, 4, 2, 1]; // index = fibLevel
         const GRAV_BASE    = 0.10;    // base gravity — scaled per ball by sizeRatio
         const BOUNCE       = 0.65;
         const DRAG         = 0.993;
@@ -381,9 +381,9 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         const RESTITUTION  = 0.55;
         const WIND_FORCE   = 5.0;
         const MAX_SPEED_SM = 9.0;     // speed cap for smallest ball (F3)
-        const MAX_SPEED_LG = 2.5;     // speed cap for largest ball (F6)
+        const MAX_SPEED_LG = 1.8;     // speed cap for largest ball (F7) — very slow
         const VROT_MAX_SM  = 2.2;     // max rotation speed for smallest
-        const VROT_MAX_LG  = 0.25;    // max rotation speed for largest
+        const VROT_MAX_LG  = 0.15;    // max rotation speed for largest (barely moves)
         const SPAWN_CD_G   = 90;      // global cooldown frames after any size event
         const SPAWN_CD_B   = 110;     // per-ball cooldown frames after a size event
 
@@ -469,23 +469,33 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           return true;
         }
 
-        // ── Initial layout: pyramid (1×F6, 2×F5, 3×F4, 4×F3) ──
+        // ── Initial layout: pyramid (1×F7, 2×F6, 4×F5, 4×F4, 4×F3) = 15 balls ──
         const cx = W * 0.50, cy = H * 0.46;
         ([
-          { fib: 6, angle:   0, dist: 0.00 },  // the one big ball — center
-          { fib: 5, angle:  60, dist: 0.22 },
-          { fib: 5, angle: 240, dist: 0.22 },
-          { fib: 4, angle: 150, dist: 0.36 },
-          { fib: 4, angle: 300, dist: 0.36 },
-          { fib: 4, angle:  30, dist: 0.40 },
-          { fib: 3, angle: 120, dist: 0.50 },
-          { fib: 3, angle: 210, dist: 0.50 },
-          { fib: 3, angle: 330, dist: 0.50 },
-          { fib: 3, angle: 270, dist: 0.54 },
+          // F7 — the one big ball, dead centre
+          { fib: 7, angle:   0, dist: 0.00 },
+          // F6 × 2
+          { fib: 6, angle:  72, dist: 0.24 },
+          { fib: 6, angle: 252, dist: 0.24 },
+          // F5 × 4
+          { fib: 5, angle:  36, dist: 0.38 },
+          { fib: 5, angle: 144, dist: 0.38 },
+          { fib: 5, angle: 216, dist: 0.38 },
+          { fib: 5, angle: 324, dist: 0.38 },
+          // F4 × 4
+          { fib: 4, angle:   0, dist: 0.52 },
+          { fib: 4, angle:  90, dist: 0.52 },
+          { fib: 4, angle: 180, dist: 0.52 },
+          { fib: 4, angle: 270, dist: 0.52 },
+          // F3 × 4
+          { fib: 3, angle:  45, dist: 0.62 },
+          { fib: 3, angle: 135, dist: 0.62 },
+          { fib: 3, angle: 225, dist: 0.62 },
+          { fib: 3, angle: 315, dist: 0.62 },
         ] as { fib: number; angle: number; dist: number }[]).forEach(({ fib, angle, dist }) => {
           const rad   = angle * Math.PI / 180;
           const r     = Math.min(W, H) * dist;
-          const speed = fib === MAX_FIB ? 0.3 : (MAX_FIB + 1 - fib) * 1.3 + Math.random() * 1.5;
+          const speed = fib === MAX_FIB ? 0.2 : (MAX_FIB + 1 - fib) * 1.2 + Math.random() * 1.5;
           const el    = makeEl(Math.min(W, H) * FIB_FRACS[fib]);
           balls.push(makeBall(
             el,
@@ -589,8 +599,8 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
             }
           }
 
-          // ── F6 singleton enforcement ──
-          // If somehow more than 1 F6 ball exists, immediately demote extras
+          // ── F7 singleton enforcement ──
+          // If somehow more than 1 F7 ball exists, immediately demote extras to F6
           if (fibCount[MAX_FIB] > 1) {
             let demoted = 0;
             for (const b of balls) {
