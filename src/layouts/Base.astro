@@ -371,11 +371,14 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         let navLeftBound   = NAV_W;
 
         // ── Physics ──
-        const GRAV        = 0.085;  // Base gravity increased
+        const GRAV        = 0.1275; // 0.5x more gravity than the previous tune
         const BOUNCE      = 0.65;
         const DRAG        = 0.992;
         const MAX_SPEED   = 7;
-        const MAX_BALLS   = 70;     // Increased capacity
+        const MAX_BALLS   = 90;
+        const MIN_FIB_LEVEL = 3;
+        const COMFORT_W   = 920;
+        const COMFORT_H   = 620;
         const SPAWN_CD_G  = 80;
         const SPAWN_CD_B  = 120;
         const FIB_FRACS   = [0, 0.040, 0.065, 0.105, 0.170, 0.275, 0.445]; // index 0 unused; F1..F6
@@ -445,7 +448,17 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           const navTarget  = ((window as any).__navPanelTarget as number) || NAV_W;
           navLeftBound    += (navTarget - navLeftBound) * 0.30;
           const navIsOpen  = navLeftBound > NAV_W + 40;
-          const scaleNav   = navIsOpen ? Math.max(0.18, (W - navLeftBound) / (W - NAV_W)) : 1;
+          const usableW    = Math.max(1, W - navLeftBound);
+          const usableH    = Math.max(1, H - BREADCRUMB_H);
+          const compactSpace = usableW < COMFORT_W || usableH < COMFORT_H;
+          const spaceRatio = Math.min(1, (usableW * usableH) / (COMFORT_W * COMFORT_H));
+          const spaceScale = compactSpace
+            ? Math.max(0.68, Math.min(1, 0.78 + Math.sqrt(spaceRatio) * 0.22))
+            : 1;
+          const navScale = navIsOpen && compactSpace
+            ? Math.max(0.74, Math.min(1, usableW / (W - NAV_W)))
+            : 1;
+          const responsiveScale = Math.min(spaceScale, navScale);
 
           const profilePx = Math.max(64, Math.min(W * 0.08, 100));
           const minFrac   = profilePx / Math.min(W, H);
@@ -459,8 +472,10 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
             const r = b.size * 0.5;
             totalArea += Math.PI * r * r;
           }
-          const availArea = Math.max(1000, (W - navLeftBound) * (H - BREADCRUMB_H));
+          const availArea = Math.max(1000, usableW * usableH);
           const fillRatio = totalArea / availArea;
+          const shrinkThreshold = compactSpace ? 0.36 : 0.58;
+          const growThreshold = compactSpace ? 0.16 : 0.24;
 
           // ── Collision & Fibonacci division loop ──
           for (let i = 0; i < balls.length; i++) {
@@ -496,18 +511,16 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
                 b.vy -= ny * impulse;
               }
 
-              // Space-aware scaling: shrink if crowded, grow if very empty, otherwise just occupy space
+              // Space-aware scaling: full desktop holds size; compact spaces scale by actual room.
               if (dvn < -1.5) {
                 let action = "none";
                 const rProb = Math.random();
                 
-                // If fill ratio > 0.40, start getting crowded -> high shrink chance
-                let shrinkProb = Math.max(0, (fillRatio - 0.40) / 0.25);
-                // If fill ratio < 0.20, plenty of space -> moderate grow chance
-                let growProb   = Math.max(0, (0.20 - fillRatio) / 0.15);
+                let shrinkProb = Math.max(0, (fillRatio - shrinkThreshold) / 0.32);
+                let growProb   = compactSpace ? Math.max(0, (growThreshold - fillRatio) / growThreshold) : 0;
                 
-                shrinkProb = Math.min(shrinkProb, 0.85); // Cap shrink chance
-                growProb   = Math.min(growProb, 0.40);   // Cap grow chance
+                shrinkProb = Math.min(shrinkProb, compactSpace ? 0.62 : 0.20);
+                growProb   = Math.min(growProb, 0.22);
 
                 if (rProb < shrinkProb) action = "shrink";
                 else if (rProb < shrinkProb + growProb) action = "grow";
@@ -521,7 +534,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
                     const transform = (parent: Ball, kickSign: number) => {
                       const newLevel = action === "grow"
                         ? Math.min(6, parent.fibLevel + 1)
-                        : Math.max(2, parent.fibLevel - 1); // F2 is the new smallest size
+                        : Math.max(MIN_FIB_LEVEL, parent.fibLevel - 1);
                       
                       if (newLevel === parent.fibLevel) return; // Can't go past bounds
 
@@ -565,14 +578,11 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           for (const b of balls) {
             if (b.cd > 0) b.cd--;
 
-            // Size ratio maps from F2 (0) to F6 (1)
-            const sizeRatio = (b.fibLevel - 2) / 4;
-            // Larger balls have more gravity weight, smaller are lighter
-            const ballGrav = GRAV * (0.6 + sizeRatio * 0.8);
-            // Smaller balls move faster, larger are slower
-            const ballSpeedCap = MAX_SPEED * (1.6 - sizeRatio * 0.8);
+            const sizeRatio = (b.fibLevel - MIN_FIB_LEVEL) / (6 - MIN_FIB_LEVEL);
+            const ballGrav = GRAV * (0.5 + sizeRatio * 1.25);
+            const ballSpeedCap = MAX_SPEED * (1.75 - sizeRatio * 0.9);
 
-            b.baseSize = Math.min(W, H) * b.sizeFrac * scaleNav;
+            b.baseSize = Math.min(W, H) * b.sizeFrac * responsiveScale;
             b.vy += ballGrav;
 
             // Nav left-side push
