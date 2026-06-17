@@ -162,27 +162,17 @@ const timeline = [
 const skillsets = [
   {
     category: "Languages",
-    skills: ["English (Fluent)", "Hindi (Native)", "Marathi (Native)"]
+    skills: ["Hindi (Native)", "English (Fluent)", "Marathi (Native)"]
   },
   {
-    category: "3D Modelling",
-    skills: ["Rhinoceros 3D", "SketchUp", "AutoCAD", "Revit", "Lumion"]
-  },
-  {
-    category: "Visualisation",
-    skills: ["V-Ray", "Lumion", "Enscape", "Unreal Engine", "Midjourney AI"]
-  },
-  {
-    category: "Graphic Design",
-    skills: ["Adobe Illustrator", "Photoshop", "InDesign", "Canva"]
-  },
-  {
-    category: "Web Design",
-    skills: ["Webflow", "Figma", "Framer"]
-  },
-  {
-    category: "Various",
-    skills: ["Grasshopper", "Microsoft Office", "Notion", "Miro"]
+    category: "Softwares",
+    skills: [
+      "Rhinoceros 3D", "SketchUp", "AutoCAD", "Revit", "Lumion",
+      "V-Ray", "Enscape", "Unreal Engine", "Midjourney AI",
+      "Adobe Illustrator", "Photoshop", "InDesign", "Canva",
+      "Webflow", "Figma", "Framer",
+      "Grasshopper", "Microsoft Office", "Notion", "Miro"
+    ]
   }
 ];
 ---
@@ -417,27 +407,44 @@ const skillsets = [
       
       <p class="skillset-subtitle text-muted">A searchable interface that blends all projects—academic, work, free, and experiments—into one seamless digital archive for holistic discovery</p>
 
-      <div class="skillset-grid">
-        {skillsets.map((set) => (
-          <div class="skillset-card" data-keywords={`${set.category} ${set.skills.join(' ')}`.toLowerCase()}>
-            <h3 class="skillset-card__title">{set.category}</h3>
-            <div class="skill-pills">
-              {set.skills.map((skill) => (
-                <a
-                  href={`/projects?search=${encodeURIComponent(skill.replace(/\s*\(.*\)\s*/g, ''))}`}
-                  class="skill-pill"
-                  title={`Click to view projects using ${skill}`}
-                >
-                  <span>{skill}</span>
-                  <svg class="link-arrow skill-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
-                    <line x1="6" y1="18" x2="18" y2="6"></line>
-                    <polyline points="10 6 18 6 18 14"></polyline>
-                  </svg>
-                </a>
-              ))}
-            </div>
+      <div class="skillset-grid skillset-grid--two">
+        <!-- Languages: show title -->
+        <div class="skillset-card" data-keywords={`${skillsets[0].category} ${skillsets[0].skills.join(' ')}`.toLowerCase()}>
+          <h3 class="skillset-card__title">{skillsets[0].category}</h3>
+          <div class="skill-pills">
+            {skillsets[0].skills.map((skill) => (
+              <a
+                href={`/projects?search=${encodeURIComponent(skill.replace(/\s*\(.*\)\s*/g, ''))}`}
+                class="skill-pill"
+                title={`Click to view projects using ${skill}`}
+              >
+                <span>{skill}</span>
+                <svg class="link-arrow skill-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+                  <line x1="6" y1="18" x2="18" y2="6"></line>
+                  <polyline points="10 6 18 6 18 14"></polyline>
+                </svg>
+              </a>
+            ))}
           </div>
-        ))}
+        </div>
+        <!-- Softwares: NO title, just pills -->
+        <div class="skillset-card" data-keywords={`${skillsets[1].category} ${skillsets[1].skills.join(' ')}`.toLowerCase()}>
+          <div class="skill-pills">
+            {skillsets[1].skills.map((skill) => (
+              <a
+                href={`/projects?search=${encodeURIComponent(skill.replace(/\s*\(.*\)\s*/g, ''))}`}
+                class="skill-pill"
+                title={`Click to view projects using ${skill}`}
+              >
+                <span>{skill}</span>
+                <svg class="link-arrow skill-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+                  <line x1="6" y1="18" x2="18" y2="6"></line>
+                  <polyline points="10 6 18 6 18 14"></polyline>
+                </svg>
+              </a>
+            ))}
+          </div>
+        </div>
       </div>
 
     </section>
@@ -746,12 +753,12 @@ const skillsets = [
     height: 100%;
   }
 
-  /* Career Tabs Pill Menu - Sticky flex row */
+  /* Career Tabs Pill Menu — wraps to two rows, sized to content like link rows */
   .about-tabs-container {
     display: flex;
     flex-direction: row;
-    gap: 3px;
-    flex-wrap: nowrap;
+    gap: 6px;
+    flex-wrap: wrap;          /* allows two rows */
     width: 100%;
     margin-block: 0 16px;
     border-bottom: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
@@ -763,12 +770,12 @@ const skillsets = [
   }
 
   .about-tab-btn {
-    flex: 0 0 auto;
+    flex: 0 0 auto;           /* shrink-to-content width */
     display: inline-flex;
     align-items: center;
     justify-content: flex-start;
-    gap: 4px;
-    font-size: var(--_tokens---type--medium);
+    gap: 6px;
+    font-size: var(--_tokens---type--small);
     font-family: inherit;
     font-weight: 500;
     letter-spacing: -0.03em;
@@ -776,7 +783,7 @@ const skillsets = [
     background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
     border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
     color: var(--_tokens---color--muted);
-    padding: 14px 22px;
+    padding: 10px 18px;       /* same compact rhythm as .about-link-row */
     cursor: pointer;
     transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
     border-radius: 999px;
@@ -1011,11 +1018,15 @@ const skillsets = [
     background-color: color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
   }
 
-  /* 3-column Skillset Grid */
+  /* 2-column Skillset Grid */
   .skillset-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 20px;
+  }
+
+  .skillset-grid--two {
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .skillset-card {
@@ -1093,9 +1104,9 @@ const skillsets = [
     }
   }
 
-  @media (max-width: 900px) {
+  @media (max-width: 600px) {
     .skillset-grid {
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: 1fr;
     }
   }
 
