@@ -406,6 +406,8 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         const balls: Ball[] = [];
         let gSpawnCd = 0;
         let prevNavIsOpen = false;
+        // Per-frame histogram of balls per Fibonacci level — used for diversity enforcement
+        let fibLevelCount: number[] = new Array(7).fill(0);
 
         function makeEl(size: number): SVGSVGElement {
           const el = templateEl!.cloneNode(true) as SVGSVGElement;
@@ -428,7 +430,19 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
         function shrinkBall(ball: Ball, impulseX = 0, impulseY = 0) {
           if (ball.cd > 0) return false;
-          ball.sizeFrac = Math.max(FIB_FRACS[MIN_FIB_LEVEL] * 0.74, ball.sizeFrac * 0.82);
+          // Diversity: prefer jumping to a less-populated level below
+          const prevLvl = Math.max(MIN_FIB_LEVEL, ball.fibLevel - 1);
+          const avgPL = Math.max(1, balls.length / (6 - MIN_FIB_LEVEL + 1));
+          const currOvercrowded = (fibLevelCount[ball.fibLevel] || 0) > avgPL * 1.3;
+          const prevUnderused   = (fibLevelCount[prevLvl] || 0) < avgPL * 0.7;
+          if (prevLvl !== ball.fibLevel && currOvercrowded && prevUnderused) {
+            // Jump fibLevel directly to the sparse level below
+            ball.fibLevel    = prevLvl;
+            ball.maxSizeFrac = FIB_FRACS[prevLvl];
+            ball.sizeFrac    = FIB_FRACS[prevLvl] * 0.92;
+          } else {
+            ball.sizeFrac = Math.max(FIB_FRACS[MIN_FIB_LEVEL] * 0.74, ball.sizeFrac * 0.82);
+          }
           ball.baseSize = Math.min(W, H) * ball.sizeFrac;
           ball.vx = ball.vx * 0.45 + impulseX;
           ball.vy = ball.vy * 0.45 + impulseY;
@@ -438,6 +452,15 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
         function growBall(ball: Ball) {
           if (ball.cd > 0 || ball.sizeFrac >= ball.maxSizeFrac * 0.995) return false;
+          // Diversity: prefer jumping to a less-populated level above
+          const nextLvl = Math.min(6, ball.fibLevel + 1);
+          const avgPL = Math.max(1, balls.length / (6 - MIN_FIB_LEVEL + 1));
+          const currOvercrowded = (fibLevelCount[ball.fibLevel] || 0) > avgPL * 1.3;
+          const nextUnderused   = nextLvl !== ball.fibLevel && (fibLevelCount[nextLvl] || 0) < avgPL * 0.7;
+          if (currOvercrowded && nextUnderused) {
+            ball.fibLevel    = nextLvl;
+            ball.maxSizeFrac = FIB_FRACS[nextLvl];
+          }
           ball.sizeFrac = Math.min(ball.maxSizeFrac, ball.sizeFrac * 1.08);
           ball.baseSize = Math.min(W, H) * ball.sizeFrac;
           ball.cd = Math.floor(SPAWN_CD_B * 0.5);
@@ -510,11 +533,16 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           const toRemove = new Set<Ball>();
 
           // Calculate area fill ratio to determine if desktop is crowded or empty
+          // Also build a Fibonacci level histogram for diversity enforcement
+          fibLevelCount.fill(0);
           let totalArea = 0;
           for (const b of balls) {
             const r = b.size * 0.5;
             totalArea += Math.PI * r * r;
+            if (b.fibLevel >= 1 && b.fibLevel <= 6) fibLevelCount[b.fibLevel]++;
           }
+          const activeLevels = 6 - MIN_FIB_LEVEL + 1;
+          const avgPerLevel  = Math.max(1, balls.length / activeLevels);
           const availArea = Math.max(1000, usableW * usableH);
           const fillRatio = totalArea / availArea;
           const shrinkThreshold = compactSpace ? 0.36 : 0.58;
@@ -563,22 +591,41 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
               const big = a.size >= b.size ? a : b;
               const small = big === a ? b : a;
               const sizeDelta = big.size / Math.max(1, small.size);
-              if (navPressure && almostTouching && dvn < -0.8 && sizeDelta > 1.55 && small.cd === 0) {
+              if (almostTouching && dvn < -0.8 && sizeDelta > 1.55 && small.cd === 0) {
                 const kick = 1.7 + Math.min(2.4, sizeDelta * 0.35);
                 shrinkBall(big, (big === a ? -nx : nx) * kick, (big === a ? -ny : ny) * kick);
                 small.cd = Math.max(small.cd, 34);
               }
 
-              // Size changes are only allowed when the left navigation compresses the field.
-              if (navPressure && almostTouching && dvn < -1.5) {
+              // Space-aware + diversity-aware: shrink when crowded or overcrowded level
+              if (almostTouching && dvn < -1.5) {
                 let action = "none";
                 const rProb = Math.random();
                 
-                let shrinkProb = Math.max(0, (fillRatio - shrinkThreshold) / 0.32);
-                let growProb   = 0;
-                
-                shrinkProb = Math.min(shrinkProb, compactSpace ? 0.62 : 0.20);
-                growProb   = Math.min(growProb, 0.22);
+                // Fill ratio drives base probabilities
+                let shrinkProb = Math.max(0, (fillRatio - 0.15) / 0.20);
+                let growProb   = Math.max(0, (0.08 - fillRatio) / 0.06);
+
+                // Diversity bias: if either ball's level is overcrowded, push transformation
+                const aCount = fibLevelCount[a.fibLevel] || 0;
+                const bCount = fibLevelCount[b.fibLevel] || 0;
+                const aOvercrowded = aCount > avgPerLevel * 1.4;
+                const bOvercrowded = bCount > avgPerLevel * 1.4;
+                if (aOvercrowded || bOvercrowded) {
+                  // Figure out which direction helps: is the level below or above less crowded?
+                  const target  = a.size >= b.size ? a : b;
+                  const downLvl = Math.max(MIN_FIB_LEVEL, target.fibLevel - 1);
+                  const upLvl   = Math.min(6, target.fibLevel + 1);
+                  const downSparse = (fibLevelCount[downLvl] || 0) < avgPerLevel * 0.75;
+                  const upSparse   = (fibLevelCount[upLvl]   || 0) < avgPerLevel * 0.75;
+                  if (downSparse) shrinkProb = Math.min(0.85, shrinkProb + 0.30);
+                  if (upSparse)   growProb   = Math.min(0.30, growProb   + 0.20);
+                  // If neither is sparser, still nudge shrink so they mix
+                  if (!downSparse && !upSparse) shrinkProb = Math.min(0.85, shrinkProb + 0.15);
+                }
+
+                shrinkProb = Math.min(shrinkProb, 0.85);
+                growProb   = Math.min(growProb, 0.30);
 
                 if (rProb < shrinkProb) action = "shrink";
                 else if (rProb < shrinkProb + growProb) action = "grow";
@@ -587,12 +634,9 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
                   if (gSpawnCd === 0 && a.cd === 0 && b.cd === 0) {
                     const perpX = -ny, perpY = nx;
                     const kick  = 2.5 + Math.random() * 1.5;
-
                     const target = a.size > b.size ? a : b;
                     shrinkBall(target, perpX * kick, perpY * kick);
-                    if (a.cd > 0 || b.cd > 0) {
-                      gSpawnCd = SPAWN_CD_G;
-                    }
+                    if (a.cd > 0 || b.cd > 0) gSpawnCd = SPAWN_CD_G;
                   }
                 }
               }
@@ -615,7 +659,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
             const ballSpeedCap = MAX_SPEED * (1.75 - sizeRatio * 0.9);
 
             b.baseSize = Math.min(W, H) * b.sizeFrac * responsiveScale;
-            if (!navPressure) growBall(b);
+            growBall(b); // grow back when space allows
 
             if (b.isAnchor) {
               const anchorX = navLeftBound + usableW * 0.5;
