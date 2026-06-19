@@ -384,7 +384,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         const LEVEL_SPECIAL_F7   = 7; // F7 special size level
 
         // Index 3 to 7 corresponds to F3 to F7 size ratios relative to viewport min(W,H)
-        const LEVEL_SIZE_FRACS = [0, 0.040, 0.065, 0.105, 0.170, 0.275, 0.445, 0.445];
+        const LEVEL_SIZE_FRACS = [0, 0.040, 0.065, 0.105, 0.170, 0.275, 0.445, 0.850];
 
         // Physics Coefficients
         const NAV_W        = 44;
@@ -423,11 +423,8 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         let prevNavIsOpen   = false;
         let navLeftBound    = NAV_W;
 
-        // ── 2. F7 STEPPED-FIBONACCI OSCILLATOR STATE ──
-        const F7_STEP_FRAMES = 80;    // frames between each size step (~1.3s)
-        let f7TargetLevel    = LEVEL_MIN;
-        let f7StepDir        = 1;     // +1 = growing, -1 = shrinking
-        let f7StepCd         = F7_STEP_FRAMES;
+        // ── 2. F7 ORGANIC BREATHING STATE ──
+        let f7Time = 0;
 
         // ── 3. HELPER FUNCTIONS ──
         const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
@@ -665,7 +662,8 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
                 const dEl = createZombieSVG(deadSize);
                 const db  = createBallState(dEl, mx, my,
                   (a.vx + b.vx) * 0.3, (a.vy + b.vy) * 0.3, LEVEL_MIN, true);
-                db.size = deadSize; db.radius = deadSize * 0.5;
+                db.size = 1; // Start tiny for a smooth growing birth animation!
+                db.radius = 0.5;
                 db.baseSize = deadSize; db.sizeFrac = LEVEL_SIZE_FRACS[LEVEL_MIN] * 0.6;
                 db.maxSizeFrac = db.sizeFrac;
                 balls.push(db);
@@ -693,15 +691,12 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
             b.baseSize = Math.min(W, H) * b.sizeFrac * navScale;
 
-            // F7 Stepped Breathing Oscillator
+            // F7 Natural Breathing Oscillator (organic sine-based inhale/exhale)
             if (b.level === LEVEL_SPECIAL_F7) {
-              if (f7StepCd <= 0) {
-                f7TargetLevel += f7StepDir;
-                if (f7TargetLevel >= LEVEL_SPECIAL_F7 - 1) { f7TargetLevel = LEVEL_SPECIAL_F7 - 1; f7StepDir = -1; }
-                else if (f7TargetLevel <= LEVEL_MIN)       { f7TargetLevel = LEVEL_MIN;          f7StepDir =  1; }
-                f7StepCd = F7_STEP_FRAMES;
-              } else { f7StepCd--; }
-              const breathFrac  = LEVEL_SIZE_FRACS[f7TargetLevel];
+              f7Time += 0.0035; // Controls breathing speed
+              const rawSin = Math.sin(f7Time);
+              const wave = Math.pow((rawSin + 1) * 0.5, 1.6); // Asymmetric lung-like expansion shape
+              const breathFrac = lerp(LEVEL_SIZE_FRACS[LEVEL_MIN], LEVEL_SIZE_FRACS[LEVEL_SPECIAL_F7], wave);
               b.sizeFrac    = breathFrac;
               b.maxSizeFrac = breathFrac;
               b.baseSize    = Math.min(W, H) * breathFrac * navScale;
