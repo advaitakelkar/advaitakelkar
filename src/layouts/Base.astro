@@ -425,6 +425,47 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
         // ── 2. F7 ORGANIC BREATHING STATE ──
         let f7Time = 0;
+        let f7TargetFrac = LEVEL_SIZE_FRACS[LEVEL_SPECIAL_F7];
+
+        // ── 2b. SNACKS SYSTEM ──
+        type Snack = {
+          el: HTMLDivElement;
+          x: number;
+          y: number;
+          vx: number;
+          vy: number;
+          radius: number;
+        };
+        const snacks: Snack[] = [];
+
+        function createSnack(x: number, y: number) {
+          const el = document.createElement('div');
+          el.className = 'watermark-snack';
+          el.style.cssText = `
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 12px;
+            height: 12px;
+            background: color-mix(in srgb, var(--_tokens---color--fg) 60%, transparent);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--_tokens---color--fg);
+            pointer-events: none;
+            z-index: 9998;
+            will-change: transform;
+          `;
+          container!.appendChild(el);
+          const angle = Math.random() * Math.PI * 2;
+          const speed = 1 + Math.random() * 2;
+          snacks.push({
+            el,
+            x,
+            y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 2, // slight upward kick on drop
+            radius: 6
+          });
+        }
 
         // ── 3. HELPER FUNCTIONS ──
         const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
@@ -594,9 +635,13 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           const navScale  = navIsOpen ? Math.max(0.22, usableW / (W - NAV_W)) : 1;
 
           // Collision Check
+          const toRemove = new Set<Ball>();
+          const toSpawn: Ball[] = [];
+
           for (let i = 0; i < balls.length; i++) {
             for (let j = i + 1; j < balls.length; j++) {
               const a = balls[i], b = balls[j];
+              if (toRemove.has(a) || toRemove.has(b)) continue;
 
               const dx = b.x - a.x, dy = b.y - a.y;
               const dist = Math.hypot(dx, dy) || 0.001;
@@ -636,9 +681,8 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
                   rb.size = Math.min(W, H) * LEVEL_SIZE_FRACS[collapseToLvl];
                   rb.radius = rb.size * 0.5;
                   rb.cd = SPAWN_CD_B;
-                  balls.push(rb);
-                  nonF7.el.remove();
-                  balls.splice(balls.indexOf(nonF7), 1);
+                  toSpawn.push(rb);
+                  toRemove.add(nonF7);
                   gSpawnCd = SPAWN_CD_G;
                 } else if (!nonF7.isZombie && nonF7.cd === 0 && gSpawnCd === 0) {
                   // Grow / Shrink non-F7:
@@ -661,24 +705,31 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
               } else if (touching && !a.isZombie && !b.isZombie &&
                          a.level === LEVEL_MIN && b.level === LEVEL_MIN &&
                          dvn < -1.8 && gSpawnCd === 0) {
-                // Death event: two F3 balls collide heavily → merge into a zombie ball
-                const mx  = (a.x + b.x) * 0.5, my = (a.y + b.y) * 0.5;
-                const deadSize = Math.min(W, H) * LEVEL_SIZE_FRACS[LEVEL_MIN] * 0.6;
-                const dEl = createZombieSVG(deadSize);
-                const db  = createBallState(dEl, mx, my,
-                  (a.vx + b.vx) * 0.3, (a.vy + b.vy) * 0.3, LEVEL_MIN, true);
-                db.size = 1; // Start tiny for a smooth growing birth animation!
-                db.radius = 0.5;
-                db.baseSize = deadSize; db.sizeFrac = LEVEL_SIZE_FRACS[LEVEL_MIN] * 0.6;
-                db.maxSizeFrac = db.sizeFrac;
-                balls.push(db);
-                a.el.remove(); b.el.remove();
-                balls.splice(balls.indexOf(a), 1);
-                const bIdx = balls.indexOf(b); if (bIdx >= 0) balls.splice(bIdx, 1);
-                gSpawnCd = SPAWN_CD_G;
+                 // Death event: two F3 balls collide heavily → merge into a zombie ball
+                 const mx  = (a.x + b.x) * 0.5, my = (a.y + b.y) * 0.5;
+                 const deadSize = Math.min(W, H) * LEVEL_SIZE_FRACS[LEVEL_MIN] * 0.6;
+                 const dEl = createZombieSVG(deadSize);
+                 const db  = createBallState(dEl, mx, my,
+                   (a.vx + b.vx) * 0.3, (a.vy + b.vy) * 0.3, LEVEL_MIN, true);
+                 db.size = 1; // Start tiny for a smooth growing birth animation!
+                 db.radius = 0.5;
+                 db.baseSize = deadSize; db.sizeFrac = LEVEL_SIZE_FRACS[LEVEL_MIN] * 0.6;
+                 db.maxSizeFrac = db.sizeFrac;
+                 toSpawn.push(db);
+                 toRemove.add(a);
+                 toRemove.add(b);
+                 gSpawnCd = SPAWN_CD_G;
               }
             }
           }
+
+          // Apply deferred removals and additions
+          toRemove.forEach(p => {
+            p.el.remove();
+            const i = balls.indexOf(p);
+            if (i >= 0) balls.splice(i, 1);
+          });
+          balls.push(...toSpawn);
 
           if (scrollVelY > 0.05) scrollVelY *= 0.82; else scrollVelY = 0;
 
@@ -701,7 +752,12 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
               f7Time += 0.0035; // Controls breathing speed
               const rawSin = Math.sin(f7Time);
               const wave = Math.pow((rawSin + 1) * 0.5, 1.6); // Asymmetric lung-like expansion shape
-              const breathFrac = lerp(LEVEL_SIZE_FRACS[LEVEL_MIN], LEVEL_SIZE_FRACS[LEVEL_SPECIAL_F7], wave);
+              
+              // Let f7TargetFrac decay slowly back to the base F7 size fraction (0.50) if eaten snacks boosted it
+              const baseF7Frac = LEVEL_SIZE_FRACS[LEVEL_SPECIAL_F7];
+              f7TargetFrac += (baseF7Frac - f7TargetFrac) * 0.0005;
+
+              const breathFrac = lerp(LEVEL_SIZE_FRACS[LEVEL_MIN], f7TargetFrac, wave);
               b.sizeFrac    = breathFrac;
               b.maxSizeFrac = breathFrac;
               b.baseSize    = Math.min(W, H) * breathFrac * navScale;
