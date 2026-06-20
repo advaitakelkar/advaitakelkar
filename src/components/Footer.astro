@@ -452,30 +452,11 @@ const sorted = [...allProjects].sort((a, b) => {
       g.style.flexDirection = '';
       g.style.flexWrap = '';
       g.innerHTML = '';
-      rows.forEach((rowPills, rowIdx) => {
+      rows.forEach(rowPills => {
         const row = document.createElement('div');
         row.className = 'qs-row';
         rowPills.forEach(p => row.appendChild(p));
         g.appendChild(row);
-
-        // Distribute leftover space across all rows except the last
-        // so pills fill edge-to-edge (like the Softwares section above)
-        const isLastRow = rowIdx === rows.length - 1;
-        if (!isLastRow && rowPills.length > 1) {
-          const gap = 5;
-          const rowW = row.clientWidth;
-          const totalPillW = rowPills.reduce((sum, p) => sum + parseFloat(p.dataset.restW || '0'), 0);
-          const totalGapW = (rowPills.length - 1) * gap;
-          const extra = rowW - totalPillW - totalGapW;
-          if (extra > 0) {
-            const extraPerPill = extra / rowPills.length;
-            rowPills.forEach(p => {
-              const newW = Math.round(parseFloat(p.dataset.restW || '0') + extraPerPill);
-              p.dataset.restW = String(newW);
-              p.style.width = newW + 'px';
-            });
-          }
-        }
       });
     }
 
@@ -546,12 +527,7 @@ const sorted = [...allProjects].sort((a, b) => {
         
         clearTimeout((row as any)._resetTimer);
         (row as any)._resetTimer = setTimeout(() => {
-          // Keep distributed restW width (don't clear to '' — that would snap to natural content width)
-          rowPills.forEach(rp => {
-            const w = rp.dataset.restW;
-            if (w) rp.style.width = w + 'px';
-            else rp.style.width = '';
-          });
+          rowPills.forEach(rp => rp.style.width = '');
         }, 400);
       });
     });
