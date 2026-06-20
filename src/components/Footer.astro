@@ -38,7 +38,13 @@ const sorted = [...allProjects].sort((a, b) => {
       autocomplete="off"
       aria-label="Search projects"
     />
-    <button class="home-search__clear" id="qs-clear" type="button">@Clear All</button>
+    <button class="home-search__clear" id="qs-clear" type="button">
+      <span>@Clear All</span>
+      <svg class="link-arrow qs-clear-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+        <line x1="6" y1="18" x2="18" y2="6"></line>
+        <polyline points="10 6 18 6 18 14"></polyline>
+      </svg>
+    </button>
   </div>
   <p class="home-search__count" id="qs-count" aria-live="polite"></p>
   
@@ -177,6 +183,7 @@ const sorted = [...allProjects].sort((a, b) => {
 
   .home-search__bar {
     display: flex;
+    align-items: center;
     gap: 10px;
     margin-bottom: 14px;
   }
@@ -204,20 +211,28 @@ const sorted = [...allProjects].sort((a, b) => {
   }
 
   .home-search__clear {
-    height: 42px;
-    padding: 0 18px;
-    font-size: var(--_tokens---type--micro);
-    font-family: inherit;
-    font-weight: 400;
-    letter-spacing: 0.04em;
-    background: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
-    border: none;
-    color: var(--_tokens---color--fg);
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: var(--_tokens---type--ultrathin);
+    font-weight: 300;
+    color: var(--_tokens---color--muted);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
     border-radius: 999px;
+    padding: 6px 12px;
     cursor: pointer;
     white-space: nowrap;
     opacity: 0.35; /* grayed out by default */
-    transition: background-color 0.2s, color 0.2s, opacity 0.3s ease;
+    transition: background-color 0.2s, color 0.2s, transform 0.15s, box-shadow 0.2s, opacity 0.3s ease;
+  }
+
+  .qs-clear-arrow {
+    width: 0.8em;
+    height: 0.8em;
+    flex-shrink: 0;
+    opacity: 0.55;
+    transition: transform 0.2s ease, opacity 0.2s ease;
   }
 
   .home-search__input:focus ~ .home-search__clear,
@@ -229,6 +244,11 @@ const sorted = [...allProjects].sort((a, b) => {
   .home-search__clear:hover {
     background-color: var(--_tokens---color--fg);
     color: var(--_tokens---color--bg);
+    transform: translateY(-1px);
+  }
+
+  .home-search__clear:hover .qs-clear-arrow {
+    opacity: 1;
   }
 
   .home-search__count {
@@ -239,8 +259,6 @@ const sorted = [...allProjects].sort((a, b) => {
     margin-bottom: 24px;
   }
 
-  /* ── Pill/bubble search — multi-row paragraph; each row is nowrap + clipped,
-     so a growing pill pushes its row-mates right (clipped) without reflowing. ── */
   .proj-bubbles {
     display: flex;
     flex-direction: column;
@@ -261,43 +279,39 @@ const sorted = [...allProjects].sort((a, b) => {
   .proj-bubble {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 6px 12px;
-    border-radius: 999px;
-    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+    gap: 7px;
+    font-size: var(--_tokens---type--ultrathin);
+    font-weight: 300;
+    color: var(--_tokens---color--muted);
     background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+    border-radius: 999px;
+    padding: 6px 12px;
     text-decoration: none;
     white-space: nowrap;
-    color: var(--_tokens---color--muted);
-    transition: background-color 0.2s, color 0.2s, border-color 0.2s, transform 0.15s, opacity 0.2s;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s, transform 0.15s, box-shadow 0.2s;
   }
 
   .proj-bubble__name {
-    font-size: var(--_tokens---type--ultrathin);
-    font-weight: 700;
-    letter-spacing: 0.04em;
     color: inherit;
-    max-width: 4.2em;           /* ~6 chars at ultrathin font size */
+    max-width: 4.2em;
     overflow: hidden;
     white-space: nowrap;
     transition: max-width 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .proj-bubble:hover .proj-bubble__name {
-    max-width: 30ch;            /* reveals full name on hover */
+    max-width: 30ch;
   }
 
-  /* Tag is collapsed at rest (pill shows only name + arrow);
-     it grows open on hover or when a search matches the tag. */
   .proj-bubble__tag {
     font-family: var(--_tokens---font--mono);
     line-height: 1;
-    font-size: var(--_tokens---type--ultrathin);
     color: inherit;
     opacity: 0;
-    letter-spacing: 0.04em;
     max-width: 0;
-    margin-left: -7px; /* cancel the inter-item gap while collapsed */
+    margin-left: -7px;
     overflow: hidden;
     white-space: nowrap;
     transition: max-width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
@@ -305,7 +319,6 @@ const sorted = [...allProjects].sort((a, b) => {
                 margin-left 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  /* Reveal (grow) the tag on hover or on a tag-search match */
   .proj-bubble:hover .proj-bubble__tag,
   .proj-bubble.is-tag-reveal .proj-bubble__tag {
     max-width: 160px;
@@ -338,6 +351,7 @@ const sorted = [...allProjects].sort((a, b) => {
     background-color: var(--_tokens---color--fg);
     color: var(--_tokens---color--bg);
     border-color: var(--_tokens---color--fg);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--_tokens---color--fg) 40%, transparent);
   }
 
   .proj-bubble.is-match:hover {
@@ -384,12 +398,9 @@ const sorted = [...allProjects].sort((a, b) => {
     g.innerHTML = '';
     originals.forEach(p => g.appendChild(p));
 
-    // Group pills into rows that match the natural wrap of a paragraph, then wrap
-    // each group in a nowrap+clipped .qs-row. Measured in the collapsed (rest) state.
     function buildRows() {
       const pills = Array.from(g.querySelectorAll('.proj-bubble')) as HTMLElement[];
       if (!pills.length) return;
-      // Flatten + temporarily render as a wrapping row to measure line breaks
       g.style.flexDirection = 'row';
       g.style.flexWrap = 'wrap';
       pills.forEach(p => g.appendChild(p));
@@ -403,7 +414,6 @@ const sorted = [...allProjects].sort((a, b) => {
         }
         cur!.push(p);
       });
-      // Reset container to stacked-rows layout and rebuild as .qs-row groups
       g.style.flexDirection = '';
       g.style.flexWrap = '';
       g.innerHTML = '';
@@ -453,7 +463,6 @@ const sorted = [...allProjects].sort((a, b) => {
       if (input) { input.value = ''; input.classList.remove('is-active'); render(''); input.focus(); }
     });
 
-    // Rebuild rows on resize so the paragraph re-wraps to the new width
     let resizeTimer: number | undefined;
     window.addEventListener('resize', () => {
       window.clearTimeout(resizeTimer);
