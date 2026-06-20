@@ -290,7 +290,17 @@ const sorted = [...allProjects].sort((a, b) => {
     text-decoration: none;
     white-space: nowrap;
     cursor: pointer;
-    transition: background-color 0.2s, color 0.2s, transform 0.15s, box-shadow 0.2s, margin-left 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: hidden;
+    transition: background-color 0.2s, color 0.2s, transform 0.15s, box-shadow 0.2s, width 0.4s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s;
+  }
+
+  /* When squished, hide the text and arrow to make it a pure color dot */
+  .proj-bubble.is-squished {
+    color: transparent;
+  }
+  .proj-bubble.is-squished .proj-bubble__tag,
+  .proj-bubble.is-squished .proj-bubble__arrow {
+    opacity: 0 !important;
   }
 
   /* Temporary measure state */
@@ -418,7 +428,10 @@ const sorted = [...allProjects].sort((a, b) => {
       pills.forEach(p => g.appendChild(p));
 
       // Pre-measure collapsed and expanded widths for smart hover logic
-      pills.forEach(p => p.dataset.restW = String(p.offsetWidth));
+      pills.forEach(p => {
+        p.style.width = ''; // clear any inline width
+        p.dataset.restW = String(p.offsetWidth);
+      });
       g.classList.add('qs-measure-state');
       void g.offsetWidth; // force layout recalculation
       pills.forEach(p => p.dataset.fullW = String(p.offsetWidth));
@@ -452,26 +465,68 @@ const sorted = [...allProjects].sort((a, b) => {
       p.addEventListener('mouseenter', () => {
         const row = p.parentElement;
         if (!row || !row.classList.contains('qs-row')) return;
+        
         const rowPills = Array.from(row.children) as HTMLElement[];
-        const index = rowPills.indexOf(p);
-        if (index === -1) return;
+        const H = rowPills.indexOf(p);
+        if (H === -1) return;
+
+        clearTimeout((row as any)._resetTimer);
+        
         const N = rowPills.length;
-        const F = N > 1 ? index / (N - 1) : 0;
-        
+        const targetW = rowPills.map(rp => parseFloat(rp.dataset.restW || '0'));
         const fullW = parseFloat(p.dataset.fullW || '0');
-        const restW = parseFloat(p.dataset.restW || '0');
-        const delta = Math.max(0, fullW - restW);
         
-        const firstPill = rowPills[0];
-        firstPill.style.marginLeft = `-${delta * F}px`;
+        const gap = 5;
+        const totalRestW = targetW.reduce((a, b) => a + b, 0) + (N - 1) * gap;
+        const rowWidth = row.clientWidth;
+        const emptySpace = Math.max(0, rowWidth - totalRestW);
+        
+        const req = fullW - targetW[H];
+        targetW[H] = fullW;
+        
+        let deficit = Math.max(0, req - emptySpace);
+        
+        const others = rowPills
+          .map((rp, i) => ({ i, dist: Math.abs(i - H) }))
+          .filter(o => o.i !== H)
+          .sort((a, b) => {
+            if (b.dist !== a.dist) return b.dist - a.dist;
+            return a.i - b.i; // left-most wins ties
+          });
+          
+        for (const o of others) {
+          if (deficit <= 0) break;
+          const maxSteal = targetW[o.i] - 26; // 26px minimum circle width
+          if (maxSteal > 0) {
+            const steal = Math.min(deficit, maxSteal);
+            targetW[o.i] -= steal;
+            deficit -= steal;
+          }
+        }
+        
+        if (deficit > 0) {
+          targetW[H] -= deficit;
+        }
+        
+        rowPills.forEach((rp, i) => {
+          rp.style.width = targetW[i] + 'px';
+          rp.classList.toggle('is-squished', targetW[i] <= 32);
+        });
       });
       p.addEventListener('mouseleave', () => {
         const row = p.parentElement;
         if (!row || !row.classList.contains('qs-row')) return;
-        const firstPill = row.firstElementChild as HTMLElement;
-        if (firstPill) {
-          firstPill.style.marginLeft = '';
-        }
+        
+        const rowPills = Array.from(row.children) as HTMLElement[];
+        rowPills.forEach((rp) => {
+          rp.classList.remove('is-squished');
+          rp.style.width = rp.dataset.restW + 'px';
+        });
+        
+        clearTimeout((row as any)._resetTimer);
+        (row as any)._resetTimer = setTimeout(() => {
+          rowPills.forEach(rp => rp.style.width = '');
+        }, 400);
       });
     });
 
