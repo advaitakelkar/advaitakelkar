@@ -132,15 +132,20 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         overflow: hidden;
       }
 
-      /* Dead (zombie) balls: filled circle, slightly more opaque + a slow pulse */
+      /* Dead (zombie) balls: filled glowing circle, slightly more opaque + a slow pulse */
       .watermark-ball--dead {
-        fill: color-mix(in srgb, var(--_tokens---color--fg) 30%, var(--_tokens---color--bg));
+        background: color-mix(in srgb, var(--_tokens---color--fg) 25%, transparent) !important;
+        border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 45%, transparent) !important;
+        border-radius: 50% !important;
+        box-shadow: 0 0 14px color-mix(in srgb, var(--_tokens---color--fg) 65%, transparent) !important;
+        opacity: 0.15 !important;
+        fill: none !important;
         animation: dead-pulse 2.4s ease-in-out infinite;
       }
 
       @keyframes dead-pulse {
-        0%, 100% { opacity: 0.08; }
-        50%       { opacity: 0.14; }
+        0%, 100% { opacity: 0.12; transform: scale(0.96); }
+        50%       { opacity: 0.22; transform: scale(1.04); }
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -420,6 +425,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           isZombie: boolean;
           hasHitTop: boolean;
           hasFallen: boolean;
+          breathingPhase: number;
         };
 
         const balls: Ball[] = [];
@@ -518,6 +524,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
             cd: 0, level, idleFrames: 0, isZombie,
             hasHitTop: false,
             hasFallen: false,
+            breathingPhase: Math.random() * 100,
           };
         }
 
@@ -839,10 +846,40 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
             b.baseSize = Math.min(W, H) * b.sizeFrac * navScale;
 
-            // F7 Natural Breathing Oscillator (organic sine-based inhale/exhale)
+            // ── F7 Natural Breathing Oscillator (organic sine-based inhale/exhale) ──
+            // Add a stepping change timer based on the Fibonacci sequence to change speed:
+            // Fibonacci steps: 1, 2, 3, 5, 8, 13, 21. Loop from index 0 to 6 (1 to 21) and then back down (21 to 1).
+            // We update the step scale index over time.
             if (b.level === LEVEL_SPECIAL_F7) {
-              f7Time += 0.0035; // Controls breathing speed
-              const rawSin = Math.sin(f7Time);
+              const fibSequence = [1, 2, 3, 5, 8, 13, 21];
+              // Use global frame counter to progress step index every 180 frames (approx 3 seconds)
+              if (!(window as any).__fibStepTime) {
+                (window as any).__fibStepTime = 0;
+                (window as any).__fibStepIndex = 0;
+                (window as any).__fibStepDir = 1; // 1 for forward, -1 for backward
+              }
+              (window as any).__fibStepTime++;
+              if ((window as any).__fibStepTime >= 240) {
+                (window as any).__fibStepTime = 0;
+                let idx = (window as any).__fibStepIndex;
+                let dir = (window as any).__fibStepDir;
+                idx += dir;
+                if (idx >= 6) {
+                  idx = 6;
+                  (window as any).__fibStepDir = -1; // reverse
+                } else if (idx <= 0) {
+                  idx = 0;
+                  (window as any).__fibStepDir = 1; // forward
+                }
+                (window as any).__fibStepIndex = idx;
+              }
+
+              const fibVal = fibSequence[(window as any).__fibStepIndex];
+              // As the Fibonacci step increases, the animation gets slower (so speed is divided by the Fibonacci value)
+              const breathingSpeed = 0.006 / fibVal;
+              b.breathingPhase += breathingSpeed;
+
+              const rawSin = Math.sin(b.breathingPhase);
               const wave = Math.pow((rawSin + 1) * 0.5, 1.6); // Asymmetric lung-like expansion shape
               
               // Let f7TargetFrac decay slowly back to the base F7 size fraction (0.50) if eaten snacks boosted it
