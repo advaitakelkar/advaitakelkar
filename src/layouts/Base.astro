@@ -738,17 +738,20 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           });
           balls.push(...toSpawn);
 
-          if (scrollVelY > 0.05) scrollVelY *= 0.82; else scrollVelY = 0;
-
-          const navJustOpened = navIsOpen && !prevNavIsOpen;
-          prevNavIsOpen = navIsOpen;
-
-          // ── 7. PER-BALL POSITION & SIZE UPDATES ──
+        // ── 7. PER-BALL POSITION & SIZE UPDATES ──
           for (const b of balls) {
             if (b.cd > 0) b.cd--;
 
             const ratio        = getSizeRatio(b);
-            const ballGrav     = GRAV_BASE;
+            let ballGrav       = GRAV_BASE;
+            
+            // F7 special balls and zombie balls drop down quicker
+            if (b.level === LEVEL_SPECIAL_F7) {
+              ballGrav = GRAV_BASE * 2.2;
+            } else if (b.isZombie) {
+              ballGrav = GRAV_BASE * 1.5;
+            }
+
             const ballSpeedCap = lerp(MAX_SPEED_SM, MAX_SPEED_LG, ratio);
             const ballVrotMax  = lerp(VROT_MAX_SM,  VROT_MAX_LG,  ratio);
 
@@ -776,12 +779,20 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
               b.baseSize = Math.min(W, H) * b.sizeFrac * navScale;
             }
 
-            // Zombie Movement Pattern (Random Brownian drift)
+            // Zombie Movement Pattern (Random Brownian drift + rise up then drop down)
             if (b.isZombie) {
               b.vx += (Math.random() - 0.5) * 0.35;
               b.vy += (Math.random() - 0.5) * 0.35;
+              
+              // Add upward buoyancy for young zombies, so they rise up upon birth and then fall down
+              if (b.cd > 0) {
+                b.vy -= 0.38; // upward rise drift
+              } else {
+                b.vy += ballGrav; // normal zombie gravity fall
+              }
+
               const spd = Math.hypot(b.vx, b.vy);
-              if (spd > 2.5) { b.vx = b.vx / spd * 2.5; b.vy = b.vy / spd * 2.5; }
+              if (spd > 3.5) { b.vx = b.vx / spd * 3.5; b.vy = b.vy / spd * 3.5; }
               b.x += b.vx; b.y += b.vy;
               b.radius = b.size * 0.5;
 
