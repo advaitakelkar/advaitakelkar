@@ -488,10 +488,11 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           svg.setAttribute('viewBox', '0 0 100 100');
           svg.classList.add('watermark-ball', 'watermark-ball--dead');
           svg.style.cssText = `position:absolute;top:0;left:0;width:${size}px;height:${size}px;opacity:0.10;will-change:transform;`;
-          const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-          circle.setAttribute('cx', '50'); circle.setAttribute('cy', '50'); circle.setAttribute('r', '48');
-          circle.setAttribute('fill', 'currentColor');
-          svg.appendChild(circle);
+          const pentagon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+          // Standard regular pentagon points within 100x100 box
+          pentagon.setAttribute('points', '50,5 95,38 78,90 22,90 5,38');
+          pentagon.setAttribute('fill', 'currentColor');
+          svg.appendChild(pentagon);
           container!.appendChild(svg);
           return svg;
         }
@@ -551,25 +552,25 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         const cx = W * 0.50, cy = H * 0.46;
         const initialSpawnList: { lvl: number; angle: number; dist: number }[] = [];
         
-        // 4 Special F7 balls (approx 6%)
+        // 4 Special F7 balls
         for (let k = 0; k < 4; k++) {
           initialSpawnList.push({ lvl: LEVEL_SPECIAL_F7, angle: k * 90, dist: 0.05 });
         }
-        // 9 F6 (LEVEL_MAX_NORMAL) balls (approx 14%)
-        for (let k = 0; k < 9; k++) {
-          initialSpawnList.push({ lvl: LEVEL_MAX_NORMAL, angle: k * (360 / 9), dist: 0.22 });
+        // 11 F6 (LEVEL_MAX_NORMAL) balls
+        for (let k = 0; k < 11; k++) {
+          initialSpawnList.push({ lvl: LEVEL_MAX_NORMAL, angle: k * (360 / 11), dist: 0.22 });
         }
-        // 14 Level 5 balls (approx 22%)
-        for (let k = 0; k < 14; k++) {
-          initialSpawnList.push({ lvl: 5, angle: k * (360 / 14) + 15, dist: 0.35 });
+        // 17 Level 5 balls
+        for (let k = 0; k < 17; k++) {
+          initialSpawnList.push({ lvl: 5, angle: k * (360 / 17) + 15, dist: 0.35 });
         }
-        // 18 Level 4 balls (approx 28%)
-        for (let k = 0; k < 18; k++) {
-          initialSpawnList.push({ lvl: 4, angle: k * (360 / 18) + 5, dist: 0.48 });
+        // 22 Level 4 balls
+        for (let k = 0; k < 22; k++) {
+          initialSpawnList.push({ lvl: 4, angle: k * (360 / 22) + 5, dist: 0.48 });
         }
-        // 20 Level 3 (LEVEL_MIN) balls (approx 30%)
-        for (let k = 0; k < 20; k++) {
-          initialSpawnList.push({ lvl: LEVEL_MIN, angle: k * (360 / 20) + 20, dist: 0.58 });
+        // 26 Level 3 (LEVEL_MIN) balls
+        for (let k = 0; k < 26; k++) {
+          initialSpawnList.push({ lvl: LEVEL_MIN, angle: k * (360 / 26) + 20, dist: 0.58 });
         }
 
         initialSpawnList.forEach(({ lvl, angle, dist }) => {
@@ -680,17 +681,6 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
               // ── SPECIAL COLLISION ACTIONS ──
               const touching = (dist - a.radius - b.radius) <= PACK_GAP + 8;
               
-              // F7 Special balls push normal elements away with extreme downward momentum
-              if (a.level === LEVEL_SPECIAL_F7 || b.level === LEVEL_SPECIAL_F7) {
-                const f7 = a.level === LEVEL_SPECIAL_F7 ? a : b;
-                const normal = a.level === LEVEL_SPECIAL_F7 ? b : a;
-                if (!normal.isZombie && normal.level !== LEVEL_SPECIAL_F7) {
-                  // Push normal down and outward with intensity
-                  normal.vy += 0.8;
-                  normal.vx += nx * 0.5 * (normal.x < f7.x ? -1 : 1);
-                }
-              }
-
               // Dead ball interactions
               if (a.isZombie || b.isZombie) {
                 const zombie = a.isZombie ? a : b;
@@ -703,14 +693,30 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
                   other.vy += ny * pushForce * (other.y < zombie.y ? -1 : 1);
                 }
 
-                // If it touches a special ball
-                if (other.level === LEVEL_SPECIAL_F7) {
-                  // React: immediate demotion/growth trigger or splash velocity kick
-                  other.vx += nx * 5.0 * (other.x < zombie.x ? -1 : 1);
-                  other.vy += ny * 5.0 * (other.y < zombie.y ? -1 : 1);
-                  zombie.hasHitTop = true; // interrupt rising phase, trigger drop
-                  zombie.vy = 8; // speed kick down
-                  zombie.vx += (Math.random() - 0.5) * 4;
+                // During descent, if it successfully reaches and makes contact with balls
+                if (zombie.hasHitTop && touching) {
+                  if (other.level === LEVEL_SPECIAL_F7) {
+                    // Contact with F7 -> Create a repulsion wave and disappear completely
+                    for (const bTarget of balls) {
+                      if (bTarget === zombie) continue;
+                      const rdx = bTarget.x - zombie.x;
+                      const rdy = bTarget.y - zombie.y;
+                      const rdist = Math.hypot(rdx, rdy) || 0.1;
+                      if (rdist < 300) {
+                        const wavePower = 10 * (1 - rdist / 300);
+                        bTarget.vx += (rdx / rdist) * wavePower;
+                        bTarget.vy += (rdy / rdist) * wavePower;
+                      }
+                    }
+                    toRemove.add(zombie);
+                  } else if (!other.isZombie) {
+                    // Randomly changes the standard ball level
+                    if (Math.random() < 0.5) {
+                      promoteBallLevel(other);
+                    } else {
+                      demoteBallLevel(other);
+                    }
+                  }
                 }
               }
 
@@ -749,7 +755,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
                 }
               } else if (touching && !a.isZombie && !b.isZombie &&
                          a.level === LEVEL_MIN && b.level === LEVEL_MIN &&
-                         dvn < -0.8 && gSpawnCd === 0) {
+                         gSpawnCd === 0) {
                  // Death event: two F3 balls collide heavily → merge into a zombie (dead ball)
                  const mx  = (a.x + b.x) * 0.5, my = (a.y + b.y) * 0.5;
                  
