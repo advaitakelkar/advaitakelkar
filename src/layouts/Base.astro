@@ -416,6 +416,8 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           level: number;
           idleFrames: number;
           isZombie: boolean;
+          hasHitTop: boolean;
+          hasFallen: boolean;
         };
 
         const balls: Ball[] = [];
@@ -504,6 +506,8 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
             rot: Math.random() * 360,
             vrot: (Math.random() - 0.5) * 0.6,
             cd: 0, level, idleFrames: 0, isZombie,
+            hasHitTop: false,
+            hasFallen: false,
           };
         }
 
@@ -676,6 +680,40 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
               // ── SPECIAL COLLISION ACTIONS ──
               const touching = (dist - a.radius - b.radius) <= PACK_GAP + 8;
               
+              // F7 Special balls push normal elements away with extreme downward momentum
+              if (a.level === LEVEL_SPECIAL_F7 || b.level === LEVEL_SPECIAL_F7) {
+                const f7 = a.level === LEVEL_SPECIAL_F7 ? a : b;
+                const normal = a.level === LEVEL_SPECIAL_F7 ? b : a;
+                if (!normal.isZombie && normal.level !== LEVEL_SPECIAL_F7) {
+                  // Push normal down and outward with intensity
+                  normal.vy += 0.8;
+                  normal.vx += nx * 0.5 * (normal.x < f7.x ? -1 : 1);
+                }
+              }
+
+              // Dead ball interactions
+              if (a.isZombie || b.isZombie) {
+                const zombie = a.isZombie ? a : b;
+                const other = a.isZombie ? b : a;
+
+                // Dead ball exerts strong push force on elements around it while rising
+                if (!zombie.hasHitTop && !other.isZombie) {
+                  const pushForce = 2.5;
+                  other.vx += nx * pushForce * (other.x < zombie.x ? -1 : 1);
+                  other.vy += ny * pushForce * (other.y < zombie.y ? -1 : 1);
+                }
+
+                // If it touches a special ball
+                if (other.level === LEVEL_SPECIAL_F7) {
+                  // React: immediate demotion/growth trigger or splash velocity kick
+                  other.vx += nx * 5.0 * (other.x < zombie.x ? -1 : 1);
+                  other.vy += ny * 5.0 * (other.y < zombie.y ? -1 : 1);
+                  zombie.hasHitTop = true; // interrupt rising phase, trigger drop
+                  zombie.vy = 8; // speed kick down
+                  zombie.vx += (Math.random() - 0.5) * 4;
+                }
+              }
+
               if (touching && (a.level === LEVEL_SPECIAL_F7 || b.level === LEVEL_SPECIAL_F7)) {
                 const nonF7 = a.level === LEVEL_SPECIAL_F7 ? b : a;
 
@@ -712,16 +750,23 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
               } else if (touching && !a.isZombie && !b.isZombie &&
                          a.level === LEVEL_MIN && b.level === LEVEL_MIN &&
                          dvn < -0.8 && gSpawnCd === 0) {
-                 // Death event: two F3 balls collide heavily → merge into a zombie ball
+                 // Death event: two F3 balls collide heavily → merge into a zombie (dead ball)
                  const mx  = (a.x + b.x) * 0.5, my = (a.y + b.y) * 0.5;
-                 const deadSize = Math.min(W, H) * LEVEL_SIZE_FRACS[LEVEL_MIN] * 0.6;
+                 
+                 // One size smaller than the smallest (F3 is level 3, so size level 2 which is index 2 -> 0.040)
+                 const deadSizeFrac = 0.040; 
+                 const deadSize = Math.min(W, H) * deadSizeFrac;
+                 
                  const dEl = createZombieSVG(deadSize);
-                 const db  = createBallState(dEl, mx, my,
-                   (a.vx + b.vx) * 0.3, (a.vy + b.vy) * 0.3, LEVEL_MIN, true);
-                 db.size = 1; // Start tiny for a smooth growing birth animation!
+                 const db  = createBallState(dEl, mx, my, 0, -8, LEVEL_MIN - 1, true); // vy=-8 for high force straight rise
+                 
+                 db.size = 1; // start tiny for smooth growing birth
                  db.radius = 0.5;
-                 db.baseSize = deadSize; db.sizeFrac = LEVEL_SIZE_FRACS[LEVEL_MIN] * 0.6;
-                 db.maxSizeFrac = db.sizeFrac;
+                 db.baseSize = deadSize;
+                 db.sizeFrac = deadSizeFrac;
+                 db.maxSizeFrac = deadSizeFrac;
+                 db.cd = 240; // Cooldown frames for rise behavior
+                 
                  toSpawn.push(db);
                  toRemove.add(a);
                  toRemove.add(b);
@@ -784,31 +829,60 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
               b.baseSize = Math.min(W, H) * b.sizeFrac * navScale;
             }
 
-            // Zombie Movement Pattern (Random Brownian drift + rise up then drop down)
-            if (b.isZombie) {
-              b.vx += (Math.random() - 0.5) * 0.35;
-              b.vy += (Math.random() - 0.5) * 0.35;
-              
-              // Add upward buoyancy for young zombies, so they rise up upon birth and then fall down
-              if (b.cd > 0) {
-                b.vy -= 0.38; // upward rise drift
-              } else {
-                b.vy += ballGrav; // normal zombie gravity fall
-              }
+            // Zombie (Dead Ball) Movement Pattern:
+             // 1. Pushes itself out of the jumbled mix and straight tries reaching the top.
+             // 2. Touches top edge and drops down with even more intensity.
+             // 3. If it touches bottom without touching special balls, it becomes a F5.
+             if (b.isZombie) {
+               // Horizontal stabilization towards vertical rise path
+               b.vx *= 0.85;
 
-              const spd = Math.hypot(b.vx, b.vy);
-              if (spd > 3.5) { b.vx = b.vx / spd * 3.5; b.vy = b.vy / spd * 3.5; }
-              b.x += b.vx; b.y += b.vy;
-              b.radius = b.size * 0.5;
+               if (!b.hasHitTop) {
+                 // Push straight up with intensity
+                 b.vy -= 0.55; 
+                 // Cap upward speed
+                 if (b.vy < -7.0) b.vy = -7.0;
+               } else {
+                 // Fast fall phase with extra gravity speed intensity
+                 b.vy += ballGrav * 2.5;
+                 if (b.vy > 9.0) b.vy = 9.0;
+               }
 
-              if (b.x - b.radius < navLeftBound) { b.x = navLeftBound + b.radius; b.vx =  Math.abs(b.vx); }
-              if (b.x + b.radius > W)            { b.x = W - b.radius;            b.vx = -Math.abs(b.vx); }
-              if (b.y - b.radius < BREADCRUMB_H) { b.y = BREADCRUMB_H + b.radius; b.vy =  Math.abs(b.vy); }
-              if (b.y + b.radius > H)            { b.y = H - b.radius;            b.vy = -Math.abs(b.vy); }
-              b.rot += 0.8;
-              b.el.style.transform = `translate(${b.x - b.radius}px,${b.y - b.radius}px) rotate(${b.rot}deg)`;
-              continue;
-            }
+               // Random drift jitter
+               b.vx += (Math.random() - 0.5) * 0.15;
+               b.vy += (Math.random() - 0.5) * 0.15;
+
+               b.x += b.vx; b.y += b.vy;
+               b.radius = b.size * 0.5;
+
+               // Wall boundary collisions
+               if (b.x - b.radius < navLeftBound) { b.x = navLeftBound + b.radius; b.vx =  Math.abs(b.vx); }
+               if (b.x + b.radius > W)            { b.x = W - b.radius;            b.vx = -Math.abs(b.vx); }
+               
+               // Ceiling collision (touches top edge of the screen)
+               if (b.y - b.radius < BREADCRUMB_H) { 
+                 b.y = BREADCRUMB_H + b.radius; 
+                 b.hasHitTop = true;
+                 b.vy = 8.5; // bounce down with high intensity
+                 b.vx = (Math.random() - 0.5) * 3;
+               }
+               
+               // Floor collision (touches the bottom)
+               if (b.y + b.radius > H) { 
+                 b.y = H - b.radius;
+                 
+                 // If it touches the bottom, it dies/recycles and becomes a normal F5 ball!
+                 const f5El = createBallSVG(Math.min(W, H) * LEVEL_SIZE_FRACS[5]);
+                 const f5Ball = createBallState(f5El, b.x, b.y, b.vx, -3.0, 5); // F5 normal ball
+                 f5Ball.cd = SPAWN_CD_B;
+                 toSpawn.push(f5Ball);
+                 toRemove.add(b);
+               }
+
+               b.rot += 0.8;
+               b.el.style.transform = `translate(${b.x - b.radius}px,${b.y - b.radius}px) rotate(${b.rot}deg)`;
+               continue;
+             }
 
             // Normal Ball Movement Pattern
             // Attraction toward the nearest snack
@@ -832,8 +906,21 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
               }
             }
 
-            const gravMultiplier = spaceDown ? 2.0 : 1.0;
-            b.vy += ballGrav * gravMultiplier;
+            // F7 special balls are heavier, push themselves to the bottom, and are never stable (have a behavior of their own)
+            if (b.level === LEVEL_SPECIAL_F7) {
+              // Constant smooth horizontal movement back and forth
+              b.vx += Math.sin(f7Time * 2.0) * 0.18;
+              
+              // Heavy downward force to stay near floor
+              b.vy += ballGrav * 1.5;
+
+              // Apply standard vertical inputs
+              const gravMultiplier = spaceDown ? 2.0 : 1.0;
+              b.vy += ballGrav * gravMultiplier;
+            } else {
+              const gravMultiplier = spaceDown ? 2.0 : 1.0;
+              b.vy += ballGrav * gravMultiplier;
+            }
 
             if (scrollVelY > 0.05) {
               b.vy -= scrollVelY * lerp(0.6, 1.0, ratio);
