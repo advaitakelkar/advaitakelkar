@@ -265,15 +265,21 @@ const sorted = [...allProjects].sort((a, b) => {
     gap: 5px;
   }
 
-  /* Each row: left-aligned, never wraps, clips overflow on the right edge */
+  /* Each row: space-between so gaps fill 100% width (like justified text) */
   .qs-row {
     display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
-    justify-content: flex-start;
+    justify-content: space-between;
     gap: 5px;
     width: 100%;
     overflow: hidden;
+  }
+
+  /* Last row: left-align (don't stretch 3 pills across the full width) */
+  .qs-row--last {
+    justify-content: flex-start;
+    gap: 5px;
   }
 
   .proj-bubble {
@@ -452,9 +458,9 @@ const sorted = [...allProjects].sort((a, b) => {
       g.style.flexDirection = '';
       g.style.flexWrap = '';
       g.innerHTML = '';
-      rows.forEach(rowPills => {
+      rows.forEach((rowPills, idx) => {
         const row = document.createElement('div');
-        row.className = 'qs-row';
+        row.className = idx === rows.length - 1 ? 'qs-row qs-row--last' : 'qs-row';
         rowPills.forEach(p => row.appendChild(p));
         g.appendChild(row);
       });
@@ -477,17 +483,18 @@ const sorted = [...allProjects].sort((a, b) => {
         const N = rowPills.length;
         const targetW = rowPills.map(rp => parseFloat(rp.dataset.restW || '0'));
         const fullW = parseFloat(p.dataset.fullW || '0');
-        
-        const gap = 5;
-        const totalRestW = targetW.reduce((a, b) => a + b, 0) + (N - 1) * gap;
         const rowWidth = row.clientWidth;
+
+        // With space-between rows, all space not occupied by pill content is available gap
+        const isLastRow = row.classList.contains('qs-row--last');
+        const totalRestW = targetW.reduce((a, b) => a + b, 0) + (isLastRow ? (N - 1) * 5 : 0);
         const emptySpace = Math.max(0, rowWidth - totalRestW);
-        
+
         const req = fullW - targetW[H];
         targetW[H] = fullW;
-        
+
         let deficit = Math.max(0, req - emptySpace);
-        
+
         const others = rowPills
           .map((rp, i) => ({ i, dist: Math.abs(i - H) }))
           .filter(o => o.i !== H)
@@ -495,7 +502,7 @@ const sorted = [...allProjects].sort((a, b) => {
             if (b.dist !== a.dist) return b.dist - a.dist;
             return a.i - b.i; // left-most wins ties
           });
-          
+
         for (const o of others) {
           if (deficit <= 0) break;
           const maxSteal = targetW[o.i] - 26; // 26px minimum circle width
@@ -505,15 +512,22 @@ const sorted = [...allProjects].sort((a, b) => {
             deficit -= steal;
           }
         }
-        
+
         if (deficit > 0) {
           targetW[H] -= deficit;
         }
-        
+
         rowPills.forEach((rp, i) => {
           rp.style.width = targetW[i] + 'px';
           rp.classList.toggle('is-squished', targetW[i] <= 32);
         });
+
+        // Keep row full-width during hover by computing the gap dynamically
+        if (!isLastRow && N > 1) {
+          const totalExplicit = targetW.reduce((a, b) => a + b, 0);
+          const gapValue = Math.max(2, (rowWidth - totalExplicit) / (N - 1));
+          row.style.gap = gapValue + 'px';
+        }
       });
       p.addEventListener('mouseleave', () => {
         const row = p.parentElement;
@@ -524,10 +538,12 @@ const sorted = [...allProjects].sort((a, b) => {
           rp.classList.remove('is-squished');
           rp.style.width = rp.dataset.restW + 'px';
         });
-        
+        row.style.gap = ''; // restore space-between gap
+
         clearTimeout((row as any)._resetTimer);
         (row as any)._resetTimer = setTimeout(() => {
           rowPills.forEach(rp => rp.style.width = '');
+          row.style.gap = '';
         }, 400);
       });
     });
