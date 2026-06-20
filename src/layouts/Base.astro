@@ -405,7 +405,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         const SPAWN_CD_B   = 110;     // ball size-change cooldown
 
         type Ball = {
-          el: SVGSVGElement;
+          el: SVGSVGElement | HTMLDivElement;
           x: number; y: number;
           vx: number; vy: number;
           size: number;
@@ -485,25 +485,28 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           return el;
         }
 
-        function createZombieSVG(size: number): SVGSVGElement {
-          const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-          svg.setAttribute('viewBox', '0 0 100 100');
-          svg.classList.add('watermark-ball', 'watermark-ball--dead');
-          svg.style.cssText = `position:absolute;top:0;left:0;width:${size}px;height:${size}px;opacity:0.10;will-change:transform;pointer-events:none;`;
-          
-          // Draw a clean circle or pentagon SVG: let's draw a circle path/element
-          const shape = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-          shape.setAttribute('cx', '50');
-          shape.setAttribute('cy', '50');
-          shape.setAttribute('r', '45');
-          shape.setAttribute('fill', 'currentColor');
-          
-          svg.appendChild(shape);
-          container!.appendChild(svg);
-          return svg;
+        function createZombieDiv(size: number): HTMLDivElement {
+          const el = document.createElement('div');
+          el.classList.add('watermark-ball', 'watermark-ball--dead');
+          el.style.cssText = `
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: ${size}px;
+            height: ${size}px;
+            background: color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
+            border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 30%, transparent);
+            border-radius: 50%;
+            box-shadow: 0 0 10px color-mix(in srgb, var(--_tokens---color--fg) 40%, transparent);
+            pointer-events: none;
+            will-change: transform;
+            z-index: 9997;
+          `;
+          container!.appendChild(el);
+          return el;
         }
 
-        function createBallState(el: SVGSVGElement, x: number, y: number, vx: number, vy: number, level: number, isZombie = false): Ball {
+        function createBallState(el: SVGSVGElement | HTMLDivElement, x: number, y: number, vx: number, vy: number, level: number, isZombie = false): Ball {
           const frac = LEVEL_SIZE_FRACS[Math.max(LEVEL_MIN, Math.min(LEVEL_SPECIAL_F7, level))];
           const base = Math.min(W, H) * frac;
           return {
@@ -556,40 +559,46 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
         // ── 4. INITIAL SPAWNING SETUP ──
         const cx = W * 0.50, cy = H * 0.46;
-        const initialSpawnList: { lvl: number; angle: number; dist: number }[] = [];
+        const initialSpawnList: { lvl: number; xOffset: number; yOffset: number }[] = [];
         
-        // 4 Special F7 balls
+        // 4 Special F7 balls (spawned near the bottom floor to start at their natural habitat)
         for (let k = 0; k < 4; k++) {
-          initialSpawnList.push({ lvl: LEVEL_SPECIAL_F7, angle: k * 90, dist: 0.05 });
+          initialSpawnList.push({ 
+            lvl: LEVEL_SPECIAL_F7, 
+            xOffset: (k - 1.5) * (W * 0.18), 
+            yOffset: H * 0.32 
+          });
         }
         // 11 F6 (LEVEL_MAX_NORMAL) balls
         for (let k = 0; k < 11; k++) {
-          initialSpawnList.push({ lvl: LEVEL_MAX_NORMAL, angle: k * (360 / 11), dist: 0.22 });
+          const rad = k * (360 / 11) * Math.PI / 180;
+          initialSpawnList.push({ lvl: LEVEL_MAX_NORMAL, xOffset: Math.cos(rad) * Math.min(W, H) * 0.22, yOffset: Math.sin(rad) * Math.min(W, H) * 0.22 });
         }
         // 17 Level 5 balls
         for (let k = 0; k < 17; k++) {
-          initialSpawnList.push({ lvl: 5, angle: k * (360 / 17) + 15, dist: 0.35 });
+          const rad = (k * (360 / 17) + 15) * Math.PI / 180;
+          initialSpawnList.push({ lvl: 5, xOffset: Math.cos(rad) * Math.min(W, H) * 0.35, yOffset: Math.sin(rad) * Math.min(W, H) * 0.35 });
         }
         // 22 Level 4 balls
         for (let k = 0; k < 22; k++) {
-          initialSpawnList.push({ lvl: 4, angle: k * (360 / 22) + 5, dist: 0.48 });
+          const rad = (k * (360 / 22) + 5) * Math.PI / 180;
+          initialSpawnList.push({ lvl: 4, xOffset: Math.cos(rad) * Math.min(W, H) * 0.48, yOffset: Math.sin(rad) * Math.min(W, H) * 0.48 });
         }
         // 26 Level 3 (LEVEL_MIN) balls
         for (let k = 0; k < 26; k++) {
-          initialSpawnList.push({ lvl: LEVEL_MIN, angle: k * (360 / 26) + 20, dist: 0.58 });
+          const rad = (k * (360 / 26) + 20) * Math.PI / 180;
+          initialSpawnList.push({ lvl: LEVEL_MIN, xOffset: Math.cos(rad) * Math.min(W, H) * 0.58, yOffset: Math.sin(rad) * Math.min(W, H) * 0.58 });
         }
 
-        initialSpawnList.forEach(({ lvl, angle, dist }) => {
-          const rad   = angle * Math.PI / 180;
-          const r     = Math.min(W, H) * dist;
-          const speed = lvl === LEVEL_SPECIAL_F7 ? 0.2 : (LEVEL_SPECIAL_F7 + 1 - lvl) * 1.2 + Math.random() * 1.5;
+        initialSpawnList.forEach(({ lvl, xOffset, yOffset }) => {
+          const speed = lvl === LEVEL_SPECIAL_F7 ? 0.1 : (LEVEL_SPECIAL_F7 + 1 - lvl) * 1.2 + Math.random() * 1.5;
           const el    = createBallSVG(Math.min(W, H) * LEVEL_SIZE_FRACS[lvl]);
           balls.push(createBallState(
             el,
-            cx + Math.cos(rad) * r,
-            cy + Math.sin(rad) * r,
-            Math.cos(rad + Math.PI / 2) * speed,
-            Math.sin(rad + Math.PI / 2) * speed,
+            cx + xOffset,
+            cy + yOffset,
+            (Math.random() - 0.5) * speed,
+            (Math.random() - 0.5) * speed,
             lvl,
           ));
         });
@@ -742,34 +751,45 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
                   toRemove.add(nonF7);
                   gSpawnCd = SPAWN_CD_G;
                 } else if (!nonF7.isZombie && nonF7.cd === 0 && gSpawnCd === 0) {
-                  // Grow / Shrink non-F7:
-                  // Max Level (F6) -> Must shrink
-                  // Min Level (F3) -> Must grow
-                  // Middle levels -> 50% chance of grow
-                  let doGrow: boolean;
-                  if (nonF7.level >= LEVEL_MAX_NORMAL)     doGrow = false;
-                  else if (nonF7.level <= LEVEL_MIN)       doGrow = true;
-                  else                                     doGrow = Math.random() < 0.50;
-                  
-                  if (doGrow) {
-                    if (promoteBallLevel(nonF7)) gSpawnCd = SPAWN_CD_G;
-                  } else {
-                    const perpX = -ny, perpY = nx;
-                    const kick  = 1.5 + Math.random() * 1.5;
-                    if (demoteBallLevel(nonF7, perpX * kick, perpY * kick)) gSpawnCd = SPAWN_CD_G;
+                  // Contact scaling for F7 collisions:
+                  // The heavier balls (F6/F5) need a harder contact (high negative approach velocity dvn)
+                  // The smaller balls (F4) need a lighter contact to divide.
+                  let reqDvn = -1.2;
+                  if (nonF7.level >= 6) {
+                    reqDvn = -2.8; // F6 needs extremely hard contact
+                  } else if (nonF7.level === 5) {
+                    reqDvn = -2.0; // F5 needs harder contact
+                  } else if (nonF7.level === 4) {
+                    reqDvn = -1.2; // F4 needs lighter contact
+                  }
+
+                  if (dvn < reqDvn) {
+                    // Middle levels/F6/F5/F4: promote or demote (split)
+                    let doGrow: boolean;
+                    if (nonF7.level >= LEVEL_MAX_NORMAL)     doGrow = false;
+                    else if (nonF7.level <= LEVEL_MIN)       doGrow = true;
+                    else                                     doGrow = Math.random() < 0.50;
+                    
+                    if (doGrow) {
+                      if (promoteBallLevel(nonF7)) gSpawnCd = SPAWN_CD_G;
+                    } else {
+                      const perpX = -ny, perpY = nx;
+                      const kick  = 1.5 + Math.random() * 1.5;
+                      if (demoteBallLevel(nonF7, perpX * kick, perpY * kick)) gSpawnCd = SPAWN_CD_G;
+                    }
                   }
                 }
               } else if (touching && !a.isZombie && !b.isZombie &&
                          a.level === LEVEL_MIN && b.level === LEVEL_MIN &&
                          gSpawnCd === 0) {
-                 // Death event: two F3 balls collide heavily → merge into a zombie (dead ball)
+                 // Death event: two F3 balls collide/touch even barely -> instantly merge into a zombie (dead ball)
                  const mx  = (a.x + b.x) * 0.5, my = (a.y + b.y) * 0.5;
                  
                  // One size smaller than the smallest (F3 is level 3, so size level 2 which is index 2 -> 0.040)
                  const deadSizeFrac = 0.040; 
                  const deadSize = Math.min(W, H) * deadSizeFrac;
                  
-                 const dEl = createZombieSVG(deadSize);
+                 const dEl = createZombieDiv(deadSize);
                  const db  = createBallState(dEl, mx, my, 0, -8, LEVEL_MIN - 1, true); // vy=-8 for high force straight rise
                  
                  db.size = 1; // start tiny for smooth growing birth
@@ -809,7 +829,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
             
             // F7 special balls and zombie balls drop down quicker
             if (b.level === LEVEL_SPECIAL_F7) {
-              ballGrav = GRAV_BASE * 2.2;
+              ballGrav = GRAV_BASE * 6.5; // Significantly heavier downward force to overcome pile buoyancy
             } else if (b.isZombie) {
               ballGrav = GRAV_BASE * 1.5;
             }
@@ -929,13 +949,18 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
               // Apply standard vertical inputs
               const gravMultiplier = spaceDown ? 2.0 : 1.0;
               b.vy += ballGrav * gravMultiplier;
+
+              // Make sure they actively sink and don't float due to upward scrolls
+              b.vy += 0.25; 
             } else {
               const gravMultiplier = spaceDown ? 2.0 : 1.0;
               b.vy += ballGrav * gravMultiplier;
             }
 
+            // Scroll physics: F7 has high inertia, scrolls shouldn't easily float it
             if (scrollVelY > 0.05) {
-              b.vy -= scrollVelY * lerp(0.6, 1.0, ratio);
+              const scrollSens = b.level === LEVEL_SPECIAL_F7 ? 0.05 : lerp(0.6, 1.0, ratio);
+              b.vy -= scrollVelY * scrollSens;
             }
 
             const leftGap = b.x - navLeftBound - b.radius;
