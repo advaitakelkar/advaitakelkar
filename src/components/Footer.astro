@@ -466,7 +466,11 @@ const sorted = [...allProjects].sort((a, b) => {
       });
     }
 
-    buildRows();
+    // Defer buildRows until after the page layout (including home slider) has settled
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      buildRows();
+      render(input?.value || '');
+    }));
 
     // Attach smart hover listeners to each pill once
     originals.forEach(p => {
