@@ -124,10 +124,10 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         will-change: width, height, transform;
       }
 
-      /* Physics balls — darker tint of the background, so they feel like
-         the background itself is breathing. Adapts to every colour scheme automatically. */
+      /* Physics balls — 10% lighter than the background, so they blend in beautifully.
+         Adapts to every colour scheme automatically. */
       .watermark-ball {
-        fill: color-mix(in srgb, var(--_tokens---color--bg) 60%, black);
+        fill: color-mix(in srgb, var(--_tokens---color--bg) 90%, white);
         pointer-events: none;
         overflow: hidden;
       }
@@ -587,14 +587,16 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         initialSpawnList.forEach(({ lvl, xOffset, yOffset }) => {
           const speed = lvl === LEVEL_SPECIAL_F7 ? 0.1 : (LEVEL_SPECIAL_F7 + 1 - lvl) * 1.2 + Math.random() * 1.5;
           const el    = createBallSVG(Math.min(W, H) * LEVEL_SIZE_FRACS[lvl]);
-          balls.push(createBallState(
+          const bState = createBallState(
             el,
             cx + xOffset,
             cy + yOffset,
             (Math.random() - 0.5) * speed,
             (Math.random() - 0.5) * speed,
             lvl,
-          ));
+          );
+          bState.size = 1; // start tiny for smooth growing birth
+          balls.push(bState);
         });
 
         // ── 5. EVENT LISTENERS & PHYSICS TRIGGERS ──
@@ -809,6 +811,30 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           });
           balls.push(...toSpawn);
 
+          // Refiller: maintain exactly 135 normal balls in the viewport
+          const normalCount = balls.filter(b => !b.isZombie).length;
+          if (normalCount < 135) {
+            const need = 135 - normalCount;
+            for (let k = 0; k < need; k++) {
+              const randLvl = Math.floor(Math.random() * 3) + 3; // F3, F4, or F5
+              const spawnX = navLeftBound + Math.random() * (W - navLeftBound);
+              const spawnY = BREADCRUMB_H + Math.random() * 30; // Spawn near top
+              const el = createBallSVG(Math.min(W, H) * LEVEL_SIZE_FRACS[randLvl]);
+              const newBall = createBallState(
+                el,
+                spawnX,
+                spawnY,
+                (Math.random() - 0.5) * 2,
+                1.0 + Math.random() * 1.5,
+                randLvl
+              );
+              newBall.cd = SPAWN_CD_B;
+              newBall.size = 1; // start tiny so we see the growth animation!
+              newBall.radius = 0.5;
+              balls.push(newBall);
+            }
+          }
+
           if (scrollVelY > 0.05) scrollVelY *= 0.82; else scrollVelY = 0;
 
           const navJustOpened = navIsOpen && !prevNavIsOpen;
@@ -998,21 +1024,14 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
               b.vy += (Math.random() - 0.5) * WIND_FORCE * 0.4;
             }
 
-            const mdx   = b.x - mouseX, mdy = b.y - mouseY;
-            const mdist = Math.hypot(mdx, mdy) || 0.001;
-            const maura = b.size * 2.0;
-            if (mdist < maura) {
-              const mt = 1 - mdist / maura;
-              b.vx += (mdx / mdist) * mt * mt * 1.0;
-              b.vy += (mdy / mdist) * mt * mt * 1.0;
-            }
+
 
             b.vx *= DRAG; b.vy *= DRAG;
             const spd = Math.hypot(b.vx, b.vy);
             if (spd > ballSpeedCap) { b.vx = b.vx / spd * ballSpeedCap; b.vy = b.vy / spd * ballSpeedCap; }
 
             b.x += b.vx; b.y += b.vy;
-            b.size   += (b.baseSize - b.size) * 0.15;
+            b.size   += (b.baseSize - b.size) * 0.035;
             b.radius  = b.size * 0.5;
 
             if (b.x - b.radius < navLeftBound) { b.x = navLeftBound + b.radius; b.vx =  Math.abs(b.vx) * BOUNCE; }
