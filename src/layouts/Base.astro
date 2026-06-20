@@ -132,20 +132,19 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         overflow: hidden;
       }
 
-      /* Dead (zombie) balls: filled glowing circle, slightly more opaque + a slow pulse */
+      /* Dead (zombie) balls: distinct darker logo SVG style */
       .watermark-ball--dead {
-        background: color-mix(in srgb, var(--_tokens---color--fg) 25%, transparent) !important;
-        border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 45%, transparent) !important;
-        border-radius: 50% !important;
-        box-shadow: 0 0 14px color-mix(in srgb, var(--_tokens---color--fg) 65%, transparent) !important;
-        opacity: 0.15 !important;
-        fill: none !important;
+        fill: color-mix(in srgb, var(--_tokens---color--fg) 80%, black) !important;
+        opacity: 0.45 !important;
+        background: none !important;
+        border: none !important;
+        box-shadow: none !important;
         animation: dead-pulse 2.4s ease-in-out infinite;
       }
 
       @keyframes dead-pulse {
-        0%, 100% { opacity: 0.12; transform: scale(0.96); }
-        50%       { opacity: 0.22; transform: scale(1.04); }
+        0%, 100% { opacity: 0.38; transform: scale(0.96); }
+        50%       { opacity: 0.55; transform: scale(1.04); }
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -491,23 +490,11 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           return el;
         }
 
-        function createZombieDiv(size: number): HTMLDivElement {
-          const el = document.createElement('div');
+        function createZombieSVG(size: number): SVGSVGElement {
+          const el = templateEl!.cloneNode(true) as SVGSVGElement;
+          el.removeAttribute('id');
           el.classList.add('watermark-ball', 'watermark-ball--dead');
-          el.style.cssText = `
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: ${size}px;
-            height: ${size}px;
-            background: color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
-            border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 30%, transparent);
-            border-radius: 50%;
-            box-shadow: 0 0 10px color-mix(in srgb, var(--_tokens---color--fg) 40%, transparent);
-            pointer-events: none;
-            will-change: transform;
-            z-index: 9997;
-          `;
+          el.style.cssText = `position:absolute;top:0;left:0;width:${size}px;height:${size}px;will-change:transform;pointer-events:none;transform:translate(-9999px,-9999px);`;
           container!.appendChild(el);
           return el;
         }
@@ -796,7 +783,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
                  const deadSizeFrac = 0.040; 
                  const deadSize = Math.min(W, H) * deadSizeFrac;
                  
-                 const dEl = createZombieDiv(deadSize);
+                 const dEl = createZombieSVG(deadSize);
                  const db  = createBallState(dEl, mx, my, 0, -8, LEVEL_MIN - 1, true); // vy=-8 for high force straight rise
                  
                  db.size = 1; // start tiny for smooth growing birth
