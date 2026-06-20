@@ -137,8 +137,8 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
       }
 
       @keyframes dead-pulse {
-        0%, 100% { opacity: 0.14; }
-        50%       { opacity: 0.22; }
+        0%, 100% { opacity: 0.04; }
+        50%       { opacity: 0.08; }
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -476,7 +476,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           const el = templateEl!.cloneNode(true) as SVGSVGElement;
           el.removeAttribute('id');
           el.classList.add('watermark-ball');
-          el.style.cssText = `position:absolute;top:0;left:0;width:${size}px;height:${size}px;opacity:0.15;will-change:transform;`;
+          el.style.cssText = `position:absolute;top:0;left:0;width:${size}px;height:${size}px;opacity:0.05;will-change:transform;`;
           container!.appendChild(el);
           return el;
         }
@@ -485,7 +485,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
           svg.setAttribute('viewBox', '0 0 100 100');
           svg.classList.add('watermark-ball', 'watermark-ball--dead');
-          svg.style.cssText = `position:absolute;top:0;left:0;width:${size}px;height:${size}px;opacity:0.18;will-change:transform;`;
+          svg.style.cssText = `position:absolute;top:0;left:0;width:${size}px;height:${size}px;opacity:0.06;will-change:transform;`;
           const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
           circle.setAttribute('cx', '50'); circle.setAttribute('cy', '50'); circle.setAttribute('r', '48');
           circle.setAttribute('fill', 'currentColor');
@@ -545,23 +545,30 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
         // ── 4. INITIAL SPAWNING SETUP ──
         const cx = W * 0.50, cy = H * 0.46;
-        ([
-          { lvl: LEVEL_SPECIAL_F7, angle:   0, dist: 0.00 },
-          { lvl: LEVEL_MAX_NORMAL,   angle:  72, dist: 0.24 },
-          { lvl: LEVEL_MAX_NORMAL,   angle: 252, dist: 0.24 },
-          { lvl: 5,                  angle:  36, dist: 0.38 },
-          { lvl: 5,                  angle: 144, dist: 0.38 },
-          { lvl: 5,                  angle: 216, dist: 0.38 },
-          { lvl: 5,                  angle: 324, dist: 0.38 },
-          { lvl: 4,                  angle:   0, dist: 0.52 },
-          { lvl: 4,                  angle:  90, dist: 0.52 },
-          { lvl: 4,                  angle: 180, dist: 0.52 },
-          { lvl: 4,                  angle: 270, dist: 0.52 },
-          { lvl: LEVEL_MIN,          angle:  45, dist: 0.62 },
-          { lvl: LEVEL_MIN,          angle: 135, dist: 0.62 },
-          { lvl: LEVEL_MIN,          angle: 225, dist: 0.62 },
-          { lvl: LEVEL_MIN,          angle: 315, dist: 0.62 },
-        ] as { lvl: number; angle: number; dist: number }[]).forEach(({ lvl, angle, dist }) => {
+        const initialSpawnList: { lvl: number; angle: number; dist: number }[] = [];
+        
+        // 3 Special F7 balls
+        for (let k = 0; k < 3; k++) {
+          initialSpawnList.push({ lvl: LEVEL_SPECIAL_F7, angle: k * 120, dist: 0.05 });
+        }
+        // 7 F6 (LEVEL_MAX_NORMAL) balls
+        for (let k = 0; k < 7; k++) {
+          initialSpawnList.push({ lvl: LEVEL_MAX_NORMAL, angle: k * (360 / 7), dist: 0.22 });
+        }
+        // 11 Level 5 balls
+        for (let k = 0; k < 11; k++) {
+          initialSpawnList.push({ lvl: 5, angle: k * (360 / 11) + 15, dist: 0.35 });
+        }
+        // 14 Level 4 balls
+        for (let k = 0; k < 14; k++) {
+          initialSpawnList.push({ lvl: 4, angle: k * (360 / 14) + 5, dist: 0.48 });
+        }
+        // 15 Level 3 (LEVEL_MIN) balls
+        for (let k = 0; k < 15; k++) {
+          initialSpawnList.push({ lvl: LEVEL_MIN, angle: k * (360 / 15) + 20, dist: 0.58 });
+        }
+
+        initialSpawnList.forEach(({ lvl, angle, dist }) => {
           const rad   = angle * Math.PI / 180;
           const r     = Math.min(W, H) * dist;
           const speed = lvl === LEVEL_SPECIAL_F7 ? 0.2 : (LEVEL_SPECIAL_F7 + 1 - lvl) * 1.2 + Math.random() * 1.5;
