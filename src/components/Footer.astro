@@ -503,11 +503,12 @@ const sorted = [...allProjects].sort((a, b) => {
         const isLast = idx === rows.length - 1;
         const row = document.createElement('div');
         row.className = isLast ? 'qs-row qs-row--last' : 'qs-row';
+        // Fixed 5px gap on every row — uniform spacing everywhere, left-aligned.
         row.style.cssText = [
           'display:flex',
           'flex-direction:row',
           'flex-wrap:nowrap',
-          `justify-content:${isLast ? 'flex-start' : 'space-between'}`,
+          'justify-content:flex-start',
           'gap:5px',
           'width:100%',
           'overflow:visible',
@@ -581,12 +582,7 @@ const sorted = [...allProjects].sort((a, b) => {
           rp.classList.toggle('is-squished', targetW[i] <= 32);
         });
 
-        // Keep row full-width during hover by computing the gap dynamically
-        if (!isLastRow && N > 1) {
-          const totalExplicit = targetW.reduce((a, b) => a + b, 0);
-          const gapValue = Math.max(2, Math.floor((rowWidth - totalExplicit) / (N - 1)));
-          row.style.gap = gapValue + 'px';
-        }
+        // Gap stays fixed at 5px — no dynamic adjustment needed.
       });
       p.addEventListener('mouseleave', () => {
         const row = p.parentElement;
@@ -597,7 +593,6 @@ const sorted = [...allProjects].sort((a, b) => {
           rp.classList.remove('is-squished');
           rp.style.width = rp.dataset.restW + 'px';
         });
-        row.style.gap = ''; // restore space-between gap
 
         clearTimeout((row as any)._resetTimer);
         (row as any)._resetTimer = setTimeout(() => {
@@ -607,7 +602,6 @@ const sorted = [...allProjects].sort((a, b) => {
             const nameEl = rp.querySelector('.proj-bubble__name') as HTMLElement | null;
             if (nameEl) nameEl.textContent = nameEl.dataset.short ?? nameEl.textContent;
           });
-          row.style.gap = '';
         }, 400);
       });
     });
