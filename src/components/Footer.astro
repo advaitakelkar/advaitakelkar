@@ -472,14 +472,26 @@ const sorted = [...allProjects].sort((a, b) => {
       });
       if (cur.length > 0) rows.push(cur);
 
-      // 3. Build qs-row wrappers
+      // 3. Build qs-row wrappers.
+      // Apply layout via inline style — JS-created elements don't carry
+      // Astro's data-astro-cid attribute, so scoped CSS rules won't match.
       g.style.flexDirection = '';
       g.style.flexWrap = '';
       g.style.gap = '';
       g.innerHTML = '';
       rows.forEach((rowPills, idx) => {
+        const isLast = idx === rows.length - 1;
         const row = document.createElement('div');
-        row.className = idx === rows.length - 1 ? 'qs-row qs-row--last' : 'qs-row';
+        row.className = isLast ? 'qs-row qs-row--last' : 'qs-row';
+        row.style.cssText = [
+          'display:flex',
+          'flex-direction:row',
+          'flex-wrap:nowrap',
+          `justify-content:${isLast ? 'flex-start' : 'space-between'}`,
+          'gap:5px',
+          'width:100%',
+          'overflow:hidden',
+        ].join(';');
         rowPills.forEach(p => row.appendChild(p));
         g.appendChild(row);
       });
