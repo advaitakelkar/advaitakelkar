@@ -1075,8 +1075,13 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     }
 
     const viewportH = window.innerHeight;
-    const focalY = viewportH * 0.45; // The sweet spot on screen where a card is fully open
-    const waveWidth = viewportH * 0.50; // How far away cards start opening
+    const headerEl = document.querySelector('.projects-sticky-header');
+    const headerBottom = headerEl ? headerEl.getBoundingClientRect().bottom : 64;
+    const remainingSpace = viewportH - headerBottom;
+    
+    // Perfectly center the sweet spot in the visual remaining space
+    const focalY = headerBottom + (remainingSpace / 2); 
+    const waveWidth = remainingSpace * 0.50; // Scale wave relative to remaining space
     const stackThreshold = viewportH * 0.25; // Distance from focal point where stacking compression begins
 
     let maxOpen = -1;
@@ -1182,9 +1187,18 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     if (idx < 0 || idx >= visibleCards.length) return;
     currentIndex = idx;
     
-    // Jump scroll instantly so the physics engine catches it and springs the cards
-    // This creates an "Apple-like snap" shift instead of a slow browser scroll
-    visibleCards[idx].scrollIntoView({ behavior: 'auto', block: 'center' });
+    const card = visibleCards[idx];
+    const phys = getPhysics(card);
+    const rect = card.getBoundingClientRect();
+    const naturalCenterY = (rect.top - phys.ty) + (rect.height / 2);
+
+    const viewportH = window.innerHeight;
+    const headerEl = document.querySelector('.projects-sticky-header');
+    const headerBottom = headerEl ? headerEl.getBoundingClientRect().bottom : 64;
+    const focalY = headerBottom + ((viewportH - headerBottom) / 2);
+
+    // Precisely jump the scroll position so the card's true center hits the focal point
+    window.scrollBy({ top: naturalCenterY - focalY, behavior: 'auto' });
   }
 
   // Click to focus/open
