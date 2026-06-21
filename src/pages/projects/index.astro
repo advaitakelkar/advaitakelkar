@@ -105,7 +105,14 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       </div>
     </div>
 
-    <!-- Project list — 3-row card layout with sticky stacking -->
+    <!-- Keyboard navigation hint — appears on first keyboard use -->
+    <div class="kbd-hint" id="kbd-hint" aria-hidden="true">
+      <span class="kbd-hint__item"><span class="kbd-hint__key">↑</span><span class="kbd-hint__key">↓</span> navigate</span>
+      <span class="kbd-hint__item"><span class="kbd-hint__key">→</span> open project</span>
+      <span class="kbd-hint__item"><span class="kbd-hint__key">Esc</span> close</span>
+    </div>
+
+    <!-- Project list — accordion cards -->
     <div class="project-cards-container" id="project-cards-container">
       {sorted.map((p, i) => {
         const tagsArr = (p.data.tags ?? []).map(t => tagMap[t.id] || t.id);
@@ -204,8 +211,9 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     </div>
     </div> <!-- End projects-top-section -->
 
-    <!-- Bottom Section: Bubbles interface -->
+    <!-- Bottom Section: Bubbles interface — styled to match Footer -->
     <div class="projects-bottom-section">
+      <h2 class="projects-bottom-section__title">Projects Quick Search</h2>
       <!-- Bottom quick-search bubbles — all projects, grey by default, highlight on match -->
       <div class="proj-bubbles" id="proj-bubbles" aria-label="Quick project search">
         {sorted.map(p => {
@@ -808,40 +816,103 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     width: 100%;
   }
 
+  /* ── Keyboard navigation focus indicator ── */
+  .project-card.is-keyboard-focused {
+    border-top-color: var(--_tokens---color--fg);
+  }
+
+  .project-card.is-keyboard-focused .project-card__stack-name {
+    opacity: 1 !important;
+  }
+
+  /* Keyboard hint bar */
+  .kbd-hint {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 0;
+    margin-bottom: 4px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .kbd-hint.is-visible {
+    opacity: 1;
+  }
+
+  .kbd-hint__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--_tokens---type--micro);
+    color: var(--_tokens---color--muted);
+    font-weight: 300;
+  }
+
+  .kbd-hint__key {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 7px;
+    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 20%, transparent);
+    border-radius: 4px;
+    font-size: 10px;
+    font-family: var(--_tokens---font--mono);
+    color: var(--_tokens---color--fg);
+    line-height: 1.6;
+  }
+
+  /* ── Bottom quick-search section — matches Footer visual style ── */
   .projects-bottom-section {
     position: relative;
     width: 100%;
-    margin-top: 24px; /* reduced margin so it starts right at the edge of the stacked list */
-    padding-top: 28px;
-    border-top: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
+    margin-top: clamp(2rem, 5vh, 4rem);
+    border-top: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+    padding-top: 32px;
+    padding-bottom: 24px;
   }
 
-  /* ── Bottom quick-search bubbles ── */
+  .projects-bottom-section__title {
+    font-size: var(--_tokens---type--small);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--_tokens---color--fg);
+    margin: 0 0 16px 0;
+  }
+
+  /* Bubbles container — wrap freely, same gap as footer */
   .proj-bubbles {
-    display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: wrap !important;
-    gap: 7px !important;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 5px;
     transition: opacity 0.25s ease;
   }
 
+  /* Individual pill — matches Footer .proj-bubble exactly */
   .proj-bubble {
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    padding: 6px 12px;
-    border-radius: 999px;
-    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+    font-size: var(--_tokens---type--ultrathin);
+    font-weight: 300;
+    color: var(--_tokens---color--muted);
     background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+    border-radius: 999px;
+    padding: 6px 12px;
     text-decoration: none;
     white-space: nowrap;
-    color: var(--_tokens---color--muted);
-    transition: background-color 0.2s, color 0.2s, border-color 0.2s, transform 0.15s, opacity 0.2s;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: background-color 0.2s, color 0.2s, transform 0.15s, opacity 0.2s;
   }
 
   .proj-bubble__name {
-    font-size: var(--_tokens---type--micro);
-    font-weight: 500;
+    font-size: var(--_tokens---type--ultrathin);
+    font-weight: 300;
     letter-spacing: -0.01em;
     color: inherit;
   }
@@ -849,7 +920,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   .proj-bubble__tag {
     font-family: var(--_tokens---font--mono);
     line-height: 1;
-    font-size: var(--_tokens---type--micro);
+    font-size: var(--_tokens---type--ultrathin);
     color: inherit;
     opacity: 0.6;
     letter-spacing: 0.04em;
@@ -863,7 +934,6 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     transition: transform 0.2s ease, opacity 0.2s ease;
   }
 
-  /* Hover state: switches to full contrast (bg is fg, text/arrow is bg) and vertical translate -1px */
   .proj-bubble:hover {
     background-color: var(--_tokens---color--fg);
     color: var(--_tokens---color--bg);
@@ -875,7 +945,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     opacity: 1;
   }
 
-  /* Matching state: switches to full contrast during active search */
+  /* Search match state */
   .proj-bubble.is-match {
     background-color: var(--_tokens---color--fg);
     color: var(--_tokens---color--bg);
@@ -886,7 +956,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     transform: translateY(-1px);
   }
 
-  /* Active search state: dim non-matching bubbles */
+  /* Active search: dim non-matching bubbles */
   .proj-bubbles.has-search .proj-bubble:not(.is-match) {
     opacity: 0.2;
   }
@@ -944,35 +1014,106 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   let activeCat = '';
   let activeTag = '';
 
-  // --- Accordion: click to open/close, only one card open at a time ---
+  // ── Keyboard navigation state ──────────────────────────────
+  let visibleCards: HTMLElement[] = [];
+  let currentIndex = -1;
+  const kbdHint = document.getElementById('kbd-hint');
+
+  function getVisibleCards() {
+    return cards.filter(c => !c.hidden);
+  }
+
+  function setFocusedCard(idx: number) {
+    visibleCards = getVisibleCards();
+    if (idx < 0 || idx >= visibleCards.length) return;
+    cards.forEach(c => c.classList.remove('is-open', 'is-keyboard-focused'));
+    currentIndex = idx;
+    const card = visibleCards[idx];
+    card.classList.add('is-open', 'is-keyboard-focused');
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  // --- Accordion: click to open/close, one open at a time ---
   cards.forEach(card => {
     card.addEventListener('click', (e) => {
-      // Let link clicks navigate normally — don't toggle accordion
       if ((e.target as HTMLElement).closest('a')) return;
-
       const isOpen = card.classList.contains('is-open');
-
-      // Close all
-      cards.forEach(c => c.classList.remove('is-open'));
-
-      // Toggle: open if it was closed
-      if (!isOpen) card.classList.add('is-open');
+      cards.forEach(c => c.classList.remove('is-open', 'is-keyboard-focused'));
+      if (!isOpen) {
+        card.classList.add('is-open');
+        visibleCards = getVisibleCards();
+        currentIndex = visibleCards.indexOf(card);
+      } else {
+        currentIndex = -1;
+      }
     });
+  });
+
+  // ── Keyboard navigation ─────────────────────────────────────
+  document.addEventListener('keydown', (e) => {
+    const activeEl = document.activeElement as HTMLElement;
+    const inSearch = activeEl === searchInput;
+    const inInput = activeEl?.tagName === 'INPUT' || activeEl?.tagName === 'TEXTAREA' || activeEl?.tagName === 'SELECT';
+
+    if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && kbdHint) {
+      kbdHint.classList.add('is-visible');
+    }
+
+    switch (e.key) {
+      case 'ArrowDown': {
+        e.preventDefault();
+        visibleCards = getVisibleCards();
+        if (inSearch) {
+          searchInput?.blur();
+          setFocusedCard(0);
+        } else if (currentIndex < visibleCards.length - 1) {
+          setFocusedCard(currentIndex + 1);
+        }
+        break;
+      }
+      case 'ArrowUp': {
+        e.preventDefault();
+        visibleCards = getVisibleCards();
+        if (currentIndex <= 0) {
+          cards.forEach(c => c.classList.remove('is-keyboard-focused'));
+          currentIndex = -1;
+          searchInput?.focus();
+        } else {
+          setFocusedCard(currentIndex - 1);
+        }
+        break;
+      }
+      case 'ArrowRight': {
+        if (inInput) break;
+        visibleCards = getVisibleCards();
+        if (currentIndex >= 0 && visibleCards[currentIndex]) {
+          e.preventDefault();
+          const pill = visibleCards[currentIndex].querySelector<HTMLAnchorElement>('.project-card__pill--cta, .project-card__pill');
+          if (pill?.href) window.location.href = pill.href;
+        }
+        break;
+      }
+      case 'Escape': {
+        cards.forEach(c => c.classList.remove('is-open', 'is-keyboard-focused'));
+        currentIndex = -1;
+        break;
+      }
+    }
   });
 
   function applyVisibility(matchingCards: HTMLElement[]) {
     cards.forEach(card => {
       card.hidden = true;
-      card.classList.remove('is-open'); // close hidden cards
+      card.classList.remove('is-open', 'is-keyboard-focused');
     });
-
-    matchingCards.forEach(card => {
-      card.hidden = false;
-    });
-
+    matchingCards.forEach(card => { card.hidden = false; });
     if (countLabel) {
       countLabel.textContent = `${matchingCards.length} of ${cards.length} works`;
     }
+    // Auto-open first result after filter
+    currentIndex = -1;
+    visibleCards = matchingCards;
+    if (matchingCards.length > 0) setFocusedCard(0);
   }
 
   // Bottom bubbles: always present, grey by default, highlight on search match
