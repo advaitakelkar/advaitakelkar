@@ -146,7 +146,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
         >
           <!-- Always-visible header — click anywhere (except pill) to open/close -->
           <div class="project-card__header">
-            <span class="project-card__stack-name">{p.data.name}</span>
+            <span class="project-card__stack-name">{p.data.shortName || p.data.name}</span>
             <span class="project-card__stack-right">
               {tagLine && <span class="project-card__stack-tags">{tagLine}</span>}
               {p.data.year && <span class="project-card__stack-year">{p.data.year}</span>}
@@ -197,7 +197,6 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
                     {metaParts.map((m, idx) => (
                       <span class="project-card__meta-item">
                         {idx > 0 && <span class="project-card__meta-sep">·</span>}
-                        <span class="project-card__meta-label">{m.label}</span>
                         <span class="project-card__meta-val">{m.val}</span>
                       </span>
                     ))}
@@ -813,16 +812,25 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
   .project-card__metaline {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
     gap: 4px 4px;
     font-size: var(--_tokens---type--micro);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  .project-card__meta-item { display: inline-flex; align-items: center; gap: 5px; }
+  .project-card__meta-item { display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; }
   .project-card__meta-sep { color: color-mix(in srgb, var(--_tokens---color--fg) 25%, transparent); margin-right: 4px; }
-  .project-card__meta-label { color: var(--_tokens---color--muted); font-weight: 300; letter-spacing: 0.04em; }
   .project-card__meta-val { color: var(--_tokens---color--fg); font-weight: 400; }
+
+  @media (max-width: 768px) {
+    .project-card__meta-item:not(:first-child),
+    .project-card__meta-sep {
+      display: none;
+    }
+  }
 
   .project-card__pill--cta {
     padding: 9px 16px;
@@ -1059,7 +1067,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
   function getPhysics(card: HTMLElement) {
     if (!cardPhysics.has(card)) {
-      cardPhysics.set(card, { o: 0, s: 0.94, ty: 0, z: 1, op: 0 });
+      cardPhysics.set(card, { o: 0, s: 1, ty: 0, z: 1, op: 0 });
     }
     return cardPhysics.get(card)!;
   }
@@ -1118,8 +1126,8 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       // Accordion snap: only the closest card opens, others close.
       let targetO = (i === closestIdx) ? 1 : 0;
       
-      // Target scale from 0.94 (inactive) to 1.05 (active)
-      const targetS = 0.94 + (targetO * 0.11);
+      // Target scale is always 1 (no shrinking in accordion)
+      const targetS = 1;
 
       // Target opacity: only show 3 previous and 3 next cards
       const indexOffset = Math.abs(i - closestIdx);
