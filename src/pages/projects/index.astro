@@ -592,8 +592,9 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     transform-origin: center center;
     position: relative;
     z-index: var(--dock-z, 1);
+    opacity: var(--dock-op, 1);
     transform: scale(var(--dock-scale, 1)) translateY(var(--dock-ty, 0px));
-    will-change: transform, border-color, z-index;
+    will-change: transform, border-color, z-index, opacity;
   }
 
   .project-card:last-child {
@@ -988,12 +989,6 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   }
 
   @media (max-width: 768px) {
-    .projects-sticky-header {
-      position: relative;
-      top: auto !important;
-      padding-top: 0;
-      border-bottom: none;
-    }
     .filter-bar {
       flex-direction: column;
       align-items: flex-start;
@@ -1052,11 +1047,11 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   }
 
   // Physics state map per card DOM element
-  const cardPhysics = new WeakMap<HTMLElement, { o: number, s: number, ty: number, z: number }>();
+  const cardPhysics = new WeakMap<HTMLElement, { o: number, s: number, ty: number, z: number, op: number }>();
 
   function getPhysics(card: HTMLElement) {
     if (!cardPhysics.has(card)) {
-      cardPhysics.set(card, { o: 0, s: 0.94, ty: 0, z: 1 });
+      cardPhysics.set(card, { o: 0, s: 0.94, ty: 0, z: 1, op: 0 });
     }
     return cardPhysics.get(card)!;
   }
@@ -1112,6 +1107,10 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       
       // Target scale from 0.94 (inactive) to 1.05 (active)
       const targetS = 0.94 + (targetO * 0.11);
+
+      // Target opacity: only show 3 previous and 3 next cards
+      const indexOffset = Math.abs(i - closestIdx);
+      const targetOp = (indexOffset <= 3) ? 1 : 0;
       
       // ── Stacking Math (Y-Axis Compression) ──
       let targetTy = 0;
@@ -1128,7 +1127,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       // Base Z-index off distance to keep active card on top
       const targetZ = Math.round(100 - (distance / 10));
 
-      return { targetO, targetS, targetTy, targetZ };
+      return { targetO, targetS, targetTy, targetZ, targetOp };
     });
 
     // Second pass: Apply smooth linear interpolation (lerp)
@@ -1141,12 +1140,14 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       phys.o += (t.targetO - phys.o) * 0.25;
       phys.s += (t.targetS - phys.s) * 0.25;
       phys.ty += (t.targetTy - phys.ty) * 0.25;
+      phys.op += (t.targetOp - phys.op) * 0.25;
       phys.z = t.targetZ; // Z-index snaps instantly to avoid overlap glitches
 
       card.style.setProperty('--dock-open', phys.o.toFixed(3));
       card.style.setProperty('--dock-open-fr', `${phys.o.toFixed(3)}fr`);
       card.style.setProperty('--dock-scale', phys.s.toFixed(3));
       card.style.setProperty('--dock-ty', `${phys.ty.toFixed(1)}px`);
+      card.style.setProperty('--dock-op', phys.op.toFixed(3));
       card.style.setProperty('--dock-z', `${phys.z}`);
 
       if (phys.o > maxOpen) {
@@ -1173,9 +1174,9 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     if (idx < 0 || idx >= visibleCards.length) return;
     currentIndex = idx;
     
-    // Smooth scroll so the card's center hits the focal point
-    // The physics loop will automatically magnify it as it arrives
-    visibleCards[idx].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // Jump scroll instantly so the physics engine catches it and springs the cards
+    // This creates an "Apple-like snap" shift instead of a slow browser scroll
+    visibleCards[idx].scrollIntoView({ behavior: 'auto', block: 'center' });
   }
 
   // Click to focus/open
