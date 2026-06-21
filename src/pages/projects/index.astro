@@ -119,8 +119,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
         ].filter(m => m.val);
         return (
         <div
-          class="project-card is-stacked"
-          style={`--card-index: ${i};`}
+          class="project-card"
           data-name={p.data.name}
           data-loc={p.data.location ?? ''}
           data-year={p.data.year ?? ''}
@@ -133,66 +132,70 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
           data-tags={(p.data.tags ?? []).map(t => tagMap[t.id] || t.id).join(',')}
           data-tag-ids={(p.data.tags ?? []).map(t => t.id).join(',')}
         >
-          <!-- Stacked strip — visible when the card is stuck/stacked -->
-          <a href={`/projects/${p.id}`} class="project-card__stackrow">
+          <!-- Always-visible header — click anywhere (except pill) to open/close -->
+          <div class="project-card__header">
             <span class="project-card__stack-name">{p.data.name}</span>
             <span class="project-card__stack-right">
               {tagLine && <span class="project-card__stack-tags">{tagLine}</span>}
               {p.data.year && <span class="project-card__stack-year">{p.data.year}</span>}
-              <span class="project-card__pill">
+              <a href={`/projects/${p.id}`} class="project-card__pill">
                 <span>Go to project</span>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
-              </span>
+              </a>
             </span>
-          </a>
+          </div>
 
-          <!-- Expanded 3-row body -->
-          <div class="project-card__full">
-            <!-- Row 1: name (left) · tag + year (top right) -->
-            <div class="project-card__row project-card__row1">
-              <a href={`/projects/${p.id}`} class="project-card__title-link">
-                <h2 class="project-card__title">{p.data.name}</h2>
-              </a>
-              <div class="project-card__r1-right">
-                {firstTag && <span class="project-card__tag">{firstTag}</span>}
-                {p.data.year && <span class="project-card__year">{p.data.year}</span>}
-              </div>
-            </div>
+          <!-- Collapsible body — expands on click -->
+          <div class="project-card__body">
+            <div class="project-card__body-inner">
+              <div class="project-card__full">
+                <!-- Row 1: name (left) · tag + year (right) -->
+                <div class="project-card__row project-card__row1">
+                  <a href={`/projects/${p.id}`} class="project-card__title-link">
+                    <h2 class="project-card__title">{p.data.name}</h2>
+                  </a>
+                  <div class="project-card__r1-right">
+                    {firstTag && <span class="project-card__tag">{firstTag}</span>}
+                    {p.data.year && <span class="project-card__year">{p.data.year}</span>}
+                  </div>
+                </div>
 
-            <!-- Row 2: short intro + description (left) · image (right, natural proportion) -->
-            <div class="project-card__row project-card__row2">
-              <div class="project-card__text-block">
-                <p class="project-card__intro">{p.data.smallIntro}</p>
-                {p.data.description && (
-                  <p class="project-card__desc">
-                    {p.data.description.replace(/<[^>]*>/g, '').substring(0, 120) + (p.data.description.replace(/<[^>]*>/g, '').length > 120 ? '...' : '')}
-                  </p>
-                )}
-              </div>
-              <a href={`/projects/${p.id}`} class="project-card__img-wrap soft-image-container">
-                {p.data.coverImage ? (
-                  <img src={p.data.coverImage} alt={p.data.name} loading="lazy" />
-                ) : (
-                  <div class="project-card__placeholder" />
-                )}
-              </a>
-            </div>
+                <!-- Row 2: intro + description (left) · image (right) -->
+                <div class="project-card__row project-card__row2">
+                  <div class="project-card__text-block">
+                    <p class="project-card__intro">{p.data.smallIntro}</p>
+                    {p.data.description && (
+                      <p class="project-card__desc">
+                        {p.data.description.replace(/<[^>]*>/g, '').substring(0, 120) + (p.data.description.replace(/<[^>]*>/g, '').length > 120 ? '...' : '')}
+                      </p>
+                    )}
+                  </div>
+                  <a href={`/projects/${p.id}`} class="project-card__img-wrap soft-image-container">
+                    {p.data.coverImage ? (
+                      <img src={p.data.coverImage} alt={p.data.name} loading="lazy" />
+                    ) : (
+                      <div class="project-card__placeholder" />
+                    )}
+                  </a>
+                </div>
 
-            <!-- Row 3: meta line (left) · go-to-project pill (right) -->
-            <div class="project-card__row project-card__row3">
-              <div class="project-card__metaline">
-                {metaParts.map((m, idx) => (
-                  <span class="project-card__meta-item">
-                    {idx > 0 && <span class="project-card__meta-sep">·</span>}
-                    <span class="project-card__meta-label">{m.label}</span>
-                    <span class="project-card__meta-val">{m.val}</span>
-                  </span>
-                ))}
+                <!-- Row 3: meta (left) · go-to-project pill (right) -->
+                <div class="project-card__row project-card__row3">
+                  <div class="project-card__metaline">
+                    {metaParts.map((m, idx) => (
+                      <span class="project-card__meta-item">
+                        {idx > 0 && <span class="project-card__meta-sep">·</span>}
+                        <span class="project-card__meta-label">{m.label}</span>
+                        <span class="project-card__meta-val">{m.val}</span>
+                      </span>
+                    ))}
+                  </div>
+                  <a href={`/projects/${p.id}`} class="project-card__pill project-card__pill--cta">
+                    <span>Go to entire project</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+                  </a>
+                </div>
               </div>
-              <a href={`/projects/${p.id}`} class="project-card__pill project-card__pill--cta">
-                <span>Go to entire project</span>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
-              </a>
             </div>
           </div>
         </div>
@@ -564,81 +567,35 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     color: var(--_tokens---color--bg);
   }
 
-  /* Detailed Compact Horizontal Cards */
+  /* ── Accordion Card List ── */
   .project-cards-container {
     display: flex;
     flex-direction: column;
-    gap: 24px;
     margin-top: 28px;
-    position: relative;
   }
 
   .project-card {
     width: 100%;
     box-sizing: border-box;
-    position: sticky;
-    top: calc(var(--header-height, 240px) + var(--card-index, 0) * 58px);
-    background-color: var(--_tokens---color--bg);
     border-top: 1.5px solid color-mix(in srgb, var(--_tokens---color--fg) 20%, transparent);
-    padding: clamp(16px, 2vw, 24px); /* reduced height padding */
-    max-height: 500px;
-    overflow: hidden;
-    transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1), padding 0.4s ease, top 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    cursor: pointer;
+    background-color: var(--_tokens---color--bg);
   }
 
-  .project-card.is-stacked:hover ~ .project-card {
-    top: calc(var(--header-height, 240px) + var(--card-index, 0) * 58px + 446px) !important;
-  }
-
-  .project-card.is-stacked {
-    max-height: 54px;
-    padding-block: 0;
+  .project-card:last-child {
+    border-bottom: 1.5px solid color-mix(in srgb, var(--_tokens---color--fg) 20%, transparent);
   }
 
   .project-card[hidden] { display: none !important; }
 
-  /* ── Stacked strip — compact clickable row shown when stacked ── */
-  .project-card__stackrow {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
+  /* ── Always-visible header strip ── */
+  .project-card__header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    padding: 13px 2px;
-    text-decoration: none;
-    color: var(--_tokens---color--fg);
-    background-color: var(--_tokens---color--bg);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s ease;
-  }
-
-  .project-card.is-stacked .project-card__stackrow {
-    opacity: 1;
-    pointer-events: auto;
-  }
-
-  /* Hover expansion when card is stacked */
-  .project-card.is-stacked:hover {
-    max-height: 500px;
-    padding-block: clamp(16px, 2vw, 24px);
-  }
-
-  .project-card.is-stacked:hover .project-card__full {
-    opacity: 1;
-    pointer-events: auto;
-  }
-
-  .project-card.is-stacked:hover .project-card__stackrow {
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  .project-card:hover {
-    z-index: 100 !important;
+    padding: 16px 0;
+    user-select: none;
   }
 
   .project-card__stack-name {
@@ -648,6 +605,12 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    color: var(--_tokens---color--fg);
+    transition: opacity 0.2s ease;
+  }
+
+  .project-card:hover .project-card__stack-name {
+    opacity: 0.7;
   }
 
   .project-card__stack-right {
@@ -665,7 +628,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     white-space: nowrap;
   }
 
-  /* ── Pill / bubble button ── */
+  /* ── Pill / CTA button ── */
   .project-card__pill {
     display: inline-flex;
     align-items: center;
@@ -692,17 +655,35 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
   .project-card__pill:hover svg { transform: translate(2px, -2px); }
 
-  /* ── Expanded 3-row body ── */
+  /* ── Collapsible body — grid-trick smooth open/close ── */
+  .project-card__body {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: hidden;
+  }
+
+  .project-card.is-open .project-card__body {
+    grid-template-rows: 1fr;
+  }
+
+  .project-card__body-inner {
+    min-height: 0;
+    overflow: hidden;
+    padding-bottom: 0;
+    transition: padding-bottom 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .project-card.is-open .project-card__body-inner {
+    padding-bottom: 24px;
+  }
+
+  /* ── Expanded content rows ── */
   .project-card__full {
     display: flex;
     flex-direction: column;
-    gap: 10px; /* reduced gap */
-    transition: opacity 0.3s ease;
-  }
-
-  .project-card.is-stacked .project-card__full {
-    opacity: 0;
-    pointer-events: none;
+    gap: 10px;
+    padding-top: 8px;
   }
 
   .project-card__row {
@@ -929,14 +910,8 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     .filter-group--tags {
       width: 100%;
     }
-    .project-card {
-      position: sticky;
-      top: calc(0px + var(--card-index, 0) * 58px);
-      box-shadow: none;
-      border-top: 1.5px solid color-mix(in srgb, var(--_tokens---color--fg) 20%, transparent);
-    }
-    .project-card.is-stacked:hover ~ .project-card {
-      top: calc(0px + var(--card-index, 0) * 58px + 446px) !important;
+    .project-card__stack-tags {
+      display: none; /* hide tag on mobile header — saves space */
     }
     .project-card__row2 {
       flex-direction: column;
@@ -957,7 +932,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
 <script>
   const container = document.getElementById('project-cards-container');
-  const cards = container?.querySelectorAll<HTMLElement>('.project-card') ?? [];
+  const cards = Array.from(container?.querySelectorAll<HTMLElement>('.project-card') ?? []);
   const searchInput = document.getElementById('projects-search-input') as HTMLInputElement;
   const clearBtn = document.getElementById('projects-search-clear');
   const countLabel = document.querySelector('.projects-count');
@@ -969,15 +944,30 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   let activeCat = '';
   let activeTag = '';
 
-  function applyVisibility(matchingCards) {
+  // --- Accordion: click to open/close, only one card open at a time ---
+  cards.forEach(card => {
+    card.addEventListener('click', (e) => {
+      // Let link clicks navigate normally — don't toggle accordion
+      if ((e.target as HTMLElement).closest('a')) return;
+
+      const isOpen = card.classList.contains('is-open');
+
+      // Close all
+      cards.forEach(c => c.classList.remove('is-open'));
+
+      // Toggle: open if it was closed
+      if (!isOpen) card.classList.add('is-open');
+    });
+  });
+
+  function applyVisibility(matchingCards: HTMLElement[]) {
     cards.forEach(card => {
       card.hidden = true;
+      card.classList.remove('is-open'); // close hidden cards
     });
 
-    matchingCards.forEach((card, idx) => {
+    matchingCards.forEach(card => {
       card.hidden = false;
-      // Dynamically compute the stacking index for visible cards on this page
-      card.style.setProperty('--card-index', String(idx));
     });
 
     if (countLabel) {
@@ -1152,68 +1142,6 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     setTimeout(updateScrollArrows, 50);
   });
 
-  const stickyHeader = document.querySelector('.projects-sticky-header');
-  const cardsContainer = document.getElementById('project-cards-container');
-
-  function updateHeaderHeight() {
-    if (stickyHeader && cardsContainer) {
-      const height = stickyHeader.getBoundingClientRect().height;
-      cardsContainer.style.setProperty('--header-height', `${height}px`);
-    }
-  }
-
-  // --- Scroll-Driven Card Stacking Title Animation ---
-  // --- Scroll-Driven Card Stacking Title Animation ---
-  let hasUserInteracted = false;
-
-  function enableInteraction() {
-    if (hasUserInteracted) return;
-    hasUserInteracted = true;
-    handleCardStacking();
-    // Clean up temporary interaction listeners
-    window.removeEventListener('scroll', enableInteraction);
-    window.removeEventListener('mousemove', enableInteraction);
-    window.removeEventListener('touchstart', enableInteraction);
-  }
-
-  window.addEventListener('scroll', enableInteraction, { passive: true });
-  window.addEventListener('mousemove', enableInteraction, { passive: true });
-  window.addEventListener('touchstart', enableInteraction, { passive: true });
-
-  function handleCardStacking() {
-    updateHeaderHeight();
-
-    if (!hasUserInteracted) {
-      // Keep all cards stacked on initial load
-      cards.forEach(card => {
-        card.classList.add('is-stacked');
-      });
-      return;
-    }
-
-    const visibleCards = Array.from(cards).filter(card => !card.hidden);
-
-    visibleCards.forEach((card, idx) => {
-      const isLast = idx === visibleCards.length - 1;
-      if (isLast) {
-        // The last card (the end of the list) is always closed (stacked)
-        card.classList.add('is-stacked');
-      } else {
-        const rect = card.getBoundingClientRect();
-        const computedTop = parseFloat(window.getComputedStyle(card).top);
-        // Stuck check: card rect.top meets its sticky top constraint
-        const isStacked = rect.top <= computedTop + 2;
-        card.classList.toggle('is-stacked', isStacked);
-      }
-    });
-  }
-
-  window.addEventListener('scroll', handleCardStacking, { passive: true });
-  window.addEventListener('resize', () => {
-    updateHeaderHeight();
-    handleCardStacking();
-  }, { passive: true });
-
   // Clear search and filters trigger
   clearBtn?.addEventListener('click', () => {
     if (searchInput) searchInput.value = '';
@@ -1238,9 +1166,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     if (searchInput) searchInput.value = qParam;
   }
 
-  // Initialize visibility, card stacking state, and tag scroll arrows
+  // Initialize visibility and tag scroll arrows
   applyFilter();
-  handleCardStacking();
-  // Brief delay to allow browser layout calculation of scrollWidth/clientWidth
   setTimeout(updateScrollArrows, 100);
 </script>
