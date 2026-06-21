@@ -17,6 +17,11 @@ const sorted = [...allProjects].sort((a, b) => {
 const tagMap = Object.fromEntries(allTags.map(t => [t.id, t.data.name]));
 const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
 
+// Abbreviate project names for footer bubbles (same logic as Footer.astro)
+function abbrevName(name: string): string {
+  return name.trim().split(/\s+/).filter(w => w.length > 0).map(w => w.length <= 3 ? w : w.slice(0, 3)).join(' ');
+}
+
 // Count projects per tag to find top 4
 const tagCounts: Record<string, number> = {};
 allProjects.forEach(p => {
@@ -231,7 +236,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
               data-cat={p.data.category ? (catMap[p.data.category.id] || p.data.category.id) : ''}
               data-tags={tagsArr.join(',')}
             >
-              <span class="proj-bubble__name">{p.data.name}</span>
+              <span class="proj-bubble__name" data-short={abbrevName(p.data.name)} data-full={p.data.name}>{abbrevName(p.data.name)}</span>
               <span class="proj-bubble__tag">{tagsArr[0] || (p.data.category ? catMap[p.data.category.id] : 'Design')}</span>
               <svg class="link-arrow proj-bubble__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
                 <line x1="6" y1="18" x2="18" y2="6"></line>
@@ -1014,18 +1019,29 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   let activeCat = '';
   let activeTag = '';
 
-  // ── Keyboard navigation state ──────────────────────────────
+  // ── State ──────────────────────────────────────────────────
   let visibleCards: HTMLElement[] = [];
   let currentIndex = -1;
   const kbdHint = document.getElementById('kbd-hint');
+
+  // Manual control flag: prevents scroll from overriding keyboard/click
+  let isManualControl = false;
+  let manualTimer: ReturnType<typeof setTimeout>;
+  function setManualControl(ms = 550) {
+    isManualControl = true;
+    clearTimeout(manualTimer);
+    manualTimer = setTimeout(() => { isManualControl = false; }, ms);
+  }
 
   function getVisibleCards() {
     return cards.filter(c => !c.hidden);
   }
 
+  // Keyboard/click-driven open — scrolls card into view, adds focus indicator
   function setFocusedCard(idx: number) {
     visibleCards = getVisibleCards();
     if (idx < 0 || idx >= visibleCards.length) return;
+    setManualControl(600);
     cards.forEach(c => c.classList.remove('is-open', 'is-keyboard-focused'));
     currentIndex = idx;
     const card = visibleCards[idx];
@@ -1033,11 +1049,40 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
+  // Scroll-driven open — no scrollIntoView, no keyboard focus ring
+  function openByScroll(idx: number) {
+    if (idx === currentIndex) return;
+    cards.forEach(c => c.classList.remove('is-open', 'is-keyboard-focused'));
+    currentIndex = idx;
+    visibleCards[idx].classList.add('is-open');
+    // Pause scroll detection while the card animates open (prevents immediate re-trigger)
+    setManualControl(460);
+  }
+
+  // ── Scroll-driven accordion ─────────────────────────────────
+  function updateScrollActive() {
+    if (isManualControl) return;
+    visibleCards = getVisibleCards();
+    if (!visibleCards.length) return;
+
+    // The active card = last one whose top has crossed 45% of viewport
+    const threshold = window.innerHeight * 0.45;
+    let activeIdx = 0;
+    for (let i = 0; i < visibleCards.length; i++) {
+      if (visibleCards[i].getBoundingClientRect().top <= threshold) activeIdx = i;
+      else break;
+    }
+    openByScroll(activeIdx);
+  }
+
+  window.addEventListener('scroll', updateScrollActive, { passive: true });
+
   // --- Accordion: click to open/close, one open at a time ---
   cards.forEach(card => {
     card.addEventListener('click', (e) => {
       if ((e.target as HTMLElement).closest('a')) return;
       const isOpen = card.classList.contains('is-open');
+      setManualControl(600);
       cards.forEach(c => c.classList.remove('is-open', 'is-keyboard-focused'));
       if (!isOpen) {
         card.classList.add('is-open');
@@ -1110,10 +1155,13 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     if (countLabel) {
       countLabel.textContent = `${matchingCards.length} of ${cards.length} works`;
     }
-    // Auto-open first result after filter
+    // Open first card; scroll will take over as user scrolls
     currentIndex = -1;
     visibleCards = matchingCards;
-    if (matchingCards.length > 0) setFocusedCard(0);
+    if (matchingCards.length > 0) {
+      currentIndex = 0;
+      matchingCards[0].classList.add('is-open');
+    }
   }
 
   // Bottom bubbles: always present, grey by default, highlight on search match
@@ -1128,6 +1176,18 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     }
     bubblesArr.forEach(b => grid.appendChild(b));
   }
+
+  // Hover name swap: abbreviated → full on mouseenter, back on mouseleave
+  document.querySelectorAll<HTMLElement>('.proj-bubble__name').forEach(nameEl => {
+    const bubble = nameEl.closest('.proj-bubble') as HTMLElement;
+    if (!bubble) return;
+    bubble.addEventListener('mouseenter', () => {
+      nameEl.textContent = nameEl.dataset.full ?? nameEl.textContent;
+    });
+    bubble.addEventListener('mouseleave', () => {
+      nameEl.textContent = nameEl.dataset.short ?? nameEl.textContent;
+    });
+  });
 
   const bubbles = document.querySelectorAll<HTMLElement>('.proj-bubble');
   function updateBubbles(keywords: string[]) {
