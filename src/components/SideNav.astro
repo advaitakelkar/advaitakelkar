@@ -11,6 +11,14 @@ const currentSlug = currentPath.startsWith('/projects/')
   ? currentPath.split('/').filter(Boolean)[1] ?? null
   : null;
 
+// Determine active wheel item ID
+const activeItemId: string | null =
+  currentSlug ? currentSlug
+  : currentPath === '/' ? '__home__'
+  : currentPath === '/about' ? '__about__'
+  : currentPath === '/projects' ? '__projects__'
+  : null;
+
 // Derive human-readable page name for the label
 function pageName(path: string): string {
   if (path === '/') return 'HOME';
@@ -30,6 +38,15 @@ const allProjects = await getCollection('projects');
 const wheelProjects = [...allProjects].sort(
   (a, b) => parseInt(b.data.year ?? '0') - parseInt(a.data.year ?? '0')
 );
+
+// Combined wheel items: top-level pages first, then projects
+type WheelItem = { href: string; name: string; id: string; isPage: boolean };
+const wheelItems: WheelItem[] = [
+  { href: '/',         name: 'Home',     id: '__home__',     isPage: true },
+  { href: '/about',    name: 'About',    id: '__about__',    isPage: true },
+  { href: '/projects', name: 'Projects', id: '__projects__', isPage: true },
+  ...wheelProjects.map(p => ({ href: `/projects/${p.id}`, name: p.data.name, id: p.id, isPage: false })),
+];
 
 // Color schemes — all light variants; dark mode flips bg↔fg via CSS
 // fg doubles as the dark-mode bg for swatch rendering
@@ -148,9 +165,13 @@ const schemes = [
     <div class="sn-panel__wheel" id="sn-wheel">
       <div class="sn-wheel__track" id="sn-wheel-track">
         {[0, 1, 2].map(() => (
-          wheelProjects.map(p => (
-            <a href={`/projects/${p.id}`} class:list={['sn-wheel__item', currentSlug === p.id && 'is-active']} data-project-id={p.id}>
-              <span data-scramble>{p.data.name}</span>
+          wheelItems.map(item => (
+            <a
+              href={item.href}
+              class:list={['sn-wheel__item', item.isPage && 'sn-wheel__item--page', activeItemId === item.id && 'is-active']}
+              data-item-id={item.id}
+            >
+              <span data-scramble>{item.name}</span>
               <span class="sn-panel__arrow">
                 <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
                   <line x1="6" y1="18" x2="18" y2="6"></line>
@@ -588,6 +609,15 @@ const schemes = [
     font-weight: 500;
   }
 
+  /* Page-level entries (Home / About / Projects) stand apart slightly */
+  .sn-wheel__item--page {
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    border-bottom: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+    margin-bottom: 2px;
+    padding-bottom: 12px;
+  }
+
   /* ── Bottom: contact ── */
   .sn-panel__contact {
     flex-shrink: 0;
@@ -889,16 +919,24 @@ const schemes = [
   const wheelTrack = document.getElementById('sn-wheel-track');
   if (wheel && wheelTrack) {
     const oneCopyHeight = () => wheelTrack.scrollHeight / 3;
-    // Start in middle copy; if on a project page, center that project in the wheel
+    // Start in middle copy; center on the current page/project item
     requestAnimationFrame(() => {
       const h = oneCopyHeight();
-      const slug = location.pathname.match(/^\/projects\/([^/]+)/)?.[1];
-      if (slug) {
+      // Derive active item ID from path (matches server-side logic)
+      const p = location.pathname;
+      const slug = p.match(/^\/projects\/([^/]+)/)?.[1];
+      const activeId = slug ? slug
+        : p === '/'         ? '__home__'
+        : p === '/about'    ? '__about__'
+        : p === '/projects' ? '__projects__'
+        : null;
+
+      if (activeId) {
         const allItems = Array.from(wheelTrack.querySelectorAll<HTMLElement>('.sn-wheel__item'));
         const perCopy = Math.round(allItems.length / 3);
-        // Use the middle copy (index 1) so infinite scroll can go both directions
+        // Use the middle copy (index 1) so infinite scroll can loop both ways
         const target = allItems.slice(perCopy, perCopy * 2).find(
-          el => el.dataset.projectId === slug
+          el => el.dataset.itemId === activeId
         );
         if (target) {
           wheel.scrollTop = target.offsetTop - (wheel.clientHeight / 2) + (target.offsetHeight / 2);
