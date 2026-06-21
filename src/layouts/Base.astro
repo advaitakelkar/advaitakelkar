@@ -300,6 +300,10 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
               if (link.closest('.breadcrumb, .page-breadcrumb')) {
                 return null;
               }
+              // Exclude proj-bubble pills: they have their own JS hover for abbreviated↔full name
+              if (link.classList.contains('proj-bubble')) {
+                return null;
+              }
               // Exclude long paragraphs or paragraph links
               if (link.closest('p, .home-intro__desc, .about-card__desc, .project-card__desc')) {
                 const text = link.textContent?.trim() || '';
@@ -307,7 +311,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
               }
               const textSpan = link.querySelector(
                 '.home-nav-row__text, .about-link-row__text, ' +
-                '.sn-panel__link span, .proj-bubble__name, ' +
+                '.sn-panel__link span, ' +
                 '.project-card__stack-name'
               );
               if (textSpan) return textSpan as HTMLElement;
@@ -334,7 +338,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
           // If it has children, attempt to find a child that is safe to scramble
           const safeChild = candidate.querySelector(
             '.home-nav-row__text, .about-link-row__text, ' +
-            '.sn-panel__link span, .proj-bubble__name, ' +
+            '.sn-panel__link span, ' +
             '.project-card__stack-name, .project-card__title, ' +
             '.education-card__school, .about-card__title, .stacked-name, .about-card__collab'
           );
