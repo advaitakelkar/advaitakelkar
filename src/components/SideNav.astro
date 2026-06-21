@@ -6,6 +6,11 @@ export interface Props {
 }
 const { currentPath = '/' } = Astro.props;
 
+// Current project slug (non-null only on /projects/[slug] pages)
+const currentSlug = currentPath.startsWith('/projects/')
+  ? currentPath.split('/').filter(Boolean)[1] ?? null
+  : null;
+
 // Derive human-readable page name for the label
 function pageName(path: string): string {
   if (path === '/') return 'HOME';
@@ -144,7 +149,7 @@ const schemes = [
       <div class="sn-wheel__track" id="sn-wheel-track">
         {[0, 1, 2].map(() => (
           wheelProjects.map(p => (
-            <a href={`/projects/${p.id}`} class="sn-wheel__item">
+            <a href={`/projects/${p.id}`} class:list={['sn-wheel__item', currentSlug === p.id && 'is-active']} data-project-id={p.id}>
               <span data-scramble>{p.data.name}</span>
               <span class="sn-panel__arrow">
                 <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
@@ -578,6 +583,11 @@ const schemes = [
     transform: translateX(4px);
   }
 
+  .sn-wheel__item.is-active {
+    opacity: 1;
+    font-weight: 500;
+  }
+
   /* ── Bottom: contact ── */
   .sn-panel__contact {
     flex-shrink: 0;
@@ -879,8 +889,24 @@ const schemes = [
   const wheelTrack = document.getElementById('sn-wheel-track');
   if (wheel && wheelTrack) {
     const oneCopyHeight = () => wheelTrack.scrollHeight / 3;
-    // start in the middle copy so it can loop both directions
-    requestAnimationFrame(() => { wheel.scrollTop = oneCopyHeight(); });
+    // Start in middle copy; if on a project page, center that project in the wheel
+    requestAnimationFrame(() => {
+      const h = oneCopyHeight();
+      const slug = location.pathname.match(/^\/projects\/([^/]+)/)?.[1];
+      if (slug) {
+        const allItems = Array.from(wheelTrack.querySelectorAll<HTMLElement>('.sn-wheel__item'));
+        const perCopy = Math.round(allItems.length / 3);
+        // Use the middle copy (index 1) so infinite scroll can go both directions
+        const target = allItems.slice(perCopy, perCopy * 2).find(
+          el => el.dataset.projectId === slug
+        );
+        if (target) {
+          wheel.scrollTop = target.offsetTop - (wheel.clientHeight / 2) + (target.offsetHeight / 2);
+          return;
+        }
+      }
+      wheel.scrollTop = h; // default: top of middle copy
+    });
     let ticking = false;
     wheel.addEventListener('scroll', () => {
       if (ticking) return;
