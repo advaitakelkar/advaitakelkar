@@ -284,15 +284,21 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   .projects-sticky-header {
     position: fixed;
     top: 64px; /* Align strictly beneath breadcrumb */
-    left: 0;
+    left: 44px; /* Offset for SideNav */
     right: 0;
-    z-index: 200; /* Higher than card physics stack */
+    z-index: 90; /* Lower than Breadcrumb (100) and SideNav (200) */
     background-color: var(--_tokens---color--bg);
     padding-inline: var(--_tokens---space--small);
     padding-top: 16px;
     padding-bottom: 24px;
     border-bottom: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
     transition: background-color 0.3s ease;
+  }
+
+  @media (max-width: 767px) and (orientation: portrait) {
+    .projects-sticky-header {
+      top: 0; /* Breadcrumb docks to bottom on mobile, so header goes to very top */
+    }
   }
 
   @media (min-width: 1200px) {
@@ -587,21 +593,26 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   .project-cards-container {
     display: flex;
     flex-direction: column;
+    gap: 16px;
     margin-top: 200px; /* Space to clear the fixed search header */
   }
 
   .project-card {
     width: 100%;
     box-sizing: border-box;
-    border-bottom: 1.5px solid color-mix(in srgb, var(--_tokens---color--fg) 20%, transparent);
     cursor: pointer;
-    background-color: var(--_tokens---color--bg);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 2.5%, var(--_tokens---color--bg));
+    border: 1px solid transparent;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 8px 30px -8px color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
     transform-origin: center center;
     position: relative;
     z-index: var(--dock-z, 1);
     opacity: var(--dock-op, 1);
     transform: scale(var(--dock-scale, 1)) translateY(var(--dock-ty, 0px));
     will-change: transform, border-color, z-index, opacity;
+    transition: border-color 0.3s ease;
   }
 
   .project-card[hidden] { display: none !important; }
@@ -612,7 +623,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    padding: 16px 0;
+    padding: 16px 24px;
     user-select: none;
   }
 
@@ -697,6 +708,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     flex-direction: column;
     gap: 10px;
     padding-top: 8px;
+    padding-left: 24px;
     padding-right: 45%; /* Reserve space on desktop so text doesn't overlap image focal point */
   }
 
@@ -840,7 +852,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
   /* ── Keyboard navigation focus indicator ── */
   .project-card.is-keyboard-focused {
-    border-bottom-color: var(--_tokens---color--fg);
+    border-color: color-mix(in srgb, var(--_tokens---color--fg) 25%, transparent);
   }
 
   .project-card.is-keyboard-focused .project-card__stack-name {
