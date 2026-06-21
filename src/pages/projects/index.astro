@@ -191,7 +191,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
                   </div>
                 </div>
 
-                <!-- Row 3: meta (left) · go-to-project pill (right) -->
+                <!-- Row 3: meta (left) -->
                 <div class="project-card__row project-card__row3">
                   <div class="project-card__metaline">
                     {metaParts.map((m, idx) => (
@@ -202,10 +202,6 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
                       </span>
                     ))}
                   </div>
-                  <a href={`/projects/${p.id}`} class="project-card__pill project-card__pill--cta">
-                    <span>Go to entire project</span>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
-                  </a>
                 </div>
               </div>
             </div>
@@ -1086,24 +1082,33 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     const isAtTop = window.scrollY < 15;
     const isAtBottom = (window.innerHeight + Math.round(window.scrollY)) >= document.documentElement.scrollHeight - 15;
 
-    // First pass: Calculate pure physics targets
-    const targets = visibleCards.map((card, i) => {
+    // Find closest card to focal point for accordion snap
+    let closestIdx = -1;
+    let minDistance = Infinity;
+
+    // Pass 1a: Calculate natural centers and find the closest card
+    const rawDistances = visibleCards.map((card, i) => {
       const phys = getPhysics(card);
       const rect = card.getBoundingClientRect();
-      
-      // Calculate true center ignoring current translateY.
-      // Scale doesn't affect center position because origin is center center.
       const naturalCenterY = (rect.top - phys.ty) + (rect.height / 2);
       
       let distance = Math.abs(naturalCenterY - focalY);
-      
-      // Override for top/bottom edge cases
       if (i === 0 && isAtTop) distance = 0;
       if (i === visibleCards.length - 1 && isAtBottom) distance = 0;
 
-      // Gaussian bell curve for open state
-      let targetO = Math.exp(-Math.pow(distance / waveWidth, 2.5));
-      if (targetO < 0.01) targetO = 0;
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestIdx = i;
+      }
+      return { naturalCenterY, distance };
+    });
+
+    // Pass 1b: Calculate pure physics targets based on snappy accordion
+    const targets = visibleCards.map((card, i) => {
+      const { naturalCenterY, distance } = rawDistances[i];
+      
+      // Accordion snap: only the closest card opens, others close.
+      let targetO = (i === closestIdx) ? 1 : 0;
       
       // Target scale from 0.94 (inactive) to 1.05 (active)
       const targetS = 0.94 + (targetO * 0.11);
@@ -1132,10 +1137,10 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       const phys = getPhysics(card);
       const t = targets[i];
       
-      // Smoothly interpolate towards targets (0.15 is the "spring" speed)
-      phys.o += (t.targetO - phys.o) * 0.15;
-      phys.s += (t.targetS - phys.s) * 0.15;
-      phys.ty += (t.targetTy - phys.ty) * 0.15;
+      // Smoothly interpolate towards targets (0.25 for a quick snap)
+      phys.o += (t.targetO - phys.o) * 0.25;
+      phys.s += (t.targetS - phys.s) * 0.25;
+      phys.ty += (t.targetTy - phys.ty) * 0.25;
       phys.z = t.targetZ; // Z-index snaps instantly to avoid overlap glitches
 
       card.style.setProperty('--dock-open', phys.o.toFixed(3));
