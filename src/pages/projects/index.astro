@@ -160,6 +160,13 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
           <!-- Collapsible body — expands on click -->
           <div class="project-card__body">
             <div class="project-card__body-inner">
+              <a href={`/projects/${p.id}`} class="project-card__bg-img-wrap soft-image-container">
+                {p.data.coverImage ? (
+                  <img src={p.data.coverImage} alt={p.data.name} loading="lazy" />
+                ) : (
+                  <div class="project-card__placeholder" />
+                )}
+              </a>
               <div class="project-card__full">
                 <!-- Row 1: name (left) · tag + year (right) -->
                 <div class="project-card__row project-card__row1">
@@ -172,7 +179,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
                   </div>
                 </div>
 
-                <!-- Row 2: intro + description (left) · image (right) -->
+                <!-- Row 2: intro + description (left) -->
                 <div class="project-card__row project-card__row2">
                   <div class="project-card__text-block">
                     <p class="project-card__intro">{p.data.smallIntro}</p>
@@ -182,13 +189,6 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
                       </p>
                     )}
                   </div>
-                  <a href={`/projects/${p.id}`} class="project-card__img-wrap soft-image-container">
-                    {p.data.coverImage ? (
-                      <img src={p.data.coverImage} alt={p.data.name} loading="lazy" />
-                    ) : (
-                      <div class="project-card__placeholder" />
-                    )}
-                  </a>
                 </div>
 
                 <!-- Row 3: meta (left) · go-to-project pill (right) -->
@@ -288,8 +288,8 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   /* Sticky search and filter header */
   .projects-sticky-header {
     position: sticky;
-    top: 0;
-    z-index: 90;
+    top: 64px; /* Align strictly beneath breadcrumb */
+    z-index: 200; /* Higher than card physics stack */
     background-color: var(--_tokens---color--bg);
     padding-top: 8px;
     padding-bottom: 24px;
@@ -594,8 +594,10 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     cursor: pointer;
     background-color: var(--_tokens---color--bg);
     transform-origin: center center;
-    transform: scale(var(--dock-scale, 1));
-    will-change: transform, border-color;
+    position: relative;
+    z-index: var(--dock-z, 1);
+    transform: scale(var(--dock-scale, 1)) translateY(var(--dock-ty, 0px));
+    will-change: transform, border-color, z-index;
   }
 
   .project-card:last-child {
@@ -680,6 +682,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   }
 
   .project-card__body-inner {
+    position: relative;
     min-height: 0;
     overflow: hidden;
     padding-bottom: calc(var(--dock-open, 0) * 24px);
@@ -688,10 +691,13 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
   /* ── Expanded content rows ── */
   .project-card__full {
+    position: relative;
+    z-index: 2;
     display: flex;
     flex-direction: column;
     gap: 10px;
     padding-top: 8px;
+    padding-right: 45%; /* Reserve space on desktop so text doesn't overlap image focal point */
   }
 
   .project-card__row {
@@ -765,28 +771,35 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     opacity: 0.85;
   }
 
-  .project-card__img-wrap {
-    width: clamp(110px, 14vw, 170px); /* further reduced image size to reduce card height */
-    flex-shrink: 0;
+  .project-card__bg-img-wrap {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 55%;
+    z-index: 1;
     overflow: hidden;
-    border-radius: 8px;
     background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
-    display: block;
-    line-height: 0;
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 40%);
+    mask-image: linear-gradient(to right, transparent 0%, black 40%);
   }
 
-  .project-card__img-wrap img {
+  .project-card__bg-img-wrap img {
     width: 100%;
-    height: auto; /* preserve the image's natural proportion */
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
     display: block;
     transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  .project-card__img-wrap:hover img { transform: scale(1.03); }
+  .project-card__bg-img-wrap:hover img {
+    transform: scale(1.04);
+  }
 
   .project-card__placeholder {
     width: 100%;
-    aspect-ratio: 16 / 10;
+    height: 100%;
     background-color: color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
   }
 
@@ -996,11 +1009,17 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     .project-card__stack-tags {
       display: none; /* hide tag on mobile header — saves space */
     }
+    .project-card__full {
+      padding-right: 0; /* Remove right padding on mobile */
+    }
+    .project-card__bg-img-wrap {
+      width: 100%; /* Fill entire background on mobile */
+      opacity: 0.12; /* Keep it subtle so text on top is readable */
+      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 20%, black 80%, transparent 100%);
+      mask-image: linear-gradient(to bottom, transparent 0%, black 20%, black 80%, transparent 100%);
+    }
     .project-card__row2 {
       flex-direction: column;
-    }
-    .project-card__img-wrap {
-      width: 100%;
     }
     .project-card__row,
     .project-card__row3 {
@@ -1036,6 +1055,16 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     return cards.filter(c => !c.hidden);
   }
 
+  // Physics state map per card DOM element
+  const cardPhysics = new WeakMap<HTMLElement, { o: number, s: number, ty: number, z: number }>();
+
+  function getPhysics(card: HTMLElement) {
+    if (!cardPhysics.has(card)) {
+      cardPhysics.set(card, { o: 0, s: 0.94, ty: 0, z: 1 });
+    }
+    return cardPhysics.get(card)!;
+  }
+
   // ── Mac Finder Dock Scroll Physics Loop ──────────────────────
   let renderLoopActive = true;
   function updateDockPhysics() {
@@ -1049,46 +1078,78 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     const viewportH = window.innerHeight;
     const focalY = viewportH * 0.45; // The sweet spot on screen where a card is fully open
     const waveWidth = viewportH * 0.50; // How far away cards start opening
+    const stackThreshold = viewportH * 0.25; // Distance from focal point where stacking compression begins
 
-    // Determine the most active card for keyboard index sync
     let maxOpen = -1;
     let newActiveIdx = currentIndex;
 
-    // Check edge cases: if scrolled to very top, first card is fully open
-    // if scrolled to very bottom, last card is fully open
     const isAtTop = window.scrollY < 15;
     const isAtBottom = (window.innerHeight + Math.round(window.scrollY)) >= document.documentElement.scrollHeight - 15;
 
-    for (let i = 0; i < visibleCards.length; i++) {
-      const card = visibleCards[i];
+    // First pass: Calculate pure physics targets
+    const targets = visibleCards.map((card, i) => {
+      const phys = getPhysics(card);
       const rect = card.getBoundingClientRect();
-      const cardCenterY = rect.top + (rect.height / 2);
       
-      let distance = Math.abs(cardCenterY - focalY);
+      // Calculate true center ignoring current translateY.
+      // Scale doesn't affect center position because origin is center center.
+      const naturalCenterY = (rect.top - phys.ty) + (rect.height / 2);
+      
+      let distance = Math.abs(naturalCenterY - focalY);
       
       // Override for top/bottom edge cases
       if (i === 0 && isAtTop) distance = 0;
       if (i === visibleCards.length - 1 && isAtBottom) distance = 0;
 
-      // Gaussian bell curve for open state (1.0 at focal point, 0.0 far away)
-      let openRatio = Math.exp(-Math.pow(distance / waveWidth, 2.5));
+      // Gaussian bell curve for open state
+      let targetO = Math.exp(-Math.pow(distance / waveWidth, 2.5));
+      if (targetO < 0.01) targetO = 0;
       
-      // Clamp very small values to 0 for performance
-      if (openRatio < 0.01) openRatio = 0;
+      // Target scale from 0.94 (inactive) to 1.05 (active)
+      const targetS = 0.94 + (targetO * 0.11);
       
-      // Scale from 0.94 (inactive) to 1.05 (active)
-      const scale = 0.94 + (openRatio * 0.11);
+      // ── Stacking Math (Y-Axis Compression) ──
+      let targetTy = 0;
+      if (naturalCenterY < focalY - stackThreshold) {
+        // Card is going off the top. Push it down so it stacks.
+        const overflow = (focalY - stackThreshold) - naturalCenterY;
+        targetTy = overflow * 0.75; // Compress speed to 25% of normal scroll
+      } else if (naturalCenterY > focalY + stackThreshold) {
+        // Card is going off the bottom. Pull it up so it stacks.
+        const overflow = naturalCenterY - (focalY + stackThreshold);
+        targetTy = -overflow * 0.75; // Compress speed to 25% of normal scroll
+      }
+      
+      // Base Z-index off distance to keep active card on top
+      const targetZ = Math.round(100 - (distance / 10));
 
-      card.style.setProperty('--dock-open', openRatio.toFixed(3));
-      card.style.setProperty('--dock-open-fr', `${openRatio.toFixed(3)}fr`);
-      card.style.setProperty('--dock-scale', scale.toFixed(3));
+      return { targetO, targetS, targetTy, targetZ };
+    });
 
-      if (openRatio > maxOpen) {
-        maxOpen = openRatio;
+    // Second pass: Apply smooth linear interpolation (lerp)
+    for (let i = 0; i < visibleCards.length; i++) {
+      const card = visibleCards[i];
+      const phys = getPhysics(card);
+      const t = targets[i];
+      
+      // Smoothly interpolate towards targets (0.15 is the "spring" speed)
+      phys.o += (t.targetO - phys.o) * 0.15;
+      phys.s += (t.targetS - phys.s) * 0.15;
+      phys.ty += (t.targetTy - phys.ty) * 0.15;
+      phys.z = t.targetZ; // Z-index snaps instantly to avoid overlap glitches
+
+      card.style.setProperty('--dock-open', phys.o.toFixed(3));
+      card.style.setProperty('--dock-open-fr', `${phys.o.toFixed(3)}fr`);
+      card.style.setProperty('--dock-scale', phys.s.toFixed(3));
+      card.style.setProperty('--dock-ty', `${phys.ty.toFixed(1)}px`);
+      card.style.setProperty('--dock-z', `${phys.z}`);
+
+      if (phys.o > maxOpen) {
+        maxOpen = phys.o;
         newActiveIdx = i;
       }
       
-      if (i === currentIndex && openRatio > 0.7) {
+      if (i === currentIndex && phys.o > 0.7) {
          card.classList.add('is-keyboard-focused');
       } else {
          card.classList.remove('is-keyboard-focused');
