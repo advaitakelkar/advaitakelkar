@@ -16,6 +16,12 @@ const allCats     = await getCollection('categories');
 const tagMap = Object.fromEntries(allTags.map(t => [t.id, t.data.name]));
 const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
 
+// Abbreviate each word individually: keep words ≤3 chars, truncate longer ones to 3 chars.
+// "EPISODE Kolkata" → "EPI Kol", "Going PI" → "Goi PI", "SOCIAL 2" → "SOC 2"
+function abbrevName(name: string): string {
+  return name.split(/\s+/).map(w => w.length <= 3 ? w : w.slice(0, 3)).join(' ');
+}
+
 // Sort projects
 const sorted = [...allProjects].sort((a, b) => {
   if (a.data.numbr && b.data.numbr) return a.data.numbr - b.data.numbr;
@@ -65,7 +71,7 @@ const sorted = [...allProjects].sort((a, b) => {
           data-status={p.data.status ?? ''}
           data-program={p.data.program ?? ''}
         >
-          <span class="proj-bubble__name">{p.data.name}</span>
+          <span class="proj-bubble__name" data-short={abbrevName(p.data.name)} data-full={p.data.name}>{abbrevName(p.data.name)}</span>
           <span class="proj-bubble__tag">{tagsArr[0] || (p.data.category ? catMap[p.data.category.id] : 'Design')}</span>
           <svg class="link-arrow proj-bubble__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
             <line x1="6" y1="18" x2="18" y2="6"></line>
@@ -88,7 +94,7 @@ const sorted = [...allProjects].sort((a, b) => {
       data-status=""
       data-program=""
     >
-      <span class="proj-bubble__name">Home Admin</span>
+      <span class="proj-bubble__name" data-short="Hom Adm" data-full="Home Admin">Hom Adm</span>
       <span class="proj-bubble__tag">Admin</span>
       <svg class="link-arrow proj-bubble__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
         <line x1="6" y1="18" x2="18" y2="6"></line>
@@ -107,7 +113,7 @@ const sorted = [...allProjects].sort((a, b) => {
       data-status=""
       data-program=""
     >
-      <span class="proj-bubble__name">About Admin</span>
+      <span class="proj-bubble__name" data-short="Abo Adm" data-full="About Admin">Abo Adm</span>
       <span class="proj-bubble__tag">Admin</span>
       <svg class="link-arrow proj-bubble__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
         <line x1="6" y1="18" x2="18" y2="6"></line>
@@ -126,7 +132,7 @@ const sorted = [...allProjects].sort((a, b) => {
       data-status=""
       data-program=""
     >
-      <span class="proj-bubble__name">Projects Admin</span>
+      <span class="proj-bubble__name" data-short="Pro Adm" data-full="Projects Admin">Pro Adm</span>
       <span class="proj-bubble__tag">Admin</span>
       <svg class="link-arrow proj-bubble__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
         <line x1="6" y1="18" x2="18" y2="6"></line>
@@ -313,28 +319,17 @@ const sorted = [...allProjects].sort((a, b) => {
     opacity: 0 !important;
   }
 
-  /* Temporary measure state */
+  /* Temporary measure state — disable pill transitions only (name text is swapped in JS now) */
   .qs-measure-state .proj-bubble {
     transition: none !important;
   }
-  .qs-measure-state .proj-bubble__name,
-  .qs-measure-state .proj-bubble__tag {
-    max-width: 800px !important;
-    opacity: 1 !important;
-    margin-left: 0 !important;
-    transition: none !important;
-  }
 
+  /* Name shows abbreviated text at rest; JS swaps to full name on hover.
+     No max-width clipping needed — overflow is hidden by the pill itself. */
   .proj-bubble__name {
     color: inherit;
-    max-width: 4.2em;
     overflow: hidden;
     white-space: nowrap;
-    transition: max-width 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .proj-bubble:hover .proj-bubble__name {
-    max-width: 600px;
   }
 
   .proj-bubble__tag {
@@ -434,8 +429,8 @@ const sorted = [...allProjects].sort((a, b) => {
       const pills = Array.from(g.querySelectorAll('.proj-bubble')) as HTMLElement[];
       if (!pills.length) return;
 
-      // 1. Measure collapsed (restW) and expanded (fullW) widths
-      //    Do this while pills are direct children of g (no qs-row wrappers)
+      // 1. Measure abbreviated (restW) and full-name (fullW) widths.
+      //    Pills already show abbreviated text from the Astro template.
       g.style.flexDirection = 'row';
       g.style.flexWrap = 'wrap';
       g.style.gap = '5px';
@@ -443,12 +438,23 @@ const sorted = [...allProjects].sort((a, b) => {
         p.style.width = '';
         g.appendChild(p);
       });
-      void g.offsetWidth; // force reflow at collapsed state
+      g.classList.add('qs-measure-state'); // disables pill transitions
+      void g.offsetWidth; // force reflow — abbreviated text, natural widths
       pills.forEach(p => { p.dataset.restW = String(p.offsetWidth); });
 
-      g.classList.add('qs-measure-state');
+      // Temporarily swap to full name text to measure expanded pill widths
+      pills.forEach(p => {
+        const nameEl = p.querySelector('.proj-bubble__name') as HTMLElement | null;
+        if (nameEl) nameEl.textContent = nameEl.dataset.full ?? nameEl.textContent;
+      });
       void g.offsetWidth;
       pills.forEach(p => { p.dataset.fullW = String(p.offsetWidth); });
+
+      // Restore abbreviated text
+      pills.forEach(p => {
+        const nameEl = p.querySelector('.proj-bubble__name') as HTMLElement | null;
+        if (nameEl) nameEl.textContent = nameEl.dataset.short ?? nameEl.textContent;
+      });
       g.classList.remove('qs-measure-state');
 
       // 2. Compute row grouping mathematically from restW + container width.
@@ -508,12 +514,16 @@ const sorted = [...allProjects].sort((a, b) => {
       p.addEventListener('mouseenter', () => {
         const row = p.parentElement;
         if (!row || !row.classList.contains('qs-row')) return;
-        
+
         const rowPills = Array.from(row.children) as HTMLElement[];
         const H = rowPills.indexOf(p);
         if (H === -1) return;
 
         clearTimeout((row as any)._resetTimer);
+
+        // Swap to full name — the pill clips it until the width animation reveals it
+        const hoverNameEl = p.querySelector('.proj-bubble__name') as HTMLElement | null;
+        if (hoverNameEl) hoverNameEl.textContent = hoverNameEl.dataset.full ?? hoverNameEl.textContent;
         
         const N = rowPills.length;
         const targetW = rowPills.map(rp => parseFloat(rp.dataset.restW || '0'));
@@ -577,7 +587,12 @@ const sorted = [...allProjects].sort((a, b) => {
 
         clearTimeout((row as any)._resetTimer);
         (row as any)._resetTimer = setTimeout(() => {
-          rowPills.forEach(rp => rp.style.width = '');
+          rowPills.forEach(rp => {
+            rp.style.width = '';
+            // Restore abbreviated text once the collapse animation has finished
+            const nameEl = rp.querySelector('.proj-bubble__name') as HTMLElement | null;
+            if (nameEl) nameEl.textContent = nameEl.dataset.short ?? nameEl.textContent;
+          });
           row.style.gap = '';
         }, 400);
       });
