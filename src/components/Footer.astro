@@ -19,7 +19,7 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
 // Abbreviate each word individually: keep words ≤3 chars, truncate longer ones to 3 chars.
 // "EPISODE Kolkata" → "EPI Kol", "Going PI" → "Goi PI", "SOCIAL 2" → "SOC 2"
 function abbrevName(name: string): string {
-  return name.split(/\s+/).map(w => w.length <= 3 ? w : w.slice(0, 3)).join(' ');
+  return name.trim().split(/\s+/).filter(w => w.length > 0).map(w => w.length <= 3 ? w : w.slice(0, 3)).join(' ');
 }
 
 // Sort projects
@@ -442,18 +442,32 @@ const sorted = [...allProjects].sort((a, b) => {
       void g.offsetWidth; // force reflow — abbreviated text, natural widths
       pills.forEach(p => { p.dataset.restW = String(p.offsetWidth); });
 
-      // Temporarily swap to full name text to measure expanded pill widths
+      // Temporarily swap to full name + expand tag to measure true hover pill width.
+      // (The tag has max-width:0 at rest and expands via CSS :hover; we must force
+      //  it open here so fullW includes name + tag + arrow, not just name + arrow.)
       pills.forEach(p => {
         const nameEl = p.querySelector('.proj-bubble__name') as HTMLElement | null;
+        const tagEl  = p.querySelector('.proj-bubble__tag')  as HTMLElement | null;
         if (nameEl) nameEl.textContent = nameEl.dataset.full ?? nameEl.textContent;
+        if (tagEl) {
+          tagEl.style.transition  = 'none';
+          tagEl.style.maxWidth    = '800px';
+          tagEl.style.marginLeft  = '0';
+        }
       });
       void g.offsetWidth;
       pills.forEach(p => { p.dataset.fullW = String(p.offsetWidth); });
 
-      // Restore abbreviated text
+      // Restore abbreviated text and collapsed tag
       pills.forEach(p => {
         const nameEl = p.querySelector('.proj-bubble__name') as HTMLElement | null;
+        const tagEl  = p.querySelector('.proj-bubble__tag')  as HTMLElement | null;
         if (nameEl) nameEl.textContent = nameEl.dataset.short ?? nameEl.textContent;
+        if (tagEl) {
+          tagEl.style.transition  = '';
+          tagEl.style.maxWidth    = '';
+          tagEl.style.marginLeft  = '';
+        }
       });
       g.classList.remove('qs-measure-state');
 
@@ -496,7 +510,7 @@ const sorted = [...allProjects].sort((a, b) => {
           `justify-content:${isLast ? 'flex-start' : 'space-between'}`,
           'gap:5px',
           'width:100%',
-          'overflow:hidden',
+          'overflow:visible',
         ].join(';');
         rowPills.forEach(p => row.appendChild(p));
         g.appendChild(row);
@@ -570,7 +584,7 @@ const sorted = [...allProjects].sort((a, b) => {
         // Keep row full-width during hover by computing the gap dynamically
         if (!isLastRow && N > 1) {
           const totalExplicit = targetW.reduce((a, b) => a + b, 0);
-          const gapValue = Math.max(2, (rowWidth - totalExplicit) / (N - 1));
+          const gapValue = Math.max(2, Math.floor((rowWidth - totalExplicit) / (N - 1)));
           row.style.gap = gapValue + 'px';
         }
       });
