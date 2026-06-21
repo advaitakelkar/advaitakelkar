@@ -255,6 +255,7 @@ function updateExistingYaml(content, updates) {
 function createNewYaml(updates) {
   let newContent = '';
   newContent += `name: "${updates.name || ''}"\n`;
+  if (updates.shortName) newContent += `shortName: "${updates.shortName}"\n`;
   newContent += `year: "${updates.year || ''}"\n`;
   if (updates.location) newContent += `location: "${updates.location}"\n`;
   newContent += `status: "${updates.status || 'Completed'}"\n`;
@@ -305,6 +306,7 @@ async function run() {
       return {
         file,
         name: parsed.name || '',
+        shortName: parsed.shortName || '',
         year: parsed.year || '',
         location: parsed.location || '',
         category: parsed.category || '',
@@ -333,6 +335,7 @@ async function run() {
 
     const fallbacks = {
       name: "Untitled Project",
+      shortName: "",
       year: "2026",
       smallIntro: "Project introduction placeholder.",
       description: "<p>Project description placeholder content.</p>",
@@ -351,6 +354,7 @@ async function run() {
       const notionName = getPropValue(page.properties.Name);
       const notionYear = getPropValue(page.properties.Year);
       const notionShort = getPropValue(page.properties.Short);
+      const notionShortName = getPropValue(page.properties['SHORT NAME']);
       const notionDesc = getPropValue(page.properties.Description);
       const notionLocation = getPropValue(page.properties.Location);
       const notionCategory = getPropValue(page.properties.Category);
@@ -419,6 +423,7 @@ async function run() {
         // Update existing project
         const updates = {
           name: notionName || match.name || fallbacks.name,
+          shortName: notionShortName || match.shortName || fallbacks.shortName,
           year: notionYear || match.year || fallbacks.year,
           smallIntro: notionShort || match.smallIntro || fallbacks.smallIntro,
           description: notionDesc || match.description || fallbacks.description,
@@ -444,6 +449,7 @@ async function run() {
         // Create new project
         const updates = {
           name: notionName || fallbacks.name,
+          shortName: notionShortName || fallbacks.shortName,
           year: notionYear || fallbacks.year,
           smallIntro: notionShort || fallbacks.smallIntro,
           description: notionDesc || fallbacks.description,
