@@ -593,6 +593,9 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     border-top: 1.5px solid color-mix(in srgb, var(--_tokens---color--fg) 20%, transparent);
     cursor: pointer;
     background-color: var(--_tokens---color--bg);
+    transform-origin: center center;
+    transform: scale(var(--dock-scale, 1));
+    will-change: transform, border-color;
   }
 
   .project-card:last-child {
@@ -668,27 +671,19 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
   .project-card__pill:hover svg { transform: translate(2px, -2px); }
 
-  /* ── Collapsible body — grid-trick smooth open/close ── */
+  /* ── Collapsible body — grid-trick fluid open/close via vars ── */
   .project-card__body {
     display: grid;
-    grid-template-rows: 0fr;
-    transition: grid-template-rows 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    grid-template-rows: var(--dock-open-fr, 0fr);
     overflow: hidden;
-  }
-
-  .project-card.is-open .project-card__body {
-    grid-template-rows: 1fr;
+    will-change: grid-template-rows;
   }
 
   .project-card__body-inner {
     min-height: 0;
     overflow: hidden;
-    padding-bottom: 0;
-    transition: padding-bottom 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .project-card.is-open .project-card__body-inner {
-    padding-bottom: 24px;
+    padding-bottom: calc(var(--dock-open, 0) * 24px);
+    will-change: padding-bottom;
   }
 
   /* ── Expanded content rows ── */
@@ -927,8 +922,21 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     line-height: 1;
     font-size: var(--_tokens---type--ultrathin);
     color: inherit;
-    opacity: 0.6;
     letter-spacing: 0.04em;
+    opacity: 0;
+    max-width: 0;
+    margin-left: -7px;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: max-width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                opacity 0.28s ease,
+                margin-left 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .proj-bubble:hover .proj-bubble__tag {
+    max-width: 160px;
+    opacity: 0.6;
+    margin-left: 0;
   }
 
   .proj-bubble__arrow {
@@ -1024,73 +1032,93 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   let currentIndex = -1;
   const kbdHint = document.getElementById('kbd-hint');
 
-  // Manual control flag: prevents scroll from overriding keyboard/click
-  let isManualControl = false;
-  let manualTimer: ReturnType<typeof setTimeout>;
-  function setManualControl(ms = 550) {
-    isManualControl = true;
-    clearTimeout(manualTimer);
-    manualTimer = setTimeout(() => { isManualControl = false; }, ms);
-  }
-
   function getVisibleCards() {
     return cards.filter(c => !c.hidden);
   }
 
-  // Keyboard/click-driven open — scrolls card into view, adds focus indicator
+  // ── Mac Finder Dock Scroll Physics Loop ──────────────────────
+  let renderLoopActive = true;
+  function updateDockPhysics() {
+    if (!renderLoopActive) return;
+    visibleCards = getVisibleCards();
+    if (!visibleCards.length) {
+      requestAnimationFrame(updateDockPhysics);
+      return;
+    }
+
+    const viewportH = window.innerHeight;
+    const focalY = viewportH * 0.45; // The sweet spot on screen where a card is fully open
+    const waveWidth = viewportH * 0.50; // How far away cards start opening
+
+    // Determine the most active card for keyboard index sync
+    let maxOpen = -1;
+    let newActiveIdx = currentIndex;
+
+    // Check edge cases: if scrolled to very top, first card is fully open
+    // if scrolled to very bottom, last card is fully open
+    const isAtTop = window.scrollY < 15;
+    const isAtBottom = (window.innerHeight + Math.round(window.scrollY)) >= document.documentElement.scrollHeight - 15;
+
+    for (let i = 0; i < visibleCards.length; i++) {
+      const card = visibleCards[i];
+      const rect = card.getBoundingClientRect();
+      const cardCenterY = rect.top + (rect.height / 2);
+      
+      let distance = Math.abs(cardCenterY - focalY);
+      
+      // Override for top/bottom edge cases
+      if (i === 0 && isAtTop) distance = 0;
+      if (i === visibleCards.length - 1 && isAtBottom) distance = 0;
+
+      // Gaussian bell curve for open state (1.0 at focal point, 0.0 far away)
+      let openRatio = Math.exp(-Math.pow(distance / waveWidth, 2.5));
+      
+      // Clamp very small values to 0 for performance
+      if (openRatio < 0.01) openRatio = 0;
+      
+      // Scale from 0.94 (inactive) to 1.05 (active)
+      const scale = 0.94 + (openRatio * 0.11);
+
+      card.style.setProperty('--dock-open', openRatio.toFixed(3));
+      card.style.setProperty('--dock-open-fr', `${openRatio.toFixed(3)}fr`);
+      card.style.setProperty('--dock-scale', scale.toFixed(3));
+
+      if (openRatio > maxOpen) {
+        maxOpen = openRatio;
+        newActiveIdx = i;
+      }
+      
+      if (i === currentIndex && openRatio > 0.7) {
+         card.classList.add('is-keyboard-focused');
+      } else {
+         card.classList.remove('is-keyboard-focused');
+      }
+    }
+
+    if (maxOpen > 0.5) currentIndex = newActiveIdx;
+
+    requestAnimationFrame(updateDockPhysics);
+  }
+  requestAnimationFrame(updateDockPhysics);
+
+  // Keyboard/click-driven focus
   function setFocusedCard(idx: number) {
     visibleCards = getVisibleCards();
     if (idx < 0 || idx >= visibleCards.length) return;
-    setManualControl(600);
-    cards.forEach(c => c.classList.remove('is-open', 'is-keyboard-focused'));
     currentIndex = idx;
-    const card = visibleCards[idx];
-    card.classList.add('is-open', 'is-keyboard-focused');
-    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    
+    // Smooth scroll so the card's center hits the focal point
+    // The physics loop will automatically magnify it as it arrives
+    visibleCards[idx].scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
-  // Scroll-driven open — no scrollIntoView, no keyboard focus ring
-  function openByScroll(idx: number) {
-    if (idx === currentIndex) return;
-    cards.forEach(c => c.classList.remove('is-open', 'is-keyboard-focused'));
-    currentIndex = idx;
-    visibleCards[idx].classList.add('is-open');
-    // Pause scroll detection while the card animates open (prevents immediate re-trigger)
-    setManualControl(460);
-  }
-
-  // ── Scroll-driven accordion ─────────────────────────────────
-  function updateScrollActive() {
-    if (isManualControl) return;
-    visibleCards = getVisibleCards();
-    if (!visibleCards.length) return;
-
-    // The active card = last one whose top has crossed 45% of viewport
-    const threshold = window.innerHeight * 0.45;
-    let activeIdx = 0;
-    for (let i = 0; i < visibleCards.length; i++) {
-      if (visibleCards[i].getBoundingClientRect().top <= threshold) activeIdx = i;
-      else break;
-    }
-    openByScroll(activeIdx);
-  }
-
-  window.addEventListener('scroll', updateScrollActive, { passive: true });
-
-  // --- Accordion: click to open/close, one open at a time ---
+  // Click to focus/open
   cards.forEach(card => {
     card.addEventListener('click', (e) => {
       if ((e.target as HTMLElement).closest('a')) return;
-      const isOpen = card.classList.contains('is-open');
-      setManualControl(600);
-      cards.forEach(c => c.classList.remove('is-open', 'is-keyboard-focused'));
-      if (!isOpen) {
-        card.classList.add('is-open');
-        visibleCards = getVisibleCards();
-        currentIndex = visibleCards.indexOf(card);
-      } else {
-        currentIndex = -1;
-      }
+      visibleCards = getVisibleCards();
+      const idx = visibleCards.indexOf(card);
+      if (idx !== -1) setFocusedCard(idx);
     });
   });
 
@@ -1120,9 +1148,9 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
         e.preventDefault();
         visibleCards = getVisibleCards();
         if (currentIndex <= 0) {
-          cards.forEach(c => c.classList.remove('is-keyboard-focused'));
           currentIndex = -1;
           searchInput?.focus();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         } else {
           setFocusedCard(currentIndex - 1);
         }
@@ -1139,7 +1167,6 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
         break;
       }
       case 'Escape': {
-        cards.forEach(c => c.classList.remove('is-open', 'is-keyboard-focused'));
         currentIndex = -1;
         break;
       }
@@ -1149,19 +1176,18 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   function applyVisibility(matchingCards: HTMLElement[]) {
     cards.forEach(card => {
       card.hidden = true;
-      card.classList.remove('is-open', 'is-keyboard-focused');
+      card.classList.remove('is-keyboard-focused');
+      card.style.setProperty('--dock-open', '0');
+      card.style.setProperty('--dock-open-fr', '0fr');
+      card.style.setProperty('--dock-scale', '0.94');
     });
     matchingCards.forEach(card => { card.hidden = false; });
     if (countLabel) {
       countLabel.textContent = `${matchingCards.length} of ${cards.length} works`;
     }
-    // Open first card; scroll will take over as user scrolls
     currentIndex = -1;
     visibleCards = matchingCards;
-    if (matchingCards.length > 0) {
-      currentIndex = 0;
-      matchingCards[0].classList.add('is-open');
-    }
+    // The physics scroll loop will automatically handle opening the visible cards
   }
 
   // Bottom bubbles: always present, grey by default, highlight on search match
