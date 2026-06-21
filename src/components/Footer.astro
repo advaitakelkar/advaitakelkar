@@ -431,32 +431,49 @@ const sorted = [...allProjects].sort((a, b) => {
     function buildRows() {
       const pills = Array.from(g.querySelectorAll('.proj-bubble')) as HTMLElement[];
       if (!pills.length) return;
+
+      // 1. Measure collapsed (restW) and expanded (fullW) widths
+      //    Do this while pills are direct children of g (no qs-row wrappers)
       g.style.flexDirection = 'row';
       g.style.flexWrap = 'wrap';
-      pills.forEach(p => g.appendChild(p));
-
-      // Pre-measure collapsed and expanded widths for smart hover logic
+      g.style.gap = '5px';
       pills.forEach(p => {
-        p.style.width = ''; // clear any inline width
-        p.dataset.restW = String(p.offsetWidth);
+        p.style.width = '';
+        g.appendChild(p);
       });
+      void g.offsetWidth; // force reflow at collapsed state
+      pills.forEach(p => { p.dataset.restW = String(p.offsetWidth); });
+
       g.classList.add('qs-measure-state');
-      void g.offsetWidth; // force layout recalculation
-      pills.forEach(p => p.dataset.fullW = String(p.offsetWidth));
+      void g.offsetWidth;
+      pills.forEach(p => { p.dataset.fullW = String(p.offsetWidth); });
       g.classList.remove('qs-measure-state');
 
+      // 2. Compute row grouping mathematically from restW + container width.
+      //    This avoids relying on offsetTop after qs-measure-state removal,
+      //    which is unreliable because CSS name transitions are mid-flight.
+      const containerW = g.clientWidth;
+      const gap = 5;
       const rows: HTMLElement[][] = [];
-      let cur: HTMLElement[] | null = null;
-      let lastTop: number | null = null;
+      let cur: HTMLElement[] = [];
+      let rowW = 0;
       pills.forEach(p => {
-        const top = p.offsetTop;
-        if (lastTop === null || Math.abs(top - lastTop) > 6) {
-          cur = []; rows.push(cur); lastTop = top;
+        const w = parseFloat(p.dataset.restW || '0');
+        if (cur.length > 0 && rowW + gap + w > containerW) {
+          rows.push(cur);
+          cur = [p];
+          rowW = w;
+        } else {
+          rowW = cur.length === 0 ? w : rowW + gap + w;
+          cur.push(p);
         }
-        cur!.push(p);
       });
+      if (cur.length > 0) rows.push(cur);
+
+      // 3. Build qs-row wrappers
       g.style.flexDirection = '';
       g.style.flexWrap = '';
+      g.style.gap = '';
       g.innerHTML = '';
       rows.forEach((rowPills, idx) => {
         const row = document.createElement('div');
