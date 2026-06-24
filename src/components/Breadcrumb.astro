@@ -155,21 +155,21 @@ if (activeProject) {
       <div class="breadcrumb__dropdown-panel" id="breadcrumb-dropdown-panel">
         <!-- Column 1: Categories -->
         <div class="breadcrumb__menu-column breadcrumb__menu-column--categories">
-          <button class="breadcrumb__cat-item is-active" data-cat-id="all" type="button">
+          <a href="/projects" class="breadcrumb__cat-item is-active" data-cat-id="all">
             <span>All</span>
             <svg class="link-arrow breadcrumb__arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
               <line x1="6" y1="18" x2="18" y2="6"></line>
               <polyline points="10 6 18 6 18 14"></polyline>
             </svg>
-          </button>
+          </a>
           {categories.map(c => (
-            <button class="breadcrumb__cat-item" data-cat-id={c.id} type="button">
+            <a href={`/${c.id}`} class="breadcrumb__cat-item" data-cat-id={c.id}>
               <span>{categoryDisplayNames[c.id] || c.data.displayName}</span>
               <svg class="link-arrow breadcrumb__arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
                 <line x1="6" y1="18" x2="18" y2="6"></line>
                 <polyline points="10 6 18 6 18 14"></polyline>
               </svg>
-            </button>
+            </a>
           ))}
         </div>
 
@@ -848,7 +848,7 @@ if (activeProject) {
     });
 
     // Handle category hover / click selections to filter projects list
-    const catItems = Array.from(dropdown.querySelectorAll('.breadcrumb__cat-item')) as HTMLButtonElement[];
+    const catItems = Array.from(dropdown.querySelectorAll('.breadcrumb__cat-item')) as HTMLAnchorElement[];
     const projLists = Array.from(dropdown.querySelectorAll('.breadcrumb__proj-list')) as HTMLDivElement[];
 
     function activateCategory(catId: string) {
@@ -884,8 +884,16 @@ if (activeProject) {
 
       // Mobile Click
       item.addEventListener('click', (e) => {
-        e.stopPropagation();
-        activateCategory(catId);
+        // On mobile, the first click opens the projects list.
+        // We prevent navigation if the category list is not yet "active" (showing projects).
+        if (window.innerWidth < 768) {
+          if (!item.classList.contains('is-active') || !panel.classList.contains('show-projects')) {
+            e.preventDefault();
+            e.stopPropagation();
+            activateCategory(catId);
+          }
+        }
+        // On desktop, clicking navigates normally to the href.
       });
     });
 
