@@ -1,7 +1,6 @@
 ---
 import { getCollection, getEntry } from 'astro:content';
 import PageLayout from '../../layouts/PageLayout.astro';
-import PasswordGate from '../../components/PasswordGate.astro';
 
 export async function getStaticPaths() {
   const projects = await getCollection('projects');
@@ -21,6 +20,17 @@ const category = data.category ? await getEntry(data.category) : null;
 const PLACEHOLDER = '/images/admin/placeholder.png';
 const cover = data.coverImage || PLACEHOLDER;
 const gallery = (data.multiImage ?? []).filter(Boolean);
+const allImages = [cover, ...gallery];
+
+const metaParts = [
+  { label: 'Year', val: data.year },
+  { label: 'Location', val: data.location },
+  { label: 'Client', val: data.client && data.client !== 'NA' ? data.client : null },
+  { label: 'With', val: data.collaborator },
+  { label: 'Program', val: data.program },
+  { label: 'Status', val: data.status },
+  { label: 'Category', val: category ? category.data.displayName : null }
+].filter(m => m.val);
 ---
 
 <PageLayout
@@ -34,265 +44,292 @@ const gallery = (data.multiImage ?? []).filter(Boolean);
     { label: data.name },
   ]}
 >
-  <PasswordGate title={data.name}>
     <article class="project-detail" data-project-id={project.id} data-project-name={data.name}>
-      <div class="project-detail__cover soft-image-container">
-        <img src={cover} alt={data.name} />
-      </div>
-
-      <div class="project-detail__body">
-        <header class="project-detail__header">
-          <h1 class="project-detail__title">{data.name}</h1>
-          {data.smallIntro && <p class="project-detail__intro text-muted">{data.smallIntro}</p>}
-        </header>
-
-        <aside class="project-detail__meta">
-          {data.year && (
-            <div class="meta-row">
-              <span class="meta-label text-muted">Year</span>
-              <span class="meta-val">{data.year}</span>
-            </div>
-          )}
-          {data.location && (
-            <div class="meta-row">
-              <span class="meta-label text-muted">Location</span>
-              <span class="meta-val">{data.location}</span>
-            </div>
-          )}
-          {data.client && data.client !== 'NA' && (
-            <div class="meta-row">
-              <span class="meta-label text-muted">Client</span>
-              <span class="meta-val">{data.client}</span>
-            </div>
-          )}
-          {data.collaborator && (
-            <div class="meta-row">
-              <span class="meta-label text-muted">With</span>
-              <span class="meta-val">{data.collaborator}</span>
-            </div>
-          )}
-          {data.program && (
-            <div class="meta-row">
-              <span class="meta-label text-muted">Program</span>
-              <span class="meta-val">{data.program}</span>
-            </div>
-          )}
-          {data.status && (
-            <div class="meta-row">
-              <span class="meta-label text-muted">Status</span>
-              <span class="meta-val">{data.status}</span>
-            </div>
-          )}
-          {category && (
-            <div class="meta-row">
-              <span class="meta-label text-muted">Category</span>
-              <a href={`/type/${category.id}`} class="meta-val meta-link">
-                {category.data.displayName}
-              </a>
-            </div>
-          )}
-          {tags.length > 0 && (
-            <div class="meta-row meta-row--tags">
-              <span class="meta-label text-muted">Tags</span>
-              <div class="meta-tags">
-                {tags.map(tag => tag && (
-                  <a href={`/tags/${tag.id}`} class="meta-tag">{tag.data.name}</a>
-                ))}
-              </div>
-            </div>
-          )}
-        </aside>
-
-        {data.description && (
-          <div class="project-detail__desc" set:html={data.description} />
-        )}
-      </div>
-
-      {gallery.length > 0 && (
-        <section class="project-detail__gallery">
-          {gallery.map((url, i) => (
-            <div class="gallery-img soft-image-container">
-              <img src={url} alt={`${data.name} — image ${i + 1}`} loading="lazy" />
+      
+      <!-- Top Image Slider -->
+      <div class="project-slider">
+        <button class="slider-btn slider-btn--prev" aria-label="Previous image">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        <div class="project-slider__track" id="slider-track">
+          {allImages.map((img, idx) => (
+            <div class="project-slider__slide soft-image-container">
+              <img src={img} alt={`${data.name} - Image ${idx + 1}`} loading={idx === 0 ? "eager" : "lazy"} />
             </div>
           ))}
-        </section>
-      )}
+        </div>
+        <button class="slider-btn slider-btn--next" aria-label="Next image">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+      </div>
+
+      <!-- Enlarged Project Card Info -->
+      <div class="project-card-info">
+        <!-- Row 1: name (left) -->
+        <div class="project-card__row project-card__row1">
+          <h1 class="project-card__title">{data.name}</h1>
+        </div>
+
+        <!-- Row 2: intro + description (left) -->
+        <div class="project-card__row project-card__row2">
+          <div class="project-card__text-block">
+            {data.smallIntro && <p class="project-card__intro">{data.smallIntro}</p>}
+            {data.description && (
+              <div class="project-card__desc" set:html={data.description} />
+            )}
+          </div>
+        </div>
+
+        <!-- Row 3: meta (left) -->
+        <div class="project-card__row project-card__row3">
+          <div class="project-card__metaline">
+            {metaParts.map((m, idx) => (
+              <span class="project-card__meta-item">
+                {idx > 0 && <span class="project-card__meta-sep">·</span>}
+                <span class="meta-label-inline">{m.label}:</span> <span class="project-card__meta-val">{m.val}</span>
+              </span>
+            ))}
+            {tags.length > 0 && (
+              <span class="project-card__meta-item">
+                {metaParts.length > 0 && <span class="project-card__meta-sep">·</span>}
+                <span class="meta-label-inline">Tags:</span>
+                <span class="project-card__meta-val tag-val">
+                  {tags.map((tag, tIdx) => tag && (
+                    <a href={`/tags/${tag.id}`} class="tag-link">{tag.data.name}</a>
+                  ))}
+                </span>
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
     </article>
-  </PasswordGate>
 </PageLayout>
 
 <style>
   .project-detail {
     padding-inline: var(--_tokens---space--small);
-    padding-top: calc(clamp(2rem, 4vh, 3rem) + 48px); /* space for fixed breadcrumbs */
-    padding-bottom: var(--_tokens---space--small);
+    padding-top: calc(clamp(2rem, 4vh, 3rem) + 48px);
+    padding-bottom: clamp(4rem, 8vh, 8rem);
     min-height: 100dvh;
     box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: var(--_tokens---space--medium);
+    max-width: var(--_tokens---layout--container);
+    margin: 0 auto;
   }
 
   @media (min-width: 1200px) {
     .project-detail {
-      padding-inline: clamp(6rem, 12vw, 16rem);
       padding-top: calc(clamp(4rem, 6vh, 5rem) + 48px);
     }
   }
 
   @media (max-width: 767px) and (orientation: portrait) {
     .project-detail {
-      padding-bottom: 80px; /* space for mobile bottom docked breadcrumbs */
+      padding-bottom: 80px;
     }
   }
 
-  .project-detail__cover {
+  /* ── Slider ── */
+  .project-slider {
+    position: relative;
     width: 100%;
-    max-height: 70vh;
     overflow: hidden;
     border-radius: var(--_tokens---radius--large);
-    margin-bottom: var(--_tokens---space--medium);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 3%, var(--_tokens---color--bg));
   }
 
-  .project-detail__cover img {
+  .project-slider__track {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .project-slider__track::-webkit-scrollbar {
+    display: none;
+  }
+
+  .project-slider__slide {
+    flex: 0 0 100%;
+    min-width: 100%;
+    scroll-snap-align: center;
+    max-height: 75vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .project-slider__slide img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain; /* Contain ensures we see the whole image uncropped */
+    background-color: var(--_tokens---color--bg); /* fill empty space */
   }
 
-  .project-detail__body {
-    display: grid;
-    grid-template-columns: 1fr 240px;
-    gap: var(--_tokens---space--medium);
-    max-width: var(--_tokens---layout--container);
-    margin-bottom: var(--_tokens---space--medium);
+  .slider-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 48px;
+    height: 48px;
+    background: var(--_tokens---color--bg);
+    color: var(--_tokens---color--fg);
+    border: 1px solid var(--_tokens---color--line);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    opacity: 0.8;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  
+  .slider-btn:hover {
+    opacity: 1;
+    transform: translateY(-50%) scale(1.1);
   }
 
-  .project-detail__header {
-    grid-column: 1;
+  .slider-btn svg {
+    width: 24px;
+    height: 24px;
   }
 
-  .project-detail__title {
-    font-size: var(--_tokens---type--big);
+  .slider-btn--prev { left: 16px; }
+  .slider-btn--next { right: 16px; }
+
+  @media (max-width: 767px) {
+    .slider-btn { display: none; } /* Hide buttons on mobile, rely on swipe */
+    .project-slider__slide { max-height: 50vh; }
+  }
+
+  /* ── Enlarged Card Info ── */
+  .project-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    padding: 16px 0;
+  }
+
+  .project-card__row {
+    display: flex;
+    width: 100%;
+  }
+
+  .project-card__title {
+    font-size: var(--_tokens---type--huge, 3rem); /* Make it bigger like a blown up card */
     font-weight: 500;
-    color: var(--_tokens---color--fg);
-    margin-bottom: 0.5em;
     line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin: 0;
+    color: var(--_tokens---color--fg);
   }
 
-  .project-detail__intro {
+  .project-card__text-block {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 80ch;
+  }
+
+  .project-card__intro {
+    font-size: var(--_tokens---type--medium, 1.25rem);
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--_tokens---color--fg);
+    margin: 0;
+  }
+
+  .project-card__desc {
     font-size: var(--_tokens---type--small);
-    line-height: 1.5;
-  }
-
-  .project-detail__meta {
-    grid-column: 2;
-    grid-row: 1 / 3;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75em;
-    padding: var(--_tokens---space--small);
-    border: 1px solid var(--_tokens---color--line);
-    border-radius: var(--_tokens---radius--medium);
-    align-self: start;
-  }
-
-  .meta-row {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2em;
-  }
-
-  .meta-label {
-    font-size: var(--_tokens---type--micro);
-    letter-spacing: 0.08em;
-    text-transform: none;
-  }
-
-  .meta-val {
-    font-size: var(--_tokens---type--micro);
-    color: var(--_tokens---color--fg);
-  }
-
-  .meta-link {
-    text-decoration: underline;
-    text-underline-offset: 2px;
-    color: var(--_tokens---color--fg);
-    transition: opacity 0.2s ease;
-  }
-
-  .meta-link:hover {
-    opacity: 0.7;
-  }
-
-  .meta-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4em;
-  }
-
-  .meta-tag {
-    display: inline-block;
-    padding: 0.2em 0.6em;
-    border: 1px solid var(--_tokens---color--line);
-    border-radius: var(--_tokens---radius--small);
-    font-size: var(--_tokens---type--micro);
+    line-height: 1.6;
     color: var(--_tokens---color--muted);
-    text-decoration: none;
-    transition: background-color 0.2s ease, color 0.2s ease;
+    margin: 0;
   }
 
-  .meta-tag:hover {
-    background-color: var(--_tokens---color--fg);
-    color: var(--_tokens---color--bg);
-  }
-
-  .project-detail__desc {
-    grid-column: 1;
-    font-size: var(--_tokens---type--small);
-    line-height: 1.7;
-    color: var(--_tokens---color--fg);
-  }
-
-  .project-detail__desc :global(p) {
+  .project-card__desc :global(p) {
     margin-bottom: 1em;
   }
 
-  .project-detail__gallery {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-    gap: var(--_tokens---space--small);
-    margin-top: var(--_tokens---space--medium);
-  }
-
-  .gallery-img {
-    overflow: hidden;
-    border-radius: var(--_tokens---radius--medium);
-    aspect-ratio: 4 / 3;
-    background-color: var(--_tokens---color--muted);
-  }
-
-  .gallery-img img {
+  /* Metadata row */
+  .project-card__metaline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+    padding-top: 24px;
+    border-top: 1px solid var(--_tokens---color--line);
     width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.4s ease;
   }
 
-  .gallery-img:hover img {
-    transform: scale(1.03);
+  .project-card__meta-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: var(--_tokens---type--micro);
+    color: var(--_tokens---color--fg);
   }
 
-  @media (max-width: 900px) {
-    .project-detail__body {
-      grid-template-columns: 1fr;
-    }
+  .project-card__meta-sep {
+    color: var(--_tokens---color--muted);
+    opacity: 0.5;
+  }
 
-    .project-detail__meta {
-      grid-column: 1;
-      grid-row: auto;
-    }
+  .meta-label-inline {
+    font-weight: 300;
+    color: var(--_tokens---color--muted);
+    letter-spacing: 0.04em;
+  }
+
+  .project-card__meta-val {
+    font-weight: 500;
+  }
+  
+  .tag-val {
+    display: inline-flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .tag-link {
+    color: var(--_tokens---color--fg);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    transition: opacity 0.2s ease;
+  }
+
+  .tag-link:hover {
+    opacity: 0.7;
   }
 </style>
 
 <script>
+  // Slider Controls
+  function initSlider() {
+    const track = document.getElementById('slider-track');
+    const btnPrev = document.querySelector('.slider-btn--prev');
+    const btnNext = document.querySelector('.slider-btn--next');
+
+    if (track && btnPrev && btnNext) {
+      // Create a unique handler so it doesn't duplicate on view transitions
+      btnNext.addEventListener('click', () => {
+        track.scrollBy({ left: track.clientWidth, behavior: 'smooth' });
+      });
+      btnPrev.addEventListener('click', () => {
+        track.scrollBy({ left: -track.clientWidth, behavior: 'smooth' });
+      });
+    }
+  }
+
+  document.addEventListener('astro:page-load', initSlider);
+  if (document.readyState !== 'loading') initSlider();
+
   // ← Left arrow navigates back to the projects list
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'ArrowLeft') return;
