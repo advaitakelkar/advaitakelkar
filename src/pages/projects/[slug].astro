@@ -116,12 +116,11 @@ const metaParts = [
     display: flex;
     flex-direction: column;
     gap: var(--_tokens---space--medium);
-    max-width: var(--_tokens---layout--container);
-    margin: 0 auto;
   }
 
   @media (min-width: 1200px) {
     .project-detail {
+      padding-inline: clamp(6rem, 12vw, 16rem);
       padding-top: calc(clamp(4rem, 6vh, 5rem) + 48px);
     }
   }
@@ -157,7 +156,7 @@ const metaParts = [
     flex: 0 0 100%;
     min-width: 100%;
     scroll-snap-align: center;
-    max-height: 75vh;
+    max-height: 45vh; /* Reduced to ensure text fits in viewport */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -204,7 +203,7 @@ const metaParts = [
 
   @media (max-width: 767px) {
     .slider-btn { display: none; } /* Hide buttons on mobile, rely on swipe */
-    .project-slider__slide { max-height: 50vh; }
+    .project-slider__slide { max-height: 35vh; }
   }
 
   /* ── Enlarged Card Info ── */
@@ -222,10 +221,10 @@ const metaParts = [
   }
 
   .project-card__title {
-    font-size: var(--_tokens---type--huge, 3rem); /* Make it bigger like a blown up card */
+    font-size: clamp(4rem, 4rem + 5vw, 8rem); /* Much larger project name font size */
     font-weight: 500;
-    line-height: 1.1;
-    letter-spacing: -0.02em;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
     margin: 0;
     color: var(--_tokens---color--fg);
   }
@@ -310,25 +309,60 @@ const metaParts = [
 </style>
 
 <script>
+  let autoSlideInterval;
+
   // Slider Controls
   function initSlider() {
     const track = document.getElementById('slider-track');
     const btnPrev = document.querySelector('.slider-btn--prev');
     const btnNext = document.querySelector('.slider-btn--next');
 
-    if (track && btnPrev && btnNext) {
-      // Create a unique handler so it doesn't duplicate on view transitions
+    if (autoSlideInterval) clearInterval(autoSlideInterval);
+    if (!track) return;
+
+    const startAutoSlide = () => {
+      if (autoSlideInterval) clearInterval(autoSlideInterval);
+      autoSlideInterval = setInterval(() => {
+        // If at the end of the scroll track, loop back to the start
+        if (track.scrollLeft + track.clientWidth >= track.scrollWidth - 10) {
+          track.scrollTo({ left: 0, behavior: 'smooth' });
+        } else {
+          track.scrollBy({ left: track.clientWidth, behavior: 'smooth' });
+        }
+      }, 3500); // Auto-slide every 3.5 seconds
+    };
+
+    const stopAutoSlide = () => {
+      if (autoSlideInterval) clearInterval(autoSlideInterval);
+    };
+
+    if (btnPrev && btnNext) {
       btnNext.addEventListener('click', () => {
         track.scrollBy({ left: track.clientWidth, behavior: 'smooth' });
+        startAutoSlide(); // Reset auto-slide timer when manually interacted
       });
       btnPrev.addEventListener('click', () => {
         track.scrollBy({ left: -track.clientWidth, behavior: 'smooth' });
+        startAutoSlide(); // Reset auto-slide timer when manually interacted
       });
     }
+
+    // Pause sliding when user is hovering or touching the slider
+    track.addEventListener('mouseenter', stopAutoSlide);
+    track.addEventListener('mouseleave', startAutoSlide);
+    track.addEventListener('touchstart', stopAutoSlide, { passive: true });
+    track.addEventListener('touchend', startAutoSlide, { passive: true });
+
+    startAutoSlide();
   }
 
   document.addEventListener('astro:page-load', initSlider);
   if (document.readyState !== 'loading') initSlider();
+
+  // Clean up interval before navigating away (Astro view transitions)
+  document.addEventListener('astro:before-swap', () => {
+    if (autoSlideInterval) clearInterval(autoSlideInterval);
+  });
 
   // ← Left arrow navigates back to the projects list
   document.addEventListener('keydown', (e) => {
