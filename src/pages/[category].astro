@@ -1,6 +1,6 @@
 ---
 import { getCollection } from 'astro:content';
-import ProjectList from '../components/ProjectList.astro';
+import CategoryLayout from '../components/CategoryLayout.astro';
 
 export async function getStaticPaths() {
   const allCats = await getCollection('categories');
@@ -17,6 +17,10 @@ const allProjects = await getCollection('projects');
 
 // Filter projects by category
 const filtered = allProjects.filter(p => p.data.category?.id === cat.id);
+const crumbs = [
+  { label: 'Home', href: '/' },
+  { label: cat.data.displayName }
+];
 ---
 
-<ProjectList projects={filtered} title={cat.data.displayName.toUpperCase()} />
+<CategoryLayout projects={filtered} title={cat.data.displayName.toUpperCase()} crumbs={crumbs} />

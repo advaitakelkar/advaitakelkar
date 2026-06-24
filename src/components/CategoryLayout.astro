@@ -1,0 +1,191 @@
+---
+import { getCollection } from 'astro:content';
+import PageLayout from '../layouts/PageLayout.astro';
+
+export interface Props {
+  projects: any[];
+  title: string;
+  crumbs?: { label: string; href?: string }[];
+}
+
+const { projects, title, crumbs } = Astro.props;
+
+// Get all tags and categories for formatting
+const allTags = await getCollection('tags');
+const allCats = await getCollection('categories');
+const tagMap = Object.fromEntries(allTags.map(t => [t.id, t.data.name]));
+const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
+
+// Gather cover images for the slider
+const sliderImages = projects.map(p => p.data.coverImage).filter(Boolean);
+if (sliderImages.length === 0) {
+  sliderImages.push('/images/admin/placeholder.png');
+}
+
+// Abbreviate name function (for footer bubbles)
+function abbrevName(name: string): string {
+  return name.trim().split(/\s+/).filter(w => w.length > 0).map(w => w.length <= 3 ? w : w.slice(0, 3)).join(' ');
+}
+---
+
+<PageLayout
+  title={title}
+  label={title}
+  crumbs={crumbs || [{ label: 'Home', href: '/' }, { label: title }]}
+  showFooter={false}
+>
+  <article class="category-detail">
+    <!-- Top Full Width Header -->
+    <header class="project-top-header" id="project-top-header">
+      <h1 class="project-card__title">{title}</h1>
+    </header>
+
+    <!-- 2-Column Hero Grid -->
+    <div class="project-content-grid">
+      <!-- Left Column: Text Content -->
+      <div class="project-col-left">
+        <div class="project-card-info" style="margin-top: 0; border-top: none; padding-top: 0;">
+          <div class="project-card__intro">
+            <p>Welcome to the {title} category. Here you will find a curated collection of projects highlighting our work in this space. Below is a detailed showcase of our selected projects.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Image Slider -->
+      <div class="project-col-right" id="project-slider-col">
+        <div class="project-slider" id="project-slider">
+          {sliderImages.map((img, i) => (
+            <img src={img} alt={`Slide ${i + 1}`} class:list={["slider-image", i === 0 && "active"]} loading={i === 0 ? "eager" : "lazy"} />
+          ))}
+          {sliderImages.length > 1 && (
+            <div class="slider-controls">
+              <button class="slider-btn prev" aria-label="Previous image">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+              </button>
+              <button class="slider-btn next" aria-label="Next image">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+
+    <!-- Stacked Projects List -->
+    <div class="category-projects-list" style="margin-top: clamp(4rem, 8vh, 6rem);">
+      {projects.map(p => {
+        const tagsArr = (p.data.tags ?? []).map(t => tagMap[t.id] || t.id);
+        const tagLine = tagsArr.join(', ');
+        return (
+          <a href={`/projects/${p.id}`} class="project-card__header category-list-item" style="text-decoration: none; display: flex;">
+            <span class="project-card__stack-name">{p.data.shortName || p.data.name}</span>
+            <span class="project-card__stack-right">
+              {tagLine && <span class="project-card__stack-tags">{tagLine}</span>}
+              {p.data.year && <span class="project-card__stack-year">{p.data.year}</span>}
+              <span class="project-card__pill">
+                <span>View</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+              </span>
+            </span>
+          </a>
+        );
+      })}
+    </div>
+
+    <!-- Custom Category Footer -->
+    <footer class="home-search-footer" style="border-top: none; padding-top: clamp(4rem, 8vh, 6rem);">
+      <div class="home-search__header">
+        <h2 class="home-search__title">All Projects in {title}</h2>
+      </div>
+      <div class="proj-bubbles" style="margin-top: 16px; border-top: none; padding-top: 0;">
+        {projects.map(p => {
+          const tagsArr = (p.data.tags ?? []).map(t => tagMap[t.id] || t.id);
+          return (
+            <a href={`/projects/${p.id}`} class="proj-bubble">
+              <span class="proj-bubble__name" data-short={p.data.shortName || abbrevName(p.data.name)} data-full={p.data.name}>{p.data.shortName || abbrevName(p.data.name)}</span>
+              <span class="proj-bubble__tag">{tagsArr[0] || (p.data.category ? catMap[p.data.category.id] : 'Design')}</span>
+              <svg class="link-arrow proj-bubble__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+                <line x1="6" y1="18" x2="18" y2="6"></line>
+                <polyline points="10 6 18 6 18 14"></polyline>
+              </svg>
+            </a>
+          );
+        })}
+      </div>
+    </footer>
+  </article>
+
+  <style>
+    .category-projects-list {
+      border-top: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .category-list-item {
+      border-bottom: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+      padding: var(--_tokens---space--x-small) 0;
+      transition: background-color 0.2s;
+    }
+
+    .category-list-item:hover {
+      background-color: color-mix(in srgb, var(--_tokens---color--fg) 3%, transparent);
+    }
+    
+    .category-list-item:hover .project-card__pill {
+      background: var(--_tokens---color--fg);
+      color: var(--_tokens---color--bg);
+      border-color: var(--_tokens---color--fg);
+    }
+
+    @media (max-width: 767px) {
+      .category-list-item {
+        padding-inline: var(--_tokens---space--small);
+        margin-inline: calc(var(--_tokens---space--small) * -1);
+      }
+    }
+  </style>
+
+  <script>
+    function initCategorySliders() {
+      const slider = document.getElementById('project-slider');
+      if (!slider) return;
+
+      const images = slider.querySelectorAll('.slider-image');
+      const prevBtn = slider.querySelector('.prev');
+      const nextBtn = slider.querySelector('.next');
+      if (images.length <= 1) return;
+
+      let currentIdx = 0;
+      let interval: number;
+
+      function showSlide(idx: number) {
+        images[currentIdx].classList.remove('active');
+        currentIdx = (idx + images.length) % images.length;
+        images[currentIdx].classList.add('active');
+      }
+
+      function nextSlide() { showSlide(currentIdx + 1); }
+      function prevSlide() { showSlide(currentIdx - 1); }
+
+      function startAutoSlide() {
+        clearInterval(interval);
+        interval = setInterval(nextSlide, 3000);
+      }
+
+      function stopAutoSlide() {
+        clearInterval(interval);
+      }
+
+      nextBtn?.addEventListener('click', () => { nextSlide(); startAutoSlide(); });
+      prevBtn?.addEventListener('click', () => { prevSlide(); startAutoSlide(); });
+
+      slider.addEventListener('mouseenter', stopAutoSlide);
+      slider.addEventListener('mouseleave', startAutoSlide);
+
+      startAutoSlide();
+    }
+
+    document.addEventListener('astro:page-load', initCategorySliders);
+  </script>
+</PageLayout>
