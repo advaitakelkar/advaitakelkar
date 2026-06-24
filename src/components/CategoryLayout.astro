@@ -77,16 +77,18 @@ function abbrevName(name: string): string {
         const tagsArr = (p.data.tags ?? []).map(t => tagMap[t.id] || t.id);
         const tagLine = tagsArr.join(', ');
         return (
-          <a href={`/projects/${p.id}`} class="project-card__header category-list-item" style="text-decoration: none; display: flex;">
-            <span class="project-card__stack-name">{p.data.shortName || p.data.name}</span>
-            <span class="project-card__stack-right">
-              {tagLine && <span class="project-card__stack-tags">{tagLine}</span>}
-              {p.data.year && <span class="project-card__stack-year">{p.data.year}</span>}
-              <span class="project-card__pill">
-                <span>View</span>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+          <a href={`/projects/${p.id}`} class="category-list-item switch-row">
+            <div class="switch-row__content">
+              <span class="switch-row__name">{p.data.shortName || p.data.name}</span>
+              <span class="switch-row__arrow">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><line x1="2" y1="12" x2="22" y2="12"></line><polyline points="15 5 22 12 15 19"></polyline></svg>
               </span>
-            </span>
+            </div>
+            {p.data.coverImage && (
+              <div class="hover-reveal-img" aria-hidden="true">
+                <img src={p.data.coverImage} alt={p.data.name} loading="lazy" />
+              </div>
+            )}
           </a>
         );
       })}
@@ -122,27 +124,149 @@ function abbrevName(name: string): string {
       flex-direction: column;
     }
     
-    .category-list-item {
-      border-bottom: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
-      padding: var(--_tokens---space--x-small) 0;
-      transition: background-color 0.2s;
-    }
 
-    .category-list-item:hover {
-      background-color: color-mix(in srgb, var(--_tokens---color--fg) 3%, transparent);
+
+    /* Switch-style Row (Premium Typography & Hover) */
+    .switch-row {
+      position: relative;
+      display: block;
+      text-decoration: none;
+      color: var(--_tokens---color--fg);
+      padding: clamp(2rem, 4vw, 4rem) 0;
+      border-bottom: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+      z-index: 1;
+    }
+    .switch-row:first-child {
+      border-top: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+    }
+    .switch-row__content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      z-index: 5;
+      mix-blend-mode: difference; /* Optional: makes text pop over images, or just ensure z-index */
+      pointer-events: none; /* Let hover hit the row exactly */
+    }
+    .switch-row__name {
+      font-size: clamp(3rem, 7vw, 7rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1;
+      text-transform: uppercase;
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
+      transform-origin: left center;
+    }
+    .switch-row__arrow {
+      opacity: 0;
+      transform: translateX(-20px);
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .switch-row__arrow svg {
+      width: clamp(30px, 5vw, 60px);
+      height: clamp(30px, 5vw, 60px);
     }
     
-    .category-list-item:hover .project-card__pill {
-      background: var(--_tokens---color--fg);
-      color: var(--_tokens---color--bg);
-      border-color: var(--_tokens---color--fg);
+    /* Hover state for row content */
+    .switch-row:hover .switch-row__name {
+      transform: translateX(20px);
+    }
+    .switch-row:hover .switch-row__arrow {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    /* Hover Reveal Image (Cursor Tracking) */
+    .hover-reveal-img {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 400px; /* Adjust size as needed */
+      aspect-ratio: 16/10;
+      pointer-events: none;
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.8); /* Center on cursor, scale down initially */
+      z-index: 4; /* Below the text (z-index 5) but above background */
+      transition: opacity 0.4s ease, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      overflow: hidden;
+      border-radius: 8px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    }
+    .hover-reveal-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .switch-row:hover .hover-reveal-img {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
     }
 
     @media (max-width: 767px) {
-      .category-list-item {
-        padding-inline: var(--_tokens---space--small);
-        margin-inline: calc(var(--_tokens---space--small) * -1);
-      }
+      /* Mobile fallback: disable hover reveal and just show a neat list */
+      .hover-reveal-img { display: none !important; }
+      .switch-row__name { font-size: 2.5rem; }
+      .switch-row:hover .switch-row__name { transform: translateX(10px); }
+      .switch-row__arrow { opacity: 1; transform: translateX(0); }
+      .switch-row__arrow svg { width: 30px; height: 30px; }
+      .switch-row { padding: 1.5rem 0; }
+    }
+
+    /* Slider Styles */
+    .project-slider {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      min-height: 50vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background: color-mix(in srgb, var(--_tokens---color--fg) 3%, transparent);
+      border-radius: 4px;
+    }
+    .slider-image {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0;
+      transition: opacity 0.5s ease-in-out;
+    }
+    .slider-image.active {
+      opacity: 1;
+      z-index: 1;
+    }
+    .slider-controls {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      display: flex;
+      gap: 8px;
+      z-index: 10;
+    }
+    .slider-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--_tokens---color--bg);
+      color: var(--_tokens---color--fg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 15%, transparent);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .slider-btn:hover {
+      background: var(--_tokens---color--fg);
+      color: var(--_tokens---color--bg);
+    }
+    .slider-btn svg {
+      width: 20px;
+      height: 20px;
     }
   </style>
 
@@ -186,6 +310,24 @@ function abbrevName(name: string): string {
       startAutoSlide();
     }
 
-    document.addEventListener('astro:page-load', initCategorySliders);
+    function initHoverReveal() {
+      const rows = document.querySelectorAll('.switch-row');
+      rows.forEach(row => {
+        const revealImg = row.querySelector('.hover-reveal-img') as HTMLElement;
+        if (!revealImg) return;
+
+        row.addEventListener('mousemove', (e: Event) => {
+          const mouseEvent = e as MouseEvent;
+          // Set coordinates exactly at the cursor
+          revealImg.style.left = `${mouseEvent.clientX}px`;
+          revealImg.style.top = `${mouseEvent.clientY}px`;
+        });
+      });
+    }
+
+    document.addEventListener('astro:page-load', () => {
+      initCategorySliders();
+      initHoverReveal();
+    });
   </script>
 </PageLayout>
