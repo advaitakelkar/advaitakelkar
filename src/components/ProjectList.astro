@@ -1,0 +1,1503 @@
+---
+import { getCollection } from 'astro:content';
+import PageLayout from '../layouts/PageLayout.astro';
+
+export interface Props {
+  projects: any[];
+  title: string;
+  crumbs?: { label: string; href?: string }[];
+}
+
+const { projects, title, crumbs } = Astro.props;
+
+const allTags = await getCollection('tags');
+const allCats = await getCollection('categories');
+
+// Sort by number then year
+const sorted = [...projects].sort((a, b) => {
+  if (a.data.numbr && b.data.numbr) return a.data.numbr - b.data.numbr;
+  if (a.data.numbr) return -1;
+  if (b.data.numbr) return 1;
+  return parseInt(b.data.year ?? '0') - parseInt(a.data.year ?? '0');
+});
+
+const tagMap = Object.fromEntries(allTags.map(t => [t.id, t.data.name]));
+const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
+
+// Abbreviate project names for footer bubbles (same logic as Footer.astro)
+function abbrevName(name: string): string {
+  return name.trim().split(/\s+/).filter(w => w.length > 0).map(w => w.length <= 3 ? w : w.slice(0, 3)).join(' ');
+}
+
+// Count projects per tag to find top 4
+const tagCounts: Record<string, number> = {};
+projects.forEach(p => {
+  (p.data.tags ?? []).forEach(t => {
+    tagCounts[t.id] = (tagCounts[t.id] || 0) + 1;
+  });
+});
+const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCounts[a.id] || 0));
+---
+
+<PageLayout
+  title={title}
+  label={title}
+  crumbs={crumbs || [
+    { label: 'Home', href: '/' },
+    { label: title }
+  ]}
+  showFooter={false}
+>
+  <section class="projects-page">
+    <!-- Top Section: Header, search, filters, and cards -->
+    <div class="projects-top-section">
+      <div class="projects-sticky-header">
+      <header class="projects-header">
+        <h1 class="projects-title">{title}</h1>
+        <p class="projects-count text-muted">{projects.length} of {projects.length} works</p>
+      </header>
+
+      <!-- Search bar matching home UI -->
+      <div class="projects-search-bar">
+        <input
+          type="search"
+          id="projects-search-input"
+          class="projects-search-input"
+          placeholder="Search projects by name, tag, location, client, status, year..."
+          autocomplete="off"
+          aria-label="Search projects"
+        />
+        <button class="projects-search-clear" id="projects-search-clear" type="button">@Clear All</button>
+      </div>
+
+      <!-- Filter bar with dropdown and scrollable tag picker -->
+      <div class="filter-bar">
+        <div class="filter-group">
+          <span class="filter-label text-muted">Category</span>
+          <div class="filter-select-wrap">
+            <select id="cat-select" class="filter-select">
+              <option value="">All Categories</option>
+              {allCats.map(cat => (
+                <option value={cat.id}>{cat.data.displayName}</option>
+              ))}
+            </select>
+            <svg class="filter-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+        </div>
+        
+        <div class="filter-group filter-group--tags">
+          <div class="tag-picker-wrapper">
+            <button class="tag-picker-item is-active" data-filter="" id="all-tag-btn" type="button">All</button>
+            <span class="tag-picker-divider">|</span>
+            <div class="tag-scroll-nav">
+              <button class="tag-scroll-arrow tag-scroll-arrow--left" id="tag-scroll-left" aria-label="Scroll tags left" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+                  <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+              </button>
+              <div class="tag-picker-container" id="tag-picker-container">
+                <div class="tag-picker" id="tag-picker">
+                  {sortedTags.map(tag => (
+                    <button class="tag-picker-item" data-filter={tag.id} type="button">
+                      {tag.data.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button class="tag-scroll-arrow tag-scroll-arrow--right" id="tag-scroll-right" aria-label="Scroll tags right" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Keyboard navigation hint — appears on first keyboard use -->
+    <div class="kbd-hint" id="kbd-hint" aria-hidden="true">
+      <span class="kbd-hint__item"><span class="kbd-hint__key">↑</span><span class="kbd-hint__key">↓</span> navigate</span>
+      <span class="kbd-hint__item"><span class="kbd-hint__key">→</span> open project</span>
+      <span class="kbd-hint__item"><span class="kbd-hint__key">Esc</span> close</span>
+    </div>
+
+    <!-- Project list — accordion cards -->
+    <div class="project-cards-container" id="project-cards-container">
+      {sorted.map((p, i) => {
+        const tagsArr = (p.data.tags ?? []).map(t => tagMap[t.id] || t.id);
+        const tagLine = tagsArr.join(', ');
+        const firstTag = tagsArr[0] || (p.data.category ? catMap[p.data.category.id] : '');
+        const metaParts = [
+          { label: 'Location', val: p.data.location },
+          { label: 'Client',   val: p.data.client },
+          { label: 'Status',   val: p.data.status },
+          { label: 'Program',  val: p.data.program },
+        ].filter(m => m.val);
+        return (
+        <div
+          class="project-card"
+          data-name={p.data.name}
+          data-loc={p.data.location ?? ''}
+          data-year={p.data.year ?? ''}
+          data-client={p.data.client ?? ''}
+          data-status={p.data.status ?? ''}
+          data-size={p.data.size ?? ''}
+          data-program={p.data.program ?? ''}
+          data-cat={p.data.category ? (catMap[p.data.category.id] || p.data.category.id) : ''}
+          data-cat-id={p.data.category ? p.data.category.id : ''}
+          data-tags={(p.data.tags ?? []).map(t => tagMap[t.id] || t.id).join(',')}
+          data-tag-ids={(p.data.tags ?? []).map(t => t.id).join(',')}
+        >
+          <!-- Always-visible header — click anywhere (except pill) to open/close -->
+          <div class="project-card__header">
+            <span class="project-card__stack-name">{p.data.shortName || p.data.name}</span>
+            <span class="project-card__stack-right">
+              {tagLine && <span class="project-card__stack-tags">{tagLine}</span>}
+              {p.data.year && <span class="project-card__stack-year">{p.data.year}</span>}
+              <a href={`/projects/${p.id}`} class="project-card__pill">
+                <span>Go to project</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+              </a>
+            </span>
+          </div>
+
+          <!-- Collapsible body — expands on click -->
+          <div class="project-card__body">
+            <div class="project-card__body-inner">
+              <a href={`/projects/${p.id}`} class="project-card__bg-img-wrap soft-image-container">
+                {p.data.coverImage ? (
+                  <img src={p.data.coverImage} alt={p.data.name} loading="lazy" />
+                ) : (
+                  <div class="project-card__placeholder" />
+                )}
+              </a>
+              <div class="project-card__full">
+                <!-- Row 1: name (left) -->
+                <div class="project-card__row project-card__row1">
+                  <a href={`/projects/${p.id}`} class="project-card__title-link">
+                    <h2 class="project-card__title">{p.data.name}</h2>
+                  </a>
+                </div>
+
+                <!-- Row 2: intro + description (left) -->
+                <div class="project-card__row project-card__row2">
+                  <div class="project-card__text-block">
+                    <p class="project-card__intro">{p.data.smallIntro}</p>
+                    {p.data.description && (
+                      <p class="project-card__desc">
+                        {p.data.description.replace(/<[^>]*>/g, '').substring(0, 120) + (p.data.description.replace(/<[^>]*>/g, '').length > 120 ? '...' : '')}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <!-- Row 3: meta (left) -->
+                <div class="project-card__row project-card__row3">
+                  <div class="project-card__metaline">
+                    {metaParts.map((m, idx) => (
+                      <span class="project-card__meta-item">
+                        {idx > 0 && <span class="project-card__meta-sep">·</span>}
+                        <span class="project-card__meta-val">{m.val}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        );
+      })}
+    </div>
+    </div> <!-- End projects-top-section -->
+
+    <!-- Bottom Section: Bubbles interface — styled to match Footer -->
+    <div class="projects-bottom-section">
+      <h2 class="projects-bottom-section__title">Projects Quick Search</h2>
+      <!-- Bottom quick-search bubbles — all projects, grey by default, highlight on match -->
+      <div class="proj-bubbles" id="proj-bubbles" aria-label="Quick project search">
+        {sorted.map(p => {
+          const tagsArr = (p.data.tags ?? []).map(t => tagMap[t.id] || t.id);
+          return (
+            <a
+              href={`/projects/${p.id}`}
+              class="proj-bubble"
+              data-name={p.data.name}
+              data-loc={p.data.location ?? ''}
+              data-year={p.data.year ?? ''}
+              data-client={p.data.client ?? ''}
+              data-status={p.data.status ?? ''}
+              data-program={p.data.program ?? ''}
+              data-cat={p.data.category ? (catMap[p.data.category.id] || p.data.category.id) : ''}
+              data-tags={tagsArr.join(',')}
+            >
+              <span class="proj-bubble__name" data-short={p.data.shortName || abbrevName(p.data.name)} data-full={p.data.name}>{p.data.shortName || abbrevName(p.data.name)}</span>
+              <span class="proj-bubble__tag">{tagsArr[0] || (p.data.category ? catMap[p.data.category.id] : 'Design')}</span>
+              <svg class="link-arrow proj-bubble__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+                <line x1="6" y1="18" x2="18" y2="6"></line>
+                <polyline points="10 6 18 6 18 14"></polyline>
+              </svg>
+            </a>
+          );
+        })}
+      </div>
+    </div>
+  </section>
+</PageLayout>
+
+<style>
+  :global(html) {
+    scroll-snap-type: none !important;
+    scroll-behavior: smooth;
+    scroll-padding-top: 64px; /* any anchored/jumped heading lands clear of the fixed top breadcrumb */
+  }
+
+  @media (max-width: 767px) and (orientation: portrait) {
+    :global(html) {
+      scroll-padding-top: 12px; /* breadcrumb docks to the bottom on mobile */
+    }
+  }
+
+  .projects-page {
+    padding-inline: var(--_tokens---space--small);
+    padding-top: calc(clamp(3.5rem, 7vh, 6rem) + 48px); /* more top padding + fixed breadcrumb space */
+    padding-bottom: var(--_tokens---space--small);
+    min-height: 100dvh;
+    box-sizing: border-box;
+    position: relative;
+  }
+
+  @media (min-width: 1200px) {
+    .projects-page {
+      padding-inline: clamp(6rem, 12vw, 16rem);
+      padding-top: calc(clamp(4rem, 6vh, 5rem) + 48px);
+    }
+  }
+
+  @media (max-width: 767px) and (orientation: portrait) {
+    .projects-page {
+      padding-bottom: 80px; /* space for mobile bottom docked breadcrumbs */
+    }
+  }
+
+  /* Fixed search and filter header */
+  .projects-sticky-header {
+    position: fixed;
+    top: 64px; /* Align strictly beneath breadcrumb */
+    left: 44px; /* Offset for SideNav */
+    right: 0;
+    z-index: 90; /* Lower than Breadcrumb (100) and SideNav (200) */
+    background-color: var(--_tokens---color--bg);
+    padding-inline: var(--_tokens---space--small);
+    padding-top: 16px;
+    padding-bottom: 24px;
+    border: none;
+    transition: background-color 0.3s ease;
+  }
+
+  @media (max-width: 767px) and (orientation: portrait) {
+    .projects-sticky-header {
+      top: 0; /* Breadcrumb docks to bottom on mobile, so header goes to very top */
+    }
+  }
+
+  @media (min-width: 1200px) {
+    .projects-sticky-header {
+      padding-inline: clamp(6rem, 12vw, 16rem);
+    }
+  }
+
+  .projects-header {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .projects-title {
+    font-size: var(--_tokens---type--big);
+    font-weight: 500;
+    color: var(--_tokens---color--fg);
+    letter-spacing: -0.03em;
+    line-height: 0.95;
+    margin: 0;
+  }
+
+  .projects-count {
+    font-size: var(--_tokens---type--micro);
+    font-weight: 300;
+    letter-spacing: 0.04em;
+    margin: 0;
+  }
+
+  /* Search Bar — left-aligned, taller for breathing room */
+  .projects-search-bar {
+    display: flex;
+    gap: 12px;
+    margin: 0 0 18px;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .projects-search-input {
+    flex: 1;
+    height: 66px;
+    padding: 0 32px;
+    font-size: var(--_tokens---type--small);
+    font-family: inherit;
+    background: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    border: none;
+    color: var(--_tokens---color--fg);
+    border-radius: 999px;
+    outline: none;
+    opacity: 0.35; /* grayed out by default */
+    transition: background-color 0.2s, opacity 0.3s ease;
+  }
+
+  .projects-search-input::placeholder { color: var(--_tokens---color--muted); }
+  .projects-search-input:focus,
+  .projects-search-input:not(:placeholder-shown),
+  .projects-search-input.is-active {
+    opacity: 1; /* activated */
+  }
+
+  .projects-search-clear {
+    height: 66px;
+    padding: 0 32px;
+    font-size: var(--_tokens---type--small);
+    font-family: inherit;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    background: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    border: none;
+    color: var(--_tokens---color--fg);
+    border-radius: 999px;
+    cursor: pointer;
+    white-space: nowrap;
+    opacity: 0.35; /* grayed out by default */
+    transition: background-color 0.2s, color 0.2s, opacity 0.3s ease;
+  }
+
+  .projects-search-input:focus ~ .projects-search-clear,
+  .projects-search-input:not(:placeholder-shown) ~ .projects-search-clear,
+  .projects-search-clear:hover {
+    opacity: 1; /* activated */
+  }
+
+  .projects-search-clear:hover {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+  }
+
+  /* Filters (Dropdown Category + Scrollable Tag Picker) */
+  .filter-bar {
+    display: flex;
+    flex-direction: row;
+    gap: 32px;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+  }
+
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .filter-group--tags {
+    flex: 1;
+    min-width: 0;
+    opacity: 0.35; /* grayed out by default */
+    transition: opacity 0.3s ease;
+  }
+
+  .filter-group--tags:hover,
+  .filter-group--tags:focus-within,
+  .filter-group--tags.is-active {
+    opacity: 1; /* activated */
+  }
+
+  .filter-label {
+    font-size: var(--_tokens---type--micro);
+    font-weight: 300;
+    text-transform: none;
+    letter-spacing: 0.08em;
+    color: var(--_tokens---color--muted);
+    flex-shrink: 0;
+  }
+
+  .filter-select-wrap {
+    position: relative;
+    display: inline-block;
+    flex-shrink: 0;
+    opacity: 0.35; /* grayed out by default */
+    transition: opacity 0.3s ease;
+  }
+
+  .filter-select-wrap:hover,
+  .filter-select-wrap:focus-within,
+  .filter-select-wrap.is-active {
+    opacity: 1; /* activated */
+  }
+
+  .filter-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    color: var(--_tokens---color--fg);
+    font-family: inherit;
+    font-size: var(--_tokens---type--micro);
+    font-weight: 300;
+    text-transform: none;
+    letter-spacing: 0.04em;
+    border: none;
+    border-radius: 999px;
+    padding: 10px 40px 10px 20px;
+    cursor: pointer;
+    outline: none;
+    min-width: 180px;
+    transition: background-color 0.2s;
+  }
+
+  .filter-select:hover {
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
+  }
+
+  .filter-select option {
+    background-color: var(--_tokens---color--bg);
+    color: var(--_tokens---color--fg);
+  }
+
+  .filter-select-arrow {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1em;
+    height: 1em;
+    font-size: var(--_tokens---type--micro);
+    pointer-events: none;
+    color: var(--_tokens---color--fg);
+    opacity: 0.7;
+  }
+
+  /* Tag horizontal scrollable picker */
+  .tag-picker-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .tag-picker-divider {
+    color: color-mix(in srgb, var(--_tokens---color--fg) 15%, transparent);
+    font-weight: 300;
+    font-size: var(--_tokens---type--micro);
+    user-select: none;
+    flex-shrink: 0;
+  }
+
+  .tag-scroll-nav {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .tag-scroll-arrow {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    color: var(--_tokens---color--fg);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background-color 0.2s, opacity 0.2s;
+    opacity: 0.8;
+  }
+
+  .tag-scroll-arrow:hover {
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
+    opacity: 1;
+  }
+
+  .tag-scroll-arrow:disabled {
+    opacity: 0.15;
+    cursor: not-allowed;
+  }
+
+  .tag-scroll-arrow svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .tag-picker-container {
+    flex: 1;
+    min-width: 0;
+    max-width: 420px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+    scroll-behavior: smooth;
+  }
+
+  .tag-picker-container::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tag-picker {
+    display: flex;
+    gap: 8px;
+    white-space: nowrap;
+    width: max-content;
+  }
+
+  .tag-picker-item {
+    background-color: transparent;
+    color: var(--_tokens---color--fg);
+    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: var(--_tokens---type--micro);
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  }
+
+  .tag-picker-item:hover,
+  .tag-picker-item.is-active {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
+  }
+
+  /* ── Accordion Card List ── */
+  .project-cards-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 200px; /* Space to clear the fixed search header */
+  }
+
+  .project-card {
+    width: 100%;
+    box-sizing: border-box;
+    cursor: pointer;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 2.5%, var(--_tokens---color--bg));
+    border: 1px solid transparent;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 8px 30px -8px color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
+    transform-origin: center center;
+    position: relative;
+    z-index: var(--dock-z, 1);
+    opacity: var(--dock-op, 1);
+    transform: scale(var(--dock-scale, 1)) translateY(var(--dock-ty, 0px));
+    will-change: transform, border-color, z-index, opacity;
+    transition: border-color 0.3s ease;
+  }
+
+  .project-card[hidden] { display: none !important; }
+
+  /* ── Always-visible header strip ── */
+  .project-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 24px;
+    user-select: none;
+  }
+
+  .project-card__stack-name {
+    font-size: var(--_tokens---type--small);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--_tokens---color--fg);
+    transition: opacity 0.2s ease;
+  }
+
+  .project-card:hover .project-card__stack-name {
+    opacity: 0.7;
+  }
+
+  .project-card__stack-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  .project-card__stack-tags,
+  .project-card__stack-year {
+    font-size: var(--_tokens---type--micro);
+    font-weight: 300;
+    color: var(--_tokens---color--muted);
+    white-space: nowrap;
+  }
+
+  /* ── Pill / CTA button ── */
+  .project-card__pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: var(--_tokens---type--micro);
+    font-weight: 500;
+    color: var(--_tokens---color--fg);
+    text-decoration: none;
+    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
+    border-radius: 999px;
+    padding: 7px 14px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  }
+
+  .project-card__pill svg { width: 0.85em; height: 0.85em; transition: transform 0.25s ease; }
+
+  .project-card__pill:hover {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
+  }
+
+  .project-card__pill:hover svg { transform: translate(2px, -2px); }
+
+  /* ── Collapsible body — grid-trick fluid open/close via vars ── */
+  .project-card__body {
+    display: grid;
+    grid-template-rows: var(--dock-open-fr, 0fr);
+    overflow: hidden;
+    will-change: grid-template-rows;
+  }
+
+  .project-card__body-inner {
+    position: relative;
+    min-height: 0;
+    overflow: hidden;
+    padding-bottom: calc(var(--dock-open, 0) * 24px);
+    will-change: padding-bottom;
+  }
+
+  /* ── Expanded content rows ── */
+  .project-card__full {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 8px;
+    padding-left: 24px;
+    padding-right: 45%; /* Reserve space on desktop so text doesn't overlap image focal point */
+  }
+
+  .project-card__row {
+    display: flex;
+    align-items: center; /* centrally align all text in the row vertically */
+    justify-content: space-between;
+    gap: 32px;
+    width: 100%;
+  }
+
+  /* Row 1: name + tag/year */
+  .project-card__row1 { align-items: center; }
+
+  .project-card__title-link { text-decoration: none; color: var(--_tokens---color--fg); }
+
+  .project-card__title {
+    font-size: var(--_tokens---type--medium);
+    font-weight: 500;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin: 0;
+  }
+
+  .project-card__title-link:hover .project-card__title { opacity: 0.7; }
+
+  .project-card__r1-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-shrink: 0;
+  }
+
+  .project-card__tag {
+    font-size: var(--_tokens---type--micro);
+    color: var(--_tokens---color--muted);
+    letter-spacing: 0.04em;
+  }
+
+  .project-card__year {
+    font-size: var(--_tokens---type--micro); /* micro text size */
+    font-weight: 500;
+    color: var(--_tokens---color--fg);
+  }
+
+  /* Row 2: intro + description + image */
+  .project-card__row2 { align-items: center; }
+
+  .project-card__text-block {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .project-card__intro {
+    font-size: var(--_tokens---type--small);
+    font-weight: 600; /* semibold */
+    line-height: 1.4; /* slightly tighter */
+    color: var(--_tokens---color--muted);
+    margin: 0;
+    max-width: 62ch;
+  }
+
+  .project-card__desc {
+    font-size: var(--_tokens---type--micro); /* micro size */
+    line-height: 1.55;
+    color: var(--_tokens---color--muted);
+    margin: 0;
+    max-width: 62ch;
+    opacity: 0.85;
+  }
+
+  .project-card__bg-img-wrap {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 55%;
+    z-index: 1;
+    overflow: hidden;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 40%);
+    mask-image: linear-gradient(to right, transparent 0%, black 40%);
+  }
+
+  .project-card__bg-img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .project-card__bg-img-wrap:hover img {
+    transform: scale(1.04);
+  }
+
+  .project-card__placeholder {
+    width: 100%;
+    height: 100%;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
+  }
+
+  /* Row 3: meta line + CTA pill */
+  .project-card__row3 { align-items: center; }
+
+  .project-card__metaline {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 4px 4px;
+    font-size: var(--_tokens---type--micro);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .project-card__meta-item { display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; }
+  .project-card__meta-sep { color: color-mix(in srgb, var(--_tokens---color--fg) 25%, transparent); margin-right: 4px; }
+  .project-card__meta-val { color: var(--_tokens---color--fg); font-weight: 400; }
+
+  @media (max-width: 768px) {
+    .project-card__meta-item:not(:first-child),
+    .project-card__meta-sep {
+      display: none;
+    }
+  }
+
+  .project-card__pill--cta {
+    padding: 9px 16px;
+    font-size: var(--_tokens---type--small);
+  }
+
+  .projects-top-section {
+    position: relative;
+    width: 100%;
+  }
+
+  /* ── Keyboard navigation focus indicator ── */
+  .project-card.is-keyboard-focused {
+    border-color: color-mix(in srgb, var(--_tokens---color--fg) 25%, transparent);
+  }
+
+  .project-card.is-keyboard-focused .project-card__stack-name {
+    opacity: 1 !important;
+  }
+
+  /* Keyboard hint bar */
+  .kbd-hint {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 0;
+    margin-bottom: 4px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .kbd-hint.is-visible {
+    opacity: 1;
+  }
+
+  .kbd-hint__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--_tokens---type--micro);
+    color: var(--_tokens---color--muted);
+    font-weight: 300;
+  }
+
+  .kbd-hint__key {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 7px;
+    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 20%, transparent);
+    border-radius: 4px;
+    font-size: 10px;
+    font-family: var(--_tokens---font--mono);
+    color: var(--_tokens---color--fg);
+    line-height: 1.6;
+  }
+
+  /* ── Bottom quick-search section — matches Footer visual style ── */
+  .projects-bottom-section {
+    position: relative;
+    width: 100%;
+    margin-top: clamp(2rem, 5vh, 4rem);
+    border-top: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+    padding-top: 32px;
+    padding-bottom: 24px;
+  }
+
+  .projects-bottom-section__title {
+    font-size: var(--_tokens---type--small);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--_tokens---color--fg);
+    margin: 0 0 16px 0;
+  }
+
+  /* Bubbles container — wrap freely, same gap as footer */
+  .proj-bubbles {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 5px;
+    transition: opacity 0.25s ease;
+  }
+
+  /* Individual pill — matches Footer .proj-bubble exactly */
+  .proj-bubble {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: var(--_tokens---type--ultrathin);
+    font-weight: 300;
+    color: var(--_tokens---color--muted);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+    border-radius: 999px;
+    padding: 6px 12px;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: background-color 0.2s, color 0.2s, transform 0.15s, opacity 0.2s;
+  }
+
+  .proj-bubble__name {
+    font-size: var(--_tokens---type--ultrathin);
+    font-weight: 300;
+    letter-spacing: -0.01em;
+    color: inherit;
+  }
+
+  .proj-bubble__tag {
+    font-family: var(--_tokens---font--mono);
+    line-height: 1;
+    font-size: var(--_tokens---type--ultrathin);
+    color: inherit;
+    letter-spacing: 0.04em;
+    opacity: 0;
+    max-width: 0;
+    margin-left: -7px;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: max-width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                opacity 0.28s ease,
+                margin-left 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .proj-bubble:hover .proj-bubble__tag {
+    max-width: 160px;
+    opacity: 0.6;
+    margin-left: 0;
+  }
+
+  .proj-bubble__arrow {
+    width: 0.8em;
+    height: 0.8em;
+    flex-shrink: 0;
+    opacity: 0.55;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+
+  .proj-bubble:hover {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
+    transform: translateY(-1px);
+  }
+
+  .proj-bubble:hover .proj-bubble__arrow {
+    opacity: 1;
+  }
+
+  /* Search match state */
+  .proj-bubble.is-match {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
+  }
+
+  .proj-bubble.is-match:hover {
+    transform: translateY(-1px);
+  }
+
+  /* Active search: dim non-matching bubbles */
+  .proj-bubbles.has-search .proj-bubble:not(.is-match) {
+    opacity: 0.2;
+  }
+
+  .proj-bubbles.has-search .proj-bubble:not(.is-match):hover {
+    opacity: 1;
+  }
+
+  @media (max-width: 768px) {
+    .filter-bar {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 16px;
+    }
+    .filter-group--tags {
+      width: 100%;
+    }
+    .project-card__stack-tags {
+      display: none; /* hide tag on mobile header — saves space */
+    }
+    .project-card__full {
+      padding-right: 0; /* Remove right padding on mobile */
+    }
+    .project-card__bg-img-wrap {
+      width: 100%; /* Fill entire background on mobile */
+      opacity: 0.12; /* Keep it subtle so text on top is readable */
+      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 20%, black 80%, transparent 100%);
+      mask-image: linear-gradient(to bottom, transparent 0%, black 20%, black 80%, transparent 100%);
+    }
+    .project-card__row2 {
+      flex-direction: column;
+    }
+    .project-card__row,
+    .project-card__row3 {
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+    .tag-picker-container {
+      max-width: 100%;
+    }
+  }
+</style>
+
+<script>
+  const container = document.getElementById('project-cards-container');
+  const cards = Array.from(container?.querySelectorAll<HTMLElement>('.project-card') ?? []);
+  const searchInput = document.getElementById('projects-search-input') as HTMLInputElement;
+  const clearBtn = document.getElementById('projects-search-clear');
+  const countLabel = document.querySelector('.projects-count');
+
+  const catSelect = document.getElementById('cat-select') as HTMLSelectElement;
+  const tagPicker = document.getElementById('tag-picker');
+
+  let searchQuery = '';
+  let activeCat = '';
+  let activeTag = '';
+
+  // ── State ──────────────────────────────────────────────────
+  let visibleCards: HTMLElement[] = [];
+  let currentIndex = -1;
+  const kbdHint = document.getElementById('kbd-hint');
+
+  function getVisibleCards() {
+    return cards.filter(c => !c.hidden);
+  }
+
+  // Physics state map per card DOM element
+  const cardPhysics = new WeakMap<HTMLElement, { o: number, s: number, ty: number, z: number, op: number }>();
+
+  function getPhysics(card: HTMLElement) {
+    if (!cardPhysics.has(card)) {
+      cardPhysics.set(card, { o: 0, s: 1, ty: 0, z: 1, op: 1 });
+    }
+    return cardPhysics.get(card)!;
+  }
+
+  // ── Mac Finder Dock Scroll Physics Loop ──────────────────────
+  let renderLoopActive = true;
+  function updateDockPhysics() {
+    if (!renderLoopActive) return;
+    visibleCards = getVisibleCards();
+    if (!visibleCards.length) {
+      requestAnimationFrame(updateDockPhysics);
+      return;
+    }
+
+    const viewportH = window.innerHeight;
+    const headerEl = document.querySelector('.projects-sticky-header');
+    const headerBottom = headerEl ? headerEl.getBoundingClientRect().bottom : 64;
+    const remainingSpace = viewportH - headerBottom;
+    
+    // Perfectly center the sweet spot in the visual remaining space
+    const focalY = headerBottom + (remainingSpace / 2); 
+    const waveWidth = remainingSpace * 0.50; // Scale wave relative to remaining space
+    const stackThreshold = viewportH * 0.25; // Distance from focal point where stacking compression begins
+
+    let maxOpen = -1;
+    let newActiveIdx = currentIndex;
+
+    const isAtTop = window.scrollY < 15;
+    const isAtBottom = (window.innerHeight + Math.round(window.scrollY)) >= document.documentElement.scrollHeight - 15;
+
+    // Find closest card to focal point for accordion snap
+    let closestIdx = -1;
+    let minDistance = Infinity;
+
+    // Pass 1a: Calculate natural centers and find the closest card
+    const rawDistances = visibleCards.map((card, i) => {
+      const phys = getPhysics(card);
+      const rect = card.getBoundingClientRect();
+      const naturalCenterY = (rect.top - phys.ty) + (rect.height / 2);
+      
+      let distance = Math.abs(naturalCenterY - focalY);
+      if (i === 0 && isAtTop) distance = 0;
+      if (i === visibleCards.length - 1 && isAtBottom) distance = 0;
+
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestIdx = i;
+      }
+      return { naturalCenterY, distance };
+    });
+
+    // Pass 1b: Calculate pure physics targets based on snappy accordion
+    const targets = visibleCards.map((card, i) => {
+      const { naturalCenterY, distance } = rawDistances[i];
+      
+      // Accordion snap: only the closest card opens, others close.
+      let targetO = (i === closestIdx) ? 1 : 0;
+      
+      // Target scale is always 1 (no shrinking in accordion)
+      const targetS = 1;
+
+      // Target opacity: always show all cards to make entire list visible
+      const targetOp = 1;
+      
+      // ── Stacking Math (Y-Axis Compression) ──
+      let targetTy = 0;
+      if (naturalCenterY < focalY - stackThreshold) {
+        // Card is going off the top. Push it down so it stacks.
+        const overflow = (focalY - stackThreshold) - naturalCenterY;
+        targetTy = overflow * 0.75; // Compress speed to 25% of normal scroll
+      } else if (naturalCenterY > focalY + stackThreshold) {
+        // Card is going off the bottom. Pull it up so it stacks.
+        const overflow = naturalCenterY - (focalY + stackThreshold);
+        targetTy = -overflow * 0.75; // Compress speed to 25% of normal scroll
+      }
+      
+      // Base Z-index off distance to keep active card on top
+      const targetZ = Math.round(100 - (distance / 10));
+
+      return { targetO, targetS, targetTy, targetZ, targetOp };
+    });
+
+    // Second pass: Apply smooth linear interpolation (lerp)
+    for (let i = 0; i < visibleCards.length; i++) {
+      const card = visibleCards[i];
+      const phys = getPhysics(card);
+      const t = targets[i];
+      
+      // Smoothly interpolate towards targets (0.25 for a quick snap)
+      phys.o += (t.targetO - phys.o) * 0.25;
+      phys.s += (t.targetS - phys.s) * 0.25;
+      phys.ty += (t.targetTy - phys.ty) * 0.25;
+      phys.op += (t.targetOp - phys.op) * 0.25;
+      phys.z = t.targetZ; // Z-index snaps instantly to avoid overlap glitches
+
+      card.style.setProperty('--dock-open', phys.o.toFixed(3));
+      card.style.setProperty('--dock-open-fr', `${phys.o.toFixed(3)}fr`);
+      card.style.setProperty('--dock-scale', phys.s.toFixed(3));
+      card.style.setProperty('--dock-ty', `${phys.ty.toFixed(1)}px`);
+      card.style.setProperty('--dock-op', phys.op.toFixed(3));
+      card.style.setProperty('--dock-z', `${phys.z}`);
+
+      if (phys.o > maxOpen) {
+        maxOpen = phys.o;
+        newActiveIdx = i;
+      }
+      
+      if (i === currentIndex && phys.o > 0.7) {
+         card.classList.add('is-keyboard-focused');
+      } else {
+         card.classList.remove('is-keyboard-focused');
+      }
+    }
+
+    if (maxOpen > 0.5) currentIndex = newActiveIdx;
+
+    requestAnimationFrame(updateDockPhysics);
+  }
+  requestAnimationFrame(updateDockPhysics);
+
+  // Keyboard/click-driven focus
+  function setFocusedCard(idx: number) {
+    visibleCards = getVisibleCards();
+    if (idx < 0 || idx >= visibleCards.length) return;
+    currentIndex = idx;
+    
+    const card = visibleCards[idx];
+    const phys = getPhysics(card);
+    const rect = card.getBoundingClientRect();
+    const naturalCenterY = (rect.top - phys.ty) + (rect.height / 2);
+
+    const viewportH = window.innerHeight;
+    const headerEl = document.querySelector('.projects-sticky-header');
+    const headerBottom = headerEl ? headerEl.getBoundingClientRect().bottom : 64;
+    const focalY = headerBottom + ((viewportH - headerBottom) / 2);
+
+    // Precisely jump the scroll position so the card's true center hits the focal point
+    window.scrollBy({ top: naturalCenterY - focalY, behavior: 'auto' });
+  }
+
+  // Click to focus/open
+  cards.forEach(card => {
+    card.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('a')) return;
+      visibleCards = getVisibleCards();
+      const idx = visibleCards.indexOf(card);
+      if (idx !== -1) setFocusedCard(idx);
+    });
+  });
+
+  // ── Keyboard navigation ─────────────────────────────────────
+  document.addEventListener('keydown', (e) => {
+    const activeEl = document.activeElement as HTMLElement;
+    const inSearch = activeEl === searchInput;
+    const inInput = activeEl?.tagName === 'INPUT' || activeEl?.tagName === 'TEXTAREA' || activeEl?.tagName === 'SELECT';
+
+    if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && kbdHint) {
+      kbdHint.classList.add('is-visible');
+    }
+
+    switch (e.key) {
+      case 'ArrowDown': {
+        e.preventDefault();
+        visibleCards = getVisibleCards();
+        if (inSearch) {
+          searchInput?.blur();
+          setFocusedCard(0);
+        } else if (currentIndex < visibleCards.length - 1) {
+          setFocusedCard(currentIndex + 1);
+        }
+        break;
+      }
+      case 'ArrowUp': {
+        e.preventDefault();
+        visibleCards = getVisibleCards();
+        if (currentIndex <= 0) {
+          currentIndex = -1;
+          searchInput?.focus();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+          setFocusedCard(currentIndex - 1);
+        }
+        break;
+      }
+      case 'ArrowRight': {
+        if (inInput) break;
+        visibleCards = getVisibleCards();
+        if (currentIndex >= 0 && visibleCards[currentIndex]) {
+          e.preventDefault();
+          const pill = visibleCards[currentIndex].querySelector<HTMLAnchorElement>('.project-card__pill--cta, .project-card__pill');
+          if (pill?.href) window.location.href = pill.href;
+        }
+        break;
+      }
+      case 'Escape': {
+        currentIndex = -1;
+        break;
+      }
+    }
+  });
+
+  function applyVisibility(matchingCards: HTMLElement[]) {
+    cards.forEach(card => {
+      card.hidden = true;
+      card.classList.remove('is-keyboard-focused');
+      card.style.setProperty('--dock-open', '0');
+      card.style.setProperty('--dock-open-fr', '0fr');
+      card.style.setProperty('--dock-scale', '0.94');
+    });
+    matchingCards.forEach(card => { card.hidden = false; });
+    if (countLabel) {
+      countLabel.textContent = `${matchingCards.length} of ${cards.length} works`;
+    }
+    currentIndex = -1;
+    visibleCards = matchingCards;
+    // The physics scroll loop will automatically handle opening the visible cards
+  }
+
+  // Bottom bubbles: always present, grey by default, highlight on search match
+  const grid = document.getElementById('proj-bubbles');
+  if (grid) {
+    const bubblesArr = Array.from(grid.querySelectorAll('.proj-bubble')) as HTMLElement[];
+    for (let i = bubblesArr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const temp = bubblesArr[i];
+      bubblesArr[i] = bubblesArr[j];
+      bubblesArr[j] = temp;
+    }
+    bubblesArr.forEach(b => grid.appendChild(b));
+  }
+
+  // Hover name swap: abbreviated → full on mouseenter, back on mouseleave
+  document.querySelectorAll<HTMLElement>('.proj-bubble__name').forEach(nameEl => {
+    const bubble = nameEl.closest('.proj-bubble') as HTMLElement;
+    if (!bubble) return;
+    bubble.addEventListener('mouseenter', () => {
+      nameEl.textContent = nameEl.dataset.full ?? nameEl.textContent;
+    });
+    bubble.addEventListener('mouseleave', () => {
+      nameEl.textContent = nameEl.dataset.short ?? nameEl.textContent;
+    });
+  });
+
+  const bubbles = document.querySelectorAll<HTMLElement>('.proj-bubble');
+  function updateBubbles(keywords: string[]) {
+    if (grid) {
+      grid.classList.toggle('has-search', keywords.length > 0);
+    }
+    bubbles.forEach(b => {
+      if (!keywords.length) { b.classList.remove('is-match'); return; }
+      const hay = [
+        b.dataset.name, b.dataset.loc, b.dataset.year, b.dataset.client,
+        b.dataset.status, b.dataset.program, b.dataset.cat, b.dataset.tags
+      ].join(' ').toLowerCase();
+      b.classList.toggle('is-match', keywords.every(kw => hay.includes(kw)));
+    });
+  }
+
+  function updateFieldActivation() {
+    // 1. Search input
+    if (searchInput) {
+      if (searchInput.value.trim()) searchInput.classList.add('is-active');
+      else searchInput.classList.remove('is-active');
+    }
+    // 2. Category select dropdown
+    const selectWrap = document.querySelector('.filter-select-wrap');
+    if (catSelect && selectWrap) {
+      if (catSelect.value) selectWrap.classList.add('is-active');
+      else selectWrap.classList.remove('is-active');
+    }
+    // 3. Tag group wrapper
+    const tagGroup = document.querySelector('.filter-group--tags');
+    if (tagGroup) {
+      if (activeTag) tagGroup.classList.add('is-active');
+      else tagGroup.classList.remove('is-active');
+    }
+  }
+
+  function applyFilter() {
+    updateFieldActivation();
+    const query = searchQuery.trim().toLowerCase();
+    const keywords = query.split(/\s+/).filter(Boolean);
+
+    const matchingCards: HTMLElement[] = [];
+
+    cards.forEach(card => {
+      const name = (card.dataset.name ?? '').toLowerCase();
+      const loc = (card.dataset.loc ?? '').toLowerCase();
+      const year = (card.dataset.year ?? '').toLowerCase();
+      const client = (card.dataset.client ?? '').toLowerCase();
+      const status = (card.dataset.status ?? '').toLowerCase();
+      const size = (card.dataset.size ?? '').toLowerCase();
+      const program = (card.dataset.program ?? '').toLowerCase();
+      const cat = (card.dataset.cat ?? '').toLowerCase();
+      const tags = (card.dataset.tags ?? '').toLowerCase();
+      const catId = card.dataset.catId ?? '';
+      const tagIds = (card.dataset.tagIds ?? '').split(',').filter(Boolean);
+
+      // smart multi-keyword match (AND logic)
+      const searchMatch = !keywords.length || keywords.every(kw =>
+        name.includes(kw) ||
+        loc.includes(kw) ||
+        year.includes(kw) ||
+        client.includes(kw) ||
+        status.includes(kw) ||
+        size.includes(kw) ||
+        program.includes(kw) ||
+        cat.includes(kw) ||
+        tags.includes(kw)
+      );
+
+      const catMatch = !activeCat || catId === activeCat;
+      const tagMatch = !activeTag || tagIds.includes(activeTag);
+
+      if (searchMatch && catMatch && tagMatch) {
+        matchingCards.push(card);
+      }
+    });
+
+    applyVisibility(matchingCards);
+    updateBubbles(keywords);
+  }
+
+  // Input typing listener
+  searchInput?.addEventListener('input', (e) => {
+    searchQuery = (e.target as HTMLInputElement).value;
+    applyFilter();
+  });
+
+  // Select dropdown filter listeners
+  catSelect?.addEventListener('change', (e) => {
+    activeCat = (e.target as HTMLSelectElement).value;
+    applyFilter();
+  });
+
+  // --- Tag Picker Scroll Navigation ---
+  const tagPickerContainer = document.getElementById('tag-picker-container');
+  const scrollLeftBtn = document.getElementById('tag-scroll-left') as HTMLButtonElement;
+  const scrollRightBtn = document.getElementById('tag-scroll-right') as HTMLButtonElement;
+
+  function updateScrollArrows() {
+    if (!tagPickerContainer || !scrollLeftBtn || !scrollRightBtn) return;
+    const { scrollLeft, scrollWidth, clientWidth } = tagPickerContainer;
+    
+    // Disable arrows based on scroll position limits
+    scrollLeftBtn.disabled = scrollLeft <= 1;
+    scrollRightBtn.disabled = scrollLeft + clientWidth >= scrollWidth - 2;
+    
+    // Only display arrows if container actually has overflow
+    const hasOverflow = scrollWidth > clientWidth;
+    scrollLeftBtn.style.display = hasOverflow ? 'flex' : 'none';
+    scrollRightBtn.style.display = hasOverflow ? 'flex' : 'none';
+  }
+
+  // Smooth scroll offset on arrow click
+  scrollLeftBtn?.addEventListener('click', () => {
+    tagPickerContainer?.scrollBy({ left: -140, behavior: 'smooth' });
+  });
+
+  scrollRightBtn?.addEventListener('click', () => {
+    tagPickerContainer?.scrollBy({ left: 140, behavior: 'smooth' });
+  });
+
+  tagPickerContainer?.addEventListener('scroll', updateScrollArrows, { passive: true });
+  window.addEventListener('resize', updateScrollArrows, { passive: true });
+
+  const allTagBtn = document.getElementById('all-tag-btn');
+
+  // Static All Tag button click listener
+  allTagBtn?.addEventListener('click', () => {
+    // Remove active state from all scrolling tag buttons
+    tagPicker?.querySelectorAll('.tag-picker-item').forEach(b => b.classList.remove('is-active'));
+    allTagBtn.classList.add('is-active');
+    activeTag = '';
+    applyFilter();
+    setTimeout(updateScrollArrows, 50);
+  });
+
+  // Tag scrollable picker click listener using event delegation
+  tagPicker?.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest('.tag-picker-item');
+    if (!btn) return;
+
+    const filter = (btn as HTMLElement).dataset.filter ?? '';
+    activeTag = filter;
+
+    // Set active state on clicked button and remove from all others (including All tag button)
+    allTagBtn?.classList.remove('is-active');
+    tagPicker.querySelectorAll('.tag-picker-item').forEach(b => {
+      b.classList.toggle('is-active', b === btn);
+    });
+
+    applyFilter();
+    // Re-check arrows in case item selection changes container layout (unlikely but safe)
+    setTimeout(updateScrollArrows, 50);
+  });
+
+  // Clear search and filters trigger
+  clearBtn?.addEventListener('click', () => {
+    if (searchInput) searchInput.value = '';
+    if (catSelect) catSelect.value = '';
+    searchQuery = '';
+    activeCat = '';
+    activeTag = '';
+    // Reset tag picker active states
+    allTagBtn?.classList.add('is-active');
+    tagPicker?.querySelectorAll('.tag-picker-item').forEach(btn => {
+      btn.classList.remove('is-active');
+    });
+    applyFilter();
+    updateScrollArrows();
+  });
+
+  // Pre-load search query from URL params if present (links from skillset click on About page)
+  const urlParams = new URLSearchParams(window.location.search);
+  const qParam = urlParams.get('search') || urlParams.get('q');
+  if (qParam) {
+    searchQuery = qParam;
+    if (searchInput) searchInput.value = qParam;
+  }
+
+  // Initialize visibility and tag scroll arrows
+  applyFilter();
+  setTimeout(updateScrollArrows, 100);
+</script>

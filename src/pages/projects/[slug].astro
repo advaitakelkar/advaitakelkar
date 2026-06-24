@@ -31,6 +31,27 @@ const metaParts = [
   { label: 'Status', val: data.status },
   { label: 'Category', val: category ? category.data.displayName : null }
 ].filter(m => m.val);
+
+// Build dynamic breadcrumbs based on category structure
+const dynamicCrumbs = [ { label: 'Home', href: '/' } ];
+
+if (category) {
+  // e.g. Home > Work
+  dynamicCrumbs.push({ label: category.data.displayName, href: `/${category.id}` });
+  
+  // If it's Work and has a special sub-tag, nest it further
+  if (category.id === 'work' && data.tags) {
+    const subTag = data.tags.find(t => t.id === 'studio-823' || t.id === 'faizan-khatri');
+    if (subTag) {
+      const subLabel = subTag.id === 'studio-823' ? 'Studio 823' : 'FKD Workshop';
+      dynamicCrumbs.push({ label: subLabel, href: `/work/${subTag.id}` });
+    }
+  }
+} else {
+  dynamicCrumbs.push({ label: 'Projects', href: '/projects' });
+}
+
+dynamicCrumbs.push({ label: data.name });
 ---
 
 <PageLayout
@@ -38,90 +59,92 @@ const metaParts = [
   description={data.smallIntro}
   ogImage={data.coverImage}
   label={data.name}
-  crumbs={[
-    { label: 'Home', href: '/' },
-    { label: 'Projects', href: '/projects' },
-    { label: data.name },
-  ]}
+  crumbs={dynamicCrumbs}
 >
     <article class="project-detail" data-project-id={project.id} data-project-name={data.name}>
       
-      <div class="project-hero-section">
-        <!-- Top Info: Name and Tagline -->
-        <div class="project-top-header">
-          <h1 class="project-card__title">{data.name}</h1>
-          {data.smallIntro && <p class="project-card__intro">{data.smallIntro}</p>}
-        </div>
+      <!-- Top Full Width Header (Sticky Top) -->
+      <header class="project-top-header" id="project-top-header">
+        <h1 class="project-card__title">{data.name}</h1>
+      </header>
 
-        <!-- Top Image Slider -->
-        <div class="project-slider">
-          <button class="slider-btn slider-btn--prev" aria-label="Previous image">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"><polyline points="15 18 9 12 15 6"></polyline></svg>
-          </button>
-          <div class="project-slider__track" id="slider-track">
-            {allImages.map((img, idx) => (
-              <div class="project-slider__slide soft-image-container">
-                <img src={img} alt={`${data.name} - Image ${idx + 1}`} loading={idx === 0 ? "eager" : "lazy"} />
+      <div class="project-content-grid">
+        
+        <!-- Left Column: Text Content -->
+        <div class="project-col-left">
+          
+          <div class="project-card-info">
+            <!-- Row 2: intro + description -->
+            <div class="project-card__row project-card__row2">
+              <div class="project-card__text-block">
+                {data.smallIntro && <p class="project-card__intro">{data.smallIntro}</p>}
+                {data.description && (
+                  <div class="project-card__desc" set:html={data.description} />
+                )}
               </div>
-            ))}
+            </div>
+
+            <!-- Row 3: meta -->
+            <div class="project-card__row project-card__row3">
+              <div class="project-card__metaline">
+                {metaParts.map((m, idx) => (
+                  <span class="project-card__meta-item">
+                    {idx > 0 && <span class="project-card__meta-sep">·</span>}
+                    <span class="meta-label-inline">{m.label}:</span> <span class="project-card__meta-val">{m.val}</span>
+                  </span>
+                ))}
+                {tags.length > 0 && (
+                  <span class="project-card__meta-item">
+                    {metaParts.length > 0 && <span class="project-card__meta-sep">·</span>}
+                    <span class="meta-label-inline">Tags:</span>
+                    <span class="project-card__meta-val tag-val">
+                      {tags.map((tag, tIdx) => tag && (
+                        <a href={`/tags/${tag.id}`} class="tag-link">{tag.data.name}</a>
+                      ))}
+                    </span>
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
-          <button class="slider-btn slider-btn--next" aria-label="Next image">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"><polyline points="9 18 15 12 9 6"></polyline></svg>
-          </button>
-        </div>
-      </div>
 
-      <!-- Enlarged Project Card Info -->
-      <div class="project-card-info">
-        <!-- Row 2: description (left) -->
-        <div class="project-card__row project-card__row2">
-          <div class="project-card__text-block">
-            {data.description && (
-              <div class="project-card__desc" set:html={data.description} />
-            )}
+          <!-- Design Section -->
+          <section class="project-design-section" id="project-design-section">
+            <h1 class="project-design-title" id="design-bottom-header">Design</h1>
+            <div class="project-design-columns" id="design-content-target">
+              <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
+              <p>Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Curabitur pretium tincidunt lacus. Nulla gravida orci a odio. Nullam varius, turpis et commodo pharetra, est eros bibendum elit, nec luctus magna felis sollicitudin mauris. Integer in mauris eu nibh euismod gravida.</p>
+            </div>
+          </section>
+
+        </div> <!-- End Left Column -->
+
+        <!-- Right Column: Image Slider (Sticky) -->
+        <div class="project-col-right">
+          <div class="project-slider">
+            <button class="slider-btn slider-btn--prev" aria-label="Previous image">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            </button>
+            <div class="project-slider__track" id="slider-track">
+              {allImages.map((img, idx) => (
+                <div class="project-slider__slide soft-image-container">
+                  <img src={img} alt={`${data.name} - Image ${idx + 1}`} loading={idx === 0 ? "eager" : "lazy"} />
+                </div>
+              ))}
+            </div>
+            <button class="slider-btn slider-btn--next" aria-label="Next image">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </button>
           </div>
-        </div>
+        </div> <!-- End Right Column -->
 
-        <!-- Row 3: meta (left) -->
-        <div class="project-card__row project-card__row3">
-          <div class="project-card__metaline">
-            {metaParts.map((m, idx) => (
-              <span class="project-card__meta-item">
-                {idx > 0 && <span class="project-card__meta-sep">·</span>}
-                <span class="meta-label-inline">{m.label}:</span> <span class="project-card__meta-val">{m.val}</span>
-              </span>
-            ))}
-            {tags.length > 0 && (
-              <span class="project-card__meta-item">
-                {metaParts.length > 0 && <span class="project-card__meta-sep">·</span>}
-                <span class="meta-label-inline">Tags:</span>
-                <span class="project-card__meta-val tag-val">
-                  {tags.map((tag, tIdx) => tag && (
-                    <a href={`/tags/${tag.id}`} class="tag-link">{tag.data.name}</a>
-                  ))}
-                </span>
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <!-- Design Section -->
-      <section class="project-design-section">
-        <h1 class="project-design-title">Design</h1>
-        <div class="project-design-columns">
-          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
-          <p>Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Curabitur pretium tincidunt lacus. Nulla gravida orci a odio. Nullam varius, turpis et commodo pharetra, est eros bibendum elit, nec luctus magna felis sollicitudin mauris. Integer in mauris eu nibh euismod gravida.</p>
-        </div>
-      </section>
-
+      </div> <!-- End Grid -->
     </article>
 </PageLayout>
 
 <style>
   .project-detail {
     padding-inline: var(--_tokens---space--small);
-    padding-top: calc(clamp(2rem, 4vh, 3rem) + 48px);
     padding-bottom: clamp(4rem, 8vh, 8rem);
     min-height: 100dvh;
     box-sizing: border-box;
@@ -130,39 +153,85 @@ const metaParts = [
     gap: var(--_tokens---space--medium);
   }
 
+  /* ── 2-Column Grid ── */
+  .project-content-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--_tokens---space--medium);
+  }
+
+  @media (min-width: 1024px) {
+    .project-content-grid {
+      grid-template-columns: 1fr 1fr;
+      align-items: start; /* critical for sticky right column */
+    }
+  }
+
   @media (min-width: 1200px) {
     .project-detail {
       padding-inline: clamp(6rem, 12vw, 16rem);
+    }
+    .project-content-grid {
+      grid-template-columns: 4.5fr 5.5fr; /* Give slightly more room to slider */
+    }
+  }
+
+  /* ── Sticky Headers ── */
+  .project-top-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background-color: var(--_tokens---color--bg); /* Solid bg for scrolling over */
+    padding-top: calc(clamp(2rem, 4vh, 3rem) + 48px);
+    padding-bottom: 24px;
+    margin-top: calc(-1 * (clamp(2rem, 4vh, 3rem) + 48px)); /* Offset parent padding if any, but parent has none now */
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  
+  @media (min-width: 1200px) {
+    .project-top-header {
       padding-top: calc(clamp(4rem, 6vh, 5rem) + 48px);
     }
   }
 
-  @media (max-width: 767px) and (orientation: portrait) {
-    .project-detail {
-      padding-bottom: 80px;
-    }
+  .project-top-header:hover .project-card__title {
+    opacity: 0.8;
   }
 
-  /* ── Hero Section ── */
-  .project-hero-section {
-    display: flex;
-    flex-direction: column;
-    gap: 24px; /* Tighter gap between title and slider */
+  .project-design-title {
+    font-size: clamp(4rem, 4rem + 5vw, 8rem);
+    font-weight: 500;
+    line-height: 1.05;
+    margin-bottom: 0;
+    color: var(--_tokens---color--fg);
+    letter-spacing: -0.03em;
+    position: sticky;
+    bottom: 0;
+    z-index: 40;
+    background-color: var(--_tokens---color--bg);
+    padding-top: 16px;
+    padding-bottom: 16px;
+    cursor: pointer;
+    border-top: 1px solid color-mix(in srgb, var(--_tokens---color--line) 20%, transparent);
+    transition: opacity 0.3s;
+  }
+  .project-design-title:hover {
+    opacity: 0.8;
   }
 
-  .project-top-header {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+  /* ── Right Column (Sticky Slider) ── */
+  .project-col-right {
+    position: sticky;
+    top: calc(clamp(4rem, 6vh, 5rem) + 48px + 100px); /* Stick below the project title */
   }
 
-  /* ── Slider ── */
   .project-slider {
     position: relative;
     width: 100%;
     overflow: hidden;
-    border-radius: var(--_tokens---radius--large);
-    background-color: color-mix(in srgb, var(--_tokens---color--fg) 3%, var(--_tokens---color--bg));
+    border-radius: var(--_tokens---radius--small);
+    background-color: var(--_tokens---color--fg); /* Dark background for slider area */
   }
 
   .project-slider__track {
@@ -181,7 +250,7 @@ const metaParts = [
     flex: 0 0 100%;
     min-width: 100%;
     scroll-snap-align: center;
-    max-height: 45vh; /* Reduced to ensure text fits in viewport */
+    max-height: 65vh; /* Larger slider on desktop since it's 2 column */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -334,28 +403,17 @@ const metaParts = [
 
   /* ── Design Section ── */
   .project-design-section {
-    margin-top: var(--_tokens---space--small);
-    padding-top: var(--_tokens---space--small);
-    border-top: 1px solid color-mix(in srgb, var(--_tokens---color--line) 20%, transparent);
     width: 100%;
-  }
-
-  .project-design-title {
-    font-size: clamp(4rem, 4rem + 5vw, 8rem); /* Match the main H1 project title size */
-    font-weight: 500;
-    line-height: 1.05;
-    margin-bottom: var(--_tokens---space--small);
-    color: var(--_tokens---color--fg);
-    letter-spacing: -0.03em;
   }
 
   .project-design-columns {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: var(--_tokens---space--medium);
     font-size: var(--_tokens---type--small);
     line-height: 1.6;
     color: var(--_tokens---color--muted);
+    padding-bottom: 30vh; /* Extra space so user can scroll down and read */
   }
 
   @media (max-width: 767px) {
@@ -421,6 +479,31 @@ const metaParts = [
   document.addEventListener('astro:before-swap', () => {
     if (autoSlideInterval) clearInterval(autoSlideInterval);
   });
+
+  // Smooth Scrolling for Sticky Headers
+  function initStickyScroll() {
+    const topHeader = document.getElementById('project-top-header');
+    const bottomHeader = document.getElementById('design-bottom-header');
+    const designContent = document.getElementById('design-content-target');
+
+    if (topHeader) {
+      topHeader.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+
+    if (bottomHeader && designContent) {
+      bottomHeader.addEventListener('click', () => {
+        // Scroll so the design content is fully visible below the header
+        const rect = designContent.getBoundingClientRect();
+        const offset = window.scrollY + rect.top - window.innerHeight + rect.height + 150;
+        window.scrollTo({ top: offset, behavior: 'smooth' });
+      });
+    }
+  }
+
+  document.addEventListener('astro:page-load', initStickyScroll);
+  if (document.readyState !== 'loading') initStickyScroll();
 
   // ← Left arrow navigates back to the projects list
   document.addEventListener('keydown', (e) => {

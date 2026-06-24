@@ -1,0 +1,35 @@
+---
+import { getCollection } from 'astro:content';
+import ProjectList from '../../components/ProjectList.astro';
+
+export async function getStaticPaths() {
+  return [
+    { params: { tag: 'studio-823' } },
+    { params: { tag: 'faizan-khatri' } }
+  ];
+}
+
+const { tag } = Astro.params;
+const allProjects = await getCollection('projects');
+
+// Filter for projects in 'work' category that ALSO have the specific tag
+const filtered = allProjects.filter(p => 
+  p.data.category?.id === 'work' && 
+  (p.data.tags ?? []).some(t => t.id === tag)
+);
+
+const displayNames: Record<string, string> = {
+  'studio-823': 'Studio 823',
+  'faizan-khatri': 'FKD Workshop'
+};
+
+const title = displayNames[tag] || tag;
+
+const crumbs = [
+  { label: 'Home', href: '/' },
+  { label: 'Work', href: '/work' },
+  { label: title }
+];
+---
+
+<ProjectList projects={filtered} title={title} crumbs={crumbs} />

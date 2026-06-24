@@ -1,0 +1,22 @@
+---
+import { getCollection } from 'astro:content';
+import ProjectList from '../components/ProjectList.astro';
+
+export async function getStaticPaths() {
+  const allCats = await getCollection('categories');
+  return allCats.map((cat) => {
+    return {
+      params: { category: cat.id },
+      props: { cat },
+    };
+  });
+}
+
+const { cat } = Astro.props;
+const allProjects = await getCollection('projects');
+
+// Filter projects by category
+const filtered = allProjects.filter(p => p.data.category?.id === cat.id);
+---
+
+<ProjectList projects={filtered} title={cat.data.displayName.toUpperCase()} />
