@@ -1,7 +1,6 @@
 ---
 import { getCollection } from 'astro:content';
-import PageLayout from '../../layouts/PageLayout.astro';
-
+import ProjectList from '../../components/ProjectList.astro';
 
 export async function getStaticPaths() {
   const categories = await getCollection('categories');
@@ -13,94 +12,15 @@ export async function getStaticPaths() {
 
 const { category } = Astro.props;
 const allProjects = await getCollection('projects');
-const projects = allProjects
-  .filter(p => p.data.category?.id === category.id)
-  .sort((a, b) => (a.data.numbr ?? 999) - (b.data.numbr ?? 999));
+const projects = allProjects.filter(p => p.data.category?.id === category.id);
 ---
 
-<PageLayout
+<ProjectList
+  projects={projects}
   title={category.data.displayName}
-  label={category.data.displayName}
   crumbs={[
     { label: 'Home', href: '/' },
     { label: 'Projects', href: '/projects' },
     { label: category.data.displayName },
   ]}
->
-    <section class="cat-page">
-      <header class="cat-header">
-        <h1 class="cat-title">{category.data.displayName}</h1>
-        <p class="cat-count text-muted">{projects.length} project{projects.length !== 1 ? 's' : ''}</p>
-      </header>
-
-      <div class="project-list">
-        {projects.map(p => (
-          <a href={`/projects/${p.id}`} class="project-row">
-            <span class="project-row__name">{p.data.name}</span>
-            <span class="project-row__meta text-muted">
-              {p.data.year}{p.data.location ? ` · ${p.data.location}` : ''}
-            </span>
-          </a>
-        ))}
-      </div>
-    </section>
-</PageLayout>
-
-<style>
-  .cat-page {
-    padding-inline: var(--_tokens---space--small);
-    padding-top: calc(clamp(2rem, 4vh, 3rem) + 48px); /* space for fixed breadcrumbs */
-    padding-bottom: var(--_tokens---space--small);
-    min-height: 100dvh;
-    box-sizing: border-box;
-  }
-
-  @media (min-width: 1200px) {
-    .cat-page {
-      padding-inline: clamp(6rem, 12vw, 16rem);
-      padding-top: calc(clamp(4rem, 6vh, 5rem) + 48px);
-    }
-  }
-
-  @media (max-width: 767px) and (orientation: portrait) {
-    .cat-page {
-      padding-bottom: 80px; /* space for mobile bottom docked breadcrumbs */
-    }
-  }
-
-  .cat-header {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: var(--_tokens---space--small);
-    margin-bottom: var(--_tokens---space--medium);
-    padding-bottom: var(--_tokens---space--small);
-    border-bottom: 1px solid var(--_tokens---color--line);
-  }
-
-  .cat-title {
-    font-size: var(--_tokens---type--big);
-    font-weight: 500;
-    color: var(--_tokens---color--fg);
-  }
-
-  .cat-count { font-size: var(--_tokens---type--micro); font-weight: 300; }
-
-  .project-list { display: flex; flex-direction: column; }
-
-  .project-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    padding-block: var(--_tokens---space--micro);
-    border-bottom: 1px solid var(--_tokens---color--line);
-    text-decoration: none;
-    color: var(--_tokens---color--fg);
-    transition: opacity 0.2s ease;
-  }
-
-  .project-row:hover { opacity: 0.7; }
-
-  .project-row__name { font-size: var(--_tokens---type--small); font-weight: 400; }
-  .project-row__meta { font-size: var(--_tokens---type--micro); font-weight: 300; }
-</style>
+/>
