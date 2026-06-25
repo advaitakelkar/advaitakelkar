@@ -6,17 +6,26 @@ export interface Props {
 }
 const { currentPath = '/' } = Astro.props;
 
+// Normalize path (ignore trailing slash)
+const normPath = currentPath.replace(/\/$/, '') || '/';
+
 // Current project slug (non-null only on /projects/[slug] pages)
-const currentSlug = currentPath.startsWith('/projects/')
-  ? currentPath.split('/').filter(Boolean)[1] ?? null
+const currentSlug = normPath.startsWith('/projects/')
+  ? normPath.split('/').filter(Boolean)[1] ?? null
   : null;
 
 // Determine active wheel item ID
 const activeItemId: string | null =
   currentSlug ? currentSlug
-  : currentPath === '/' ? '__home__'
-  : currentPath === '/about' ? '__about__'
-  : currentPath === '/projects' ? '__projects__'
+  : normPath === '/' ? '__home__'
+  : normPath === '/about' ? '__about__'
+  : normPath === '/projects' ? '__projects__'
+  : normPath === '/work' ? '__work__'
+  : normPath === '/academic' ? '__academic__'
+  : normPath === '/freelancer' ? '__freelancer__'
+  : normPath === '/archv' ? '__archv__'
+  : normPath === '/work/studio-823' ? '__studio823__'
+  : normPath === '/work/faizan-khatri' ? '__faizan__'
   : null;
 
 // Derive human-readable page name for the label
@@ -842,12 +851,18 @@ const schemes = [
     const wheelTrack = document.getElementById('sn-wheel-track') as HTMLElement | null;
     if (!wheel || !wheelTrack) return;
 
-    const p = location.pathname;
-    const slug = p.match(/^\/projects\/([^/]+)/)?.[1];
-    const activeId = slug         ? slug
-      : p === '/'                 ? '__home__'
-      : p === '/about'            ? '__about__'
-      : p === '/projects'         ? '__projects__'
+    const p = location.pathname.replace(/\/$/, '') || '/';
+    const slug = p.startsWith('/projects/') ? p.split('/').filter(Boolean)[1] : null;
+    const activeId = slug ? slug
+      : p === '/' ? '__home__'
+      : p === '/about' ? '__about__'
+      : p === '/projects' ? '__projects__'
+      : p === '/work' ? '__work__'
+      : p === '/academic' ? '__academic__'
+      : p === '/freelancer' ? '__freelancer__'
+      : p === '/archv' ? '__archv__'
+      : p === '/work/studio-823' ? '__studio823__'
+      : p === '/work/faizan-khatri' ? '__faizan__'
       : null;
 
     const allItems = Array.from(wheelTrack.querySelectorAll<HTMLElement>('.sn-wheel__item'));

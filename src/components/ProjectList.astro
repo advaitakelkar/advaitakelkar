@@ -262,7 +262,6 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   }
 
   .projects-page {
-    padding-inline: var(--_tokens---space--small);
     padding-top: calc(clamp(3.5rem, 7vh, 6rem) + 48px); /* more top padding + fixed breadcrumb space */
     padding-bottom: var(--_tokens---space--small);
     min-height: 100dvh;
@@ -272,7 +271,6 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
   @media (min-width: 1200px) {
     .projects-page {
-      padding-inline: clamp(6rem, 12vw, 16rem);
       padding-top: calc(clamp(4rem, 6vh, 5rem) + 48px);
     }
   }
@@ -602,17 +600,16 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     box-sizing: border-box;
     cursor: pointer;
     background-color: color-mix(in srgb, var(--_tokens---color--fg) 2.5%, var(--_tokens---color--bg));
-    border: 1px solid transparent;
+    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
     border-radius: 14px;
     overflow: hidden;
-    box-shadow: 0 8px 30px -8px color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
-    transform-origin: center center;
-    position: relative;
-    z-index: var(--dock-z, 1);
-    opacity: var(--dock-op, 1);
-    transform: scale(var(--dock-scale, 1)) translateY(var(--dock-ty, 0px));
-    will-change: transform, border-color, z-index, opacity;
-    transition: border-color 0.3s ease;
+    box-shadow: 0 8px 24px -10px color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+  }
+
+  .project-card:hover {
+    border-color: color-mix(in srgb, var(--_tokens---color--fg) 20%, transparent);
+    box-shadow: 0 12px 32px -8px color-mix(in srgb, var(--_tokens---color--fg) 16%, transparent);
   }
 
   .project-card[hidden] { display: none !important; }
@@ -684,20 +681,28 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
   .project-card__pill:hover svg { transform: translate(2px, -2px); }
 
-  /* ── Collapsible body — grid-trick fluid open/close via vars ── */
+  /* ── Collapsible body — grid-trick fluid open/close ── */
   .project-card__body {
     display: grid;
-    grid-template-rows: var(--dock-open-fr, 0fr);
+    grid-template-rows: 0fr;
     overflow: hidden;
-    will-change: grid-template-rows;
+    transition: grid-template-rows 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .project-card.is-open .project-card__body {
+    grid-template-rows: 1fr;
   }
 
   .project-card__body-inner {
     position: relative;
     min-height: 0;
     overflow: hidden;
-    padding-bottom: calc(var(--dock-open, 0) * 24px);
-    will-change: padding-bottom;
+    padding-bottom: 0px;
+    transition: padding-bottom 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .project-card.is-open .project-card__body-inner {
+    padding-bottom: 24px;
   }
 
   /* ── Expanded content rows ── */
@@ -1070,159 +1075,26 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     return cards.filter(c => !c.hidden);
   }
 
-  // Physics state map per card DOM element
-  const cardPhysics = new WeakMap<HTMLElement, { o: number, s: number, ty: number, z: number, op: number }>();
-
-  function getPhysics(card: HTMLElement) {
-    if (!cardPhysics.has(card)) {
-      cardPhysics.set(card, { o: 0, s: 1, ty: 0, z: 1, op: 1 });
-    }
-    return cardPhysics.get(card)!;
-  }
-
-  // ── Mac Finder Dock Scroll Physics Loop ──────────────────────
-  let renderLoopActive = true;
-  function updateDockPhysics() {
-    if (!renderLoopActive) return;
-    visibleCards = getVisibleCards();
-    if (!visibleCards.length) {
-      requestAnimationFrame(updateDockPhysics);
-      return;
-    }
-
-    const viewportH = window.innerHeight;
-    const headerEl = document.querySelector('.projects-sticky-header');
-    const headerBottom = headerEl ? headerEl.getBoundingClientRect().bottom : 64;
-    const remainingSpace = viewportH - headerBottom;
-    
-    // Perfectly center the sweet spot in the visual remaining space
-    const focalY = headerBottom + (remainingSpace / 2); 
-    const waveWidth = remainingSpace * 0.50; // Scale wave relative to remaining space
-    const stackThreshold = viewportH * 0.25; // Distance from focal point where stacking compression begins
-
-    let maxOpen = -1;
-    let newActiveIdx = currentIndex;
-
-    const isAtTop = window.scrollY < 15;
-    const isAtBottom = (window.innerHeight + Math.round(window.scrollY)) >= document.documentElement.scrollHeight - 15;
-
-    // Find closest card to focal point for accordion snap
-    let closestIdx = -1;
-    let minDistance = Infinity;
-
-    // Pass 1a: Calculate natural centers and find the closest card
-    const rawDistances = visibleCards.map((card, i) => {
-      const phys = getPhysics(card);
-      const rect = card.getBoundingClientRect();
-      const naturalCenterY = (rect.top - phys.ty) + (rect.height / 2);
-      
-      let distance = Math.abs(naturalCenterY - focalY);
-      if (i === 0 && isAtTop) distance = 0;
-      if (i === visibleCards.length - 1 && isAtBottom) distance = 0;
-
-      if (distance < minDistance) {
-        minDistance = distance;
-        closestIdx = i;
-      }
-      return { naturalCenterY, distance };
-    });
-
-    // Pass 1b: Calculate pure physics targets based on snappy accordion
-    const targets = visibleCards.map((card, i) => {
-      const { naturalCenterY, distance } = rawDistances[i];
-      
-      // Accordion snap: only the closest card opens, others close.
-      let targetO = (i === closestIdx) ? 1 : 0;
-      
-      // Target scale is always 1 (no shrinking in accordion)
-      const targetS = 1;
-
-      // Target opacity: always show all cards to make entire list visible
-      const targetOp = 1;
-      
-      // ── Stacking Math (Y-Axis Compression) ──
-      let targetTy = 0;
-      if (naturalCenterY < focalY - stackThreshold) {
-        // Card is going off the top. Push it down so it stacks.
-        const overflow = (focalY - stackThreshold) - naturalCenterY;
-        targetTy = overflow * 0.75; // Compress speed to 25% of normal scroll
-      } else if (naturalCenterY > focalY + stackThreshold) {
-        // Card is going off the bottom. Pull it up so it stacks.
-        const overflow = naturalCenterY - (focalY + stackThreshold);
-        targetTy = -overflow * 0.75; // Compress speed to 25% of normal scroll
-      }
-      
-      // Base Z-index off distance to keep active card on top
-      const targetZ = Math.round(100 - (distance / 10));
-
-      return { targetO, targetS, targetTy, targetZ, targetOp };
-    });
-
-    // Second pass: Apply smooth linear interpolation (lerp)
-    for (let i = 0; i < visibleCards.length; i++) {
-      const card = visibleCards[i];
-      const phys = getPhysics(card);
-      const t = targets[i];
-      
-      // Smoothly interpolate towards targets (0.25 for a quick snap)
-      phys.o += (t.targetO - phys.o) * 0.25;
-      phys.s += (t.targetS - phys.s) * 0.25;
-      phys.ty += (t.targetTy - phys.ty) * 0.25;
-      phys.op += (t.targetOp - phys.op) * 0.25;
-      phys.z = t.targetZ; // Z-index snaps instantly to avoid overlap glitches
-
-      card.style.setProperty('--dock-open', phys.o.toFixed(3));
-      card.style.setProperty('--dock-open-fr', `${phys.o.toFixed(3)}fr`);
-      card.style.setProperty('--dock-scale', phys.s.toFixed(3));
-      card.style.setProperty('--dock-ty', `${phys.ty.toFixed(1)}px`);
-      card.style.setProperty('--dock-op', phys.op.toFixed(3));
-      card.style.setProperty('--dock-z', `${phys.z}`);
-
-      if (phys.o > maxOpen) {
-        maxOpen = phys.o;
-        newActiveIdx = i;
-      }
-      
-      if (i === currentIndex && phys.o > 0.7) {
-         card.classList.add('is-keyboard-focused');
-      } else {
-         card.classList.remove('is-keyboard-focused');
-      }
-    }
-
-    if (maxOpen > 0.5) currentIndex = newActiveIdx;
-
-    requestAnimationFrame(updateDockPhysics);
-  }
-  requestAnimationFrame(updateDockPhysics);
-
-  // Keyboard/click-driven focus
-  function setFocusedCard(idx: number) {
-    visibleCards = getVisibleCards();
-    if (idx < 0 || idx >= visibleCards.length) return;
-    currentIndex = idx;
-    
-    const card = visibleCards[idx];
-    const phys = getPhysics(card);
-    const rect = card.getBoundingClientRect();
-    const naturalCenterY = (rect.top - phys.ty) + (rect.height / 2);
-
-    const viewportH = window.innerHeight;
-    const headerEl = document.querySelector('.projects-sticky-header');
-    const headerBottom = headerEl ? headerEl.getBoundingClientRect().bottom : 64;
-    const focalY = headerBottom + ((viewportH - headerBottom) / 2);
-
-    // Precisely jump the scroll position so the card's true center hits the focal point
-    window.scrollBy({ top: naturalCenterY - focalY, behavior: 'auto' });
-  }
-
-  // Click to focus/open
+  // Click to toggle open/close
   cards.forEach(card => {
     card.addEventListener('click', (e) => {
-      if ((e.target as HTMLElement).closest('a')) return;
-      visibleCards = getVisibleCards();
-      const idx = visibleCards.indexOf(card);
-      if (idx !== -1) setFocusedCard(idx);
+      // Don't intercept clicks on links/buttons (like "Go to project")
+      if ((e.target as HTMLElement).closest('a, button')) return;
+      
+      const isOpen = card.classList.contains('is-open');
+      card.classList.toggle('is-open');
+      
+      // Smoothly scroll it into view if opening
+      if (!isOpen) {
+        setTimeout(() => {
+          const rect = card.getBoundingClientRect();
+          const headerEl = document.querySelector('.projects-sticky-header');
+          const offset = headerEl ? headerEl.clientHeight + 80 : 180;
+          if (rect.top < offset) {
+            window.scrollBy({ top: rect.top - offset, behavior: 'smooth' });
+          }
+        }, 100);
+      }
     });
   });
 
@@ -1242,9 +1114,11 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
         visibleCards = getVisibleCards();
         if (inSearch) {
           searchInput?.blur();
-          setFocusedCard(0);
+          currentIndex = 0;
+          focusCard(currentIndex);
         } else if (currentIndex < visibleCards.length - 1) {
-          setFocusedCard(currentIndex + 1);
+          currentIndex++;
+          focusCard(currentIndex);
         }
         break;
       }
@@ -1255,8 +1129,22 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
           currentIndex = -1;
           searchInput?.focus();
           window.scrollTo({ top: 0, behavior: 'smooth' });
+          visibleCards.forEach(c => c.classList.remove('is-keyboard-focused'));
         } else {
-          setFocusedCard(currentIndex - 1);
+          currentIndex--;
+          focusCard(currentIndex);
+        }
+        break;
+      }
+      case 'Enter':
+      case ' ': {
+        if (currentIndex >= 0 && !inInput) {
+          e.preventDefault();
+          visibleCards = getVisibleCards();
+          const card = visibleCards[currentIndex];
+          if (card) {
+            card.classList.toggle('is-open');
+          }
         }
         break;
       }
@@ -1272,18 +1160,33 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       }
       case 'Escape': {
         currentIndex = -1;
+        visibleCards = getVisibleCards();
+        visibleCards.forEach(c => {
+          c.classList.remove('is-keyboard-focused');
+          c.classList.remove('is-open');
+        });
         break;
       }
     }
   });
 
+  function focusCard(idx: number) {
+    visibleCards = getVisibleCards();
+    visibleCards.forEach((c, i) => {
+      if (i === idx) {
+        c.classList.add('is-keyboard-focused');
+        c.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } else {
+        c.classList.remove('is-keyboard-focused');
+      }
+    });
+  }
+
   function applyVisibility(matchingCards: HTMLElement[]) {
     cards.forEach(card => {
       card.hidden = true;
       card.classList.remove('is-keyboard-focused');
-      card.style.setProperty('--dock-open', '0');
-      card.style.setProperty('--dock-open-fr', '0fr');
-      card.style.setProperty('--dock-scale', '0.94');
+      card.classList.remove('is-open');
     });
     matchingCards.forEach(card => { card.hidden = false; });
     if (countLabel) {
@@ -1291,7 +1194,6 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     }
     currentIndex = -1;
     visibleCards = matchingCards;
-    // The physics scroll loop will automatically handle opening the visible cards
   }
 
   // Bottom bubbles: always present, grey by default, highlight on search match
