@@ -855,13 +855,14 @@ const schemes = [
   const schemeBtn = document.getElementById('sn-scheme-btn')!;
   const dropdown  = document.getElementById('sn-scheme-dropdown')!;
 
-  // ── Wheel: scroll to center the active page/project item ──────
   function scrollWheelToActive() {
     const wheel = document.getElementById('sn-wheel') as HTMLElement | null;
     const wheelTrack = document.getElementById('sn-wheel-track') as HTMLElement | null;
     if (!wheel || !wheelTrack) return;
 
-    const p = location.pathname.replace(/\/$/, '') || '/';
+    let p = location.pathname.replace(/\/$/, '') || '/';
+    if (p === '/index.html' || p === '/index') p = '/';
+
     const slug = p.startsWith('/projects/') ? p.split('/').filter(Boolean)[1] : null;
     const activeId = slug ? slug
       : p === '/' ? '__home__'
@@ -883,9 +884,26 @@ const schemes = [
       ? allItems.slice(perCopy, perCopy * 2).find(el => el.dataset.itemId === activeId)
       : null;
 
-    wheel.scrollTop = target
+    const targetScroll = target
       ? target.offsetTop - (wheel.clientHeight / 2) + (target.offsetHeight / 2)
       : wheelTrack.scrollHeight / 3; // fallback: top of middle copy
+
+    wheel.scrollTop = targetScroll;
+    targetScrollTop = targetScroll;
+
+    // Pre-calculate nearest index to avoid ticking on initial open
+    const containerCenter = targetScroll + wheel.clientHeight / 2;
+    let nearestIndex = -1;
+    let minDiff = Infinity;
+    allItems.forEach((item, idx) => {
+      const itemCenter = item.offsetTop + item.offsetHeight / 2;
+      const diff = Math.abs(itemCenter - containerCenter);
+      if (diff < minDiff) {
+        minDiff = diff;
+        nearestIndex = idx;
+      }
+    });
+    lastNearestIndex = nearestIndex;
   }
 
   // ── Nav toggle ─────────────────────────────────────────────
@@ -898,36 +916,21 @@ const schemes = [
     panel.classList.add('is-open');
     panel.setAttribute('aria-hidden', 'false');
     backdrop.classList.add('is-open');
+    
     // Re-center wheel on the current page every time the panel opens
     scrollWheelToActive();
     
-    // Sync custom target position
-    if (wheel) {
-      targetScrollTop = wheel.scrollTop;
-      // Pre-calculate nearest index to avoid ticking on initial open
-      if (wheelTrack) {
-        const containerCenter = wheel.scrollTop + wheel.clientHeight / 2;
-        const items = Array.from(wheelTrack.querySelectorAll('.sn-wheel__item')) as HTMLElement[];
-        let nearestIndex = -1;
-        let minDiff = Infinity;
-        items.forEach((item, idx) => {
-          const itemCenter = item.offsetTop + item.offsetHeight / 2;
-          const diff = Math.abs(itemCenter - containerCenter);
-          if (diff < minDiff) {
-            minDiff = diff;
-            nearestIndex = idx;
-          }
-        });
-        lastNearestIndex = nearestIndex;
-      }
-    }
+    // Re-center again after brief timeouts to ensure centering stability as layout settles during transition
+    setTimeout(scrollWheelToActive, 50);
+    setTimeout(scrollWheelToActive, 150);
+    setTimeout(scrollWheelToActive, 300);
     
     // Tell watermark physics where the panel's right edge will land (paddle target)
     (window as any).__navPanelTarget = 44 + panel.offsetWidth;
 
     setTimeout(() => {
       isOpeningNav = false;
-    }, 200);
+    }, 450);
   }
 
   function closeNav() {
