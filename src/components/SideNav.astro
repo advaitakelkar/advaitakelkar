@@ -580,6 +580,8 @@ const schemes = [
     /* fade (grey out) items away from the center focus area */
     -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.1) 8%, #000 25%, #000 75%, rgba(0, 0, 0, 0.1) 92%, transparent 100%);
     mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.1) 8%, #000 25%, #000 75%, rgba(0, 0, 0, 0.1) 92%, transparent 100%);
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
   }
 
   .sn-panel__wheel::-webkit-scrollbar { display: none; }
@@ -587,6 +589,8 @@ const schemes = [
   .sn-wheel__track {
     display: flex;
     flex-direction: column;
+    gap: 8px; /* space between pills */
+    padding-block: 8px;
   }
 
   .sn-wheel__item {
@@ -596,32 +600,43 @@ const schemes = [
     font-size: var(--_tokens---type--small);
     font-weight: 400;
     line-height: 1.2;
-    color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--muted);
     text-decoration: none;
-    padding: 10px 0; /* increased padding for spacious white space */
+    padding: 8px 16px;
+    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
+    border-radius: 999px;
+    background-color: transparent;
     gap: 12px;
-    opacity: 0.85;
+    opacity: 0.8;
     white-space: nowrap;
-    transition: opacity 0.15s ease, transform 0.2s ease;
+    transition: background-color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+                opacity 0.2s ease;
+    scroll-snap-align: center;
   }
 
   .sn-wheel__item:hover {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
     opacity: 1;
     transform: translateX(4px);
   }
 
   .sn-wheel__item.is-active {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
     opacity: 1;
     font-weight: 500;
   }
 
-  /* Page-level entries (Home / About / Projects) stand apart slightly */
+  /* Page-level entries (Home / About / Projects) look like unified pills now */
   .sn-wheel__item--page {
     font-weight: 500;
     letter-spacing: 0.01em;
-    border-bottom: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
-    margin-bottom: 2px;
-    padding-bottom: 12px;
   }
 
   /* ── Bottom: contact ── */
@@ -743,6 +758,55 @@ const schemes = [
   const logo      = document.getElementById('sn-logo')!;
   const logoMark  = document.getElementById('sn-logo-mark')!;
 
+  // ── Scroll Wheel Physics & Audio State ─────────────────────
+  let targetScrollTop = 0;
+  let isAnimating = false;
+  let lastNearestIndex = -1;
+  let isWrapping = false;
+  let audioCtx: AudioContext | null = null;
+
+  function initAudio() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }
+
+  function playTick() {
+    initAudio();
+    if (!audioCtx || audioCtx.state === 'suspended') return;
+    
+    // Mechanical iPod click wheel tick (crisp high-pass white noise burst)
+    const duration = 0.005; // 5ms burst
+    const bufferSize = audioCtx.sampleRate * duration;
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+    
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = buffer;
+    
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 1800; // crisp high pitch
+    filter.Q.value = 4.0;
+    
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration - 0.001);
+    
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(audioCtx.destination);
+    
+    noise.start();
+    noise.stop(audioCtx.currentTime + duration);
+  }
+
   // ── Logo spin driven by scroll velocity ────────────────────
   // Spins rapidly while the page is scrolling, then decelerates rapidly once it stops.
   let logoAngle = 0;
@@ -801,6 +865,7 @@ const schemes = [
 
   // ── Nav toggle ─────────────────────────────────────────────
   function openNav() {
+    initAudio(); // Initialize audio context on user interaction
     navOpen = true;
     wrap.classList.add('is-open');
     bar.setAttribute('aria-expanded', 'true');
@@ -809,6 +874,28 @@ const schemes = [
     backdrop.classList.add('is-open');
     // Re-center wheel on the current page every time the panel opens
     scrollWheelToActive();
+    
+    // Sync custom target position
+    if (wheel) {
+      targetScrollTop = wheel.scrollTop;
+      // Pre-calculate nearest index to avoid ticking on initial open
+      if (wheelTrack) {
+        const containerCenter = wheel.scrollTop + wheel.clientHeight / 2;
+        const items = Array.from(wheelTrack.querySelectorAll('.sn-wheel__item')) as HTMLElement[];
+        let nearestIndex = -1;
+        let minDiff = Infinity;
+        items.forEach((item, idx) => {
+          const itemCenter = item.offsetTop + item.offsetHeight / 2;
+          const diff = Math.abs(itemCenter - containerCenter);
+          if (diff < minDiff) {
+            minDiff = diff;
+            nearestIndex = idx;
+          }
+        });
+        lastNearestIndex = nearestIndex;
+      }
+    }
+    
     // Tell watermark physics where the panel's right edge will land (paddle target)
     (window as any).__navPanelTarget = 44 + panel.offsetWidth;
   }
@@ -949,25 +1036,150 @@ const schemes = [
     closeScheme();
   });
 
-  // ── Infinite project wheel ─────────────────────────────────
-  const wheel = document.getElementById('sn-wheel');
-  const wheelTrack = document.getElementById('sn-wheel-track');
+  // ── Infinite project wheel (Custom Physics, Snapping, Sound) ─────────
+  const wheel = document.getElementById('sn-wheel') as HTMLElement | null;
+  const wheelTrack = document.getElementById('sn-wheel-track') as HTMLElement | null;
+  
   if (wheel && wheelTrack) {
     const oneCopyHeight = () => wheelTrack.scrollHeight / 3;
+    
     // Initial position: center on the current page item (shared with openNav)
     requestAnimationFrame(scrollWheelToActive);
-    let ticking = false;
-    wheel.addEventListener('scroll', () => {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(() => {
-        const h = oneCopyHeight();
-        if (h > 0) {
-          if (wheel.scrollTop < h * 0.5) wheel.scrollTop += h;
-          else if (wheel.scrollTop > h * 1.5) wheel.scrollTop -= h;
+    
+    function updateTicks() {
+      if (!wheel || !wheelTrack) return;
+      const containerCenter = wheel.scrollTop + wheel.clientHeight / 2;
+      const items = Array.from(wheelTrack.querySelectorAll('.sn-wheel__item')) as HTMLElement[];
+      if (items.length === 0) return;
+      
+      let nearestIndex = -1;
+      let minDiff = Infinity;
+      
+      items.forEach((item, idx) => {
+        const itemCenter = item.offsetTop + item.offsetHeight / 2;
+        const diff = Math.abs(itemCenter - containerCenter);
+        if (diff < minDiff) {
+          minDiff = diff;
+          nearestIndex = idx;
         }
-        ticking = false;
       });
+      
+      if (nearestIndex !== -1 && nearestIndex !== lastNearestIndex) {
+        // Do not tick on initial load
+        const indexDiff = Math.abs(nearestIndex - lastNearestIndex);
+        if (lastNearestIndex !== -1 && !isWrapping && indexDiff < 3) {
+          playTick();
+        }
+        lastNearestIndex = nearestIndex;
+      }
+    }
+
+    function handleInfiniteWrap() {
+      const h = oneCopyHeight();
+      if (h > 0) {
+        if (wheel.scrollTop < h * 0.5) {
+          isWrapping = true;
+          wheel.scrollTop += h;
+          targetScrollTop += h;
+          requestAnimationFrame(() => { isWrapping = false; });
+        } else if (wheel.scrollTop > h * 1.5) {
+          isWrapping = true;
+          wheel.scrollTop -= h;
+          targetScrollTop -= h;
+          requestAnimationFrame(() => { isWrapping = false; });
+        }
+      }
+    }
+
+    // Intercept mouse wheel events for custom inertia and resistance
+    wheel.addEventListener('wheel', (e) => {
+      e.preventDefault(); // Hijack default scroll
+      initAudio();
+      
+      // Scale scroll delta to create resistance (friction)
+      const resistanceFactor = 0.4;
+      targetScrollTop += e.deltaY * resistanceFactor;
+      
+      // Clamp target scroll
+      const maxScroll = wheel.scrollHeight - wheel.clientHeight;
+      targetScrollTop = Math.max(0, Math.min(maxScroll, targetScrollTop));
+      
+      if (!isAnimating) {
+        isAnimating = true;
+        wheel.style.scrollSnapType = 'none'; // disable native snap during custom animation
+        animateScroll();
+      }
+    }, { passive: false });
+
+    function animateScroll() {
+      if (!wheel) return;
+      const diff = targetScrollTop - wheel.scrollTop;
+      
+      if (Math.abs(diff) > 0.4) {
+        wheel.scrollTop += diff * 0.14; // smooth inertia easing
+        updateTicks();
+        requestAnimationFrame(animateScroll);
+      } else {
+        wheel.scrollTop = targetScrollTop;
+        isAnimating = false;
+        
+        handleInfiniteWrap();
+        snapToNearest();
+      }
+    }
+
+    function snapToNearest() {
+      if (!wheel || !wheelTrack) return;
+      const containerCenter = wheel.scrollTop + wheel.clientHeight / 2;
+      const items = Array.from(wheelTrack.querySelectorAll('.sn-wheel__item')) as HTMLElement[];
+      if (items.length === 0) return;
+      
+      let closestItem: HTMLElement | null = null;
+      let minDiff = Infinity;
+      
+      items.forEach(item => {
+        const itemCenter = item.offsetTop + item.offsetHeight / 2;
+        const diff = Math.abs(itemCenter - containerCenter);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closestItem = item;
+        }
+      });
+      
+      if (closestItem) {
+        const targetY = closestItem.offsetTop - (wheel.clientHeight / 2) + (closestItem.offsetHeight / 2);
+        targetScrollTop = targetY;
+        
+        if (!isAnimating) {
+          isAnimating = true;
+          wheel.style.scrollSnapType = 'none';
+          animateScrollSnap();
+        }
+      }
+    }
+
+    function animateScrollSnap() {
+      if (!wheel) return;
+      const diff = targetScrollTop - wheel.scrollTop;
+      if (Math.abs(diff) > 0.4) {
+        wheel.scrollTop += diff * 0.16;
+        updateTicks();
+        requestAnimationFrame(animateScrollSnap);
+      } else {
+        wheel.scrollTop = targetScrollTop;
+        isAnimating = false;
+        wheel.style.scrollSnapType = 'y mandatory'; // restore snap for touch scroll
+        handleInfiniteWrap();
+      }
+    }
+
+    // Scroll listener for touch scroll and scrollbar interaction
+    wheel.addEventListener('scroll', () => {
+      if (!isAnimating) {
+        targetScrollTop = wheel.scrollTop;
+        handleInfiniteWrap();
+        updateTicks();
+      }
     }, { passive: true });
   }
 

@@ -32,7 +32,7 @@ function abbrevName(name: string): string {
   title={title}
   label={title}
   crumbs={crumbs || [{ label: 'Home', href: '/' }, { label: title }]}
-  showFooter={false}
+  showFooter={true}
 >
   <article class="category-detail">
     <!-- Top Full Width Header -->
@@ -79,9 +79,10 @@ function abbrevName(name: string): string {
         return (
           <a href={`/projects/${p.id}`} class="category-list-item switch-row">
             <div class="switch-row__content">
-              <span class="switch-row__name">{p.data.shortName || p.data.name}</span>
-              <span class="switch-row__arrow">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><line x1="2" y1="12" x2="22" y2="12"></line><polyline points="15 5 22 12 15 19"></polyline></svg>
+              <h2 class="switch-row__name">{p.data.name}</h2>
+              <span class="project-card__pill">
+                <span>View</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
               </span>
             </div>
             {p.data.coverImage && (
@@ -94,37 +95,69 @@ function abbrevName(name: string): string {
       })}
     </div>
 
-    <!-- Custom Category Footer -->
-    <footer class="home-search-footer" style="border-top: none; padding-top: clamp(4rem, 8vh, 6rem);">
-      <div class="home-search__header">
-        <h2 class="home-search__title">All Projects in {title}</h2>
-      </div>
-      <div class="proj-bubbles" style="margin-top: 16px; border-top: none; padding-top: 0;">
-        {projects.map(p => {
-          const tagsArr = (p.data.tags ?? []).map(t => tagMap[t.id] || t.id);
-          return (
-            <a href={`/projects/${p.id}`} class="proj-bubble">
-              <span class="proj-bubble__name" data-short={p.data.shortName || abbrevName(p.data.name)} data-full={p.data.name}>{p.data.shortName || abbrevName(p.data.name)}</span>
-              <span class="proj-bubble__tag">{tagsArr[0] || (p.data.category ? catMap[p.data.category.id] : 'Design')}</span>
-              <svg class="link-arrow proj-bubble__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
-                <line x1="6" y1="18" x2="18" y2="6"></line>
-                <polyline points="10 6 18 6 18 14"></polyline>
-              </svg>
-            </a>
-          );
-        })}
-      </div>
-    </footer>
   </article>
 
   <style>
+    /* Layout styling matched with Project pages */
+    .category-detail {
+      padding-bottom: clamp(4rem, 8vh, 8rem);
+      min-height: 100dvh;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      gap: var(--_tokens---space--medium);
+    }
+
+    /* ── 2-Column Grid ── */
+    .project-content-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--_tokens---space--medium);
+    }
+
+    @media (min-width: 1024px) {
+      .project-content-grid {
+        grid-template-columns: 1fr 1fr;
+        align-items: start; /* critical for sticky right column */
+      }
+    }
+
+    @media (min-width: 1200px) {
+      .project-content-grid {
+        grid-template-columns: 4.5fr 5.5fr; /* Give slightly more room to slider */
+      }
+    }
+
+    /* ── Sticky Headers ── */
+    .project-top-header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background-color: var(--_tokens---color--bg); /* Solid bg for scrolling over */
+      padding-top: calc(clamp(2rem, 4vh, 3rem) + 48px);
+      padding-bottom: 24px;
+      margin-top: calc(-1 * (clamp(2rem, 4vh, 3rem) + 48px)); /* Offset parent padding if any, but parent has none now */
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    
+    @media (min-width: 1200px) {
+      .project-top-header {
+        padding-top: calc(clamp(4rem, 6vh, 5rem) + 48px);
+      }
+    }
+
+    /* ── Right Column (Sticky Slider) ── */
+    .project-col-right {
+      position: sticky;
+      top: calc(clamp(4rem, 6vh, 5rem) + 48px + 100px); /* Stick below the project title */
+    }
+
     .category-projects-list {
       border-top: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
       display: flex;
       flex-direction: column;
     }
-    
-
 
     /* Switch-style Row (Premium Typography & Hover) */
     .switch-row {
@@ -132,12 +165,16 @@ function abbrevName(name: string): string {
       display: block;
       text-decoration: none;
       color: var(--_tokens---color--fg);
-      padding: clamp(2rem, 4vw, 4rem) 0;
+      padding: 1.5rem 0;
       border-bottom: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
       z-index: 1;
+      transition: background-color 0.2s;
     }
     .switch-row:first-child {
       border-top: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+    }
+    .switch-row:hover {
+      background-color: color-mix(in srgb, var(--_tokens---color--fg) 3%, transparent);
     }
     .switch-row__content {
       display: flex;
@@ -145,36 +182,43 @@ function abbrevName(name: string): string {
       justify-content: space-between;
       position: relative;
       z-index: 5;
-      mix-blend-mode: difference; /* Optional: makes text pop over images, or just ensure z-index */
       pointer-events: none; /* Let hover hit the row exactly */
+      padding: 0 24px;
     }
     .switch-row__name {
-      font-size: clamp(3rem, 7vw, 7rem);
-      font-weight: 700;
+      font-size: var(--_tokens---type--medium);
+      font-weight: 500;
       letter-spacing: -0.02em;
-      line-height: 1;
-      text-transform: uppercase;
-      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
-      transform-origin: left center;
+      line-height: 1.1;
+      margin: 0;
+      transition: opacity 0.2s ease;
     }
-    .switch-row__arrow {
-      opacity: 0;
-      transform: translateX(-20px);
-      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .switch-row__arrow svg {
-      width: clamp(30px, 5vw, 60px);
-      height: clamp(30px, 5vw, 60px);
+    .switch-row:hover .switch-row__name {
+      opacity: 0.7;
     }
     
-    /* Hover state for row content */
-    .switch-row:hover .switch-row__name {
-      transform: translateX(20px);
+    .project-card__pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: var(--_tokens---type--micro);
+      font-weight: 500;
+      color: var(--_tokens---color--fg);
+      text-decoration: none;
+      border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
+      border-radius: 999px;
+      padding: 7px 14px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
     }
-    .switch-row:hover .switch-row__arrow {
-      opacity: 1;
-      transform: translateX(0);
+    .project-card__pill svg { width: 0.85em; height: 0.85em; transition: transform 0.25s ease; }
+    .switch-row:hover .project-card__pill {
+      background-color: var(--_tokens---color--fg);
+      color: var(--_tokens---color--bg);
+      border-color: var(--_tokens---color--fg);
     }
+    .switch-row:hover .project-card__pill svg { transform: translate(2px, -2px); }
 
     /* Hover Reveal Image (Cursor Tracking) */
     .hover-reveal-img {
@@ -203,13 +247,9 @@ function abbrevName(name: string): string {
     }
 
     @media (max-width: 767px) {
-      /* Mobile fallback: disable hover reveal and just show a neat list */
+      /* Mobile fallback: disable hover reveal */
       .hover-reveal-img { display: none !important; }
-      .switch-row__name { font-size: 2.5rem; }
-      .switch-row:hover .switch-row__name { transform: translateX(10px); }
-      .switch-row__arrow { opacity: 1; transform: translateX(0); }
-      .switch-row__arrow svg { width: 30px; height: 30px; }
-      .switch-row { padding: 1.5rem 0; }
+      .switch-row__content { padding: 0 16px; }
     }
 
     /* Slider Styles */
