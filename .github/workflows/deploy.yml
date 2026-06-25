@@ -25,9 +25,11 @@ jobs:
         run: pnpm build
 
       - name: Deploy to Firebase Hosting
-        run: |
-          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_ADVAITAKELKAR_SITE }}' > /tmp/sa-key.json
-          npx firebase-tools@latest deploy --only hosting --project advaitakelkar-site
         env:
-          GOOGLE_APPLICATION_CREDENTIALS: /tmp/sa-key.json
-# Trigger build 3
+          SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ADVAITAKELKAR_SITE }}
+        run: |
+          printf '%s' "$SA_JSON" > /tmp/sa-key.json
+          echo "Key file size: $(wc -c < /tmp/sa-key.json) bytes"
+          echo "Key starts with: $(head -c 1 /tmp/sa-key.json)"
+          GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa-key.json npx firebase-tools@latest deploy --only hosting --project advaitakelkar-site
+# Trigger build 4
