@@ -24,12 +24,11 @@ jobs:
       - name: Build Astro site
         run: pnpm build
 
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ADVAITAKELKAR_SITE }}
+
       - name: Deploy to Firebase Hosting
-        env:
-          SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ADVAITAKELKAR_SITE }}
-        run: |
-          printf '%s' "$SA_JSON" > /tmp/sa-key.json
-          echo "Key file size: $(wc -c < /tmp/sa-key.json) bytes"
-          echo "Key starts with: $(head -c 1 /tmp/sa-key.json)"
-          GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa-key.json npx firebase-tools@latest deploy --only hosting --project advaitakelkar-site
-# Trigger build 4
+        run: npx firebase-tools@latest deploy --only hosting --project advaitakelkar-site
+# Trigger build 5
