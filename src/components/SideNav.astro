@@ -12,24 +12,7 @@ const allProjects = await getCollection('projects');
 // Normalize path (ignore trailing slash)
 const normPath = currentPath.replace(/\/$/, '') || '/';
 
-// Current project slug (non-null only on /projects/[slug] pages)
-const currentSlug = normPath.startsWith('/projects/')
-  ? normPath.split('/').filter(Boolean)[1] ?? null
-  : null;
-
-// Determine active wheel item ID
-const activeItemId: string | null =
-  currentSlug ? currentSlug
-  : normPath === '/' ? '__home__'
-  : normPath === '/about' ? '__about__'
-  : normPath === '/projects' ? '__projects__'
-  : normPath === '/work' ? '__work__'
-  : normPath === '/academic' ? '__academic__'
-  : normPath === '/freelancer' ? '__freelancer__'
-  : normPath === '/archv' ? '__archv__'
-  : normPath === '/work/studio-823' ? '__studio823__'
-  : normPath === '/work/faizan-khatri' ? '__faizan__'
-  : null;
+// No slug parsing or manual ID mapping required - matched via normalized path/href matching
 
 // Derive human-readable page name for the label (normal case)
 function pageName(path: string): string {
@@ -193,7 +176,11 @@ const schemes = [
           wheelItems.map(item => (
             <a
               href={item.href}
-              class:list={['sn-wheel__item', item.isPage && 'sn-wheel__item--page', activeItemId === item.id && 'is-active']}
+              class:list={[
+                'sn-wheel__item',
+                item.isPage && 'sn-wheel__item--page',
+                (normPath === (item.href.replace(/\/$/, '') || '/')) && 'is-active'
+              ]}
               data-item-id={item.id}
             >
               <span data-scramble>{item.name}</span>
@@ -863,26 +850,14 @@ const schemes = [
     let p = location.pathname.replace(/\/$/, '') || '/';
     if (p === '/index.html' || p === '/index') p = '/';
 
-    const slug = p.startsWith('/projects/') ? p.split('/').filter(Boolean)[1] : null;
-    const activeId = slug ? slug
-      : p === '/' ? '__home__'
-      : p === '/about' ? '__about__'
-      : p === '/projects' ? '__projects__'
-      : p === '/work' ? '__work__'
-      : p === '/academic' ? '__academic__'
-      : p === '/freelancer' ? '__freelancer__'
-      : p === '/archv' ? '__archv__'
-      : p === '/work/studio-823' ? '__studio823__'
-      : p === '/work/faizan-khatri' ? '__faizan__'
-      : null;
-
     const allItems = Array.from(wheelTrack.querySelectorAll<HTMLElement>('.sn-wheel__item'));
     const perCopy  = Math.round(allItems.length / 3);
 
-    // Always target the middle copy so infinite scroll can go either direction
-    const target = activeId
-      ? allItems.slice(perCopy, perCopy * 2).find(el => el.dataset.itemId === activeId)
-      : null;
+    // Find the target in the middle copy whose normalized href matches current path p
+    const target = allItems.slice(perCopy, perCopy * 2).find(el => {
+      const elHref = el.getAttribute('href')?.replace(/\/$/, '') || '/';
+      return elHref === p;
+    });
 
     const targetScroll = target
       ? target.offsetTop - (wheel.clientHeight / 2) + (target.offsetHeight / 2)
