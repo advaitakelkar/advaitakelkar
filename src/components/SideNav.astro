@@ -600,7 +600,6 @@ const schemes = [
     -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.1) 8%, #000 25%, #000 75%, rgba(0, 0, 0, 0.1) 92%, transparent 100%);
     mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.1) 8%, #000 25%, #000 75%, rgba(0, 0, 0, 0.1) 92%, transparent 100%);
     scroll-snap-type: y mandatory;
-    scroll-behavior: smooth;
   }
 
   .sn-panel__wheel::-webkit-scrollbar { display: none; }
@@ -769,6 +768,7 @@ const schemes = [
   // ── State ──────────────────────────────────────────────────
   let navOpen = false;
   let schemeOpen = false;
+  let isOpeningNav = false;
 
   const wrap      = document.getElementById('sn-wrap')!;
   const bar       = document.getElementById('sn-bar')!;
@@ -891,6 +891,7 @@ const schemes = [
   // ── Nav toggle ─────────────────────────────────────────────
   function openNav() {
     initAudio(); // Initialize audio context on user interaction
+    isOpeningNav = true;
     navOpen = true;
     wrap.classList.add('is-open');
     bar.setAttribute('aria-expanded', 'true');
@@ -923,6 +924,10 @@ const schemes = [
     
     // Tell watermark physics where the panel's right edge will land (paddle target)
     (window as any).__navPanelTarget = 44 + panel.offsetWidth;
+
+    setTimeout(() => {
+      isOpeningNav = false;
+    }, 200);
   }
 
   function closeNav() {
@@ -1092,7 +1097,7 @@ const schemes = [
       if (nearestIndex !== -1 && nearestIndex !== lastNearestIndex) {
         // Do not tick on initial load
         const indexDiff = Math.abs(nearestIndex - lastNearestIndex);
-        if (lastNearestIndex !== -1 && !isWrapping && indexDiff < 3) {
+        if (lastNearestIndex !== -1 && !isWrapping && !isOpeningNav && indexDiff < 3) {
           playTick();
         }
         lastNearestIndex = nearestIndex;
