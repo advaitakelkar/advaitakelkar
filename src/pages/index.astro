@@ -10,6 +10,10 @@ const allProjects = await getCollection('projects');
 const featured = allProjects
   .filter(p => p.data.featured && p.data.coverImage)
   .sort((a, b) => (a.data.numbr ?? 999) - (b.data.numbr ?? 999));
+
+// Resolve a category relationship → its display name
+const categories = await getCollection('categories');
+const catName = (id) => categories.find(c => c.id === id)?.data.displayName ?? id;
 ---
 
 <PageLayout
@@ -75,15 +79,17 @@ const featured = allProjects
               </div>
               <div class="home-slider__caption">
                 <div class="home-slider__top">
-                  <span class="home-slider__name">{p.data.name}</span>
+                  <div class="home-slider__head">
+                    <span class="home-slider__name">{p.data.name}</span>
+                    <ul class="home-slider__facts">
+                      {p.data.year && <li><span class="home-slider__fact-k">Year</span> — {p.data.year}</li>}
+                      {p.data.location && <li><span class="home-slider__fact-k">Location</span> — {p.data.location}</li>}
+                      {p.data.category && <li><span class="home-slider__fact-k">Category</span> — {catName(p.data.category)}</li>}
+                    </ul>
+                  </div>
                   <div class="home-slider__about">
                     {p.data.smallIntro && <p class="home-slider__intro">{p.data.smallIntro}</p>}
                     {p.data.description && <div class="home-slider__desc" set:html={p.data.description} />}
-                    <div class="home-slider__facts">
-                      {p.data.year && <span>{p.data.year}</span>}
-                      {p.data.location && <span>{p.data.location}</span>}
-                      {p.data.program && <span>{p.data.program}</span>}
-                    </div>
                   </div>
                 </div>
                 <span class="home-slider__arrow" aria-hidden="true">
@@ -95,15 +101,17 @@ const featured = allProjects
               </div>
               <div class="home-slider__caption home-slider__caption--knockout" aria-hidden="true">
                 <div class="home-slider__top">
-                  <span class="home-slider__name">{p.data.name}</span>
+                  <div class="home-slider__head">
+                    <span class="home-slider__name">{p.data.name}</span>
+                    <ul class="home-slider__facts">
+                      {p.data.year && <li><span class="home-slider__fact-k">Year</span> — {p.data.year}</li>}
+                      {p.data.location && <li><span class="home-slider__fact-k">Location</span> — {p.data.location}</li>}
+                      {p.data.category && <li><span class="home-slider__fact-k">Category</span> — {catName(p.data.category)}</li>}
+                    </ul>
+                  </div>
                   <div class="home-slider__about">
                     {p.data.smallIntro && <p class="home-slider__intro">{p.data.smallIntro}</p>}
                     {p.data.description && <div class="home-slider__desc" set:html={p.data.description} />}
-                    <div class="home-slider__facts">
-                      {p.data.year && <span>{p.data.year}</span>}
-                      {p.data.location && <span>{p.data.location}</span>}
-                      {p.data.program && <span>{p.data.program}</span>}
-                    </div>
                   </div>
                 </div>
                 <span class="home-slider__arrow">
@@ -588,7 +596,7 @@ const featured = allProjects
     font-weight: 500;
     line-height: 0.95;
     letter-spacing: -0.02em;
-    max-width: 100%;        /* wraps to two lines instead of overflowing */
+    min-width: 0;           /* allow it to shrink/wrap beside the facts */
     overflow-wrap: anywhere;
   }
 
@@ -626,16 +634,30 @@ const featured = allProjects
 
   .home-slider__desc :global(p) { margin: 0; }
 
-  .home-slider__facts {
+  /* name on the left, facts stacked at the top-right, aligned with the name */
+  .home-slider__head {
     display: flex;
-    flex-wrap: wrap;
-    gap: 2px 14px;
-    margin-top: 2px;
-    font-size: var(--_tokens---type--micro);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    opacity: 0.7;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: clamp(16px, 3vw, 48px);
   }
+
+  .home-slider__facts {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    text-align: right;
+    white-space: nowrap;
+    font-size: var(--_tokens---type--small);
+    line-height: 1.25;
+  }
+
+  .home-slider__fact-k { opacity: 0.6; } /* the label part, slightly muted */
 
   /* Background-colour copy, layered on top and clipped (in JS) to exactly the
      rendered photo — so the part of the name/arrow over the image inverts. */
