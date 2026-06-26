@@ -82,15 +82,6 @@ const featured = allProjects
                   </svg>
                 </span>
               </div>
-              <div class="home-slider__caption home-slider__caption--knockout" aria-hidden="true">
-                <span class="home-slider__name">{p.data.name}</span>
-                <span class="home-slider__arrow">
-                  <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
-                    <line x1="6" y1="18" x2="18" y2="6"></line>
-                    <polyline points="10 6 18 6 18 14"></polyline>
-                  </svg>
-                </span>
-              </div>
             </a>
           ))}
         </div>
@@ -213,29 +204,6 @@ const featured = allProjects
       track.addEventListener('mouseleave', startAuto);
     }
   }
-
-  // ── Clip the background-colour name copy to the real photo ──
-  // (contain leaves letterbox bars; measure the rendered image so the
-  //  knockout only covers actual pixels — no ghost over the gutter/bars)
-  function fitKnockouts() {
-    document.querySelectorAll('.home-slider__slide').forEach(slide => {
-      const wrap = slide.querySelector('.home-slider__image-wrap');
-      const img = wrap && wrap.querySelector('img');
-      if (!wrap || !img || !img.naturalWidth) return;
-      const wW = wrap.clientWidth, wH = wrap.clientHeight;
-      const s = Math.min(wW / img.naturalWidth, wH / img.naturalHeight);
-      const pW = img.naturalWidth * s, pH = img.naturalHeight * s;
-      slide.style.setProperty('--ko-x', Math.max(0, (slide.clientWidth - pW) / 2) + 'px');
-      slide.style.setProperty('--ko-y', Math.max(0, (wH - pH) / 2) + 'px');
-    });
-  }
-  function scheduleFit() { requestAnimationFrame(fitKnockouts); }
-  window.addEventListener('load', scheduleFit);
-  window.addEventListener('resize', scheduleFit);
-  document.querySelectorAll('.home-slider__image-wrap img').forEach(img => {
-    if (!img.complete) img.addEventListener('load', scheduleFit);
-  });
-  scheduleFit();
 
   // ── Scramble Tagline on load ───────────────────────────────
   function triggerTaglineScramble() {
@@ -540,48 +508,43 @@ const featured = allProjects
     background-color: color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
   }
 
-  /* Caption overlays the image: name top-left (just below the image's top
-     border), arrow bottom-right. Inset = image padding + a little more. */
+  /* Caption is sized + centered to overlay the image exactly, so the name and
+     arrow are always bound to the image — never cut off the viewport. */
   .home-slider__caption {
     position: absolute;
-    inset: 0;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: var(--img-w);   /* same width as the image card */
+    height: 100%;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    padding: clamp(10px, 1.6vw, 22px); /* name + arrow sit near the slide corners */
-    color: var(--_tokens---color--fg); /* default: foreground colour */
-  }
-
-  /* Duplicate copy in the background colour, clipped to just the image rect,
-     layered on top — so the part of the text over the image flips to bg colour. */
-  /* Lives inside the image-wrap (so overflow clips it to the photo), but is
-     re-stretched to the full slide width + centered so it lines up exactly
-     with the foreground caption. Result: bg colour only over the image. */
-  .home-slider__caption--knockout {
-    color: var(--_tokens---color--bg);
-    /* clipped to the actual rendered photo (measured in JS → --ko-x / --ko-y) */
-    clip-path: inset(var(--ko-y, 0px) var(--ko-x, 20vw));
-    pointer-events: none;
+    padding: clamp(14px, 1.8vw, 30px);
+    color: var(--_tokens---color--fg);
+    pointer-events: none;  /* clicks pass to the slide link */
   }
 
   .home-slider__name {
-    align-self: flex-start; /* top-left, just inside the image */
-    font-size: var(--_tokens---type--big); /* H1 — same as About, on all viewports */
+    align-self: flex-start; /* top-left of the image */
+    font-size: var(--_tokens---type--big); /* H1 — same as About */
     font-weight: 500;
     line-height: 0.95;
     letter-spacing: -0.02em;
-    max-width: 82%;
+    max-width: 100%;        /* wraps to two lines instead of overflowing */
     overflow-wrap: anywhere;
+    text-shadow: 0 1px 16px var(--_tokens---color--bg), 0 0 3px var(--_tokens---color--bg);
   }
 
   .home-slider__arrow {
-    align-self: flex-end; /* bottom-right */
+    align-self: flex-end; /* bottom-right of the image */
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
     font-size: var(--_tokens---type--big); /* H1 — same as the name / About */
     transition: transform 0.3s ease;
+    text-shadow: 0 1px 16px var(--_tokens---color--bg), 0 0 3px var(--_tokens---color--bg);
   }
 
   .home-slider__arrow svg {
