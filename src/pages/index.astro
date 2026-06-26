@@ -74,7 +74,18 @@ const featured = allProjects
                 <img src={p.data.coverImage || '/images/admin/placeholder.webp'} alt={p.data.name} loading={i === 0 ? 'eager' : 'lazy'} />
               </div>
               <div class="home-slider__caption">
-                <span class="home-slider__name">{p.data.name}</span>
+                <div class="home-slider__top">
+                  <span class="home-slider__name">{p.data.name}</span>
+                  <div class="home-slider__about">
+                    {p.data.smallIntro && <p class="home-slider__intro">{p.data.smallIntro}</p>}
+                    {p.data.description && <div class="home-slider__desc" set:html={p.data.description} />}
+                    <div class="home-slider__facts">
+                      {p.data.year && <span>{p.data.year}</span>}
+                      {p.data.location && <span>{p.data.location}</span>}
+                      {p.data.program && <span>{p.data.program}</span>}
+                    </div>
+                  </div>
+                </div>
                 <span class="home-slider__arrow" aria-hidden="true">
                   <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
                     <line x1="6" y1="18" x2="18" y2="6"></line>
@@ -83,7 +94,18 @@ const featured = allProjects
                 </span>
               </div>
               <div class="home-slider__caption home-slider__caption--knockout" aria-hidden="true">
-                <span class="home-slider__name">{p.data.name}</span>
+                <div class="home-slider__top">
+                  <span class="home-slider__name">{p.data.name}</span>
+                  <div class="home-slider__about">
+                    {p.data.smallIntro && <p class="home-slider__intro">{p.data.smallIntro}</p>}
+                    {p.data.description && <div class="home-slider__desc" set:html={p.data.description} />}
+                    <div class="home-slider__facts">
+                      {p.data.year && <span>{p.data.year}</span>}
+                      {p.data.location && <span>{p.data.location}</span>}
+                      {p.data.program && <span>{p.data.program}</span>}
+                    </div>
+                  </div>
+                </div>
                 <span class="home-slider__arrow">
                   <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
                     <line x1="6" y1="18" x2="18" y2="6"></line>
@@ -568,6 +590,51 @@ const featured = allProjects
     letter-spacing: -0.02em;
     max-width: 100%;        /* wraps to two lines instead of overflowing */
     overflow-wrap: anywhere;
+  }
+
+  /* name + supporting text grouped at the top, arrow stays at the bottom */
+  .home-slider__top {
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(8px, 1vw, 16px);
+    min-width: 0;
+  }
+
+  .home-slider__about {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: min(440px, 52%); /* text stays a readable column, mostly in the gutter */
+  }
+
+  .home-slider__intro {
+    font-size: var(--_tokens---type--small);
+    font-weight: 500;
+    line-height: 1.2;
+  }
+
+  .home-slider__desc {
+    font-size: var(--_tokens---type--small);
+    line-height: 1.35;
+    opacity: 0.88;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;   /* keep the card tidy */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .home-slider__desc :global(p) { margin: 0; }
+
+  .home-slider__facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 14px;
+    margin-top: 2px;
+    font-size: var(--_tokens---type--micro);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0.7;
   }
 
   /* Background-colour copy, layered on top and clipped (in JS) to exactly the
