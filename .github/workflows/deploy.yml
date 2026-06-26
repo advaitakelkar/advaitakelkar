@@ -30,4 +30,18 @@ jobs:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ADVAITAKELKAR_SITE }}
 
       - name: Deploy to Firebase Hosting
-        run: npx firebase-tools@latest deploy --only hosting --project advaitakelkar-site
+        run: |
+          set +e
+          out=$(npx firebase-tools@latest deploy --only hosting --project advaitakelkar-site 2>&1)
+          code=$?
+          echo "$out"
+          if [ $code -ne 0 ]; then
+            # Firebase returns an error when the uploaded build is byte-identical
+            # to what's already live ("is the current active version"). That's a
+            # no-op, not a failure — treat it as success so the run stays green.
+            if echo "$out" | grep -q "is the current active version"; then
+              echo "::notice::No content changes detected — site already up to date. Treating as success."
+              exit 0
+            fi
+            exit $code
+          fi
