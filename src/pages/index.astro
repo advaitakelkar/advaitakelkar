@@ -82,6 +82,15 @@ const featured = allProjects
                   </svg>
                 </span>
               </div>
+              <div class="home-slider__caption home-slider__caption--knockout" aria-hidden="true">
+                <span class="home-slider__name">{p.data.name}</span>
+                <span class="home-slider__arrow">
+                  <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+                    <line x1="6" y1="18" x2="18" y2="6"></line>
+                    <polyline points="10 6 18 6 18 14"></polyline>
+                  </svg>
+                </span>
+              </div>
             </a>
           ))}
         </div>
@@ -204,6 +213,36 @@ const featured = allProjects
       track.addEventListener('mouseleave', startAuto);
     }
   }
+
+  // ── Invert the name/arrow only where they overlap the photo ──
+  // Clip the background-colour copy to the actual rendered image rect
+  // (object-fit: contain leaves bars, so measure the real pixels).
+  function fitKnockouts() {
+    document.querySelectorAll('.home-slider__slide').forEach(slide => {
+      const cap = slide.querySelector('.home-slider__caption--knockout');
+      const wrap = slide.querySelector('.home-slider__image-wrap');
+      const img = wrap && wrap.querySelector('img');
+      if (!cap || !img || !img.naturalWidth) return;
+      const wb = wrap.getBoundingClientRect();
+      const s = Math.min(wb.width / img.naturalWidth, wb.height / img.naturalHeight);
+      const pw = img.naturalWidth * s, ph = img.naturalHeight * s;
+      const pLeft = wb.left + (wb.width - pw) / 2;
+      const pTop  = wb.top + (wb.height - ph) / 2;
+      const cb = cap.getBoundingClientRect();
+      const top    = Math.max(0, pTop - cb.top);
+      const left   = Math.max(0, pLeft - cb.left);
+      const right  = Math.max(0, cb.right - (pLeft + pw));
+      const bottom = Math.max(0, cb.bottom - (pTop + ph));
+      cap.style.clipPath = `inset(${top}px ${right}px ${bottom}px ${left}px)`;
+    });
+  }
+  function scheduleFit() { requestAnimationFrame(fitKnockouts); }
+  window.addEventListener('load', scheduleFit);
+  window.addEventListener('resize', scheduleFit);
+  document.querySelectorAll('.home-slider__image-wrap img').forEach(img => {
+    if (!img.complete) img.addEventListener('load', scheduleFit);
+  });
+  scheduleFit();
 
   // ── Scramble Tagline on load ───────────────────────────────
   function triggerTaglineScramble() {
@@ -529,7 +568,14 @@ const featured = allProjects
     letter-spacing: -0.02em;
     max-width: 100%;        /* wraps to two lines instead of overflowing */
     overflow-wrap: anywhere;
-    text-shadow: 0 1px 16px var(--_tokens---color--bg), 0 0 3px var(--_tokens---color--bg);
+  }
+
+  /* Background-colour copy, layered on top and clipped (in JS) to exactly the
+     rendered photo — so the part of the name/arrow over the image inverts. */
+  .home-slider__caption--knockout {
+    color: var(--_tokens---color--bg);
+    pointer-events: none;
+    clip-path: inset(0 100% 0 0); /* hidden until JS measures the photo */
   }
 
   .home-slider__arrow {
@@ -540,7 +586,6 @@ const featured = allProjects
     flex-shrink: 0;
     font-size: var(--_tokens---type--big); /* H1 — same as the name / About */
     transition: transform 0.3s ease;
-    text-shadow: 0 1px 16px var(--_tokens---color--bg), 0 0 3px var(--_tokens---color--bg);
   }
 
   .home-slider__arrow svg {
