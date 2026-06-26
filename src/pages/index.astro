@@ -70,7 +70,7 @@ const featured = allProjects
               data-index={i}
               aria-label={p.data.name}
             >
-              <div class="home-slider__image-wrap soft-image-container">
+              <div class="home-slider__image-wrap">
                 <img src={p.data.coverImage || '/images/admin/placeholder.webp'} alt={p.data.name} loading={i === 0 ? 'eager' : 'lazy'} />
               </div>
               <div class="home-slider__caption">
@@ -130,48 +130,79 @@ const featured = allProjects
 
 <!-- ══ DATA + JS ══════════════════════════════════════════════ -->
 <script>
-  // ── Slider ──────────────────────────────────────────────────
+  // ── Slider (seamless infinite loop) ─────────────────────────
   const track = document.getElementById('slider-track');
   const dots  = Array.from(document.querySelectorAll('.home-slider__dot'));
 
-  if (track && dots.length > 1) {
-    let current = 0;
-    let timer;
-    const slides = Array.from(track.querySelectorAll('.home-slider__slide'));
+  if (track) {
+    const reals = Array.from(track.querySelectorAll('.home-slider__slide'));
+    const n = reals.length;
 
-    function setActive(idx) {
-      current = (idx + slides.length) % slides.length;
-      slides[current].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-      dots.forEach((d, i) => {
-        d.classList.toggle('is-active', i === current);
-        d.setAttribute('aria-selected', String(i === current));
+    if (n > 1) {
+      // Clone last→prepend and first→append so an image always peeks on both
+      // sides and the strip reads as one continuous loop.
+      const firstClone = reals[0].cloneNode(true);
+      const lastClone  = reals[n - 1].cloneNode(true);
+      [firstClone, lastClone].forEach(c => {
+        c.classList.add('is-clone');
+        c.setAttribute('aria-hidden', 'true');
+        c.setAttribute('tabindex', '-1');
+        c.removeAttribute('href');
       });
-    }
+      track.insertBefore(lastClone, reals[0]); // clone of last, before the start
+      track.appendChild(firstClone);           // clone of first, after the end
 
-    function startAuto() { timer = setInterval(() => setActive(current + 1), 3000); }
-    function stopAuto()  { clearInterval(timer); }
+      // DOM order is now: [lastClone, real0..realN-1, firstClone]
+      const realAt = i => track.querySelectorAll('.home-slider__slide')[i + 1];
 
-    startAuto();
+      let current = 0;
+      let timer;
+      let jumping = false;
 
-    dots.forEach((d, i) => d.addEventListener('click', () => { stopAuto(); setActive(i); startAuto(); }));
-    track.addEventListener('mouseenter', stopAuto);
-    track.addEventListener('mouseleave', startAuto);
+      const center = (el, smooth = true) =>
+        el.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'nearest', inline: 'center' });
 
-    // Sync dots on scroll
-    const io = new IntersectionObserver(
-      entries => entries.forEach(e => {
-        if (e.isIntersecting) {
-          const idx = parseInt(e.target.dataset.index ?? '0');
-          dots.forEach((d, i) => {
-            d.classList.toggle('is-active', i === idx);
-            d.setAttribute('aria-selected', String(i === idx));
-          });
-          current = idx;
+      function updateDots(i) {
+        dots.forEach((d, k) => {
+          d.classList.toggle('is-active', k === i);
+          d.setAttribute('aria-selected', String(k === i));
+        });
+      }
+
+      function goTo(i, smooth = true) {
+        current = (i + n) % n;
+        center(realAt(current), smooth);
+        updateDots(current);
+      }
+
+      function advance() {
+        if (current + 1 >= n) {
+          // Slide forward onto the appended clone of slide 0, then snap the
+          // scroll position back to the real slide 0 with no animation.
+          jumping = true;
+          center(firstClone, true);
+          updateDots(0);
+          current = 0;
+          setTimeout(() => { center(realAt(0), false); jumping = false; }, 700);
+        } else {
+          goTo(current + 1, true);
         }
-      }),
-      { root: track, threshold: 0.5 }
-    );
-    slides.forEach(s => io.observe(s));
+      }
+
+      function startAuto() { timer = setInterval(advance, 3000); }
+      function stopAuto()  { clearInterval(timer); }
+
+      // Start centered on the real first slide (last/next slides peek at edges).
+      requestAnimationFrame(() => center(realAt(0), false));
+      startAuto();
+
+      dots.forEach((d, i) => d.addEventListener('click', () => {
+        if (jumping) return;
+        stopAuto(); goTo(i); startAuto();
+      }));
+      track.addEventListener('mouseenter', stopAuto);
+      track.addEventListener('mouseleave', startAuto);
+    }
   }
 
   // ── Scramble Tagline on load ───────────────────────────────
@@ -455,14 +486,15 @@ const featured = allProjects
     aspect-ratio: 16 / 10;
     overflow: hidden;
     border-radius: 8px;
-    background-color: color-mix(in srgb, var(--_tokens---color--fg) 3%, transparent);
+    background: transparent; /* no tint — only the image shows */
     position: relative;
   }
 
   .home-slider__image-wrap img {
     width: 100%;
     height: 100%;
-    object-fit: contain; /* Don't change proportions! */
+    object-fit: cover; /* fill the frame — no background bands */
+    display: block;
     transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
@@ -484,7 +516,7 @@ const featured = allProjects
   }
 
   .home-slider__name {
-    font-size: var(--_tokens---type--small);
+    font-size: var(--_tokens---type--medium); /* one step up from small */
     font-weight: 500;
     letter-spacing: -0.01em;
   }
@@ -493,14 +525,14 @@ const featured = allProjects
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px; /* larger arrow container */
-    height: 24px;
+    width: 34px; /* scaled up to match the larger name */
+    height: 34px;
     transition: transform 0.3s ease;
   }
 
   .home-slider__arrow svg {
-    width: 20px; /* larger arrow SVG */
-    height: 20px;
+    width: 28px; /* scaled up to match the larger name */
+    height: 28px;
   }
 
   .home-slider__slide:hover .home-slider__arrow {
