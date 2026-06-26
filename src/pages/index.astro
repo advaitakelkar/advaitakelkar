@@ -72,15 +72,15 @@ const featured = allProjects
             >
               <div class="home-slider__image-wrap">
                 <img src={p.data.coverImage || '/images/admin/placeholder.webp'} alt={p.data.name} loading={i === 0 ? 'eager' : 'lazy'} />
-              </div>
-              <div class="home-slider__caption">
-                <span class="home-slider__name" data-scramble>{p.data.name}</span>
-                <span class="home-slider__arrow" aria-hidden="true">
-                  <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
-                    <line x1="6" y1="18" x2="18" y2="6"></line>
-                    <polyline points="10 6 18 6 18 14"></polyline>
-                  </svg>
-                </span>
+                <div class="home-slider__caption">
+                  <span class="home-slider__name" data-scramble>{p.data.name}</span>
+                  <span class="home-slider__arrow" aria-hidden="true">
+                    <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+                      <line x1="6" y1="18" x2="18" y2="6"></line>
+                      <polyline points="10 6 18 6 18 14"></polyline>
+                    </svg>
+                  </span>
+                </div>
               </div>
             </a>
           ))}
@@ -511,37 +511,42 @@ const featured = allProjects
     background-color: color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
   }
 
+  /* Caption overlays the image: name top-left, arrow bottom-right */
   .home-slider__caption {
+    position: absolute;
+    inset: 0;
     display: flex;
+    flex-direction: column;
     justify-content: space-between;
-    align-items: center;
-    gap: 16px;
-    padding-inline: 4px; /* keep the name off the slide edge so it never clips */
-    color: var(--_tokens---color--fg);
+    padding: clamp(16px, 2.2vw, 28px);
+    z-index: 2;
   }
 
   .home-slider__name {
-    font-size: var(--_tokens---type--big); /* same as About / Portfolio nav */
+    align-self: flex-start; /* top-left corner */
+    font-size: var(--_tokens---type--medium);
     font-weight: 500;
     line-height: 0.95;
-    letter-spacing: -0.03em;
-    min-width: 0;
-    overflow-wrap: anywhere; /* long names wrap instead of being cut */
+    letter-spacing: -0.02em;
+    max-width: 82%;
+    overflow-wrap: anywhere;
+    color: var(--_tokens---color--bg); /* flips to background colour over the image */
   }
 
   .home-slider__arrow {
+    align-self: flex-end; /* bottom-right corner */
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0; /* never let the arrow squeeze the name */
-    width: 34px; /* scaled up to match the larger name */
-    height: 34px;
+    flex-shrink: 0;
+    font-size: var(--_tokens---type--medium); /* same size as the name */
+    color: var(--_tokens---color--bg); /* flips to background colour over the image */
     transition: transform 0.3s ease;
   }
 
   .home-slider__arrow svg {
-    width: 28px; /* scaled up to match the larger name */
-    height: 28px;
+    width: 1.1em;
+    height: 1.1em;
   }
 
   .home-slider__slide:hover .home-slider__arrow {
