@@ -14,6 +14,10 @@ const featured = allProjects
 // Resolve a category relationship → its display name
 const categories = await getCollection('categories');
 const catName = (id) => categories.find(c => c.id === id)?.data.displayName ?? id;
+
+// Tag relationships → names
+const allTags = await getCollection('tags');
+const tagMap = Object.fromEntries(allTags.map(t => [t.id, t.data.name]));
 ---
 
 <PageLayout
@@ -90,6 +94,11 @@ const catName = (id) => categories.find(c => c.id === id)?.data.displayName ?? i
                   <div class="home-slider__about">
                     {p.data.smallIntro && <p class="home-slider__intro">{p.data.smallIntro}</p>}
                     {p.data.description && <div class="home-slider__desc" set:html={p.data.description} />}
+                    {(p.data.tags ?? []).length > 0 && (
+                      <ul class="home-slider__tags">
+                        {(p.data.tags ?? []).map((t) => <li>{tagMap[t.id] || t.id}</li>)}
+                      </ul>
+                    )}
                   </div>
                 </div>
                 <span class="home-slider__arrow" aria-hidden="true">
@@ -112,6 +121,11 @@ const catName = (id) => categories.find(c => c.id === id)?.data.displayName ?? i
                   <div class="home-slider__about">
                     {p.data.smallIntro && <p class="home-slider__intro">{p.data.smallIntro}</p>}
                     {p.data.description && <div class="home-slider__desc" set:html={p.data.description} />}
+                    {(p.data.tags ?? []).length > 0 && (
+                      <ul class="home-slider__tags">
+                        {(p.data.tags ?? []).map((t) => <li>{tagMap[t.id] || t.id}</li>)}
+                      </ul>
+                    )}
                   </div>
                 </div>
                 <span class="home-slider__arrow">
@@ -173,6 +187,29 @@ const catName = (id) => categories.find(c => c.id === id)?.data.displayName ?? i
   const track = document.getElementById('slider-track');
   const dots  = Array.from(document.querySelectorAll('.home-slider__dot'));
 
+  // Scramble both name copies (base + colour-flip) in sync — on slide-in & hover
+  const SCRAMBLE_CHARS = '!<>-_\\/[]{}=+*^?#$%&@012';
+  function scrambleName(slide) {
+    const els = slide.querySelectorAll('.home-slider__name');
+    if (!els.length) return;
+    const text = els[0].dataset.text || els[0].textContent || '';
+    els.forEach(e => { e.dataset.text = text; });
+    const settle = Array.from(text, () => 6 + Math.floor(Math.random() * 9));
+    const maxF = settle.length ? Math.max(...settle) : 0;
+    let frame = 0;
+    clearInterval(slide._scr);
+    slide._scr = setInterval(() => {
+      let out = '';
+      for (let i = 0; i < text.length; i++) {
+        out += text[i] === ' ' ? ' '
+          : (frame >= settle[i] ? text[i]
+             : SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)]);
+      }
+      els.forEach(e => { e.textContent = out; });
+      if (frame++ >= maxF) { clearInterval(slide._scr); els.forEach(e => { e.textContent = text; }); }
+    }, 35);
+  }
+
   if (track) {
     const reals = Array.from(track.querySelectorAll('.home-slider__slide'));
     const n = reals.length;
@@ -208,10 +245,25 @@ const catName = (id) => categories.find(c => c.id === id)?.data.displayName ?? i
         });
       }
 
+      // Mark the centred slide active (reveals its text) + scramble its name
+      let activeSlide = null;
+      function activate(slide) {
+        if (!slide || activeSlide === slide) return;
+        if (activeSlide) activeSlide.classList.remove('is-active');
+        activeSlide = slide;
+        slide.classList.add('is-active');
+        scrambleName(slide);
+      }
+
+      // Scramble the name when hovering any slide
+      track.querySelectorAll('.home-slider__slide').forEach(s =>
+        s.addEventListener('mouseenter', () => scrambleName(s)));
+
       function goTo(i, smooth = true) {
         current = (i + n) % n;
         center(realAt(current), smooth);
         updateDots(current);
+        activate(realAt(current));
       }
 
       function advance() {
@@ -222,7 +274,7 @@ const catName = (id) => categories.find(c => c.id === id)?.data.displayName ?? i
           center(firstClone, true);
           updateDots(0);
           current = 0;
-          setTimeout(() => { center(realAt(0), false); jumping = false; }, 700);
+          setTimeout(() => { center(realAt(0), false); activate(realAt(0)); jumping = false; }, 700);
         } else {
           goTo(current + 1, true);
         }
@@ -232,7 +284,7 @@ const catName = (id) => categories.find(c => c.id === id)?.data.displayName ?? i
       function stopAuto()  { clearInterval(timer); }
 
       // Start centered on the real first slide (last/next slides peek at edges).
-      requestAnimationFrame(() => center(realAt(0), false));
+      requestAnimationFrame(() => { center(realAt(0), false); activate(realAt(0)); });
       startAuto();
 
       dots.forEach((d, i) => d.addEventListener('click', () => {
@@ -658,6 +710,43 @@ const catName = (id) => categories.find(c => c.id === id)?.data.displayName ?? i
   }
 
   .home-slider__fact-k { opacity: 0.6; } /* the label part, slightly muted */
+
+  .home-slider__tags {
+    list-style: none;
+    margin: 4px 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: var(--_tokens---type--micro);
+  }
+  .home-slider__tags li {
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    padding: 2px 10px;
+    text-transform: lowercase;
+    opacity: 0.8;
+  }
+
+  /* ── Reveal: supporting text animates in once the slide is centred ── */
+  .home-slider__facts,
+  .home-slider__intro,
+  .home-slider__desc,
+  .home-slider__tags {
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.55s ease, transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .home-slider__slide.is-active .home-slider__facts { opacity: 1; transform: none; transition-delay: 0.10s; }
+  .home-slider__slide.is-active .home-slider__intro  { opacity: 1; transform: none; transition-delay: 0.18s; }
+  .home-slider__slide.is-active .home-slider__desc   { opacity: 1; transform: none; transition-delay: 0.26s; }
+  .home-slider__slide.is-active .home-slider__tags   { opacity: 1; transform: none; transition-delay: 0.34s; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .home-slider__facts, .home-slider__intro, .home-slider__desc, .home-slider__tags {
+      opacity: 1; transform: none; transition: none;
+    }
+  }
 
   /* Background-colour copy, layered on top and clipped (in JS) to exactly the
      rendered photo — so the part of the name/arrow over the image inverts. */
