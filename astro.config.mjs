@@ -1,11 +1,10 @@
 import { defineConfig } from 'astro/config';
-import mdx from '@astrojs/mdx';
 
 // Keystatic admin UI is available in dev mode only.
 // In production (astro build), site is fully static → Firebase-deployable.
 const isDev = process.argv.includes('dev');
 
-const integrations = [mdx()];
+const integrations = [];
 
 if (isDev) {
   const { default: keystatic } = await import('@keystatic/astro');

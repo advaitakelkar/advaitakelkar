@@ -100,7 +100,6 @@ advaitakelkar-website/
 | `/projects` | `pages/projects/index.astro` | All projects listing |
 | `/projects/[slug]` | `pages/projects/[slug].astro` | Individual project |
 | `/tags/[slug]` | `pages/tags/[slug].astro` | Projects by tag |
-| `/type/[slug]` | `pages/type/[slug].astro` | Projects by category |
 | `/404` | `pages/404.astro` | 404 |
 
 ---
@@ -113,7 +112,7 @@ The home page (`src/pages/index.astro`) has five sections in order:
 2. **Featured slider** — auto-scrolling (4s), horizontal scroll-snap, dot indicators. Only projects with `featured: true` appear here, sorted by `numbr`.
 3. **About Me teaser** — caption + large "About Me →" link
 4. **Portfolio teaser** — caption + large "Portfolio →" link
-5. **Quick Search** — live-filtering grid of all 52 projects (tag, year, name). Client-side JS, no server calls.
+5. **Quick Search** — live-filtering grid of all 72 projects (tag, year, name). Client-side JS, no server calls.
 
 ---
 
@@ -121,20 +120,17 @@ The home page (`src/pages/index.astro`) has five sections in order:
 
 ### Color Schemes
 
-10 color schemes are defined in `src/styles/tokens.css` and applied as a class on `<html>` (e.g. `html.sch3`). Persisted in `sessionStorage` under key `'aks'`. The SideNav has a color scheme switcher dropdown.
+7 color schemes are defined in `src/styles/tokens.css` and applied as a class on `<html>` (e.g. `html.sch3`). Persisted in `sessionStorage` under key `'aks'`. Randomized on page load (Void gets 3× weight).
 
 | Class | Name | BG | FG |
 |---|---|---|---|
-| *(default)* | Void | `#111111` | `#ffffff` |
-| `sch1` | Ocean | `#0D5072` | `#7FEEFF` |
-| `sch2` | Moss | `#ECE7E2` | `#4A7766` |
-| `sch3` | Crimson | `#F5F5DA` | `#7B021D` |
-| `sch4` | Dusk | `#6C5383` | `#D7E7C3` |
-| `sch5` | Midnight | `#0B1A35` | `#D2B96A` |
-| `sch6` | Cobalt | `#191265` | `#EBEBDF` |
-| `sch7` | Sapphire | `#275CCC` | `#F5E4CF` |
-| `sch8` | Garden | `#BAD797` | `#670626` |
-| `sch9` | Forest | `#033631` | `#FFEDA8` |
+| *(default)* | Void | `#ffffff` / dark: `#111111` | `#111111` / dark: `#ffffff` |
+| `sch1` | Moss | `#ECE7E2` | `#4A7766` |
+| `sch2` | Clay | `#fee7d5` | `#4b3935` |
+| `sch3` | Dusk | `#D7E7C3` | `#6C5383` |
+| `sch4` | Midnight | `#D2B96A` | `#0B1A35` |
+| `sch6` | Ember | `#ffe4a1` | `#97322D` |
+| `sch7` | Nomad | `#edcdc2` | `#0093AF` |
 
 ### CSS Tokens
 
@@ -178,8 +174,7 @@ All type uses `Inter` (Google Fonts). Font sizes use `clamp()` for fluid scaling
 
 **Slide-in panel** (opens on bar click):
 - Header: Name + bio
-- Nav: Home, About Me, Projects (with ↗ arrows)
-- Recent Projects: 5 most recent by year
+- Infinite scroll wheel: all pages + projects (iPod-style, triple-copy loop, centers active page on open)
 - Contact: email, LinkedIn, Instagram, Behance
 
 JS is inline in the component. Color scheme is saved to `sessionStorage['aks']` and restored on load.
@@ -264,7 +259,6 @@ pnpm dev
 |---|---|
 | `1-setup.command` | Install deps + start dev server (double-click in Finder) |
 | `4-push.command` | Commit all changes + push to GitHub (double-click in Finder) |
-| `designer.html` | Responsive preview tool — open in browser, no server needed |
 | `2-github-push.command` | **Deprecated** — initial repo setup (done) |
 | `3-push-fix.command` | **Deprecated** — one-time CI fix (done) |
 
@@ -274,8 +268,8 @@ pnpm dev
 
 **Done:**
 - Full Astro 5 migration from Webflow
-- 52 projects migrated to YAML
-- Design token system with 10 color schemes
+- 72 projects migrated to YAML
+- Design token system with 7 color schemes
 - SideNav with slide-in panel, color switcher, hamburger
 - Home page: intro, featured auto-slider, teasers, quick search
 - Firebase Hosting live at `advaitakelkar-site.web.app`
