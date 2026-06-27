@@ -272,7 +272,10 @@ const skillsets = [
             <!-- Education pill 1: SCAD -->
             <div class="education-pill" data-pill="edu-scad">
               <button class="education-pill__trigger" aria-expanded="false" aria-controls="edu-scad-content" type="button">
-                <span class="education-pill__name">Savannah College of Art and Design</span>
+                <div class="education-pill__trigger-left-col">
+                  <span class="education-pill__name">Master of Architecture</span>
+                  <span class="active-status-text">ACTIVE</span>
+                </div>
                 <div class="education-pill__trigger-right">
                   <span class="education-pill__years">2024 – 2027</span>
                   <svg class="edu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">
@@ -283,7 +286,9 @@ const skillsets = [
               </button>
               <div class="education-pill__content" id="edu-scad-content">
                 <div class="education-pill__content-inner">
-                  <p class="education-pill__degree">Master of Architecture — MArch, Architecture</p>
+                  <p class="education-pill__degree">
+                    MArch, Architecture - <a href="https://www.scad.edu/academics/programs/architecture/degrees/march" class="education-inline-link" target="_blank" rel="noopener">Savannah College of Art and Design</a>
+                  </p>
                 </div>
               </div>
             </div>
@@ -291,7 +296,7 @@ const skillsets = [
             <!-- Education pill 2: University of Mumbai -->
             <div class="education-pill" data-pill="edu-mumbai">
               <button class="education-pill__trigger" aria-expanded="false" aria-controls="edu-mumbai-content" type="button">
-                <span class="education-pill__name">University of Mumbai</span>
+                <span class="education-pill__name">Bachelor of Architecture</span>
                 <div class="education-pill__trigger-right">
                   <span class="education-pill__years">2012 – 2019</span>
                   <svg class="edu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">
@@ -302,13 +307,15 @@ const skillsets = [
               </button>
               <div class="education-pill__content" id="edu-mumbai-content">
                 <div class="education-pill__content-inner">
-                  <p class="education-pill__degree">Bachelor of Architecture — BArch, Architecture</p>
+                  <p class="education-pill__degree">
+                    BArch, Architecture - <a href="https://hiray.edu.in/home" class="education-inline-link" target="_blank" rel="noopener">DBHCOA</a>, University of Mumbai
+                  </p>
                 </div>
               </div>
             </div>
 
             <a href="https://linkedin.com/in/advaitakelkar" class="education-more-link" target="_blank" rel="noopener">
-              <span>+ details / full resume</span>
+              <span>+ LinkedIn / full resume</span>
               <svg class="link-arrow bio-read-more-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
                 <line x1="6" y1="18" x2="18" y2="6"></line>
                 <polyline points="10 6 18 6 18 14"></polyline>
@@ -1314,6 +1321,19 @@ const skillsets = [
     gap: 0;
   }
 
+  .education-inline-link {
+    color: var(--_tokens---color--fg);
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, var(--_tokens---color--fg) 30%, transparent);
+    text-underline-offset: 3px;
+    transition: text-decoration-color 0.2s ease, opacity 0.2s ease;
+  }
+  
+  .education-inline-link:hover {
+    text-decoration-color: var(--_tokens---color--fg);
+    opacity: 0.85;
+  }
+
   /* ── Education accordion (same pattern as career cards) ── */
   .education-pill {
     border-top: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
@@ -1334,6 +1354,23 @@ const skillsets = [
     cursor: pointer;
     text-align: left;
     gap: 16px;
+  }
+
+  .education-pill__trigger-left-col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .active-status-text {
+    font-size: 8px;
+    letter-spacing: 0.08em;
+    color: var(--_tokens---color--fg);
+    opacity: 0.45;
+    font-weight: 500;
   }
 
   .education-pill__name {
@@ -1682,6 +1719,72 @@ const skillsets = [
     });
   }
 
+  // --- Active Status Scramble Loop ---
+  let activeStatusTimeout: number;
+  let activeStatusFrame: number;
+
+  function initActiveStatus() {
+    clearTimeout(activeStatusTimeout);
+    cancelAnimationFrame(activeStatusFrame);
+
+    const activeEl = document.querySelector('.active-status-text') as HTMLElement | null;
+    if (!activeEl) return;
+    
+    const GLYPHS = '01XYZ%$#@?*+=#-_[]{}<>/';
+    const targetText = 'ACTIVE';
+    
+    function scramble() {
+      let frame = 0;
+      const length = targetText.length;
+      const queue: Array<{ from: string; to: string; start: number; end: number; char?: string }> = [];
+      
+      for (let i = 0; i < length; i++) {
+        const start = Math.floor(Math.random() * 8);
+        const end = start + Math.floor(Math.random() * 12) + 4;
+        queue.push({ from: '', to: targetText[i], start, end });
+      }
+      
+      function tick() {
+        let output = '';
+        let complete = 0;
+        
+        for (let i = 0; i < length; i++) {
+          let { to, start, end, char } = queue[i];
+          if (frame >= end) {
+            complete++;
+            output += to;
+          } else if (frame >= start) {
+            if (!char || Math.random() < 0.28) {
+              char = GLYPHS[Math.floor(Math.random() * GLYPHS.length)];
+              queue[i].char = char;
+            }
+            output += char;
+          } else {
+            output += ' ';
+          }
+        }
+        
+        activeEl.textContent = output;
+        
+        if (complete === length) {
+          activeEl.textContent = targetText;
+          activeStatusTimeout = window.setTimeout(scramble, 2000);
+        } else {
+          frame++;
+          activeStatusFrame = requestAnimationFrame(tick);
+        }
+      }
+      
+      tick();
+    }
+    
+    scramble();
+  }
+
   initSkillsetPills();
-  document.addEventListener('astro:after-swap', initSkillsetPills);
+  initActiveStatus();
+  document.addEventListener('astro:after-swap', () => {
+    initSkillsetPills();
+    initActiveStatus();
+  });
 </script>
