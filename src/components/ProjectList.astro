@@ -137,7 +137,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
         const allImgs: string[] = rawImgs.slice(0, 5);
         return (
         <div
-          class="project-card is-open"
+          class="project-card"
           data-name={p.data.name}
           data-loc={p.data.location ?? ''}
           data-year={p.data.year ?? ''}
@@ -610,7 +610,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     cursor: default;
     background-color: color-mix(in srgb, var(--_tokens---color--fg) 2.5%, var(--_tokens---color--bg));
     border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
-    border-radius: 14px;
+    border-radius: 0;
     overflow: visible;
     box-shadow: 0 8px 24px -10px color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
     /* background stays clipped to border-radius visually via this trick */
@@ -627,6 +627,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     gap: 16px;
     padding: 10px 20px;
     user-select: none;
+    cursor: pointer;
   }
 
   .project-card__stack-name {
@@ -653,7 +654,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     transition: opacity 0.2s ease;
   }
 
-  .project-card:hover .project-card__stack-right {
+  .project-card.is-open:hover .project-card__stack-right {
     opacity: 0;
     pointer-events: none;
   }
@@ -696,6 +697,12 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   /* ── Open body ── */
   .project-card__body {
     display: grid;
+    grid-template-rows: 0fr;
+    overflow: hidden;
+    transition: grid-template-rows 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .project-card.is-open .project-card__body {
     grid-template-rows: 1fr;
     overflow: visible;
   }
@@ -854,7 +861,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     transition: opacity 0.2s ease;
   }
 
-  .project-card:hover .project-card__bottom-bar {
+  .project-card.is-open:hover .project-card__bottom-bar {
     opacity: 0;
     pointer-events: none;
   }
@@ -1144,6 +1151,23 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
   initImagePreview();
   document.addEventListener('astro:after-swap', initImagePreview);
+
+  // ── Accordion toggle open/close ──
+  function initAccordion() {
+    document.querySelectorAll<HTMLElement>('.project-card').forEach(card => {
+      const header = card.querySelector<HTMLElement>('.project-card__header');
+      header?.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement;
+        // Don't toggle if clicking on the pill link
+        if (target.closest('.project-card__pill')) return;
+
+        card.classList.toggle('is-open');
+      });
+    });
+  }
+
+  initAccordion();
+  document.addEventListener('astro:after-swap', initAccordion);
 </script>
 
 <script>
