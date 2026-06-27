@@ -132,7 +132,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
         ].filter(m => m.val);
         return (
         <div
-          class="project-card"
+          class="project-card is-open"
           data-name={p.data.name}
           data-loc={p.data.location ?? ''}
           data-year={p.data.year ?? ''}
@@ -585,17 +585,12 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   .project-card {
     width: 100%;
     box-sizing: border-box;
-    cursor: pointer;
+    cursor: default;
     background-color: color-mix(in srgb, var(--_tokens---color--fg) 2.5%, var(--_tokens---color--bg));
-    border: none;
+    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
     border-radius: 14px;
     overflow: hidden;
     box-shadow: 0 8px 24px -10px color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
-    transition: box-shadow 0.3s ease, transform 0.2s ease;
-  }
-
-  .project-card:hover {
-    box-shadow: 0 12px 32px -8px color-mix(in srgb, var(--_tokens---color--fg) 16%, transparent);
   }
 
   .project-card[hidden] { display: none !important; }
@@ -611,7 +606,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   }
 
   .project-card__stack-name {
-    font-size: var(--_tokens---type--small);
+    font-size: var(--_tokens---type--medium);
     font-weight: 700;
     letter-spacing: -0.01em;
     white-space: nowrap;
@@ -668,27 +663,17 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
   .project-card__pill:hover svg { transform: translate(2px, -2px); }
 
-  /* ── Collapsible body — grid-trick fluid open/close ── */
+  /* ── Open body ── */
   .project-card__body {
     display: grid;
-    grid-template-rows: 0fr;
-    overflow: hidden;
-    transition: grid-template-rows 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .project-card.is-open .project-card__body {
     grid-template-rows: 1fr;
+    overflow: hidden;
   }
 
   .project-card__body-inner {
     position: relative;
-    min-height: 0;
+    min-height: 280px;
     overflow: hidden;
-    padding-bottom: 0px;
-    transition: padding-bottom 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .project-card.is-open .project-card__body-inner {
     padding-bottom: 24px;
   }
 
@@ -784,8 +769,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     z-index: 1;
     overflow: hidden;
     background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 40%);
-    mask-image: linear-gradient(to right, transparent 0%, black 40%);
+    border-left: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
   }
 
   .project-card__bg-img-wrap img {
@@ -794,11 +778,6 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     object-fit: cover;
     object-position: center;
     display: block;
-    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .project-card__bg-img-wrap:hover img {
-    transform: scale(1.04);
   }
 
   .project-card__placeholder {
@@ -973,11 +952,15 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     .project-card__full {
       padding-right: 0; /* Remove right padding on mobile */
     }
+    .project-card__body-inner {
+      min-height: 200px;
+    }
     .project-card__bg-img-wrap {
       width: 100%; /* Fill entire background on mobile */
       opacity: 0.12; /* Keep it subtle so text on top is readable */
       -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 20%, black 80%, transparent 100%);
       mask-image: linear-gradient(to bottom, transparent 0%, black 20%, black 80%, transparent 100%);
+      border-left: none;
     }
     .project-card__row2 {
       flex-direction: column;
@@ -1013,35 +996,13 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     return cards.filter(c => !c.hidden);
   }
 
-  // Click to toggle open/close
-  cards.forEach(card => {
-    card.addEventListener('click', (e) => {
-      // Don't intercept clicks on links/buttons (like "Go to project")
-      if ((e.target as HTMLElement).closest('a, button')) return;
-      
-      const isOpen = card.classList.contains('is-open');
-      card.classList.toggle('is-open');
-      
-      // Smoothly scroll it into view if opening
-      if (!isOpen) {
-        setTimeout(() => {
-          const rect = card.getBoundingClientRect();
-          const headerEl = document.querySelector('.projects-sticky-header');
-          const offset = headerEl ? headerEl.clientHeight + 80 : 180;
-          if (rect.top < offset) {
-            window.scrollBy({ top: rect.top - offset, behavior: 'smooth' });
-          }
-        }, 100);
-      }
-    });
-  });
+  // Click to toggle open/close has been removed - cards are statically open.
 
 
 
   function applyVisibility(matchingCards: HTMLElement[]) {
     cards.forEach(card => {
       card.hidden = true;
-      card.classList.remove('is-open');
     });
     matchingCards.forEach(card => { card.hidden = false; });
     if (countLabel) {

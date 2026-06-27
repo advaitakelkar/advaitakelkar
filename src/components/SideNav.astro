@@ -1210,4 +1210,24 @@ const schemes = [
   emailBox?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (emailBox as HTMLElement).click(); }
   });
+
+  // ── Randomize Social link pills ────────────────────────────
+  function initSocialPills() {
+    const nav = document.querySelector('.sn-panel__social');
+    if (!nav) return;
+    const pills = Array.from(nav.querySelectorAll('.sn-panel__social-pill'));
+    if (!pills.length) return;
+    
+    // Fisher-Yates shuffle
+    for (let i = pills.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pills[i], pills[j]] = [pills[j], pills[i]];
+    }
+    
+    // Re-append in random order
+    pills.forEach(pill => nav.appendChild(pill));
+  }
+
+  initSocialPills();
+  document.addEventListener('astro:after-swap', initSocialPills);
 </script>
