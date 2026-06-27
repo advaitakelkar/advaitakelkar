@@ -101,7 +101,7 @@ const STUDIO = { 'studio-823': 'Studio 823', 'faizan-khatri': 'FKD Workshop' };
                           </ul>
                           {otherTags.length > 0 && (
                             <ul class="home-slider__tags">
-                              {otherTags.map((id) => <li>{tagMap[id] || id}</li>)}
+                              {otherTags.map((id) => <li><span class="home-slider__fact-k">Tag</span> — {tagMap[id] || id}</li>)}
                             </ul>
                           )}
                         </div>
@@ -306,7 +306,10 @@ const STUDIO = { 'studio-823': 'Studio 823', 'faizan-khatri': 'FKD Workshop' };
       const img = wrap && wrap.querySelector('img');
       if (!cap || !img || !img.naturalWidth) return;
       const wb = wrap.getBoundingClientRect();
-      const s = Math.min(wb.width / img.naturalWidth, wb.height / img.naturalHeight);
+      const cover = getComputedStyle(img).objectFit === 'cover';
+      const s = cover
+        ? Math.max(wb.width / img.naturalWidth, wb.height / img.naturalHeight)
+        : Math.min(wb.width / img.naturalWidth, wb.height / img.naturalHeight);
       const pw = img.naturalWidth * s, ph = img.naturalHeight * s;
       const pLeft = wb.left + (wb.width - pw) / 2;
       const pTop  = wb.top + (wb.height - ph) / 2;
@@ -725,10 +728,12 @@ const STUDIO = { 'studio-823': 'Studio 823', 'faizan-khatri': 'FKD Workshop' };
     margin: 0;
     padding: 0;
     display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end; /* tags on the right */
-    gap: 6px;
-    font-size: var(--_tokens---type--micro);
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    text-align: right;
+    font-size: var(--_tokens---type--small); /* same style as the facts above */
+    line-height: 1.25;
   }
 
   /* bottom row: studio pill (left) + arrow (right) */
@@ -802,24 +807,23 @@ const STUDIO = { 'studio-823': 'Studio 823', 'faizan-khatri': 'FKD Workshop' };
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    font-size: var(--_tokens---type--small); /* small arrow */
+    font-size: var(--_tokens---type--medium); /* arrow one class bigger */
     transition: transform 0.3s ease;
   }
 
-  /* Countdown ring around the arrow — fills over the auto-advance time (3s).
-     Sized off --type--big (not the now-small arrow) so it keeps its size. */
+  /* Countdown ring around the arrow — fills over the auto-advance time (3s) */
   .home-slider__ring {
     position: absolute;
     top: 50%;
     left: 50%;
-    width: calc(var(--_tokens---type--big) * 1.1);
-    height: calc(var(--_tokens---type--big) * 1.1);
+    width: 2.1em;   /* relative to the arrow — sits clearly around it */
+    height: 2.1em;
     transform: translate(-50%, -50%) rotate(-90deg); /* start the fill at 12 o'clock */
     overflow: visible;
     pointer-events: none;
   }
-  .home-slider__ring circle { fill: none; stroke-width: 3; } /* thinner */
-  .home-slider__ring-track { stroke: currentColor; opacity: 0.22; }
+  .home-slider__ring circle { fill: none; stroke-width: 3; } /* thin */
+  .home-slider__ring-track { stroke: currentColor; opacity: 0.4; } /* clearly visible */
   .home-slider__ring-fill {
     stroke: currentColor;
     stroke-linecap: round;
@@ -1003,7 +1007,10 @@ const STUDIO = { 'studio-823': 'Studio 823', 'faizan-khatri': 'FKD Workshop' };
     }
     .home-slider__slide {
       flex: 0 0 100%;
-      --img-w: 76%;
+      --img-w: 100%; /* full-width image on mobile */
+    }
+    .home-slider__image-wrap img {
+      object-fit: cover; /* zoom/crop so every image fills the same-height frame */
     }
     .home-slider__track::before,
     .home-slider__track::after {
@@ -1014,7 +1021,7 @@ const STUDIO = { 'studio-823': 'Studio 823', 'faizan-khatri': 'FKD Workshop' };
   @media (max-width: 600px) {
     .home-slider__slide {
       flex: 0 0 100%;
-      --img-w: 84%;
+      --img-w: 100%;
     }
     .home-slider__track::before,
     .home-slider__track::after {
