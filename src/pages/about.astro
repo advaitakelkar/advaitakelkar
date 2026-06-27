@@ -163,7 +163,9 @@ const skillsets = [
   {
     category: "Languages",
     skills: [
-      { name: "English", level: "(Fluent)" }
+      { name: "Hindi", level: "(Native)" },
+      { name: "English", level: "(Fluent)" },
+      { name: "Marathi", level: "(Native)" }
     ]
   },
   {
@@ -323,7 +325,7 @@ const skillsets = [
         <!-- Tabs (Sticky 100% width, equally spaced) -->
         <div class="about-tabs-container" role="tablist" aria-label="Career sections">
           <button class="about-tab-btn is-active" role="tab" aria-selected="true" aria-controls="panel-about" data-tab="about">
-            <span>Exp</span>
+            <span>EXP</span>
             <svg class="pill-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
           </button>
           <button class="about-tab-btn" role="tab" aria-selected="false" aria-controls="panel-exhibitions" data-tab="exhibitions">
@@ -436,11 +438,15 @@ const skillsets = [
             {skillsets[0].skills.map((skill) => (
               <a
                 href={`/projects?search=${encodeURIComponent(skill.name)}`}
-                class="skill-pill"
+                class="proj-bubble skill-pill"
                 title={`Click to view projects using ${skill.name}`}
               >
-                <span>{skill.name}</span>
-                <span class="skill-arrow">{skill.level}</span>
+                <span class="proj-bubble__name" data-short={skill.name} data-full={skill.name}>{skill.name}</span>
+                <span class="proj-bubble__tag">{skill.level}</span>
+                <svg class="link-arrow proj-bubble__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+                  <line x1="6" y1="18" x2="18" y2="6"></line>
+                  <polyline points="10 6 18 6 18 14"></polyline>
+                </svg>
               </a>
             ))}
           </div>
@@ -452,11 +458,15 @@ const skillsets = [
             {skillsets[1].skills.map((skill) => (
               <a
                 href={`/projects?search=${encodeURIComponent(skill.name)}`}
-                class="skill-pill"
+                class="proj-bubble skill-pill"
                 title={`Click to view projects using ${skill.name}`}
               >
-                <span>{skill.name}</span>
-                <span class="skill-arrow">{skill.level}</span>
+                <span class="proj-bubble__name" data-short={skill.name} data-full={skill.name}>{skill.name}</span>
+                <span class="proj-bubble__tag">{skill.level}</span>
+                <svg class="link-arrow proj-bubble__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+                  <line x1="6" y1="18" x2="18" y2="6"></line>
+                  <polyline points="10 6 18 6 18 14"></polyline>
+                </svg>
               </a>
             ))}
           </div>
@@ -1023,7 +1033,22 @@ const skillsets = [
 
   .skill-pills {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  :global(.qs-row) {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    gap: 5px;
+    width: 100%;
+    overflow: visible;
+  }
+
+  :global(.qs-row--last) {
+    justify-content: flex-start;
     gap: 5px;
   }
 
@@ -1039,16 +1064,60 @@ const skillsets = [
     border-radius: 999px;
     padding: 6px 12px;
     text-decoration: none;
+    white-space: nowrap;
     cursor: pointer;
+    overflow: hidden;
     box-sizing: border-box;
-    transition: background-color 0.2s, color 0.2s, transform 0.15s, box-shadow 0.2s, border-color 0.2s;
+    flex: 0 0 auto;
+    transition: background-color 0.2s, color 0.2s, transform 0.15s, box-shadow 0.2s, border-color 0.2s, width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  .skill-arrow {
-    display: inline-block;
+  /* When squished, hide the text and arrow to make it a pure color dot */
+  .skill-pill.is-squished {
+    color: transparent;
+  }
+  .skill-pill.is-squished .proj-bubble__tag,
+  .skill-pill.is-squished .proj-bubble__arrow {
+    opacity: 0 !important;
+  }
+
+  /* Temporary measure state — disable pill transitions only */
+  .qs-measure-state .skill-pill {
+    transition: none !important;
+  }
+
+  .proj-bubble__name {
+    color: inherit;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .proj-bubble__tag {
+    font-family: var(--_tokens---font--mono);
+    line-height: 1;
+    color: inherit;
+    opacity: 0;
+    max-width: 0;
+    margin-left: -7px;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: max-width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                opacity 0.28s ease,
+                margin-left 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .skill-pill:hover .proj-bubble__tag {
+    max-width: 160px;
+    opacity: 0.6;
+    margin-left: 0;
+  }
+
+  .proj-bubble__arrow {
+    width: 0.8em;
+    height: 0.8em;
     flex-shrink: 0;
     opacity: 0.55;
-    transition: opacity 0.2s ease;
+    transition: transform 0.2s ease, opacity 0.2s ease;
   }
 
   .skill-pill:hover {
@@ -1058,7 +1127,7 @@ const skillsets = [
     transform: translateY(-1px);
   }
 
-  .skill-pill:hover .skill-arrow {
+  .skill-pill:hover .proj-bubble__arrow {
     opacity: 1;
   }
 
@@ -1420,4 +1489,178 @@ const skillsets = [
       });
     });
   });
+
+  // --- Dynamic Stack & Hover resizing for Skillset Pills ---
+  function initSkillsetPills() {
+    const pillContainers = document.querySelectorAll('.skill-pills');
+    
+    pillContainers.forEach((container) => {
+      const g = container as HTMLElement;
+      if (g.dataset.spInit) return;
+      g.dataset.spInit = '1';
+      
+      const pills = Array.from(g.querySelectorAll('.skill-pill')) as HTMLElement[];
+      if (!pills.length) return;
+      
+      function buildSkillsetRows() {
+        g.style.flexDirection = 'row';
+        g.style.flexWrap = 'wrap';
+        g.style.gap = '5px';
+        pills.forEach(p => {
+          p.style.width = '';
+          g.appendChild(p);
+        });
+        g.classList.add('qs-measure-state');
+        void g.offsetWidth;
+        pills.forEach(p => { p.dataset.restW = String(p.offsetWidth); });
+        
+        pills.forEach(p => {
+          const tagEl = p.querySelector('.proj-bubble__tag') as HTMLElement | null;
+          if (tagEl) {
+            tagEl.style.transition = 'none';
+            tagEl.style.maxWidth = '800px';
+            tagEl.style.marginLeft = '0';
+          }
+        });
+        void g.offsetWidth;
+        pills.forEach(p => { p.dataset.fullW = String(p.offsetWidth); });
+        
+        pills.forEach(p => {
+          const tagEl = p.querySelector('.proj-bubble__tag') as HTMLElement | null;
+          if (tagEl) {
+            tagEl.style.transition = '';
+            tagEl.style.maxWidth = '';
+            tagEl.style.marginLeft = '';
+          }
+        });
+        g.classList.remove('qs-measure-state');
+        
+        const containerW = g.clientWidth;
+        const gap = 5;
+        const rows: HTMLElement[][] = [];
+        let cur: HTMLElement[] = [];
+        let rowW = 0;
+        pills.forEach(p => {
+          const w = parseFloat(p.dataset.restW || '0');
+          if (cur.length > 0 && rowW + gap + w > containerW) {
+            rows.push(cur);
+            cur = [p];
+            rowW = w;
+          } else {
+            rowW = cur.length === 0 ? w : rowW + gap + w;
+            cur.push(p);
+          }
+        });
+        if (cur.length > 0) rows.push(cur);
+        
+        g.style.flexDirection = '';
+        g.style.flexWrap = '';
+        g.style.gap = '';
+        g.innerHTML = '';
+        rows.forEach((rowPills, idx) => {
+          const isLast = idx === rows.length - 1;
+          const row = document.createElement('div');
+          row.className = isLast ? 'qs-row qs-row--last' : 'qs-row';
+          row.style.cssText = [
+            'display:flex',
+            'flex-direction:row',
+            'flex-wrap:nowrap',
+            'justify-content:flex-start',
+            'gap:5px',
+            'width:100%',
+            'overflow:visible'
+          ].join(';');
+          rowPills.forEach(p => row.appendChild(p));
+          g.appendChild(row);
+        });
+      }
+      
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        buildSkillsetRows();
+      }));
+      
+      pills.forEach(p => {
+        p.addEventListener('mouseenter', () => {
+          const row = p.parentElement;
+          if (!row || !row.classList.contains('qs-row')) return;
+          
+          const rowPills = Array.from(row.children) as HTMLElement[];
+          const H = rowPills.indexOf(p);
+          if (H === -1) return;
+          
+          clearTimeout((row as any)._resetTimer);
+          
+          const N = rowPills.length;
+          const targetW = rowPills.map(rp => parseFloat(rp.dataset.restW || '0'));
+          const fullW = parseFloat(p.dataset.fullW || '0');
+          const rowWidth = row.clientWidth;
+          
+          const isLastRow = row.classList.contains('qs-row--last');
+          const totalRestW = targetW.reduce((a, b) => a + b, 0) + (isLastRow ? (N - 1) * 5 : 0);
+          const emptySpace = Math.max(0, rowWidth - totalRestW);
+          
+          const req = fullW - targetW[H];
+          targetW[H] = fullW;
+          
+          let deficit = Math.max(0, req - emptySpace);
+          
+          const others = rowPills
+            .map((rp, i) => ({ i, dist: Math.abs(i - H) }))
+            .filter(o => o.i !== H)
+            .sort((a, b) => {
+              if (b.dist !== a.dist) return b.dist - a.dist;
+              return a.i - b.i;
+            });
+            
+          for (const o of others) {
+            if (deficit <= 0) break;
+            const maxSteal = targetW[o.i] - 26;
+            if (maxSteal > 0) {
+              const steal = Math.min(deficit, maxSteal);
+              targetW[o.i] -= steal;
+              deficit -= steal;
+            }
+          }
+          
+          if (deficit > 0) {
+            targetW[H] -= deficit;
+          }
+          
+          rowPills.forEach((rp, i) => {
+            rp.style.width = targetW[i] + 'px';
+            rp.classList.toggle('is-squished', targetW[i] <= 32);
+          });
+        });
+        
+        p.addEventListener('mouseleave', () => {
+          const row = p.parentElement;
+          if (!row || !row.classList.contains('qs-row')) return;
+          
+          const rowPills = Array.from(row.children) as HTMLElement[];
+          rowPills.forEach(rp => {
+            rp.classList.remove('is-squished');
+            rp.style.width = rp.dataset.restW + 'px';
+          });
+          
+          clearTimeout((row as any)._resetTimer);
+          (row as any)._resetTimer = setTimeout(() => {
+            rowPills.forEach(rp => {
+              rp.style.width = '';
+            });
+          }, 400);
+        });
+      });
+      
+      let resizeTimer: number | undefined;
+      window.addEventListener('resize', () => {
+        window.clearTimeout(resizeTimer);
+        resizeTimer = window.setTimeout(() => {
+          buildSkillsetRows();
+        }, 180);
+      });
+    });
+  }
+
+  initSkillsetPills();
+  document.addEventListener('astro:after-swap', initSkillsetPills);
 </script>
