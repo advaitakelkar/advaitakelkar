@@ -609,7 +609,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     box-sizing: border-box;
     cursor: default;
     background-color: color-mix(in srgb, var(--_tokens---color--fg) 2.5%, var(--_tokens---color--bg));
-    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
+    border: none;
     border-radius: 0;
     overflow: visible;
     box-shadow: 0 8px 24px -10px color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
@@ -1159,12 +1159,25 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   function initAccordion() {
     document.querySelectorAll<HTMLElement>('.project-card').forEach(card => {
       const header = card.querySelector<HTMLElement>('.project-card__header');
+      
+      // Click to toggle
       header?.addEventListener('click', (e) => {
         const target = e.target as HTMLElement;
-        // Don't toggle if clicking on the pill link
         if (target.closest('.project-card__pill')) return;
-
         card.classList.toggle('is-open');
+      });
+
+      // Hover header to open
+      header?.addEventListener('mouseenter', () => {
+        card.classList.add('is-open');
+      });
+
+      // Mouse leave the entire card to collapse it back
+      card.addEventListener('mouseleave', () => {
+        card.classList.remove('is-open');
+        // Clear active states of inside previews
+        card.querySelectorAll<HTMLElement>('.project-card__hover-preview').forEach(p => p.classList.remove('is-visible'));
+        card.querySelectorAll<HTMLElement>('.project-card__thumb-item').forEach(t => t.classList.remove('is-active'));
       });
     });
   }
