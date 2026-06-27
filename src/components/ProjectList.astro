@@ -130,6 +130,16 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
           { label: 'Status',   val: p.data.status },
           { label: 'Program',  val: p.data.program },
         ].filter(m => m.val);
+        // Build image list padded to minimum 5
+        const rawImgs: string[] = [];
+        if (p.data.coverImage) rawImgs.push(p.data.coverImage);
+        if (p.data.multiImage) rawImgs.push(...(p.data.multiImage as string[]));
+        const allImgs: string[] = [...rawImgs];
+        if (allImgs.length > 0) {
+          while (allImgs.length < 5) {
+            allImgs.push(...rawImgs.slice(0, 5 - allImgs.length));
+          }
+        }
         return (
         <div
           class="project-card is-open"
@@ -145,12 +155,10 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
           data-tags={(p.data.tags ?? []).map(t => tagMap[t.id] || t.id).join(',')}
           data-tag-ids={(p.data.tags ?? []).map(t => t.id).join(',')}
         >
-          <!-- Always-visible header — click anywhere (except pill) to open/close -->
+          <!-- Header -->
           <div class="project-card__header">
             <h2 class="project-card__stack-name">{p.data.name}</h2>
             <span class="project-card__stack-right">
-              {tagLine && <span class="project-card__stack-tags">{tagLine}</span>}
-              {p.data.year && <span class="project-card__stack-year">{p.data.year}</span>}
               <a href={`/projects/${p.id}`} class="project-card__pill">
                 <span>Go to project</span>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
@@ -158,31 +166,41 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
             </span>
           </div>
 
-          <!-- Collapsible body — expands on click -->
           <div class="project-card__body">
             <div class="project-card__body-inner">
-              <a href={`/projects/${p.id}`} class="project-card__bg-img-wrap soft-image-container">
-                {p.data.coverImage ? (
-                  <img src={p.data.coverImage} alt={p.data.name} loading="lazy" />
-                ) : (
-                  <div class="project-card__placeholder" />
-                )}
-              </a>
-              <div class="project-card__full">
-                <!-- Row 2: intro + description (left) -->
-                <div class="project-card__row project-card__row2">
-                  <div class="project-card__text-block">
-                    <p class="project-card__intro">{p.data.smallIntro}</p>
-                    {p.data.description && (
-                      <p class="project-card__desc">
-                        {p.data.description.replace(/<[^>]*>/g, '').substring(0, 120) + (p.data.description.replace(/<[^>]*>/g, '').length > 120 ? '...' : '')}
-                      </p>
-                    )}
-                  </div>
+              <div class="project-card__columns">
+                <!-- Left: description -->
+                <div class="project-card__description-col">
+                  <p class="project-card__intro">{p.data.smallIntro}</p>
+                  {p.data.description && (
+                    <p class="project-card__desc">
+                      {p.data.description.replace(/<[^>]*>/g, '').substring(0, 120) + (p.data.description.replace(/<[^>]*>/g, '').length > 120 ? '...' : '')}
+                    </p>
+                  )}
                 </div>
 
-                <!-- Row 3: meta (left) -->
-                <div class="project-card__row project-card__row3">
+                <!-- Right: scrollable thumbnail strip -->
+                <div class="project-card__image-col">
+                  <div class="project-card__thumbs-scroll">
+                    {allImgs.map((src, idx) => (
+                      <button
+                        type="button"
+                        class="project-card__thumb-item"
+                        data-src={src}
+                        data-alt={p.data.name}
+                        aria-label={`View image ${idx + 1} of ${p.data.name}`}
+                      >
+                        <img src={src} alt={`${p.data.name} ${idx + 1}`} loading="lazy" />
+                      </button>
+                    ))}
+                    {allImgs.length === 0 && <div class="project-card__placeholder" />}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Bottom Bar -->
+              <div class="project-card__bottom-bar">
+                <div class="project-card__bottom-left">
                   <div class="project-card__metaline">
                     {metaParts.map((m, idx) => (
                       <span class="project-card__meta-item">
@@ -192,6 +210,10 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
                     ))}
                   </div>
                 </div>
+                <div class="project-card__bottom-right">
+                  {tagLine && <span class="project-card__bottom-tags">{tagLine}</span>}
+                  {p.data.year && <span class="project-card__bottom-year">{p.data.year}</span>}
+                </div>
               </div>
             </div>
           </div>
@@ -200,6 +222,14 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       })}
     </div>
     </div> <!-- End projects-top-section -->
+
+    <!-- Center hover preview overlay -->
+    <div id="project-center-preview" class="project-center-preview" aria-hidden="true" role="dialog">
+      <div class="project-center-preview__backdrop"></div>
+      <div class="project-center-preview__container">
+        <img id="project-center-preview-img" src="" alt="" />
+      </div>
+    </div>
 
     <!-- Bottom Section: Bubbles interface — styled to match Footer -->
     <div class="projects-bottom-section">
@@ -579,7 +609,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     display: flex;
     flex-direction: column;
     gap: 16px;
-    margin-top: 200px; /* Space to clear the fixed search header */
+    margin-top: 290px; /* Space to clear the fixed search header */
   }
 
   .project-card {
@@ -672,74 +702,24 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
   .project-card__body-inner {
     position: relative;
-    min-height: 280px;
     overflow: hidden;
-    padding-bottom: 24px;
   }
 
-  /* ── Expanded content rows ── */
-  .project-card__full {
-    position: relative;
-    z-index: 2;
+  .project-card__columns {
     display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding-top: 8px;
-    padding-left: 24px;
-    padding-right: 45%; /* Reserve space on desktop so text doesn't overlap image focal point */
-  }
-
-  .project-card__row {
-    display: flex;
-    align-items: center; /* centrally align all text in the row vertically */
-    justify-content: space-between;
-    gap: 32px;
+    flex-direction: row;
     width: 100%;
+    min-height: 220px;
+    border-bottom: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
   }
 
-  /* Row 1: name + tag/year */
-  .project-card__row1 { align-items: center; }
-
-  .project-card__title-link { text-decoration: none; color: var(--_tokens---color--fg); }
-
-  .project-card__title {
-    font-size: var(--_tokens---type--medium);
-    font-weight: 500;
-    line-height: 1.1;
-    letter-spacing: -0.02em;
-    margin: 0;
-  }
-
-  .project-card__title-link:hover .project-card__title { opacity: 0.7; }
-
-  .project-card__r1-right {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    flex-shrink: 0;
-  }
-
-  .project-card__tag {
-    font-size: var(--_tokens---type--micro);
-    color: var(--_tokens---color--muted);
-    letter-spacing: 0.04em;
-  }
-
-  .project-card__year {
-    font-size: var(--_tokens---type--micro); /* micro text size */
-    font-weight: 500;
-    color: var(--_tokens---color--fg);
-  }
-
-  /* Row 2: intro + description + image */
-  .project-card__row2 { align-items: center; }
-
-  .project-card__text-block {
+  .project-card__description-col {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    min-width: 0;
+    gap: 10px;
+    padding: 16px 24px;
+    box-sizing: border-box;
   }
 
   .project-card__intro {
@@ -760,24 +740,123 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     opacity: 0.85;
   }
 
-  .project-card__bg-img-wrap {
-    position: absolute;
-    right: 0;
-    top: 0;
-    bottom: 0;
+  .project-card__image-col {
     width: 55%;
-    z-index: 1;
+    flex-shrink: 0;
     overflow: hidden;
     background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
     border-left: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
+    position: relative;
+    display: flex;
+    align-items: stretch;
   }
 
-  .project-card__bg-img-wrap img {
+  /* ── Scrollable thumbnail strip ── */
+  .project-card__thumbs-scroll {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    overflow-x: auto;
+    overflow-y: hidden;
+    width: 100%;
+    height: 100%;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--_tokens---color--fg) 20%, transparent) transparent;
+    -webkit-overflow-scrolling: touch;
+    gap: 0;
+  }
+
+  .project-card__thumbs-scroll::-webkit-scrollbar {
+    height: 3px;
+  }
+  .project-card__thumbs-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .project-card__thumbs-scroll::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--_tokens---color--fg) 20%, transparent);
+    border-radius: 2px;
+  }
+
+  .project-card__thumb-item {
+    all: unset;
+    display: block;
+    flex-shrink: 0;
+    width: 140px;
+    height: 100%;
+    min-height: 180px;
+    overflow: hidden;
+    cursor: crosshair;
+    position: relative;
+    border-right: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+  }
+
+  .project-card__thumb-item:last-child {
+    border-right: none;
+  }
+
+  .project-card__thumb-item img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     object-position: center;
     display: block;
+    transition: opacity 0.15s ease;
+  }
+
+  .project-card__thumb-item:hover img {
+    opacity: 0.8;
+  }
+
+  /* ── Center preview overlay ── */
+  .project-center-preview {
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  .project-center-preview.is-visible {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .project-center-preview__backdrop {
+    position: absolute;
+    inset: 0;
+    background: color-mix(in srgb, var(--_tokens---color--bg) 60%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .project-center-preview__container {
+    position: relative;
+    z-index: 1;
+    width: clamp(320px, 55vw, 900px);
+    height: clamp(220px, 50vh, 650px);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
+    box-shadow: 0 32px 80px -16px color-mix(in srgb, var(--_tokens---color--fg) 30%, transparent);
+    transform: scale(0.94);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .project-center-preview.is-visible .project-center-preview__container {
+    transform: scale(1);
+  }
+
+  .project-center-preview__container img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+    display: block;
+    background-color: color-mix(in srgb, var(--_tokens---color--bg) 90%, transparent);
   }
 
   .project-card__placeholder {
@@ -786,8 +865,38 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     background-color: color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
   }
 
-  /* Row 3: meta line + CTA pill */
-  .project-card__row3 { align-items: center; }
+  .project-card__bottom-bar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 24px;
+    box-sizing: border-box;
+    font-size: var(--_tokens---type--micro);
+    color: var(--_tokens---color--muted);
+  }
+
+  .project-card__bottom-left {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+  }
+
+  .project-card__bottom-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+    font-weight: 300;
+  }
+
+  .project-card__bottom-tags {
+    color: var(--_tokens---color--muted);
+  }
+
+  .project-card__bottom-year {
+    color: var(--_tokens---color--muted);
+  }
 
   .project-card__metaline {
     display: flex;
@@ -943,38 +1052,100 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       align-items: flex-start;
       gap: 16px;
     }
-    .filter-group--tags {
-      width: 100%;
+    .project-cards-container {
+      margin-top: 240px; /* Clear mobile sticky header */
     }
-    .project-card__stack-tags {
-      display: none; /* hide tag on mobile header — saves space */
+    /* Mobile card: name + pill + images only */
+    .project-card__description-col {
+      display: none;
     }
-    .project-card__full {
-      padding-right: 0; /* Remove right padding on mobile */
+    .project-card__bottom-bar {
+      display: none;
     }
-    .project-card__body-inner {
-      min-height: 200px;
-    }
-    .project-card__bg-img-wrap {
-      width: 100%; /* Fill entire background on mobile */
-      opacity: 0.12; /* Keep it subtle so text on top is readable */
-      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 20%, black 80%, transparent 100%);
-      mask-image: linear-gradient(to bottom, transparent 0%, black 20%, black 80%, transparent 100%);
-      border-left: none;
-    }
-    .project-card__row2 {
+    .project-card__columns {
       flex-direction: column;
+      min-height: auto;
     }
-    .project-card__row,
-    .project-card__row3 {
-      flex-wrap: wrap;
-      gap: 14px;
+    .project-card__image-col {
+      width: 100%;
+      height: 180px;
+      border-left: none;
+      border-top: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
     }
-    .tag-picker-container {
-      max-width: 100%;
+    .project-card__thumb-item {
+      width: 120px;
+      min-height: 180px;
+    }
+    /* On mobile: preview is full-screen lightbox */
+    .project-center-preview__container {
+      width: 94vw;
+      height: 60vh;
     }
   }
 </style>
+
+<script>
+  // ── Center hover preview (desktop) / lightbox (mobile) ──
+  function initImagePreview() {
+    const overlay = document.getElementById('project-center-preview') as HTMLElement | null;
+    const overlayImg = document.getElementById('project-center-preview-img') as HTMLImageElement | null;
+    const backdrop = overlay?.querySelector('.project-center-preview__backdrop') as HTMLElement | null;
+    if (!overlay || !overlayImg) return;
+
+    const isHoverDevice = window.matchMedia('(hover: hover)').matches;
+    let hideTimer: ReturnType<typeof setTimeout> | null = null;
+
+    function showPreview(src: string, alt: string) {
+      if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+      overlayImg.src = src;
+      overlayImg.alt = alt;
+      overlay.classList.add('is-visible');
+      overlay.setAttribute('aria-hidden', 'false');
+    }
+
+    function hidePreview() {
+      hideTimer = setTimeout(() => {
+        overlay.classList.remove('is-visible');
+        overlay.setAttribute('aria-hidden', 'true');
+      }, 80);
+    }
+
+    const thumbs = document.querySelectorAll<HTMLElement>('.project-card__thumb-item');
+    thumbs.forEach(thumb => {
+      const src = thumb.dataset.src ?? '';
+      const alt = thumb.dataset.alt ?? '';
+
+      if (isHoverDevice) {
+        // Desktop: reveal on hover, hide on leave
+        thumb.addEventListener('mouseenter', () => showPreview(src, alt));
+        thumb.addEventListener('mouseleave', () => hidePreview());
+        // Keep open when moving into overlay
+        overlay.addEventListener('mouseenter', () => {
+          if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+        });
+        overlay.addEventListener('mouseleave', () => hidePreview());
+      } else {
+        // Mobile: toggle lightbox on tap
+        thumb.addEventListener('click', () => {
+          if (overlay.classList.contains('is-visible')) {
+            hidePreview();
+          } else {
+            showPreview(src, alt);
+          }
+        });
+      }
+    });
+
+    // Click backdrop / Escape to dismiss
+    backdrop?.addEventListener('click', () => hidePreview());
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') hidePreview();
+    });
+  }
+
+  initImagePreview();
+  document.addEventListener('astro:after-swap', initImagePreview);
+</script>
 
 <script>
   const container = document.getElementById('project-cards-container');
