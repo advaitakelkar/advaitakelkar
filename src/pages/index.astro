@@ -85,47 +85,49 @@ const STUDIO = { 'studio-823': 'Studio 823', 'faizan-khatri': 'FKD Workshop' };
                 data-index={i}
                 aria-label={p.data.name}
               >
-                <div class="home-slider__image-wrap">
-                  <img src={p.data.coverImage || '/images/admin/placeholder.webp'} alt={p.data.name} loading={i === 0 ? 'eager' : 'lazy'} />
-                </div>
-                {[false, true].map((ko) => (
-                  <div class:list={["home-slider__caption", ko && "home-slider__caption--knockout"]} aria-hidden={ko ? 'true' : undefined}>
-                    <div class="home-slider__top">
-                      <div class="home-slider__head">
-                        <span class="home-slider__name">{p.data.name}</span>
-                        <div class="home-slider__meta-right">
+                {/* image + captions scoped together so captions position relative to this area */}
+                <div class="home-slider__image-area">
+                  <div class="home-slider__image-wrap">
+                    <img src={p.data.coverImage || '/images/admin/placeholder.webp'} alt={p.data.name} loading={i === 0 ? 'eager' : 'lazy'} />
+                  </div>
+                  {[false, true].map((ko) => (
+                    <div class:list={["home-slider__caption", ko && "home-slider__caption--knockout"]} aria-hidden={ko ? 'true' : undefined}>
+                      <div class="home-slider__top">
+                        <div class="home-slider__head">
+                          <span class="home-slider__name">{p.data.name}</span>
                           <ul class="home-slider__facts">
-                            {p.data.year && <li><span class="home-slider__fact-k">Year</span> — {p.data.year}</li>}
-                            {p.data.location && <li><span class="home-slider__fact-k">Location</span> — {p.data.location}</li>}
-                            {p.data.category && <li><span class="home-slider__fact-k">Category</span> — {catName(p.data.category.id)}</li>}
+                            {p.data.year && <li><span class="home-slider__fact-k">Year</span> — <span class="home-slider__fact-v">{p.data.year}</span></li>}
+                            {p.data.location && <li><span class="home-slider__fact-k">Location</span> — <span class="home-slider__fact-v">{p.data.location}</span></li>}
+                            {p.data.category && <li><span class="home-slider__fact-k">Category</span> — <span class="home-slider__fact-v">{catName(p.data.category.id)}</span></li>}
+                            {otherTags.map((id) => <li><span class="home-slider__fact-k">Tag</span> — <span class="home-slider__fact-v home-slider__fact-v--tag">{tagMap[id] || id}</span></li>)}
                           </ul>
-                          {otherTags.length > 0 && (
-                            <ul class="home-slider__tags">
-                              {otherTags.map((id) => <li><span class="home-slider__fact-k">Tag</span> — {tagMap[id] || id}</li>)}
-                            </ul>
-                          )}
+                        </div>
+                        <div class="home-slider__about">
+                          {p.data.smallIntro && <p class="home-slider__intro">{p.data.smallIntro}</p>}
+                          {p.data.description && <div class="home-slider__desc" set:html={p.data.description} />}
                         </div>
                       </div>
-                      <div class="home-slider__about">
-                        {p.data.smallIntro && <p class="home-slider__intro">{p.data.smallIntro}</p>}
-                        {p.data.description && <div class="home-slider__desc" set:html={p.data.description} />}
+                      <div class="home-slider__bottom">
+                        {studio && <span class="home-slider__studio">{STUDIO[studio]}</span>}
+                        <span class="home-slider__arrow" aria-hidden="true">
+                          <svg class="home-slider__ring" viewBox="0 0 100 100" aria-hidden="true">
+                            <circle class="home-slider__ring-track" cx="50" cy="50" r="46"></circle>
+                            <circle class="home-slider__ring-fill" cx="50" cy="50" r="46"></circle>
+                          </svg>
+                          <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+                            <line x1="6" y1="18" x2="18" y2="6"></line>
+                            <polyline points="10 6 18 6 18 14"></polyline>
+                          </svg>
+                        </span>
                       </div>
                     </div>
-                    <div class="home-slider__bottom">
-                      {studio && <span class="home-slider__studio">{STUDIO[studio]}</span>}
-                      <span class="home-slider__arrow" aria-hidden="true">
-                        <svg class="home-slider__ring" viewBox="0 0 100 100" aria-hidden="true">
-                          <circle class="home-slider__ring-track" cx="50" cy="50" r="46"></circle>
-                          <circle class="home-slider__ring-fill" cx="50" cy="50" r="46"></circle>
-                        </svg>
-                        <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
-                          <line x1="6" y1="18" x2="18" y2="6"></line>
-                          <polyline points="10 6 18 6 18 14"></polyline>
-                        </svg>
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+                {/* Mobile: name + studio pill sit below the image as normal flow */}
+                <div class="home-slider__name-row" aria-hidden="true">
+                  <span class="home-slider__name-below">{p.data.name}</span>
+                  {studio && <span class="home-slider__studio-below">{STUDIO[studio]}</span>}
+                </div>
               </a>
             );
           })}
@@ -182,7 +184,7 @@ const STUDIO = { 'studio-823': 'Studio 823', 'faizan-khatri': 'FKD Workshop' };
   // Scramble both name copies (base + colour-flip) in sync — on slide-in & hover
   const SCRAMBLE_CHARS = '!<>-_\\/[]{}=+*^?#$%&@012';
   function scrambleName(slide) {
-    const els = slide.querySelectorAll('.home-slider__name');
+    const els = slide.querySelectorAll('.home-slider__name, .home-slider__name-below');
     if (!els.length) return;
     const text = els[0].dataset.text || els[0].textContent || '';
     els.forEach(e => { e.dataset.text = text; });
@@ -594,14 +596,22 @@ const STUDIO = { 'studio-823': 'Studio 823', 'faizan-khatri': 'FKD Workshop' };
 
   .home-slider__slide {
     --img-w: 66%; /* image width as a share of the content; gutters hold name + arrow */
-    position: relative; /* captions overlay the slide */
+    position: relative;
     flex: 0 0 100%; /* bound to the content width (same margins as About) */
-    scroll-snap-align: center; /* snap to center! */
-    scroll-snap-stop: always; /* a manual swipe always lands on a card */
+    scroll-snap-align: center;
+    scroll-snap-stop: always;
     display: flex;
     flex-direction: column;
     text-decoration: none;
     color: var(--_tokens---color--fg);
+  }
+
+  /* wraps image-wrap + both captions so absolute captions scope to this area */
+  .home-slider__image-area {
+    position: relative;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
   }
 
   .home-slider__image-wrap {
@@ -611,7 +621,6 @@ const STUDIO = { 'studio-823': 'Studio 823', 'faizan-khatri': 'FKD Workshop' };
     overflow: hidden;
     border-radius: 8px;
     background: transparent;
-    position: relative;
   }
 
   .home-slider__image-wrap img {
@@ -680,18 +689,18 @@ const STUDIO = { 'studio-823': 'Studio 823', 'faizan-khatri': 'FKD Workshop' };
   }
 
   .home-slider__desc {
-    font-size: var(--_tokens---type--small);
+    font-size: var(--_tokens---type--micro);
     line-height: 1.35;
     opacity: 0.88;
     display: -webkit-box;
-    -webkit-line-clamp: 3;   /* keep the card tidy */
+    -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
 
   .home-slider__desc :global(p) { margin: 0; }
 
-  /* name on the left, facts stacked at the top-right, aligned with the name */
+  /* name left, facts block right */
   .home-slider__head {
     display: flex;
     justify-content: space-between;
@@ -699,6 +708,7 @@ const STUDIO = { 'studio-823': 'Studio 823', 'faizan-khatri': 'FKD Workshop' };
     gap: clamp(16px, 3vw, 48px);
   }
 
+  /* one unified block: year / location / category / tags — all micro, same gap */
   .home-slider__facts {
     list-style: none;
     margin: 0;
@@ -710,33 +720,12 @@ const STUDIO = { 'studio-823': 'Studio 823', 'faizan-khatri': 'FKD Workshop' };
     gap: 2px;
     text-align: right;
     white-space: nowrap;
-    font-size: var(--_tokens---type--small);
-    line-height: 1.25;
+    font-size: var(--_tokens---type--micro);
+    line-height: 1.3;
   }
 
-  .home-slider__fact-k { opacity: 0.6; } /* the label part, slightly muted */
-
-  /* facts + tags stacked at the top-right */
-  .home-slider__meta-right {
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 10px;
-  }
-
-  .home-slider__tags {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 2px;
-    text-align: right;
-    font-size: var(--_tokens---type--small); /* same style as the facts above */
-    line-height: 1.25;
-  }
+  .home-slider__fact-k { opacity: 0.6; }
+  .home-slider__fact-v--tag { font-weight: 600; }
 
   /* bottom row: studio pill (left) + arrow (right) */
   .home-slider__bottom {
@@ -754,29 +743,47 @@ const STUDIO = { 'studio-823': 'Studio 823', 'faizan-khatri': 'FKD Workshop' };
     letter-spacing: 0.02em;
     white-space: nowrap;
   }
-  .home-slider__tags li {
-    white-space: nowrap; /* plain text, exactly like the facts above */
+
+  /* Mobile-only row: name + studio below the image — hidden on desktop */
+  .home-slider__name-row {
+    display: none;
+  }
+  .home-slider__name-below {
+    font-size: var(--_tokens---type--medium);
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .home-slider__studio-below {
+    flex-shrink: 0;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    padding: 5px 14px;
+    font-size: var(--_tokens---type--micro);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    align-self: center;
   }
 
-  /* ── Reveal: supporting text animates in once the slide is centred ── */
+  /* ── Desktop reveal order: name → intro → desc → facts → studio ── */
   .home-slider__facts,
   .home-slider__intro,
   .home-slider__desc,
-  .home-slider__tags,
   .home-slider__studio {
     opacity: 0;
     transform: translateY(12px);
     transition: opacity 0.55s ease, transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .home-slider__slide.is-active .home-slider__facts  { opacity: 1; transform: none; transition-delay: 0.10s; }
-  .home-slider__slide.is-active .home-slider__intro  { opacity: 1; transform: none; transition-delay: 0.18s; }
-  .home-slider__slide.is-active .home-slider__desc   { opacity: 1; transform: none; transition-delay: 0.26s; }
-  .home-slider__slide.is-active .home-slider__tags   { opacity: 1; transform: none; transition-delay: 0.34s; }
-  .home-slider__slide.is-active .home-slider__studio { opacity: 1; transform: none; transition-delay: 0.40s; }
+  .home-slider__slide.is-active .home-slider__intro  { opacity: 1; transform: none; transition-delay: 0.10s; }
+  .home-slider__slide.is-active .home-slider__desc   { opacity: 1; transform: none; transition-delay: 0.18s; }
+  .home-slider__slide.is-active .home-slider__facts  { opacity: 1; transform: none; transition-delay: 0.26s; }
+  .home-slider__slide.is-active .home-slider__studio { opacity: 1; transform: none; transition-delay: 0.34s; }
 
   @media (prefers-reduced-motion: reduce) {
     .home-slider__facts, .home-slider__intro, .home-slider__desc,
-    .home-slider__tags, .home-slider__studio {
+    .home-slider__studio {
       opacity: 1; transform: none; transition: none;
     }
   }
@@ -1005,18 +1012,43 @@ const STUDIO = { 'studio-823': 'Studio 823', 'faizan-khatri': 'FKD Workshop' };
     }
     .home-slider__slide {
       flex: 0 0 100%;
-      --img-w: 100%; /* full-width image on mobile */
+      --img-w: 100%;
     }
     .home-slider__image-wrap {
-      aspect-ratio: 3 / 4; /* portrait frame on mobile */
+      aspect-ratio: 3 / 4;
     }
     .home-slider__image-wrap img {
-      object-fit: cover; /* portrait fills full height+width; landscape zooms to fit */
+      object-fit: cover;
     }
     .home-slider__track::before,
     .home-slider__track::after {
       flex: 0 0 0;
     }
+
+    /* Mobile caption: only facts + arrow stay on the image; hide name/about/studio */
+    .home-slider__caption .home-slider__name { display: none; }
+    .home-slider__caption .home-slider__about { display: none; }
+    .home-slider__caption .home-slider__studio { display: none; }
+
+    /* Show the below-image row on mobile */
+    .home-slider__name-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding-top: clamp(10px, 2vw, 16px);
+    }
+
+    /* Mobile reveal: name-below → facts → studio-below */
+    .home-slider__name-below,
+    .home-slider__studio-below {
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.45s ease, transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .home-slider__slide.is-active .home-slider__name-below  { opacity: 1; transform: none; transition-delay: 0s; }
+    .home-slider__slide.is-active .home-slider__facts        { transition-delay: 0.12s; }
+    .home-slider__slide.is-active .home-slider__studio-below { opacity: 1; transform: none; transition-delay: 0.22s; }
   }
 
   @media (max-width: 600px) {
