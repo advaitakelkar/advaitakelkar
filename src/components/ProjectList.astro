@@ -196,6 +196,11 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
                     {allImgs.length === 0 && <div class="project-card__placeholder" />}
                   </div>
                 </div>
+
+                <!-- In-card hover preview (overlays description col on desktop, full card on mobile) -->
+                <div class="project-card__hover-preview">
+                  <img class="project-card__hover-preview-img" src="" alt="" />
+                </div>
               </div>
 
               <!-- Bottom Bar -->
@@ -222,14 +227,6 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       })}
     </div>
     </div> <!-- End projects-top-section -->
-
-    <!-- Center hover preview overlay -->
-    <div id="project-center-preview" class="project-center-preview" aria-hidden="true" role="dialog">
-      <div class="project-center-preview__backdrop"></div>
-      <div class="project-center-preview__container">
-        <img id="project-center-preview-img" src="" alt="" />
-      </div>
-    </div>
 
     <!-- Bottom Section: Bubbles interface — styled to match Footer -->
     <div class="projects-bottom-section">
@@ -752,10 +749,11 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   }
 
   /* ── Scrollable thumbnail strip ── */
+  /* ── Scrollable thumbnail strip ── */
   .project-card__thumbs-scroll {
     display: flex;
     flex-direction: row;
-    align-items: stretch;
+    align-items: center;
     overflow-x: auto;
     overflow-y: hidden;
     width: 100%;
@@ -764,6 +762,8 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     scrollbar-color: color-mix(in srgb, var(--_tokens---color--fg) 20%, transparent) transparent;
     -webkit-overflow-scrolling: touch;
     gap: 0;
+    padding: 8px;
+    box-sizing: border-box;
   }
 
   .project-card__thumbs-scroll::-webkit-scrollbar {
@@ -777,86 +777,84 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     border-radius: 2px;
   }
 
+  /* Square thumbnails with inner padding */
   .project-card__thumb-item {
     all: unset;
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
-    width: 140px;
-    height: 100%;
-    min-height: 180px;
+    width: 90px;
+    height: 90px;
     overflow: hidden;
     cursor: crosshair;
     position: relative;
-    border-right: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+    border-radius: 6px;
+    margin-right: 6px;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 4%, transparent);
+    padding: 4px;
+    box-sizing: border-box;
   }
 
   .project-card__thumb-item:last-child {
-    border-right: none;
+    margin-right: 0;
   }
 
   .project-card__thumb-item img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
     object-position: center;
     display: block;
+    border-radius: 4px;
     transition: opacity 0.15s ease;
   }
 
-  .project-card__thumb-item:hover img {
-    opacity: 0.8;
+  .project-card__thumb-item:hover img,
+  .project-card__thumb-item.is-active img {
+    opacity: 0.75;
   }
 
-  /* ── Center preview overlay ── */
-  .project-center-preview {
-    position: fixed;
-    inset: 0;
-    z-index: 500;
+  .project-card__thumb-item.is-active {
+    border-color: color-mix(in srgb, var(--_tokens---color--fg) 30%, transparent);
+  }
+
+  /* ── In-card hover preview ── */
+  .project-card__hover-preview {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    /* Cover the description column — stop at image col boundary */
+    right: 55%;
+    z-index: 10;
     display: flex;
     align-items: center;
     justify-content: center;
-    pointer-events: none;
+    background-color: color-mix(in srgb, var(--_tokens---color--bg) 92%, transparent);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
     opacity: 0;
-    transition: opacity 0.2s ease;
+    pointer-events: none;
+    transition: opacity 0.18s ease;
+    padding: 16px;
+    box-sizing: border-box;
   }
 
-  .project-center-preview.is-visible {
+  .project-card__hover-preview.is-visible {
     opacity: 1;
     pointer-events: all;
   }
 
-  .project-center-preview__backdrop {
-    position: absolute;
-    inset: 0;
-    background: color-mix(in srgb, var(--_tokens---color--bg) 60%, transparent);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-  }
-
-  .project-center-preview__container {
-    position: relative;
-    z-index: 1;
-    width: clamp(320px, 55vw, 900px);
-    height: clamp(220px, 50vh, 650px);
-    border-radius: 12px;
-    overflow: hidden;
-    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
-    box-shadow: 0 32px 80px -16px color-mix(in srgb, var(--_tokens---color--fg) 30%, transparent);
-    transform: scale(0.94);
-    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .project-center-preview.is-visible .project-center-preview__container {
-    transform: scale(1);
-  }
-
-  .project-center-preview__container img {
-    width: 100%;
-    height: 100%;
+  .project-card__hover-preview-img {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
     object-fit: contain;
-    object-position: center;
+    border-radius: 6px;
     display: block;
-    background-color: color-mix(in srgb, var(--_tokens---color--bg) 90%, transparent);
   }
 
   .project-card__placeholder {
@@ -1053,7 +1051,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       gap: 16px;
     }
     .project-cards-container {
-      margin-top: 240px; /* Clear mobile sticky header */
+      margin-top: 240px;
     }
     /* Mobile card: name + pill + images only */
     .project-card__description-col {
@@ -1073,73 +1071,90 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       border-top: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
     }
     .project-card__thumb-item {
-      width: 120px;
-      min-height: 180px;
+      width: 80px;
+      height: 80px;
     }
-    /* On mobile: preview is full-screen lightbox */
-    .project-center-preview__container {
-      width: 94vw;
-      height: 60vh;
+    /* Mobile: hover preview covers the full card columns area */
+    .project-card__hover-preview {
+      right: 0;
+      background-color: color-mix(in srgb, var(--_tokens---color--bg) 95%, transparent);
     }
   }
 </style>
 
 <script>
-  // ── Center hover preview (desktop) / lightbox (mobile) ──
+  // ── In-card hover preview (desktop) / tap reveal (mobile) ──
   function initImagePreview() {
-    const overlay = document.getElementById('project-center-preview') as HTMLElement | null;
-    const overlayImg = document.getElementById('project-center-preview-img') as HTMLImageElement | null;
-    const backdrop = overlay?.querySelector('.project-center-preview__backdrop') as HTMLElement | null;
-    if (!overlay || !overlayImg) return;
-
     const isHoverDevice = window.matchMedia('(hover: hover)').matches;
-    let hideTimer: ReturnType<typeof setTimeout> | null = null;
 
-    function showPreview(src: string, alt: string) {
-      if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
-      overlayImg.src = src;
-      overlayImg.alt = alt;
-      overlay.classList.add('is-visible');
-      overlay.setAttribute('aria-hidden', 'false');
-    }
+    document.querySelectorAll<HTMLElement>('.project-card').forEach(card => {
+      const preview = card.querySelector<HTMLElement>('.project-card__hover-preview');
+      const previewImg = card.querySelector<HTMLImageElement>('.project-card__hover-preview-img');
+      if (!preview || !previewImg) return;
 
-    function hidePreview() {
-      hideTimer = setTimeout(() => {
-        overlay.classList.remove('is-visible');
-        overlay.setAttribute('aria-hidden', 'true');
-      }, 80);
-    }
+      let hideTimer: ReturnType<typeof setTimeout> | null = null;
 
-    const thumbs = document.querySelectorAll<HTMLElement>('.project-card__thumb-item');
-    thumbs.forEach(thumb => {
-      const src = thumb.dataset.src ?? '';
-      const alt = thumb.dataset.alt ?? '';
+      function show(src: string, alt: string) {
+        if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+        previewImg.src = src;
+        previewImg.alt = alt;
+        preview.classList.add('is-visible');
+      }
 
+      function hide() {
+        hideTimer = setTimeout(() => {
+          preview.classList.remove('is-visible');
+        }, 60);
+      }
+
+      card.querySelectorAll<HTMLElement>('.project-card__thumb-item').forEach(thumb => {
+        const src = thumb.dataset.src ?? '';
+        const alt = thumb.dataset.alt ?? '';
+
+        if (isHoverDevice) {
+          thumb.addEventListener('mouseenter', () => {
+            card.querySelectorAll('.project-card__thumb-item').forEach(t => t.classList.remove('is-active'));
+            thumb.classList.add('is-active');
+            show(src, alt);
+          });
+          thumb.addEventListener('mouseleave', () => hide());
+        } else {
+          // Mobile: tap to toggle
+          thumb.addEventListener('click', () => {
+            if (preview.classList.contains('is-visible') && previewImg.src.endsWith(encodeURIComponent(src).replace(/%2F/g, '/')) ) {
+              hide();
+            } else {
+              card.querySelectorAll('.project-card__thumb-item').forEach(t => t.classList.remove('is-active'));
+              thumb.classList.add('is-active');
+              show(src, alt);
+            }
+          });
+        }
+      });
+
+      // Keep preview open when cursor moves into preview area
       if (isHoverDevice) {
-        // Desktop: reveal on hover, hide on leave
-        thumb.addEventListener('mouseenter', () => showPreview(src, alt));
-        thumb.addEventListener('mouseleave', () => hidePreview());
-        // Keep open when moving into overlay
-        overlay.addEventListener('mouseenter', () => {
+        preview.addEventListener('mouseenter', () => {
           if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
         });
-        overlay.addEventListener('mouseleave', () => hidePreview());
-      } else {
-        // Mobile: toggle lightbox on tap
-        thumb.addEventListener('click', () => {
-          if (overlay.classList.contains('is-visible')) {
-            hidePreview();
-          } else {
-            showPreview(src, alt);
-          }
+        preview.addEventListener('mouseleave', () => hide());
+      }
+
+      // Tap preview itself to dismiss on mobile
+      if (!isHoverDevice) {
+        preview.addEventListener('click', () => {
+          card.querySelectorAll('.project-card__thumb-item').forEach(t => t.classList.remove('is-active'));
+          hide();
         });
       }
     });
 
-    // Click backdrop / Escape to dismiss
-    backdrop?.addEventListener('click', () => hidePreview());
+    // Escape to dismiss all
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') hidePreview();
+      if (e.key === 'Escape') {
+        document.querySelectorAll<HTMLElement>('.project-card__hover-preview').forEach(p => p.classList.remove('is-visible'));
+        document.querySelectorAll<HTMLElement>('.project-card__thumb-item').forEach(t => t.classList.remove('is-active'));
+      }
     });
   }
 
