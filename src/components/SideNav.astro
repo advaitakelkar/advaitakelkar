@@ -128,65 +128,37 @@ const schemes = [
   <!-- ── Slide-in panel ── -->
   <div class="sn-panel" id="sn-panel" aria-hidden="true">
 
-    <!-- Top: identity + main nav -->
+    <!-- Top: identity -->
     <div class="sn-panel__top">
       <div class="sn-panel__header">
         <p class="sn-panel__name" data-scramble>Advaita Kelkar</p>
         <p class="sn-panel__bio">Hey! 👋 Advaita here — architectural designer from Mumbai 🇮🇳, currently at SCAD in Savannah 🌿. I work across architecture, interiors, urban design 🏙️ and everything in between ✨. Always curious, always making. Glad you're here! 🙌</p>
       </div>
-
-      <nav class="sn-panel__nav" aria-label="Site navigation">
-        <a href="/" class:list={['sn-panel__link', currentPath === '/' && 'is-active']}>
-          <span data-scramble>Home</span>
-          <span class="sn-panel__arrow">
-            <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
-              <line x1="6" y1="18" x2="18" y2="6"></line>
-              <polyline points="10 6 18 6 18 14"></polyline>
-            </svg>
-          </span>
-        </a>
-        <a href="/about" class:list={['sn-panel__link', currentPath === '/about' && 'is-active']}>
-          <span data-scramble>About</span>
-          <span class="sn-panel__arrow">
-            <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
-              <line x1="6" y1="18" x2="18" y2="6"></line>
-              <polyline points="10 6 18 6 18 14"></polyline>
-            </svg>
-          </span>
-        </a>
-        <a href="/projects" class:list={['sn-panel__link', currentPath.startsWith('/projects') && 'is-active']}>
-          <span data-scramble>Projects</span>
-          <span class="sn-panel__arrow">
-            <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
-              <line x1="6" y1="18" x2="18" y2="6"></line>
-              <polyline points="10 6 18 6 18 14"></polyline>
-            </svg>
-          </span>
-        </a>
-      </nav>
     </div>
 
-    <!-- Center: infinite, scrollable project wheel -->
+    <!-- Center: infinite looping scroll wheel -->
     <div class="sn-panel__wheel" id="sn-wheel">
       <div class="sn-wheel__track" id="sn-wheel-track">
-        {wheelItems.map(item => (
-          <a
-            href={item.href}
-            class:list={[
-              'sn-wheel__item',
-              item.isPage && 'sn-wheel__item--page',
-              (normPath === (item.href.replace(/\/$/, '') || '/')) && 'is-active'
-            ]}
-            data-item-id={item.id}
-          >
-            <span data-scramble>{item.name}</span>
-            <span class="sn-panel__arrow">
-              <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
-                <line x1="6" y1="18" x2="18" y2="6"></line>
-                <polyline points="10 6 18 6 18 14"></polyline>
-              </svg>
-            </span>
-          </a>
+        {[0, 1, 2].map(() => (
+          wheelItems.map(item => (
+            <a
+              href={item.href}
+              class:list={[
+                'sn-wheel__item',
+                item.isPage && 'sn-wheel__item--page',
+                (normPath === (item.href.replace(/\/$/, '') || '/')) && 'is-active'
+              ]}
+              data-item-id={item.id}
+            >
+              <span data-scramble>{item.name}</span>
+              <span class="sn-panel__arrow">
+                <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+                  <line x1="6" y1="18" x2="18" y2="6"></line>
+                  <polyline points="10 6 18 6 18 14"></polyline>
+                </svg>
+              </span>
+            </a>
+          ))
         ))}
       </div>
     </div>
@@ -573,8 +545,8 @@ const schemes = [
 
   /* ── Center: infinite project wheel ── */
   .sn-panel__wheel {
-    height: clamp(140px, 45dvh, 380px); /* dynamic responsive height for 3 to 8 projects in focus */
-    max-height: 380px;
+    height: clamp(200px, 55dvh, 480px);
+    max-height: 480px;
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-width: none;
@@ -765,6 +737,7 @@ const schemes = [
   let targetScrollTop = 0;
   let isAnimating = false;
   let lastNearestIndex = -1;
+  let isWrapping = false;
   let audioCtx: AudioContext | null = null;
 
   function initAudio() {
@@ -840,20 +813,27 @@ const schemes = [
 
   function scrollWheelToActive() {
     requestAnimationFrame(() => {
-      const wheel  = document.getElementById('sn-wheel') as HTMLElement | null;
-      const target = document.querySelector<HTMLElement>('#sn-wheel-track .sn-wheel__item.is-active');
-      if (!wheel || !target) return;
+      const wheel      = document.getElementById('sn-wheel') as HTMLElement | null;
+      const wheelTrack = document.getElementById('sn-wheel-track') as HTMLElement | null;
+      if (!wheel || !wheelTrack) return;
 
-      // getBoundingClientRect avoids offsetParent ambiguity caused by position:fixed on sn-panel
-      const itemRect  = target.getBoundingClientRect();
-      const wheelRect = wheel.getBoundingClientRect();
-      const itemTopInWheel = itemRect.top - wheelRect.top;          // item's current y inside wheel viewport
-      const wantedOffset   = (wheel.clientHeight - itemRect.height) / 2; // center it
-      const scroll = Math.max(0, wheel.scrollTop + itemTopInWheel - wantedOffset);
+      // Find the active item in the MIDDLE copy so infinite wrap has room above and below
+      const allItems = Array.from(wheelTrack.querySelectorAll<HTMLElement>('.sn-wheel__item'));
+      const perCopy  = Math.round(allItems.length / 3);
+      const middle   = allItems.slice(perCopy, perCopy * 2);
+      const target   = middle.find(el => el.classList.contains('is-active')) ?? middle[0];
+
+      // getBoundingClientRect avoids the position:fixed offsetParent problem.
+      // itemTopInWheel = item's current y position within the wheel's visible area.
+      // Adding scrollTop converts it to an absolute position in the scroll container.
+      const itemRect       = target.getBoundingClientRect();
+      const wheelRect      = wheel.getBoundingClientRect();
+      const itemAbsTop     = itemRect.top - wheelRect.top + wheel.scrollTop;
+      const scroll         = Math.max(0, itemAbsTop - (wheel.clientHeight - itemRect.height) / 2);
 
       wheel.scrollTop  = scroll;
       targetScrollTop  = scroll;
-      lastNearestIndex = -1; // reset so next real scroll triggers a tick
+      lastNearestIndex = -1;
     });
   }
 
@@ -1015,7 +995,24 @@ const schemes = [
   const wheelTrack = document.getElementById('sn-wheel-track') as HTMLElement | null;
   
   if (wheel && wheelTrack) {
+    const oneCopyHeight = () => wheelTrack.scrollHeight / 3;
     scrollWheelToActive();
+
+    function handleInfiniteWrap() {
+      const h = oneCopyHeight();
+      if (h <= 0) return;
+      if (wheel.scrollTop < h * 0.5) {
+        isWrapping = true;
+        wheel.scrollTop += h;
+        targetScrollTop += h;
+        requestAnimationFrame(() => { isWrapping = false; });
+      } else if (wheel.scrollTop > h * 1.5) {
+        isWrapping = true;
+        wheel.scrollTop -= h;
+        targetScrollTop -= h;
+        requestAnimationFrame(() => { isWrapping = false; });
+      }
+    }
 
     function updateTicks() {
       if (!wheel || !wheelTrack) return;
@@ -1037,7 +1034,7 @@ const schemes = [
       
       if (nearestIndex !== -1 && nearestIndex !== lastNearestIndex) {
         const indexDiff = Math.abs(nearestIndex - lastNearestIndex);
-        if (lastNearestIndex !== -1 && !isOpeningNav && indexDiff < 3) {
+        if (lastNearestIndex !== -1 && !isWrapping && !isOpeningNav && indexDiff < 3) {
           playTick();
         }
         lastNearestIndex = nearestIndex;
@@ -1075,6 +1072,7 @@ const schemes = [
       } else {
         wheel.scrollTop = targetScrollTop;
         isAnimating = false;
+        handleInfiniteWrap();
         snapToNearest();
       }
     }
@@ -1120,6 +1118,7 @@ const schemes = [
         wheel.scrollTop = targetScrollTop;
         isAnimating = false;
         wheel.style.scrollSnapType = 'y mandatory';
+        handleInfiniteWrap();
       }
     }
 
@@ -1127,6 +1126,7 @@ const schemes = [
     wheel.addEventListener('scroll', () => {
       if (!isAnimating) {
         targetScrollTop = wheel.scrollTop;
+        handleInfiniteWrap();
         updateTicks();
       }
     }, { passive: true });
