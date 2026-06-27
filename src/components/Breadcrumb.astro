@@ -651,6 +651,24 @@ if (activeProject) {
     .breadcrumb__list--project-page .breadcrumb__sep--about {
       display: none;
     }
+
+    /* Full-width: spread nav icons left, dropdown right */
+    .breadcrumb {
+      justify-content: space-between;
+    }
+
+    /* Remove the search input on mobile — prevents iOS zoom, dropdown still opens via tap */
+    #breadcrumb-search-input {
+      display: none;
+    }
+
+    /* Show the trigger arrow icon now that there's no text label */
+    .breadcrumb__dropdown-trigger .breadcrumb__arrow-icon {
+      display: block !important;
+      width: 11px;
+      height: 11px;
+      opacity: 0.8;
+    }
   }
 
   /* Premium outlines/focus styles for keyboard navigability */
@@ -767,7 +785,20 @@ if (activeProject) {
       });
 
       trigger.addEventListener('click', (e) => {
-        if (e.target !== searchInput) {
+        if (e.target === searchInput) return;
+        const inputHidden = !searchInput || getComputedStyle(searchInput).display === 'none';
+        if (inputHidden) {
+          // Mobile: no text input shown — toggle the dropdown directly
+          if (panel.classList.contains('is-open')) {
+            closeDropdown();
+          } else {
+            panel.classList.add('is-open');
+            const backdrop = document.getElementById('breadcrumb-backdrop');
+            if (backdrop) backdrop.classList.add('is-open');
+            trigger.setAttribute('aria-expanded', 'true');
+            activateCategory('all');
+          }
+        } else {
           searchInput.focus();
         }
       });
