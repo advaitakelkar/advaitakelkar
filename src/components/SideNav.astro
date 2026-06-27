@@ -845,33 +845,37 @@ const schemes = [
   const dropdown  = document.getElementById('sn-scheme-dropdown')!;
 
   function scrollWheelToActive() {
-    const wheel = document.getElementById('sn-wheel') as HTMLElement | null;
-    const wheelTrack = document.getElementById('sn-wheel-track') as HTMLElement | null;
-    if (!wheel || !wheelTrack) return;
+    // Double-rAF: first frame lets the browser apply .is-open / layout changes,
+    // second frame measures after paint so offsetTop values are accurate.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const wheel = document.getElementById('sn-wheel') as HTMLElement | null;
+      const wheelTrack = document.getElementById('sn-wheel-track') as HTMLElement | null;
+      if (!wheel || !wheelTrack) return;
 
-    const allItems = Array.from(wheelTrack.querySelectorAll<HTMLElement>('.sn-wheel__item'));
-    const perCopy  = Math.round(allItems.length / 3);
+      const allItems = Array.from(wheelTrack.querySelectorAll<HTMLElement>('.sn-wheel__item'));
+      const perCopy  = Math.round(allItems.length / 3);
 
-    // Use the .is-active pill in the middle copy — this is exactly what Astro marks
-    const middleItems = allItems.slice(perCopy, perCopy * 2);
-    const target = middleItems.find(el => el.classList.contains('is-active'))
-                ?? middleItems[0]; // fallback: top of middle copy
+      // Use the .is-active pill in the middle copy — Astro marks it at build time
+      const middleItems = allItems.slice(perCopy, perCopy * 2);
+      const target = middleItems.find(el => el.classList.contains('is-active'))
+                  ?? middleItems[0];
 
-    const targetScroll = target.offsetTop - (wheel.clientHeight / 2) + (target.offsetHeight / 2);
+      const targetScroll = target.offsetTop - (wheel.clientHeight / 2) + (target.offsetHeight / 2);
 
-    wheel.scrollTop = targetScroll;
-    targetScrollTop = targetScroll;
+      wheel.scrollTop = targetScroll;
+      targetScrollTop = targetScroll;
 
-    // Pre-calculate nearest index so the first open doesn't fire a tick sound
-    const containerCenter = targetScroll + wheel.clientHeight / 2;
-    let nearestIndex = -1;
-    let minDiff = Infinity;
-    allItems.forEach((item, idx) => {
-      const itemCenter = item.offsetTop + item.offsetHeight / 2;
-      const diff = Math.abs(itemCenter - containerCenter);
-      if (diff < minDiff) { minDiff = diff; nearestIndex = idx; }
-    });
-    lastNearestIndex = nearestIndex;
+      // Seed lastNearestIndex so the first open doesn't fire a tick sound
+      const containerCenter = targetScroll + wheel.clientHeight / 2;
+      let nearestIndex = -1;
+      let minDiff = Infinity;
+      allItems.forEach((item, idx) => {
+        const itemCenter = item.offsetTop + item.offsetHeight / 2;
+        const diff = Math.abs(itemCenter - containerCenter);
+        if (diff < minDiff) { minDiff = diff; nearestIndex = idx; }
+      });
+      lastNearestIndex = nearestIndex;
+    }));
   }
 
   // ── Nav toggle ─────────────────────────────────────────────
@@ -885,13 +889,9 @@ const schemes = [
     panel.setAttribute('aria-hidden', 'false');
     backdrop.classList.add('is-open');
     
-    // Re-center wheel on the current page every time the panel opens
+    // Center immediately (double-rAF inside), then once more after the 400ms transition settles
     scrollWheelToActive();
-    
-    // Re-center again after brief timeouts to ensure centering stability as layout settles during transition
-    setTimeout(scrollWheelToActive, 50);
-    setTimeout(scrollWheelToActive, 150);
-    setTimeout(scrollWheelToActive, 300);
+    setTimeout(scrollWheelToActive, 420);
     
     // Tell watermark physics where the panel's right edge will land (paddle target)
     (window as any).__navPanelTarget = 44 + panel.offsetWidth;
@@ -1045,7 +1045,7 @@ const schemes = [
     const oneCopyHeight = () => wheelTrack.scrollHeight / 3;
     
     // Initial position: center on the current page item (shared with openNav)
-    requestAnimationFrame(scrollWheelToActive);
+    scrollWheelToActive();
     
     function updateTicks() {
       if (!wheel || !wheelTrack) return;
