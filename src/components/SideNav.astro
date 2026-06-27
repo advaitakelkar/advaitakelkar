@@ -849,36 +849,27 @@ const schemes = [
     const wheelTrack = document.getElementById('sn-wheel-track') as HTMLElement | null;
     if (!wheel || !wheelTrack) return;
 
-    let p = location.pathname.replace(/\/$/, '') || '/';
-    if (p === '/index.html' || p === '/index') p = '/';
-
     const allItems = Array.from(wheelTrack.querySelectorAll<HTMLElement>('.sn-wheel__item'));
     const perCopy  = Math.round(allItems.length / 3);
 
-    // Find the target in the middle copy whose normalized href matches current path p
-    const target = allItems.slice(perCopy, perCopy * 2).find(el => {
-      const elHref = el.getAttribute('href')?.replace(/\/$/, '') || '/';
-      return elHref === p;
-    });
+    // Use the .is-active pill in the middle copy — this is exactly what Astro marks
+    const middleItems = allItems.slice(perCopy, perCopy * 2);
+    const target = middleItems.find(el => el.classList.contains('is-active'))
+                ?? middleItems[0]; // fallback: top of middle copy
 
-    const targetScroll = target
-      ? target.offsetTop - (wheel.clientHeight / 2) + (target.offsetHeight / 2)
-      : wheelTrack.scrollHeight / 3; // fallback: top of middle copy
+    const targetScroll = target.offsetTop - (wheel.clientHeight / 2) + (target.offsetHeight / 2);
 
     wheel.scrollTop = targetScroll;
     targetScrollTop = targetScroll;
 
-    // Pre-calculate nearest index to avoid ticking on initial open
+    // Pre-calculate nearest index so the first open doesn't fire a tick sound
     const containerCenter = targetScroll + wheel.clientHeight / 2;
     let nearestIndex = -1;
     let minDiff = Infinity;
     allItems.forEach((item, idx) => {
       const itemCenter = item.offsetTop + item.offsetHeight / 2;
       const diff = Math.abs(itemCenter - containerCenter);
-      if (diff < minDiff) {
-        minDiff = diff;
-        nearestIndex = idx;
-      }
+      if (diff < minDiff) { minDiff = diff; nearestIndex = idx; }
     });
     lastNearestIndex = nearestIndex;
   }
