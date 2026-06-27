@@ -32,16 +32,19 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     <!-- ── Scheme: runs synchronously in <head> → no FOUC, correct on every page load ── -->
     <script is:inline>
       (function () {
-        var ALL_SCH = ['sch1','sch2','sch3','sch4','sch5','sch6','sch7','sch8','sch9'];
-        var VALID   = ['default','sch1','sch2','sch3','sch4','sch5','sch6','sch7','sch8','sch9'];
+        // Active schemes: Void, Moss, Clay, Dusk, Midnight, Ember, Nomad
+        var ALL_SCH = ['sch1','sch2','sch3','sch4','sch6','sch7'];
+        var VALID   = ['default','sch1','sch2','sch3','sch4','sch6','sch7'];
 
         function setClass(id) {
           ALL_SCH.forEach(function (s) { document.documentElement.classList.remove(s); });
           if (id !== 'default') document.documentElement.classList.add(id);
         }
 
+        // Void gets 3/9 weight (absorbs removed schemes); others get 1/9 each
+        var POOL = ['default','default','default','sch1','sch2','sch3','sch4','sch6','sch7'];
         function randomSch() {
-          return 'sch' + Math.ceil(Math.random() * 9);
+          return POOL[Math.floor(Math.random() * POOL.length)];
         }
 
         // Reload detection — Navigation Timing Level 2
@@ -52,35 +55,16 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         var valid  = stored && VALID.indexOf(stored) !== -1;
 
         if (isReload || !valid) {
-          // Hard reload or first-ever visit → fresh random, clear manual mode
           var cls = randomSch();
           setClass(cls);
           sessionStorage.setItem('aks', cls);
           sessionStorage.removeItem('aks-mode');
         } else {
-          // Page navigation → restore scheme + manual mode if set
           setClass(stored);
           var storedMode = sessionStorage.getItem('aks-mode');
           if (storedMode === 'dark')  document.documentElement.classList.add('mode-dark');
           if (storedMode === 'light') document.documentElement.classList.add('mode-light');
         }
-
-        // ── Keyboard cycling: < = prev scheme  > = next scheme ──
-        document.addEventListener('keydown', function (e) {
-          var tag = (e.target && e.target.tagName) || '';
-          if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) return;
-          if (e.key !== '<' && e.key !== '>') return;
-          var cur = sessionStorage.getItem('aks') || 'default';
-          var idx = VALID.indexOf(cur);
-          if (idx < 0) idx = 0;
-          var next = e.key === '>'
-            ? VALID[(idx + 1) % VALID.length]
-            : VALID[(idx - 1 + VALID.length) % VALID.length];
-          setClass(next);
-          sessionStorage.setItem('aks', next);
-          // Tell SideNav to sync its active-option highlight
-          document.dispatchEvent(new CustomEvent('aks-scheme', { detail: next }));
-        });
       })();
     </script>
   </head>
