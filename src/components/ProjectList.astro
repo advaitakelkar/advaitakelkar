@@ -117,12 +117,6 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       </div>
     </div>
 
-    <!-- Keyboard navigation hint — appears on first keyboard use -->
-    <div class="kbd-hint" id="kbd-hint" aria-hidden="true">
-      <span class="kbd-hint__item"><span class="kbd-hint__key">↑</span><span class="kbd-hint__key">↓</span> navigate</span>
-      <span class="kbd-hint__item"><span class="kbd-hint__key">→</span> open project</span>
-      <span class="kbd-hint__item"><span class="kbd-hint__key">Esc</span> close</span>
-    </div>
 
     <!-- Project list — accordion cards -->
     <div class="project-cards-container" id="project-cards-container">
@@ -848,54 +842,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     width: 100%;
   }
 
-  /* ── Keyboard navigation focus indicator ── */
-  .project-card.is-keyboard-focused {
-    outline: 2px solid var(--_tokens---color--fg);
-    outline-offset: 2px;
-  }
 
-  .project-card.is-keyboard-focused .project-card__stack-name {
-    opacity: 1 !important;
-  }
-
-  /* Keyboard hint bar */
-  .kbd-hint {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 10px 0;
-    margin-bottom: 4px;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    pointer-events: none;
-    user-select: none;
-  }
-
-  .kbd-hint.is-visible {
-    opacity: 1;
-  }
-
-  .kbd-hint__item {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: var(--_tokens---type--micro);
-    color: var(--_tokens---color--muted);
-    font-weight: 300;
-  }
-
-  .kbd-hint__key {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2px 7px;
-    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 20%, transparent);
-    border-radius: 4px;
-    font-size: 10px;
-    font-family: var(--_tokens---font--mono);
-    color: var(--_tokens---color--fg);
-    line-height: 1.6;
-  }
 
   /* ── Bottom quick-search section — matches Footer visual style ── */
   .projects-bottom-section {
@@ -1061,9 +1008,6 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   let activeTag = '';
 
   // ── State ──────────────────────────────────────────────────
-  let visibleCards: HTMLElement[] = [];
-  let currentIndex = -1;
-  const kbdHint = document.getElementById('kbd-hint');
 
   function getVisibleCards() {
     return cards.filter(c => !c.hidden);
@@ -1092,102 +1036,17 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     });
   });
 
-  // ── Keyboard navigation ─────────────────────────────────────
-  document.addEventListener('keydown', (e) => {
-    const activeEl = document.activeElement as HTMLElement;
-    const inSearch = activeEl === searchInput;
-    const inInput = activeEl?.tagName === 'INPUT' || activeEl?.tagName === 'TEXTAREA' || activeEl?.tagName === 'SELECT';
 
-    if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && kbdHint) {
-      kbdHint.classList.add('is-visible');
-    }
-
-    switch (e.key) {
-      case 'ArrowDown': {
-        e.preventDefault();
-        visibleCards = getVisibleCards();
-        if (inSearch) {
-          searchInput?.blur();
-          currentIndex = 0;
-          focusCard(currentIndex);
-        } else if (currentIndex < visibleCards.length - 1) {
-          currentIndex++;
-          focusCard(currentIndex);
-        }
-        break;
-      }
-      case 'ArrowUp': {
-        e.preventDefault();
-        visibleCards = getVisibleCards();
-        if (currentIndex <= 0) {
-          currentIndex = -1;
-          searchInput?.focus();
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-          visibleCards.forEach(c => c.classList.remove('is-keyboard-focused'));
-        } else {
-          currentIndex--;
-          focusCard(currentIndex);
-        }
-        break;
-      }
-      case 'Enter':
-      case ' ': {
-        if (currentIndex >= 0 && !inInput) {
-          e.preventDefault();
-          visibleCards = getVisibleCards();
-          const card = visibleCards[currentIndex];
-          if (card) {
-            card.classList.toggle('is-open');
-          }
-        }
-        break;
-      }
-      case 'ArrowRight': {
-        if (inInput) break;
-        visibleCards = getVisibleCards();
-        if (currentIndex >= 0 && visibleCards[currentIndex]) {
-          e.preventDefault();
-          const pill = visibleCards[currentIndex].querySelector<HTMLAnchorElement>('.project-card__pill--cta, .project-card__pill');
-          if (pill?.href) window.location.href = pill.href;
-        }
-        break;
-      }
-      case 'Escape': {
-        currentIndex = -1;
-        visibleCards = getVisibleCards();
-        visibleCards.forEach(c => {
-          c.classList.remove('is-keyboard-focused');
-          c.classList.remove('is-open');
-        });
-        break;
-      }
-    }
-  });
-
-  function focusCard(idx: number) {
-    visibleCards = getVisibleCards();
-    visibleCards.forEach((c, i) => {
-      if (i === idx) {
-        c.classList.add('is-keyboard-focused');
-        c.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      } else {
-        c.classList.remove('is-keyboard-focused');
-      }
-    });
-  }
 
   function applyVisibility(matchingCards: HTMLElement[]) {
     cards.forEach(card => {
       card.hidden = true;
-      card.classList.remove('is-keyboard-focused');
       card.classList.remove('is-open');
     });
     matchingCards.forEach(card => { card.hidden = false; });
     if (countLabel) {
       countLabel.textContent = `${matchingCards.length} of ${cards.length} works`;
     }
-    currentIndex = -1;
-    visibleCards = matchingCards;
   }
 
   // Bottom bubbles: always present, grey by default, highlight on search match
