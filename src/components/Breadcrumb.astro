@@ -114,40 +114,12 @@ if (activeProject) {
 
       <div class="breadcrumb__dropdown-panel" id="breadcrumb-dropdown-panel">
 
-        <!-- ── MOBILE: single flat scrollable list ───────────── -->
-        <div class="breadcrumb__mobile-list">
-          <!-- Page links -->
-          <a href="/" class:list={["breadcrumb__list-item", isHome && "is-active"]}>
-            <span>Home</span>
-            <svg class="breadcrumb__arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"/><polyline points="10 6 18 6 18 14"/></svg>
-          </a>
-          <a href="/about" class:list={["breadcrumb__list-item", isAbout && "is-active"]}>
-            <span>About</span>
-            <svg class="breadcrumb__arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"/><polyline points="10 6 18 6 18 14"/></svg>
-          </a>
-          <a href="/projects" class:list={["breadcrumb__list-item", isProjectsIndex && "is-active"]}>
-            <span>Projects</span>
-            <svg class="breadcrumb__arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"/><polyline points="10 6 18 6 18 14"/></svg>
-          </a>
-
-          <div class="breadcrumb__divider" aria-hidden="true"></div>
-
-          <!-- Category pages -->
-          <a href="/projects" class="breadcrumb__list-item breadcrumb__list-item--cat">
-            <span>All</span>
-            <svg class="breadcrumb__arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"/><polyline points="10 6 18 6 18 14"/></svg>
-          </a>
-          {categories.map(c => (
-            <a href={`/${c.id}`} class="breadcrumb__list-item breadcrumb__list-item--cat">
-              <span>{categoryDisplayNames[c.id] || c.data.displayName}</span>
-              <svg class="breadcrumb__arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"/><polyline points="10 6 18 6 18 14"/></svg>
-            </a>
-          ))}
-
-          <div class="breadcrumb__divider" aria-hidden="true"></div>
-
-          <!-- Featured projects first, then rest -->
-          {mobileProjects.map(p => (
+        <!-- ── MOBILE: single flat scrollable list (reversed — scroll up to explore) ─ -->
+        <!-- DOM order is inverted: projects at top, Home/About at bottom.            -->
+        <!-- JS scrolls to bottom on open so Home/About sits near the thumb.         -->
+        <div class="breadcrumb__mobile-list" id="breadcrumb-mobile-list">
+          <!-- Projects (furthest from thumb — scroll up to reach) -->
+          {[...mobileProjects].reverse().map(p => (
             <a
               href={`/projects/${p.id}`}
               class:list={["breadcrumb__list-item", currentProjectId === p.id && "is-active"]}
@@ -156,6 +128,36 @@ if (activeProject) {
               <svg class="breadcrumb__arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"/><polyline points="10 6 18 6 18 14"/></svg>
             </a>
           ))}
+
+          <div class="breadcrumb__divider" aria-hidden="true"></div>
+
+          <!-- Category pages -->
+          {[...categories].reverse().map(c => (
+            <a href={`/${c.id}`} class="breadcrumb__list-item breadcrumb__list-item--cat">
+              <span>{categoryDisplayNames[c.id] || c.data.displayName}</span>
+              <svg class="breadcrumb__arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"/><polyline points="10 6 18 6 18 14"/></svg>
+            </a>
+          ))}
+          <a href="/projects" class="breadcrumb__list-item breadcrumb__list-item--cat">
+            <span>All</span>
+            <svg class="breadcrumb__arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"/><polyline points="10 6 18 6 18 14"/></svg>
+          </a>
+
+          <div class="breadcrumb__divider" aria-hidden="true"></div>
+
+          <!-- Page links (nearest thumb — visible first on open) -->
+          <a href="/projects" class:list={["breadcrumb__list-item", isProjectsIndex && "is-active"]}>
+            <span>Projects</span>
+            <svg class="breadcrumb__arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"/><polyline points="10 6 18 6 18 14"/></svg>
+          </a>
+          <a href="/about" class:list={["breadcrumb__list-item", isAbout && "is-active"]}>
+            <span>About</span>
+            <svg class="breadcrumb__arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"/><polyline points="10 6 18 6 18 14"/></svg>
+          </a>
+          <a href="/" class:list={["breadcrumb__list-item", isHome && "is-active"]}>
+            <span>Home</span>
+            <svg class="breadcrumb__arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"/><polyline points="10 6 18 6 18 14"/></svg>
+          </a>
         </div>
 
         <!-- ── DESKTOP: two columns ───────────────────────────── -->
@@ -594,6 +596,9 @@ if (activeProject) {
       trigger.setAttribute('aria-expanded', 'true');
       document.getElementById('breadcrumb-backdrop')?.classList.add('is-open');
       activateCategory('all');
+      // Scroll mobile list to bottom so Home/About are visible near thumb
+      const mobileList = document.getElementById('breadcrumb-mobile-list');
+      if (mobileList) requestAnimationFrame(() => { mobileList.scrollTop = mobileList.scrollHeight; });
     }
 
     function closeDropdown() {
