@@ -803,10 +803,13 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     border-color: color-mix(in srgb, var(--_tokens---color--fg) 40%, transparent);
   }
 
-  /* ── In-card hover preview: covers full body, image bleeds 1.5× ── */
+  /* ── In-card hover preview: covers description col (left), image bleeds 1.5× ── */
   .project-card__hover-preview {
     position: absolute;
-    inset: 0;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    right: 40%; /* Stop at the thumbnail strip — keeps thumbs hoverable */
     z-index: 10;
     display: flex;
     align-items: center;
@@ -822,15 +825,16 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
   .project-card__hover-preview.is-visible {
     opacity: 1;
-    pointer-events: all;
+    /* pointer-events stays none so scrubbing works through to thumbs */
+    pointer-events: none;
   }
 
-  /* Image grows 1.5× the columns area height and bleeds beyond card */
+  /* Image grows 1.5× the description col height — bleeds above + below card, anchored left */
   .project-card__hover-preview-img {
     position: absolute;
     top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    left: 16px;
+    transform: translateY(-50%);
     height: 150%;
     width: auto;
     max-width: none;
@@ -1066,69 +1070,69 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 </style>
 
 <script>
-  // ── In-card hover preview (desktop) / tap reveal (mobile) ──
+  // ── In-card scrub preview (desktop) / tap reveal (mobile) ──
   function initImagePreview() {
     const isHoverDevice = window.matchMedia('(hover: hover)').matches;
 
     document.querySelectorAll<HTMLElement>('.project-card').forEach(card => {
       const preview = card.querySelector<HTMLElement>('.project-card__hover-preview');
       const previewImg = card.querySelector<HTMLImageElement>('.project-card__hover-preview-img');
-      if (!preview || !previewImg) return;
+      const strip = card.querySelector<HTMLElement>('.project-card__thumbs-scroll');
+      if (!preview || !previewImg || !strip) return;
 
+      const thumbs = Array.from(card.querySelectorAll<HTMLElement>('.project-card__thumb-item'));
       let hideTimer: ReturnType<typeof setTimeout> | null = null;
 
-      function show(src: string, alt: string) {
+      function show(src: string, alt: string, thumb?: HTMLElement) {
         if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
         previewImg.src = src;
         previewImg.alt = alt;
         preview.classList.add('is-visible');
+        thumbs.forEach(t => t.classList.remove('is-active'));
+        if (thumb) thumb.classList.add('is-active');
       }
 
       function hide() {
         hideTimer = setTimeout(() => {
           preview.classList.remove('is-visible');
-        }, 60);
+          thumbs.forEach(t => t.classList.remove('is-active'));
+        }, 80);
       }
 
-      card.querySelectorAll<HTMLElement>('.project-card__thumb-item').forEach(thumb => {
-        const src = thumb.dataset.src ?? '';
-        const alt = thumb.dataset.alt ?? '';
+      if (isHoverDevice) {
+        // Show first image when mouse enters the strip
+        strip.addEventListener('mouseenter', () => {
+          if (thumbs.length > 0) {
+            const first = thumbs[0];
+            show(first.dataset.src ?? '', first.dataset.alt ?? '', first);
+          }
+        });
 
-        if (isHoverDevice) {
+        // Scrub: update image as cursor moves over each thumb
+        thumbs.forEach(thumb => {
           thumb.addEventListener('mouseenter', () => {
-            card.querySelectorAll('.project-card__thumb-item').forEach(t => t.classList.remove('is-active'));
-            thumb.classList.add('is-active');
-            show(src, alt);
+            show(thumb.dataset.src ?? '', thumb.dataset.alt ?? '', thumb);
           });
-          thumb.addEventListener('mouseleave', () => hide());
-        } else {
-          // Mobile: tap to toggle
+        });
+
+        // Hide when mouse leaves the strip
+        strip.addEventListener('mouseleave', () => hide());
+
+      } else {
+        // Mobile: tap a thumb to show/hide
+        thumbs.forEach(thumb => {
           thumb.addEventListener('click', () => {
-            if (preview.classList.contains('is-visible') && previewImg.src.endsWith(encodeURIComponent(src).replace(/%2F/g, '/')) ) {
+            const src = thumb.dataset.src ?? '';
+            if (preview.classList.contains('is-visible') && thumb.classList.contains('is-active')) {
               hide();
             } else {
-              card.querySelectorAll('.project-card__thumb-item').forEach(t => t.classList.remove('is-active'));
-              thumb.classList.add('is-active');
-              show(src, alt);
+              show(src, thumb.dataset.alt ?? '', thumb);
             }
           });
-        }
-      });
-
-      // Keep preview open when cursor moves into preview area
-      if (isHoverDevice) {
-        preview.addEventListener('mouseenter', () => {
-          if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
         });
-        preview.addEventListener('mouseleave', () => hide());
-      }
 
-      // Tap preview itself to dismiss on mobile
-      if (!isHoverDevice) {
-        preview.addEventListener('click', () => {
-          card.querySelectorAll('.project-card__thumb-item').forEach(t => t.classList.remove('is-active'));
-          hide();
-        });
+        // Tap preview background to dismiss
+        preview.addEventListener('click', () => hide());
       }
     });
 
