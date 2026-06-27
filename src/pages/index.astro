@@ -18,6 +18,9 @@ const catName = (id) => categories.find(c => c.id === id)?.data.displayName ?? i
 // Tag relationships → names
 const allTags = await getCollection('tags');
 const tagMap = Object.fromEntries(allTags.map(t => [t.id, t.data.name]));
+
+// Studio tags get a pill in the bottom-left; everything else is a normal tag
+const STUDIO = { 'studio-823': 'Studio 823', 'faizan-khatri': 'FKD Workshop' };
 ---
 
 <PageLayout
@@ -71,80 +74,61 @@ const tagMap = Object.fromEntries(allTags.map(t => [t.id, t.data.name]));
           ))}
         </div>
         <div class="home-slider__track" id="slider-track">
-          {featured.map((p, i) => (
-            <a
-              href={`/projects/${p.id}`}
-              class="home-slider__slide"
-              data-index={i}
-              aria-label={p.data.name}
-            >
-              <div class="home-slider__image-wrap">
-                <img src={p.data.coverImage || '/images/admin/placeholder.webp'} alt={p.data.name} loading={i === 0 ? 'eager' : 'lazy'} />
-              </div>
-              <div class="home-slider__caption">
-                <div class="home-slider__top">
-                  <div class="home-slider__head">
-                    <span class="home-slider__name">{p.data.name}</span>
-                    <ul class="home-slider__facts">
-                      {p.data.year && <li><span class="home-slider__fact-k">Year</span> — {p.data.year}</li>}
-                      {p.data.location && <li><span class="home-slider__fact-k">Location</span> — {p.data.location}</li>}
-                      {p.data.category && <li><span class="home-slider__fact-k">Category</span> — {catName(p.data.category.id)}</li>}
-                    </ul>
-                  </div>
-                  <div class="home-slider__about">
-                    {p.data.smallIntro && <p class="home-slider__intro">{p.data.smallIntro}</p>}
-                    {p.data.description && <div class="home-slider__desc" set:html={p.data.description} />}
-                    {(p.data.tags ?? []).length > 0 && (
-                      <ul class="home-slider__tags">
-                        {(p.data.tags ?? []).map((t) => <li>{tagMap[t.id] || t.id}</li>)}
-                      </ul>
-                    )}
-                  </div>
+          {featured.map((p, i) => {
+            const tagIds = (p.data.tags ?? []).map((t) => t.id);
+            const studio = tagIds.find((id) => STUDIO[id]);
+            const otherTags = tagIds.filter((id) => !STUDIO[id]);
+            return (
+              <a
+                href={`/projects/${p.id}`}
+                class="home-slider__slide"
+                data-index={i}
+                aria-label={p.data.name}
+              >
+                <div class="home-slider__image-wrap">
+                  <img src={p.data.coverImage || '/images/admin/placeholder.webp'} alt={p.data.name} loading={i === 0 ? 'eager' : 'lazy'} />
                 </div>
-                <span class="home-slider__arrow" aria-hidden="true">
-                  <svg class="home-slider__ring" viewBox="0 0 100 100" aria-hidden="true">
-                    <circle class="home-slider__ring-track" cx="50" cy="50" r="46"></circle>
-                    <circle class="home-slider__ring-fill" cx="50" cy="50" r="46"></circle>
-                  </svg>
-                  <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
-                    <line x1="6" y1="18" x2="18" y2="6"></line>
-                    <polyline points="10 6 18 6 18 14"></polyline>
-                  </svg>
-                </span>
-              </div>
-              <div class="home-slider__caption home-slider__caption--knockout" aria-hidden="true">
-                <div class="home-slider__top">
-                  <div class="home-slider__head">
-                    <span class="home-slider__name">{p.data.name}</span>
-                    <ul class="home-slider__facts">
-                      {p.data.year && <li><span class="home-slider__fact-k">Year</span> — {p.data.year}</li>}
-                      {p.data.location && <li><span class="home-slider__fact-k">Location</span> — {p.data.location}</li>}
-                      {p.data.category && <li><span class="home-slider__fact-k">Category</span> — {catName(p.data.category.id)}</li>}
-                    </ul>
+                {[false, true].map((ko) => (
+                  <div class:list={["home-slider__caption", ko && "home-slider__caption--knockout"]} aria-hidden={ko ? 'true' : undefined}>
+                    <div class="home-slider__top">
+                      <div class="home-slider__head">
+                        <span class="home-slider__name">{p.data.name}</span>
+                        <div class="home-slider__meta-right">
+                          <ul class="home-slider__facts">
+                            {p.data.year && <li><span class="home-slider__fact-k">Year</span> — {p.data.year}</li>}
+                            {p.data.location && <li><span class="home-slider__fact-k">Location</span> — {p.data.location}</li>}
+                            {p.data.category && <li><span class="home-slider__fact-k">Category</span> — {catName(p.data.category.id)}</li>}
+                          </ul>
+                          {otherTags.length > 0 && (
+                            <ul class="home-slider__tags">
+                              {otherTags.map((id) => <li>{tagMap[id] || id}</li>)}
+                            </ul>
+                          )}
+                        </div>
+                      </div>
+                      <div class="home-slider__about">
+                        {p.data.smallIntro && <p class="home-slider__intro">{p.data.smallIntro}</p>}
+                        {p.data.description && <div class="home-slider__desc" set:html={p.data.description} />}
+                      </div>
+                    </div>
+                    <div class="home-slider__bottom">
+                      {studio && <span class="home-slider__studio">{STUDIO[studio]}</span>}
+                      <span class="home-slider__arrow" aria-hidden="true">
+                        <svg class="home-slider__ring" viewBox="0 0 100 100" aria-hidden="true">
+                          <circle class="home-slider__ring-track" cx="50" cy="50" r="46"></circle>
+                          <circle class="home-slider__ring-fill" cx="50" cy="50" r="46"></circle>
+                        </svg>
+                        <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+                          <line x1="6" y1="18" x2="18" y2="6"></line>
+                          <polyline points="10 6 18 6 18 14"></polyline>
+                        </svg>
+                      </span>
+                    </div>
                   </div>
-                  <div class="home-slider__about">
-                    {p.data.smallIntro && <p class="home-slider__intro">{p.data.smallIntro}</p>}
-                    {p.data.description && <div class="home-slider__desc" set:html={p.data.description} />}
-                    {(p.data.tags ?? []).length > 0 && (
-                      <ul class="home-slider__tags">
-                        {(p.data.tags ?? []).map((t) => <li>{tagMap[t.id] || t.id}</li>)}
-                      </ul>
-                    )}
-                  </div>
-                </div>
-                <span class="home-slider__arrow">
-                  <svg class="home-slider__ring" viewBox="0 0 100 100" aria-hidden="true">
-                    <circle class="home-slider__ring-track" cx="50" cy="50" r="46"></circle>
-                    <circle class="home-slider__ring-fill" cx="50" cy="50" r="46"></circle>
-                  </svg>
-                  <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
-                    <line x1="6" y1="18" x2="18" y2="6"></line>
-                    <polyline points="10 6 18 6 18 14"></polyline>
-                  </svg>
-                </span>
-              </div>
-            </a>
-          ))}
+                ))}
+              </a>
+            );
+          })}
         </div>
       </div>
     )}
@@ -727,14 +711,41 @@ const tagMap = Object.fromEntries(allTags.map(t => [t.id, t.data.name]));
 
   .home-slider__fact-k { opacity: 0.6; } /* the label part, slightly muted */
 
+  /* facts + tags stacked at the top-right */
+  .home-slider__meta-right {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+  }
+
   .home-slider__tags {
     list-style: none;
-    margin: 4px 0 0;
+    margin: 0;
     padding: 0;
     display: flex;
     flex-wrap: wrap;
+    justify-content: flex-end; /* tags on the right */
     gap: 6px;
     font-size: var(--_tokens---type--micro);
+  }
+
+  /* bottom row: studio pill (left) + arrow (right) */
+  .home-slider__bottom {
+    display: flex;
+    align-items: flex-end;
+    gap: 16px;
+  }
+
+  .home-slider__studio {
+    align-self: flex-end;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    padding: 5px 16px;
+    font-size: var(--_tokens---type--micro);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
   }
   .home-slider__tags li {
     border: 1px solid currentColor;
@@ -748,18 +759,21 @@ const tagMap = Object.fromEntries(allTags.map(t => [t.id, t.data.name]));
   .home-slider__facts,
   .home-slider__intro,
   .home-slider__desc,
-  .home-slider__tags {
+  .home-slider__tags,
+  .home-slider__studio {
     opacity: 0;
     transform: translateY(12px);
     transition: opacity 0.55s ease, transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .home-slider__slide.is-active .home-slider__facts { opacity: 1; transform: none; transition-delay: 0.10s; }
+  .home-slider__slide.is-active .home-slider__facts  { opacity: 1; transform: none; transition-delay: 0.10s; }
   .home-slider__slide.is-active .home-slider__intro  { opacity: 1; transform: none; transition-delay: 0.18s; }
   .home-slider__slide.is-active .home-slider__desc   { opacity: 1; transform: none; transition-delay: 0.26s; }
   .home-slider__slide.is-active .home-slider__tags   { opacity: 1; transform: none; transition-delay: 0.34s; }
+  .home-slider__slide.is-active .home-slider__studio { opacity: 1; transform: none; transition-delay: 0.40s; }
 
   @media (prefers-reduced-motion: reduce) {
-    .home-slider__facts, .home-slider__intro, .home-slider__desc, .home-slider__tags {
+    .home-slider__facts, .home-slider__intro, .home-slider__desc,
+    .home-slider__tags, .home-slider__studio {
       opacity: 1; transform: none; transition: none;
     }
   }
@@ -781,28 +795,30 @@ const tagMap = Object.fromEntries(allTags.map(t => [t.id, t.data.name]));
   }
 
   .home-slider__arrow {
-    align-self: flex-end; /* bottom-right of the image */
+    align-self: flex-end; /* bottom of the row */
+    margin-left: auto;    /* always pinned to the right */
     position: relative;   /* the countdown ring centres on the arrow */
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    font-size: var(--_tokens---type--big); /* H1 — same as the name / About */
+    font-size: var(--_tokens---type--small); /* small arrow */
     transition: transform 0.3s ease;
   }
 
-  /* Countdown ring around the arrow — fills over the auto-advance time (3s) */
+  /* Countdown ring around the arrow — fills over the auto-advance time (3s).
+     Sized off --type--big (not the now-small arrow) so it keeps its size. */
   .home-slider__ring {
     position: absolute;
     top: 50%;
     left: 50%;
-    width: 1.7em;
-    height: 1.7em;
+    width: calc(var(--_tokens---type--big) * 1.1);
+    height: calc(var(--_tokens---type--big) * 1.1);
     transform: translate(-50%, -50%) rotate(-90deg); /* start the fill at 12 o'clock */
     overflow: visible;
     pointer-events: none;
   }
-  .home-slider__ring circle { fill: none; stroke-width: 5; }
+  .home-slider__ring circle { fill: none; stroke-width: 3; } /* thinner */
   .home-slider__ring-track { stroke: currentColor; opacity: 0.22; }
   .home-slider__ring-fill {
     stroke: currentColor;
@@ -822,7 +838,7 @@ const tagMap = Object.fromEntries(allTags.map(t => [t.id, t.data.name]));
     animation-play-state: paused;
   }
 
-  .home-slider__arrow svg {
+  .home-slider__arrow .link-arrow {
     width: 1.1em;
     height: 1.1em;
   }
