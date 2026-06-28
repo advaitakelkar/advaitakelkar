@@ -682,7 +682,6 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     gap: 16px;
     padding: 10px 20px;
     user-select: none;
-    cursor: pointer;
   }
 
   .project-card__stack-name {
@@ -743,25 +742,15 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
   .project-card__pill:hover svg { transform: translate(2px, -2px); }
 
+  /* Cards are always open — no accordion, no clipping */
   .project-card__body {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .project-card.is-open .project-card__body {
-    max-height: 500px;
     overflow: visible;
   }
 
   .project-card__body-inner {
     position: relative;
-    overflow: hidden;
-    min-height: 0;
-  }
-
-  .project-card.is-open .project-card__body-inner {
     overflow: visible;
+    min-height: 0;
   }
 
   .project-card__columns {
@@ -1507,19 +1496,10 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   initImagePreview();
   document.addEventListener('astro:after-swap', initImagePreview);
 
-  // ── Accordion toggle: click the name to open/close the whole card ──
-  function initAccordion() {
+  // Cards are always open (no accordion). Leaving a card just clears its scrub
+  // preview so the next hover starts clean.
+  function initCardLeave() {
     document.querySelectorAll<HTMLElement>('.project-card').forEach(card => {
-      const header = card.querySelector<HTMLElement>('.project-card__header');
-
-      // Click toggles open/close (ignore clicks on the "Go to project" pill)
-      header?.addEventListener('click', (e) => {
-        const target = e.target as HTMLElement;
-        if (target.closest('.project-card__pill')) return;
-        card.classList.toggle('is-open');
-      });
-
-      // Leaving the card just clears the scrub preview — the card stays open
       card.addEventListener('mouseleave', () => {
         card.querySelectorAll<HTMLElement>('.project-card__hover-preview').forEach(p => p.classList.remove('is-visible'));
         card.querySelectorAll<HTMLElement>('.project-card__thumb-item').forEach(t => t.classList.remove('is-active'));
@@ -1527,8 +1507,8 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     });
   }
 
-  initAccordion();
-  document.addEventListener('astro:after-swap', initAccordion);
+  initCardLeave();
+  document.addEventListener('astro:after-swap', initCardLeave);
 </script>
 
 <script>
