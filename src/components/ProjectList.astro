@@ -400,7 +400,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     border-radius: 999px;
     cursor: pointer;
     white-space: nowrap;
-    opacity: 0.35; /* grayed out by default */
+    opacity: 1; /* always visible — the clear action is always available */
     transition: background-color 0.2s, color 0.2s, opacity 0.3s ease;
   }
 
@@ -408,12 +408,6 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     width: 1.05em;
     height: 1.05em;
     flex-shrink: 0;
-  }
-
-  .projects-search-input:focus ~ .projects-search-clear,
-  .projects-search-input:not(:placeholder-shown) ~ .projects-search-clear,
-  .projects-search-clear:hover {
-    opacity: 1; /* activated */
   }
 
   .projects-search-clear:hover {
@@ -1090,41 +1084,13 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       height: 1.4em;
     }
 
-    /* ── Tag picker becomes a vertical scroll-wheel: one pill visible, scroll
-       (snap) through the rest. The centred pill is the active filter. ── */
+    /* Tags: simple horizontal scroll strip on mobile */
     .tag-picker-container {
       flex: 1;
       min-width: 0;
       max-width: none;
-      height: 38px;
-      overflow-x: hidden;
-      overflow-y: auto;
-      scroll-snap-type: y mandatory;
-      scrollbar-width: none;
-      border-radius: 999px;
-      background-color: color-mix(in srgb, var(--_tokens---color--fg) 5%, transparent);
-    }
-    .tag-picker-container::-webkit-scrollbar { display: none; }
-    .tag-picker {
-      flex-direction: column;
-      gap: 0;
-      width: 100%;
-    }
-    .tag-picker-item {
-      height: 38px;
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      scroll-snap-align: center;
-      border: none;
-      border-radius: 999px;
-      flex: 0 0 auto;
-    }
-    /* Non-centred pills read as muted; the snapped/active one inverts */
-    .tag-picker-item:not(.is-active) {
-      background-color: transparent;
-      color: var(--_tokens---color--muted);
+      overflow-x: auto;
+      overflow-y: hidden;
     }
     .project-cards-container {
       margin-top: 190px;
@@ -1167,9 +1133,10 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     .project-card__pill span {
       display: none;
     }
+    /* Arrow matches the project-name size */
     .project-card__pill svg {
-      width: 1.15em;
-      height: 1.15em;
+      width: clamp(2rem, 1.375rem + 3.5vw, 4rem);
+      height: clamp(2rem, 1.375rem + 3.5vw, 4rem);
     }
     .project-card__columns {
       flex-direction: column;
@@ -1599,34 +1566,9 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     updateScrollArrows();
   });
 
-  // ── Mobile: vertical scroll-wheel tag selection ──
-  // One pill is visible at a time; whichever snaps to the centre becomes the
-  // active tag filter. "All" stays its own pill to the left.
-  const mqMobile = window.matchMedia('(max-width: 768px)');
-  if (tagPickerContainer && tagPicker) {
-    let wheelTimer: ReturnType<typeof setTimeout> | null = null;
-    tagPickerContainer.addEventListener('scroll', () => {
-      if (!mqMobile.matches) return;
-      if (wheelTimer) clearTimeout(wheelTimer);
-      wheelTimer = setTimeout(() => {
-        const cRect = tagPickerContainer.getBoundingClientRect();
-        const center = cRect.top + cRect.height / 2;
-        const items = Array.from(tagPicker.querySelectorAll<HTMLElement>('.tag-picker-item'));
-        let nearest: HTMLElement | null = null;
-        let min = Infinity;
-        items.forEach(it => {
-          const r = it.getBoundingClientRect();
-          const d = Math.abs(r.top + r.height / 2 - center);
-          if (d < min) { min = d; nearest = it; }
-        });
-        if (nearest && (nearest as HTMLElement).dataset.filter !== activeTag) {
-          activeTag = (nearest as HTMLElement).dataset.filter ?? '';
-          allTagBtn?.classList.remove('is-active');
-          items.forEach(b => b.classList.toggle('is-active', b === nearest));
-          applyFilter();
-        }
-      }, 90);
-    }, { passive: true });
+  // Shorten the search placeholder on mobile
+  if (searchInput && window.matchMedia('(max-width: 768px)').matches) {
+    searchInput.placeholder = 'Search projects';
   }
 
   // Pre-load search query from URL params if present (links from skillset click on About page)
