@@ -263,6 +263,9 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
          side of the card's scrub has more room). The card's own scrub strip
          stays in place and visible; tap the panel to dismiss. -->
     <div class="project-lightbox" id="project-lightbox" aria-hidden="true">
+      <button class="project-lightbox__close" id="lightbox-close" type="button" aria-label="Close image">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
       <img class="project-lightbox__img" id="lightbox-img" src="" alt="" />
     </div>
   </section>
@@ -1209,6 +1212,32 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
   .project-lightbox.is-open { display: flex; }
 
+  /* Close button — top-right by default (image on top); moves to bottom-right
+     when the image sits on the bottom (.lb-anchor-bottom). */
+  .project-lightbox__close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 10px;
+    border: none;
+    background: transparent;
+    color: var(--_tokens---color--fg);
+    cursor: pointer;
+  }
+
+  .project-lightbox__close svg { width: 100%; height: 100%; }
+
+  .project-lightbox.lb-anchor-bottom .project-lightbox__close {
+    top: auto;
+    bottom: 92px; /* lift above the bottom padding + breadcrumb dock */
+  }
+
   .project-lightbox__img {
     max-width: 100%;
     max-height: 100%;
@@ -1240,7 +1269,8 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     if (!lightbox) return;
     const rect = strip.getBoundingClientRect();
     const vh = window.innerHeight;
-    if (vh - rect.bottom >= rect.top) {
+    const imageOnBottom = (vh - rect.bottom) >= rect.top;
+    if (imageOnBottom) {
       // more room below the strip → panel from strip down to the bottom edge
       lightbox.style.top = rect.bottom + 'px';
       lightbox.style.bottom = '0px';
@@ -1249,6 +1279,8 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       lightbox.style.top = '0px';
       lightbox.style.bottom = (vh - rect.top) + 'px';
     }
+    // close button → bottom-right when the image is on the bottom, else top-right
+    lightbox.classList.toggle('lb-anchor-bottom', imageOnBottom);
   }
 
   function openLightbox(card: HTMLElement, strip: HTMLElement, startIdx: number) {
