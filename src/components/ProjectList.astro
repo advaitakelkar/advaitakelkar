@@ -51,11 +51,12 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   <section class="projects-page">
     <!-- Top Section: Header, search, filters, and cards -->
     <div class="projects-top-section">
-      <div class="projects-sticky-header">
+      <!-- Title scrolls away with the page; only the bar below stays stuck -->
       <header class="projects-header">
         <h1 class="projects-title">{title}</h1>
         <p class="projects-count text-muted">{projects.length} of {projects.length} works</p>
       </header>
+      <div class="projects-sticky-header">
 
       <!-- Search bar matching home UI -->
       <div class="projects-search-bar">
@@ -300,25 +301,38 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     }
   }
 
-  /* Fixed search and filter header */
+  /* Sticky search + filter bar — sticks below the breadcrumb; the title above
+     it scrolls away normally */
   .projects-sticky-header {
-    position: fixed;
-    top: 0; /* opaque bg covers the full top strip so cards never peek above it */
-    left: 44px; /* Offset for SideNav */
-    right: 0;
+    position: sticky;
+    top: 64px; /* parks just below the fixed breadcrumb */
     z-index: 90; /* Lower than Breadcrumb (100) and SideNav (200) */
     background-color: var(--_tokens---color--bg);
     padding-inline: var(--_tokens---space--small);
-    padding-top: 80px; /* 64px breadcrumb strip + 16px breathing room — keeps content below the breadcrumb */
+    padding-top: 16px;
     padding-bottom: 24px;
     border: none;
     transition: background-color 0.3s ease;
   }
 
+  /* Masks the 0–64px breadcrumb strip so cards never peek above the stuck bar */
+  .projects-sticky-header::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 44px;
+    right: 0;
+    height: 64px;
+    background-color: var(--_tokens---color--bg);
+    z-index: -1;
+  }
+
   @media (max-width: 767px) and (orientation: portrait) {
     .projects-sticky-header {
-      top: 0; /* Breadcrumb docks to bottom on mobile, so header goes to very top */
-      padding-top: 16px; /* no breadcrumb strip to clear up here on mobile */
+      top: 0; /* Breadcrumb docks to the bottom on mobile, so the bar sticks to the top */
+    }
+    .projects-sticky-header::before {
+      display: none; /* no breadcrumb strip to mask up here on mobile */
     }
   }
 
@@ -334,7 +348,14 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     align-items: flex-end;
     justify-content: space-between;
     gap: 16px;
-    margin-bottom: 20px;
+    padding-inline: var(--_tokens---space--small);
+    margin-bottom: 16px;
+  }
+
+  @media (min-width: 1200px) {
+    .projects-header {
+      padding-inline: clamp(6rem, 12vw, 16rem);
+    }
   }
 
   .projects-title {
@@ -615,7 +636,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     display: flex;
     flex-direction: column;
     gap: 16px;
-    margin-top: 290px; /* Space to clear the fixed search header */
+    margin-top: 8px; /* sticky bar is in normal flow now — no big clearance needed */
   }
 
   .project-card {
@@ -1093,7 +1114,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       overflow-y: hidden;
     }
     .project-cards-container {
-      margin-top: 190px;
+      margin-top: 8px;
     }
     /* Mobile card: name + short intro + scrub strip. All left-aligned at 16px. */
     .project-card__header {
@@ -1566,9 +1587,11 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     updateScrollArrows();
   });
 
-  // Shorten the search placeholder on mobile
-  if (searchInput && window.matchMedia('(max-width: 768px)').matches) {
-    searchInput.placeholder = 'Search projects';
+  // Mobile space-savers: shorter placeholder + abbreviated "All Categories"
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    if (searchInput) searchInput.placeholder = 'Search projects';
+    const allCatOpt = catSelect?.querySelector('option[value=""]');
+    if (allCatOpt) allCatOpt.textContent = 'CTGRY';
   }
 
   // Pre-load search query from URL params if present (links from skillset click on About page)
