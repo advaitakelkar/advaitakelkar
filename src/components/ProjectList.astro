@@ -253,6 +253,16 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
         })}
       </div>
     </div>
+
+    <!-- Mobile image lightbox — shared, top-level so it overlays ALL cards.
+         Image sits in whichever region (above/below the strip) has more room;
+         the thumbnail strip stays visible for navigation; tap backdrop to exit. -->
+    <div class="project-lightbox" id="project-lightbox" aria-hidden="true">
+      <div class="project-lightbox__image-area" id="lightbox-image-area">
+        <img class="project-lightbox__img" id="lightbox-img" src="" alt="" />
+      </div>
+      <div class="project-lightbox__strip" id="lightbox-strip"></div>
+    </div>
   </section>
 </PageLayout>
 
@@ -1105,87 +1115,212 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     .project-card__thumbs-scroll {
       justify-content: flex-start;
     }
-    /* Preview goes full-screen on mobile, not the desktop left-60% split */
+    /* The in-card scrub preview is desktop-only — mobile uses the lightbox below */
     .project-card__hover-preview {
-      width: 100vw;
-      padding: 24px;
-      background-color: color-mix(in srgb, var(--_tokens---color--bg) 95%, transparent);
+      display: none !important;
     }
+  }
+
+  /* ── Mobile image lightbox ───────────────────────────────────────────
+     Shown only on touch devices. Top-level + high z-index so the image sits
+     over every project card. The image lands in the larger free region
+     (above or below the strip, set in JS); the strip stays tappable. */
+  .project-lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    background-color: color-mix(in srgb, var(--_tokens---color--bg) 86%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .project-lightbox.is-open { display: block; }
+
+  .project-lightbox__image-area {
+    position: absolute;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px;
+    box-sizing: border-box;
+    pointer-events: none; /* taps fall through to the backdrop → close */
+  }
+
+  .project-lightbox__img {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+  }
+
+  .project-lightbox__strip {
+    position: absolute;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    box-sizing: border-box;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .project-lightbox__strip::-webkit-scrollbar { display: none; }
+
+  .project-lightbox__thumb {
+    all: unset;
+    flex: 0 0 auto;
+    width: 54px;
+    height: 54px;
+    overflow: hidden;
+    cursor: pointer;
+    opacity: 0.45;
+    transition: opacity 0.15s ease;
+  }
+
+  .project-lightbox__thumb.is-active { opacity: 1; }
+
+  .project-lightbox__thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
   }
 </style>
 
 <script>
-  // ── In-card scrub preview (desktop) / tap reveal (mobile) ──
+  // ── Mobile lightbox controller (shared, top-level — overlays all cards) ──
+  const lightbox = document.getElementById('project-lightbox');
+  const lbImg = document.getElementById('lightbox-img') as HTMLImageElement | null;
+  const lbImageArea = document.getElementById('lightbox-image-area');
+  const lbStrip = document.getElementById('lightbox-strip');
+  let lbThumbs: HTMLElement[] = [];
+
+  function setLbActive(i: number) {
+    if (!lbImg) return;
+    const t = lbThumbs[i];
+    if (!t) return;
+    lbThumbs.forEach((el, j) => el.classList.toggle('is-active', j === i));
+    lbImg.src = t.dataset.src ?? '';
+    lbImg.alt = t.dataset.alt ?? '';
+  }
+
+  function openLightbox(card: HTMLElement, strip: HTMLElement, startIdx: number) {
+    if (!lightbox || !lbStrip || !lbImageArea) return;
+
+    // Measure where the card's strip sits before we lock the page
+    const rect = strip.getBoundingClientRect();
+    const vh = window.innerHeight;
+
+    // Rebuild the lightbox strip from this card's thumbnails
+    const cardThumbs = Array.from(card.querySelectorAll<HTMLElement>('.project-card__thumb-item'));
+    lbStrip.innerHTML = '';
+    lbThumbs = cardThumbs.map((ct, i) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'project-lightbox__thumb';
+      btn.dataset.src = ct.dataset.src ?? '';
+      btn.dataset.alt = ct.dataset.alt ?? '';
+      const img = document.createElement('img');
+      img.src = ct.dataset.src ?? '';
+      img.alt = '';
+      img.loading = 'lazy';
+      btn.appendChild(img);
+      btn.addEventListener('click', (e) => { e.stopPropagation(); setLbActive(i); });
+      lbStrip.appendChild(btn);
+      return btn;
+    });
+
+    // Pin the lightbox strip directly over the card's strip
+    lbStrip.style.top = rect.top + 'px';
+    lbStrip.style.height = rect.height + 'px';
+
+    // Put the image in whichever region has more room — above or below the strip
+    const spaceAbove = rect.top;
+    const spaceBelow = vh - rect.bottom;
+    if (spaceBelow >= spaceAbove) {
+      lbImageArea.style.top = rect.bottom + 'px';
+      lbImageArea.style.bottom = '0px';
+    } else {
+      lbImageArea.style.top = '0px';
+      lbImageArea.style.bottom = (vh - rect.top) + 'px';
+    }
+
+    setLbActive(startIdx);
+    lightbox.classList.add('is-open');
+    lightbox.setAttribute('aria-hidden', 'false');
+    document.documentElement.style.overflow = 'hidden'; // lock background scroll
+  }
+
+  function closeLightbox() {
+    if (!lightbox) return;
+    lightbox.classList.remove('is-open');
+    lightbox.setAttribute('aria-hidden', 'true');
+    document.documentElement.style.overflow = '';
+  }
+
+  if (lightbox && lbStrip) {
+    // Tap the backdrop or the image to exit; taps on the strip navigate instead
+    lightbox.addEventListener('click', closeLightbox);
+    lbStrip.addEventListener('click', (e) => e.stopPropagation());
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLightbox(); });
+  }
+
+  // ── In-card scrub preview (desktop hover) / lightbox (mobile tap) ──
   function initImagePreview() {
     const isHoverDevice = window.matchMedia('(hover: hover)').matches;
 
     document.querySelectorAll<HTMLElement>('.project-card').forEach(card => {
-      const preview = card.querySelector<HTMLElement>('.project-card__hover-preview');
-      const previewImg = card.querySelector<HTMLImageElement>('.project-card__hover-preview-img');
       const strip = card.querySelector<HTMLElement>('.project-card__thumbs-scroll');
-      if (!preview || !previewImg || !strip) return;
-
+      if (!strip) return;
       const thumbs = Array.from(card.querySelectorAll<HTMLElement>('.project-card__thumb-item'));
-      let hideTimer: ReturnType<typeof setTimeout> | null = null;
-
-      function show(src: string, alt: string, thumb?: HTMLElement) {
-        if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
-        previewImg.src = src;
-        previewImg.alt = alt;
-        preview.classList.add('is-visible');
-        thumbs.forEach(t => t.classList.remove('is-active'));
-        if (thumb) thumb.classList.add('is-active');
-      }
-
-      function hide() {
-        hideTimer = setTimeout(() => {
-          preview.classList.remove('is-visible');
-          thumbs.forEach(t => t.classList.remove('is-active'));
-        }, 80);
-      }
 
       if (isHoverDevice) {
-        // Show first image when mouse enters the strip
+        const preview = card.querySelector<HTMLElement>('.project-card__hover-preview');
+        const previewImg = card.querySelector<HTMLImageElement>('.project-card__hover-preview-img');
+        if (!preview || !previewImg) return;
+        let hideTimer: ReturnType<typeof setTimeout> | null = null;
+
+        const show = (src: string, alt: string, thumb?: HTMLElement) => {
+          if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+          previewImg.src = src;
+          previewImg.alt = alt;
+          preview.classList.add('is-visible');
+          thumbs.forEach(t => t.classList.remove('is-active'));
+          if (thumb) thumb.classList.add('is-active');
+        };
+        const hide = () => {
+          hideTimer = setTimeout(() => {
+            preview.classList.remove('is-visible');
+            thumbs.forEach(t => t.classList.remove('is-active'));
+          }, 80);
+        };
+
         strip.addEventListener('mouseenter', () => {
           if (thumbs.length > 0) {
             const first = thumbs[0];
             show(first.dataset.src ?? '', first.dataset.alt ?? '', first);
           }
         });
-
-        // Scrub: update image as cursor moves over each thumb
         thumbs.forEach(thumb => {
           thumb.addEventListener('mouseenter', () => {
             show(thumb.dataset.src ?? '', thumb.dataset.alt ?? '', thumb);
           });
         });
-
-        // Hide when mouse leaves the strip
         strip.addEventListener('mouseleave', () => hide());
-
       } else {
-        // Mobile: tap a thumb to show/hide
-        thumbs.forEach(thumb => {
-          thumb.addEventListener('click', () => {
-            const src = thumb.dataset.src ?? '';
-            if (preview.classList.contains('is-visible') && thumb.classList.contains('is-active')) {
-              hide();
-            } else {
-              show(src, thumb.dataset.alt ?? '', thumb);
-            }
-          });
+        // Mobile: tap a thumb → open the shared lightbox at that image
+        thumbs.forEach((thumb, idx) => {
+          thumb.addEventListener('click', () => openLightbox(card, strip, idx));
         });
-
-        // Tap preview background to dismiss
-        preview.addEventListener('click', () => hide());
-      }
-    });
-
-    // Escape to dismiss all
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        document.querySelectorAll<HTMLElement>('.project-card__hover-preview').forEach(p => p.classList.remove('is-visible'));
-        document.querySelectorAll<HTMLElement>('.project-card__thumb-item').forEach(t => t.classList.remove('is-active'));
       }
     });
   }
