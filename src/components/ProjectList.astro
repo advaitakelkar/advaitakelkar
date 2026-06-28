@@ -1071,8 +1071,22 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     .project-cards-container {
       margin-top: 190px;
     }
-    /* Mobile card: name + arrow + images only */
+    /* Mobile card: name + short intro + scrub strip. All left-aligned at 16px. */
+    .project-card__header {
+      padding: 10px 16px;
+    }
+    /* Keep the short intro (micro, muted) under the name; drop the long desc */
     .project-card__description-col {
+      display: block;
+      gap: 0;
+      padding: 0 16px 8px;
+    }
+    .project-card__intro {
+      font-size: var(--_tokens---type--micro);
+      font-weight: 400;
+      line-height: 1.4;
+    }
+    .project-card__desc {
       display: none;
     }
     .project-card__bottom-bar {
@@ -1105,15 +1119,19 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     }
     .project-card__image-col {
       width: 100%;
-      height: 64px;
+      height: auto;
     }
-    /* Smaller thumbs on mobile */
-    .project-card__thumb-item {
-      width: 60px;
-      height: 60px;
-    }
+    /* Strip starts at the same 16px left as the name + intro; 5 thumbs fit the
+       row, anything beyond 5 scrolls horizontally */
     .project-card__thumbs-scroll {
       justify-content: flex-start;
+      padding: 0 0 0 16px;
+    }
+    .project-card__thumb-item {
+      flex: 0 0 calc((100% - 16px - 8px) / 5);
+      width: auto;
+      height: auto;
+      aspect-ratio: 1;
     }
     /* The in-card scrub preview is desktop-only — mobile uses the lightbox below */
     .project-card__hover-preview {
@@ -1137,10 +1155,14 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
   .project-lightbox.is-open { display: block; }
 
+  /* Image fills from the top of the screen down to the strip — maximum room,
+     overlaps the page header/search behind it */
   .project-lightbox__image-area {
     position: absolute;
     left: 0;
     right: 0;
+    top: 0;
+    bottom: 96px; /* clears the pinned strip */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1158,14 +1180,17 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     display: block;
   }
 
+  /* Scrub strip pinned to the bottom of the screen — always visible */
   .project-lightbox__strip {
     position: absolute;
     left: 0;
     right: 0;
+    bottom: 0;
+    height: 96px;
     display: flex;
     align-items: center;
     gap: 4px;
-    padding: 6px 12px;
+    padding: 0 12px;
     box-sizing: border-box;
     overflow-x: auto;
     overflow-y: hidden;
@@ -1213,14 +1238,11 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     lbImg.alt = t.dataset.alt ?? '';
   }
 
-  function openLightbox(card: HTMLElement, strip: HTMLElement, startIdx: number) {
-    if (!lightbox || !lbStrip || !lbImageArea) return;
+  function openLightbox(card: HTMLElement, _strip: HTMLElement, startIdx: number) {
+    if (!lightbox || !lbStrip) return;
 
-    // Measure where the card's strip sits before we lock the page
-    const rect = strip.getBoundingClientRect();
-    const vh = window.innerHeight;
-
-    // Rebuild the lightbox strip from this card's thumbnails
+    // Rebuild the lightbox strip from this card's thumbnails (image fills from
+    // the top, strip stays pinned at the bottom — handled in CSS)
     const cardThumbs = Array.from(card.querySelectorAll<HTMLElement>('.project-card__thumb-item'));
     lbStrip.innerHTML = '';
     lbThumbs = cardThumbs.map((ct, i) => {
@@ -1238,21 +1260,6 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       lbStrip.appendChild(btn);
       return btn;
     });
-
-    // Pin the lightbox strip directly over the card's strip
-    lbStrip.style.top = rect.top + 'px';
-    lbStrip.style.height = rect.height + 'px';
-
-    // Put the image in whichever region has more room — above or below the strip
-    const spaceAbove = rect.top;
-    const spaceBelow = vh - rect.bottom;
-    if (spaceBelow >= spaceAbove) {
-      lbImageArea.style.top = rect.bottom + 'px';
-      lbImageArea.style.bottom = '0px';
-    } else {
-      lbImageArea.style.top = '0px';
-      lbImageArea.style.bottom = (vh - rect.top) + 'px';
-    }
 
     setLbActive(startIdx);
     lightbox.classList.add('is-open');
