@@ -810,12 +810,12 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     background: none;
   }
 
-  /* ── Thumbnail strip: square thumbs, horizontally scrollable through ALL images ── */
+  /* ── Thumbnail strip: shows exactly 5 thumbs; >5 scrolls horizontally ── */
   .project-card__thumbs-scroll {
     display: flex;
     flex-direction: row;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: flex-start;
     overflow-x: auto;
     overflow-y: hidden;
     width: 100%;
@@ -829,13 +829,12 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
   .project-card__thumbs-scroll::-webkit-scrollbar { display: none; }
 
-  /* Fixed square thumbnails — scrub across them, scroll if they overflow */
+  /* Square thumbnails sized so 5 fill the strip; a 6th+ overflows → scroll */
   .project-card__thumb-item {
     all: unset;
-    display: block;
-    flex: 0 0 auto;
-    width: 80px;
-    height: 80px;
+    flex: 0 0 calc((100% - 8px) / 5); /* 5 thumbs + 4×2px gaps */
+    aspect-ratio: 1;
+    max-height: 100%;
     overflow: hidden;
     cursor: crosshair;
     position: relative;
