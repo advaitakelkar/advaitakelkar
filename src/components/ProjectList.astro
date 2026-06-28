@@ -830,12 +830,18 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     object-fit: cover;
     object-position: center;
     display: block;
-    transition: opacity 0.12s ease;
+    transition: opacity 0.15s ease, filter 0.15s ease;
   }
 
-  .project-card__thumb-item:hover img,
-  .project-card__thumb-item.is-active img {
-    opacity: 0.6;
+  /* While a preview is active: the scrubbed thumbnail stays in colour, the rest
+     drop to grayscale so the active image reads clearly */
+  .project-card.is-previewing .project-card__thumb-item img {
+    filter: grayscale(1);
+    opacity: 0.5;
+  }
+  .project-card.is-previewing .project-card__thumb-item.is-active img {
+    filter: none;
+    opacity: 1;
   }
 
   /* ── Scrub preview: big image filling the left 60% of the viewport, centered,
@@ -852,9 +858,9 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     justify-content: center;
     padding: 48px;
     box-sizing: border-box;
-    background-color: color-mix(in srgb, var(--_tokens---color--bg) 80%, transparent);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    background-color: color-mix(in srgb, var(--_tokens---color--bg) 35%, transparent); /* same glass as the mobile preview / breadcrumb */
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.2s ease;
@@ -1182,6 +1188,10 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       height: auto;
       aspect-ratio: 1;
     }
+    /* While the lightbox is open, dragging the strip scrubs (no native scroll) */
+    .project-card.is-previewing .project-card__thumbs-scroll {
+      touch-action: none;
+    }
     /* The in-card scrub preview is desktop-only — mobile uses the lightbox below */
     .project-card__hover-preview {
       display: none !important;
@@ -1254,6 +1264,17 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   const lbImg = document.getElementById('lightbox-img') as HTMLImageElement | null;
   let lbThumbs: HTMLElement[] = [];     // the CARD's own thumbnails (strip stays put)
   let lbStripEl: HTMLElement | null = null; // the card strip currently being previewed
+  let activeCard: HTMLElement | null = null; // card whose preview is showing (for grayscale)
+
+  // Which thumbnail is under a given screen-x — drives the drag/scrub
+  function thumbIndexAtX(thumbs: HTMLElement[], clientX: number): number {
+    if (!thumbs.length) return -1;
+    for (let i = 0; i < thumbs.length; i++) {
+      const r = thumbs[i].getBoundingClientRect();
+      if (clientX >= r.left && clientX <= r.right) return i;
+    }
+    return clientX < thumbs[0].getBoundingClientRect().left ? 0 : thumbs.length - 1;
+  }
 
   function setLbActive(i: number) {
     if (!lbImg) return;
@@ -1287,6 +1308,8 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     if (!lightbox) return;
     lbThumbs = Array.from(card.querySelectorAll<HTMLElement>('.project-card__thumb-item'));
     lbStripEl = strip;
+    activeCard = card;
+    card.classList.add('is-previewing'); // grayscales the non-active thumbnails
     positionPanel(strip);
     setLbActive(startIdx);
     lightbox.classList.add('is-open');
@@ -1300,6 +1323,8 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     lightbox.setAttribute('aria-hidden', 'true');
     document.documentElement.style.overflow = '';
     lbThumbs.forEach(t => t.classList.remove('is-active'));
+    activeCard?.classList.remove('is-previewing');
+    activeCard = null;
     lbStripEl = null;
   }
 
@@ -1313,7 +1338,10 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     });
   }
 
-  // ── In-card scrub preview (desktop hover) / lightbox (mobile tap) ──
+  // ── Scrub preview: same model on desktop and mobile ──
+  // Desktop: hovering / dragging across the strip scrubs the left-side preview.
+  // Mobile: tap opens the frosted lightbox; sliding across the strip scrubs it.
+  // In both, the active thumbnail stays in colour while the rest go grayscale.
   function initImagePreview() {
     const isHoverDevice = window.matchMedia('(hover: hover)').matches;
 
@@ -1321,6 +1349,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       const strip = card.querySelector<HTMLElement>('.project-card__thumbs-scroll');
       if (!strip) return;
       const thumbs = Array.from(card.querySelectorAll<HTMLElement>('.project-card__thumb-item'));
+      let lastIdx = -1;
 
       if (isHoverDevice) {
         const preview = card.querySelector<HTMLElement>('.project-card__hover-preview');
@@ -1328,37 +1357,43 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
         if (!preview || !previewImg) return;
         let hideTimer: ReturnType<typeof setTimeout> | null = null;
 
-        const show = (src: string, alt: string, thumb?: HTMLElement) => {
+        const showIdx = (i: number) => {
+          const t = thumbs[i];
+          if (!t) return;
           if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
-          previewImg.src = src;
-          previewImg.alt = alt;
+          previewImg.src = t.dataset.src ?? '';
+          previewImg.alt = t.dataset.alt ?? '';
           preview.classList.add('is-visible');
-          thumbs.forEach(t => t.classList.remove('is-active'));
-          if (thumb) thumb.classList.add('is-active');
+          card.classList.add('is-previewing'); // grayscale the rest
+          thumbs.forEach((el, j) => el.classList.toggle('is-active', j === i));
+          lastIdx = i;
         };
         const hide = () => {
           hideTimer = setTimeout(() => {
             preview.classList.remove('is-visible');
+            card.classList.remove('is-previewing');
             thumbs.forEach(t => t.classList.remove('is-active'));
+            lastIdx = -1;
           }, 80);
         };
 
-        strip.addEventListener('mouseenter', () => {
-          if (thumbs.length > 0) {
-            const first = thumbs[0];
-            show(first.dataset.src ?? '', first.dataset.alt ?? '', first);
-          }
+        strip.addEventListener('pointerenter', () => { if (thumbs.length) showIdx(0); });
+        // Scrub: image follows the pointer across the strip (hover or click-drag)
+        strip.addEventListener('pointermove', (e) => {
+          const i = thumbIndexAtX(thumbs, e.clientX);
+          if (i >= 0 && i !== lastIdx) showIdx(i);
         });
-        thumbs.forEach(thumb => {
-          thumb.addEventListener('mouseenter', () => {
-            show(thumb.dataset.src ?? '', thumb.dataset.alt ?? '', thumb);
-          });
-        });
-        strip.addEventListener('mouseleave', () => hide());
+        strip.addEventListener('pointerleave', () => hide());
       } else {
-        // Mobile: tap a thumb → open the shared lightbox at that image
+        // Mobile: tap a thumb → open the frosted lightbox at that image
         thumbs.forEach((thumb, idx) => {
           thumb.addEventListener('click', () => openLightbox(card, strip, idx));
+        });
+        // Slide across the strip while the lightbox is open → scrub the image
+        strip.addEventListener('pointermove', (e) => {
+          if (!lightbox || !lightbox.classList.contains('is-open') || activeCard !== card) return;
+          const i = thumbIndexAtX(thumbs, e.clientX);
+          if (i >= 0 && i !== lastIdx) { lastIdx = i; setLbActive(i); }
         });
       }
     });
