@@ -262,19 +262,22 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
          Frosted/translucent panel anchored to the top OR bottom edge (whichever
          side of the card's scrub has more room). The card's own scrub strip
          stays in place and visible; tap the panel to dismiss. -->
+    <!-- Two frosted-glass panes sandwich the card's scrub strip (which stays
+         sharp in the gap); image fills the larger pane; link + ✕ bar by the strip -->
     <div class="project-lightbox" id="project-lightbox" aria-hidden="true">
-      <!-- Header (top-anchored loads only): project name + link -->
-      <div class="project-lightbox__header" id="lightbox-header">
-        <span class="project-lightbox__name" id="lightbox-name"></span>
+      <div class="project-lightbox__pane project-lightbox__pane--image" id="lightbox-image-area">
+        <img class="project-lightbox__img" id="lightbox-img" src="" alt="" />
+      </div>
+      <div class="project-lightbox__pane project-lightbox__pane--filler" id="lightbox-filler"></div>
+      <div class="project-lightbox__bar" id="lightbox-bar">
         <a class="project-lightbox__link" id="lightbox-link" href="#">
           <span>Go to project</span>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"/><polyline points="10 6 18 6 18 14"/></svg>
         </a>
+        <button class="project-lightbox__close" id="lightbox-close" type="button" aria-label="Close image">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
-      <button class="project-lightbox__close" id="lightbox-close" type="button" aria-label="Close image">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
-      <img class="project-lightbox__img" id="lightbox-img" src="" alt="" />
     </div>
   </section>
 </PageLayout>
@@ -1211,99 +1214,40 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     }
   }
 
-  /* ── Mobile image preview panel ──────────────────────────────────────
-     Frosted, translucent panel (same glass as the breadcrumb / side nav).
-     Anchored to the top OR bottom edge — whichever side of the card's scrub
-     has more room — and stretches up to the strip, which stays in place.
-     Sits BELOW the breadcrumb (100) and side nav (200), and is inset off the
-     side-nav bar + breadcrumb dock so it never extends over them. */
+  /* ── Mobile image preview ────────────────────────────────────────────
+     A transparent full-screen container holding two frosted-glass panes that
+     sandwich the card's scrub strip. The strip stays sharp in the gap; the
+     image and the link/✕ bar sit sharp on the glass; everything behind the
+     glass (other cards) is blurred — same glass as the side nav / breadcrumb.
+     Sits BELOW the breadcrumb (100) + side nav (200). */
   .project-lightbox {
     display: none;
     position: fixed;
+    inset: 0;
+    z-index: 95;
+    pointer-events: none; /* container is click-through; panes/bar opt back in */
+  }
+
+  .project-lightbox.is-open { display: block; }
+
+  /* The two glass panes (image side + filler side) */
+  .project-lightbox__pane {
+    position: absolute;
     left: 44px; /* clear the side-nav index bar */
     right: 0;
-    /* top / bottom set in JS, relative to the card's scrub strip */
-    z-index: 95; /* under breadcrumb (100) + side nav (200) */
-    align-items: center;
-    justify-content: center;
-    padding: 60px 22px 84px; /* top clears the ✕ (bottom-anchored); bottom clears the breadcrumb dock */
-    box-sizing: border-box;
+    /* top / bottom set in JS */
+    pointer-events: auto; /* tap a pane to close */
     background-color: color-mix(in srgb, var(--_tokens---color--bg) 35%, transparent);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
   }
 
-  .project-lightbox.is-open { display: flex; }
-
-  /* Header — name + link — only on the top-anchored load; the image clears it */
-  .project-lightbox:not(.lb-anchor-bottom) { padding-top: 68px; }
-
-  .project-lightbox__header {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 2;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 16px 18px; /* ✕ now sits by the strip, so the header can use full width */
-    box-sizing: border-box;
-  }
-
-  .project-lightbox.lb-anchor-bottom .project-lightbox__header { display: none; }
-
-  .project-lightbox__name {
-    flex: 1;
-    min-width: 0;
-    font-size: var(--_tokens---type--small);
-    font-weight: 600;
-    color: var(--_tokens---color--fg);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .project-lightbox__link {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    flex-shrink: 0;
-    font-size: var(--_tokens---type--micro);
-    font-weight: 500;
-    color: var(--_tokens---color--fg);
-    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
-    border-radius: 999px;
-    padding: 6px 12px;
-  }
-
-  .project-lightbox__link svg { width: 0.85em; height: 0.85em; }
-
-  /* Close button sits next to the scrub on the right: just ABOVE the strip when
-     the image is on top, just BELOW the strip when the image is on the bottom. */
-  .project-lightbox__close {
-    position: absolute;
-    right: 14px;
-    bottom: 12px; /* top-anchored: panel bottom edge == strip, so this is right above it */
-    top: auto;
-    z-index: 3;
+  .project-lightbox__pane--image {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 44px;
-    height: 44px;
-    padding: 10px;
-    border: none;
-    background: transparent;
-    color: var(--_tokens---color--fg);
-    cursor: pointer;
-  }
-
-  .project-lightbox__close svg { width: 100%; height: 100%; }
-
-  .project-lightbox.lb-anchor-bottom .project-lightbox__close {
-    bottom: auto;
-    top: 12px; /* bottom-anchored: panel top edge == strip, so this is right below it */
+    padding: 20px 22px;
+    box-sizing: border-box;
   }
 
   .project-lightbox__img {
@@ -1314,15 +1258,57 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     object-fit: contain;
     display: block;
   }
+
+  /* Link (left) + ✕ (right) bar — sits in the gap right by the strip */
+  .project-lightbox__bar {
+    position: absolute;
+    left: 44px;
+    right: 0;
+    height: 44px;
+    /* top set in JS — just above the strip (image on top) or just below it */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    box-sizing: border-box;
+    pointer-events: none;
+  }
+
+  .project-lightbox__link {
+    pointer-events: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--_tokens---type--micro);
+    font-weight: 500;
+    color: var(--_tokens---color--fg);
+  }
+
+  .project-lightbox__link svg { width: 0.9em; height: 0.9em; }
+
+  .project-lightbox__close {
+    pointer-events: auto;
+    all: unset;
+    cursor: pointer;
+    color: var(--_tokens---color--fg);
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .project-lightbox__close svg { width: 22px; height: 22px; }
 </style>
 
 <script>
   // ── Mobile image preview controller (shared, top-level — floats over cards) ──
   const lightbox = document.getElementById('project-lightbox');
   const lbImg = document.getElementById('lightbox-img') as HTMLImageElement | null;
-  const lbName = document.getElementById('lightbox-name');
+  const lbImageArea = document.getElementById('lightbox-image-area');
+  const lbFiller = document.getElementById('lightbox-filler');
+  const lbBar = document.getElementById('lightbox-bar');
   const lbLink = document.getElementById('lightbox-link') as HTMLAnchorElement | null;
-  const lbHeader = document.getElementById('lightbox-header');
   let lbThumbs: HTMLElement[] = [];     // the CARD's own thumbnails (strip stays put)
   let lbStripEl: HTMLElement | null = null; // the card strip currently being previewed
   let activeCard: HTMLElement | null = null; // card whose preview is showing (for grayscale)
@@ -1346,23 +1332,33 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     lbImg.alt = t.dataset.alt ?? '';
   }
 
-  // Anchor the panel to whichever edge (top/bottom) the card's strip leaves more room
+  // Sandwich the strip: image pane fills the larger side, filler pane the other,
+  // and the link/✕ bar sits in the gap right next to the strip.
+  const BAR_H = 44;
   function positionPanel(strip: HTMLElement) {
-    if (!lightbox) return;
+    if (!lightbox || !lbImageArea || !lbFiller || !lbBar) return;
     const rect = strip.getBoundingClientRect();
     const vh = window.innerHeight;
     const imageOnBottom = (vh - rect.bottom) >= rect.top;
     if (imageOnBottom) {
-      // more room below the strip → panel from strip down to the bottom edge
-      lightbox.style.top = rect.bottom + 'px';
-      lightbox.style.bottom = '0px';
+      // image pane below the strip, filler above; bar just below the strip
+      lbImageArea.style.top = rect.bottom + 'px';
+      lbImageArea.style.bottom = '0px';
+      lbImageArea.style.paddingTop = BAR_H + 'px'; // clear the bar
+      lbImageArea.style.paddingBottom = '84px';    // clear the breadcrumb dock
+      lbFiller.style.top = '0px';
+      lbFiller.style.bottom = (vh - rect.top) + 'px';
+      lbBar.style.top = rect.bottom + 'px';
     } else {
-      // more room above → panel from the top edge down to the strip
-      lightbox.style.top = '0px';
-      lightbox.style.bottom = (vh - rect.top) + 'px';
+      // image pane above the strip, filler below; bar just above the strip
+      lbImageArea.style.top = '0px';
+      lbImageArea.style.bottom = (vh - rect.top) + 'px';
+      lbImageArea.style.paddingTop = '20px';
+      lbImageArea.style.paddingBottom = BAR_H + 'px'; // clear the bar
+      lbFiller.style.top = rect.bottom + 'px';
+      lbFiller.style.bottom = '0px';
+      lbBar.style.top = (rect.top - BAR_H) + 'px';
     }
-    // close button → bottom-right when the image is on the bottom, else top-right
-    lightbox.classList.toggle('lb-anchor-bottom', imageOnBottom);
   }
 
   function openLightbox(card: HTMLElement, strip: HTMLElement, startIdx: number) {
@@ -1371,8 +1367,6 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     lbStripEl = strip;
     activeCard = card;
     card.classList.add('is-previewing'); // grayscales the non-active thumbnails
-    // Populate the top-anchored header (name + link)
-    if (lbName) lbName.textContent = card.dataset.name ?? '';
     const href = card.querySelector('.project-card__pill')?.getAttribute('href');
     if (lbLink && href) lbLink.href = href;
     positionPanel(strip);
@@ -1397,13 +1391,15 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   }
 
   if (lightbox) {
-    // Tap the panel/image to dismiss; the card's strip is outside the panel so
-    // its thumbnails stay tappable for navigation
-    lightbox.addEventListener('click', closeLightbox);
-    // Block touch-scroll/rubber-band on the panel itself while open
-    lightbox.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
-    // The header (name + link) shouldn't close the lightbox; the link still navigates
-    lbHeader?.addEventListener('click', (e) => e.stopPropagation());
+    // Tap a glass pane or image to dismiss (the strip in the gap stays tappable);
+    // the ✕ closes; the link navigates (its own default wins over close)
+    lbImageArea?.addEventListener('click', closeLightbox);
+    lbFiller?.addEventListener('click', closeLightbox);
+    document.getElementById('lightbox-close')?.addEventListener('click', closeLightbox);
+    lbLink?.addEventListener('click', (e) => e.stopPropagation());
+    // Block touch-scroll/rubber-band on the glass panes while open
+    lbImageArea?.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+    lbFiller?.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLightbox(); });
     window.addEventListener('resize', () => {
       if (lbStripEl && lightbox.classList.contains('is-open')) positionPanel(lbStripEl);
