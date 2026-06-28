@@ -67,7 +67,10 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
           autocomplete="off"
           aria-label="Search projects"
         />
-        <button class="projects-search-clear" id="projects-search-clear" type="button">Clear All</button>
+        <button class="projects-search-clear" id="projects-search-clear" type="button" aria-label="Clear all filters">
+          <svg class="projects-search-clear__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <span class="projects-search-clear__text">Clear All</span>
+        </button>
       </div>
 
       <!-- Filter bar with dropdown and scrollable tag picker -->
@@ -384,8 +387,11 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   }
 
   .projects-search-clear {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     height: 66px;
-    padding: 0 32px;
+    padding: 0 28px;
     font-size: var(--_tokens---type--small);
     font-family: inherit;
     font-weight: 400;
@@ -398,6 +404,12 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     white-space: nowrap;
     opacity: 0.35; /* grayed out by default */
     transition: background-color 0.2s, color 0.2s, opacity 0.3s ease;
+  }
+
+  .projects-search-clear__icon {
+    width: 1.05em;
+    height: 1.05em;
+    flex-shrink: 0;
   }
 
   .projects-search-input:focus ~ .projects-search-clear,
@@ -1055,18 +1067,66 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       min-width: 0;
       padding: 9px 32px 9px 14px;
     }
-    /* Tags fill the rest of the row and scroll horizontally on touch */
+    /* Tags fill the rest of the row */
     .filter-group--tags,
     .tag-picker-wrapper,
     .tag-scroll-nav {
       flex: 1;
       min-width: 0;
     }
-    .tag-picker-container {
-      max-width: none;
-    }
     .tag-scroll-arrow {
-      display: none !important; /* native touch scroll on mobile — no arrow buttons */
+      display: none !important; /* no arrow buttons on mobile */
+    }
+    /* Clear-all → icon only on mobile (the ✕ sign reads on its own) */
+    .projects-search-clear {
+      padding: 0;
+      width: 66px;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .projects-search-clear__text {
+      display: none;
+    }
+    .projects-search-clear__icon {
+      width: 1.4em;
+      height: 1.4em;
+    }
+
+    /* ── Tag picker becomes a vertical scroll-wheel: one pill visible, scroll
+       (snap) through the rest. The centred pill is the active filter. ── */
+    .tag-picker-container {
+      flex: 1;
+      min-width: 0;
+      max-width: none;
+      height: 38px;
+      overflow-x: hidden;
+      overflow-y: auto;
+      scroll-snap-type: y mandatory;
+      scrollbar-width: none;
+      border-radius: 999px;
+      background-color: color-mix(in srgb, var(--_tokens---color--fg) 5%, transparent);
+    }
+    .tag-picker-container::-webkit-scrollbar { display: none; }
+    .tag-picker {
+      flex-direction: column;
+      gap: 0;
+      width: 100%;
+    }
+    .tag-picker-item {
+      height: 38px;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      scroll-snap-align: center;
+      border: none;
+      border-radius: 999px;
+      flex: 0 0 auto;
+    }
+    /* Non-centred pills read as muted; the snapped/active one inverts */
+    .tag-picker-item:not(.is-active) {
+      background-color: transparent;
+      color: var(--_tokens---color--muted);
     }
     .project-cards-container {
       margin-top: 190px;
@@ -1155,6 +1215,18 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
   .project-lightbox.is-open { display: block; }
 
+  /* Default: scrub bottom, image fills from the top.
+     .is-strip-top flips it: scrub top, image fills toward the bottom —
+     used when the tapped card sits in the upper half of the screen. */
+  .project-lightbox.is-strip-top .project-lightbox__strip {
+    top: 0;
+    bottom: auto;
+  }
+  .project-lightbox.is-strip-top .project-lightbox__image-area {
+    top: 96px;
+    bottom: 0;
+  }
+
   /* Image fills from the top of the screen down to the strip — maximum room,
      overlaps the page header/search behind it */
   .project-lightbox__image-area {
@@ -1238,11 +1310,18 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     lbImg.alt = t.dataset.alt ?? '';
   }
 
-  function openLightbox(card: HTMLElement, _strip: HTMLElement, startIdx: number) {
+  function openLightbox(card: HTMLElement, strip: HTMLElement, startIdx: number) {
     if (!lightbox || !lbStrip) return;
 
-    // Rebuild the lightbox strip from this card's thumbnails (image fills from
-    // the top, strip stays pinned at the bottom — handled in CSS)
+    // If the tapped strip sits in the upper half of the screen, flip the layout
+    // so the scrub goes on top and the image grows toward the bottom — that way
+    // the image always has the larger region to fit into.
+    const rect = strip.getBoundingClientRect();
+    const stripInTopHalf = (rect.top + rect.height / 2) < window.innerHeight / 2;
+    lightbox.classList.toggle('is-strip-top', stripInTopHalf);
+
+    // Rebuild the lightbox strip from this card's thumbnails (image fills the
+    // larger region; strip stays pinned to the opposite edge — handled in CSS)
     const cardThumbs = Array.from(card.querySelectorAll<HTMLElement>('.project-card__thumb-item'));
     lbStrip.innerHTML = '';
     lbThumbs = cardThumbs.map((ct, i) => {
@@ -1587,6 +1666,36 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     applyFilter();
     updateScrollArrows();
   });
+
+  // ── Mobile: vertical scroll-wheel tag selection ──
+  // One pill is visible at a time; whichever snaps to the centre becomes the
+  // active tag filter. "All" stays its own pill to the left.
+  const mqMobile = window.matchMedia('(max-width: 768px)');
+  if (tagPickerContainer && tagPicker) {
+    let wheelTimer: ReturnType<typeof setTimeout> | null = null;
+    tagPickerContainer.addEventListener('scroll', () => {
+      if (!mqMobile.matches) return;
+      if (wheelTimer) clearTimeout(wheelTimer);
+      wheelTimer = setTimeout(() => {
+        const cRect = tagPickerContainer.getBoundingClientRect();
+        const center = cRect.top + cRect.height / 2;
+        const items = Array.from(tagPicker.querySelectorAll<HTMLElement>('.tag-picker-item'));
+        let nearest: HTMLElement | null = null;
+        let min = Infinity;
+        items.forEach(it => {
+          const r = it.getBoundingClientRect();
+          const d = Math.abs(r.top + r.height / 2 - center);
+          if (d < min) { min = d; nearest = it; }
+        });
+        if (nearest && (nearest as HTMLElement).dataset.filter !== activeTag) {
+          activeTag = (nearest as HTMLElement).dataset.filter ?? '';
+          allTagBtn?.classList.remove('is-active');
+          items.forEach(b => b.classList.toggle('is-active', b === nearest));
+          applyFilter();
+        }
+      }, 90);
+    }, { passive: true });
+  }
 
   // Pre-load search query from URL params if present (links from skillset click on About page)
   const urlParams = new URLSearchParams(window.location.search);
