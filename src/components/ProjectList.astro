@@ -257,14 +257,12 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       </div>
     </div>
 
-    <!-- Mobile image lightbox — shared, top-level so it overlays ALL cards.
-         Image sits in whichever region (above/below the strip) has more room;
-         the thumbnail strip stays visible for navigation; tap backdrop to exit. -->
+    <!-- Mobile image preview — shared, top-level so it overlays all cards.
+         Frosted/translucent panel anchored to the top OR bottom edge (whichever
+         side of the card's scrub has more room). The card's own scrub strip
+         stays in place and visible; tap the panel to dismiss. -->
     <div class="project-lightbox" id="project-lightbox" aria-hidden="true">
-      <div class="project-lightbox__image-area" id="lightbox-image-area">
-        <img class="project-lightbox__img" id="lightbox-img" src="" alt="" />
-      </div>
-      <div class="project-lightbox__strip" id="lightbox-strip"></div>
+      <img class="project-lightbox__img" id="lightbox-img" src="" alt="" />
     </div>
   </section>
 </PageLayout>
@@ -1199,49 +1197,28 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     }
   }
 
-  /* ── Mobile image lightbox ───────────────────────────────────────────
-     Shown only on touch devices. Top-level + high z-index so the image sits
-     over every project card. The image lands in the larger free region
-     (above or below the strip, set in JS); the strip stays tappable. */
+  /* ── Mobile image preview panel ──────────────────────────────────────
+     Frosted, translucent panel (same glass as the breadcrumb / side nav).
+     Anchored to the top OR bottom edge — whichever side of the card's scrub
+     has more room — and stretches up to the strip, which stays in place.
+     Top-level + high z-index so it floats over all the cards. */
   .project-lightbox {
     display: none;
     position: fixed;
-    inset: 0;
-    z-index: 300;
-    background-color: color-mix(in srgb, var(--_tokens---color--bg) 86%, transparent);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-  }
-
-  .project-lightbox.is-open { display: block; }
-
-  /* Default: scrub bottom, image fills from the top.
-     .is-strip-top flips it: scrub top, image fills toward the bottom —
-     used when the tapped card sits in the upper half of the screen. */
-  .project-lightbox.is-strip-top .project-lightbox__strip {
-    top: 0;
-    bottom: auto;
-  }
-  .project-lightbox.is-strip-top .project-lightbox__image-area {
-    top: 96px;
-    bottom: 0;
-  }
-
-  /* Image fills from the top of the screen down to the strip — maximum room,
-     overlaps the page header/search behind it */
-  .project-lightbox__image-area {
-    position: absolute;
     left: 0;
     right: 0;
-    top: 0;
-    bottom: 96px; /* clears the pinned strip */
-    display: flex;
+    /* top / bottom set in JS, relative to the card's scrub strip */
+    z-index: 300;
     align-items: center;
     justify-content: center;
-    padding: 14px;
+    padding: 16px;
     box-sizing: border-box;
-    pointer-events: none; /* taps fall through to the backdrop → close */
+    background-color: color-mix(in srgb, var(--_tokens---color--bg) 35%, transparent);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
   }
+
+  .project-lightbox.is-open { display: flex; }
 
   .project-lightbox__img {
     max-width: 100%;
@@ -1251,55 +1228,14 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     object-fit: contain;
     display: block;
   }
-
-  /* Scrub strip pinned to the bottom of the screen — always visible */
-  .project-lightbox__strip {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 96px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 0 12px;
-    box-sizing: border-box;
-    overflow-x: auto;
-    overflow-y: hidden;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .project-lightbox__strip::-webkit-scrollbar { display: none; }
-
-  .project-lightbox__thumb {
-    all: unset;
-    flex: 0 0 auto;
-    width: 54px;
-    height: 54px;
-    overflow: hidden;
-    cursor: pointer;
-    opacity: 0.45;
-    transition: opacity 0.15s ease;
-  }
-
-  .project-lightbox__thumb.is-active { opacity: 1; }
-
-  .project-lightbox__thumb img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
 </style>
 
 <script>
-  // ── Mobile lightbox controller (shared, top-level — overlays all cards) ──
+  // ── Mobile image preview controller (shared, top-level — floats over cards) ──
   const lightbox = document.getElementById('project-lightbox');
   const lbImg = document.getElementById('lightbox-img') as HTMLImageElement | null;
-  const lbImageArea = document.getElementById('lightbox-image-area');
-  const lbStrip = document.getElementById('lightbox-strip');
-  let lbThumbs: HTMLElement[] = [];
+  let lbThumbs: HTMLElement[] = [];     // the CARD's own thumbnails (strip stays put)
+  let lbStripEl: HTMLElement | null = null; // the card strip currently being previewed
 
   function setLbActive(i: number) {
     if (!lbImg) return;
@@ -1310,40 +1246,31 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     lbImg.alt = t.dataset.alt ?? '';
   }
 
-  function openLightbox(card: HTMLElement, strip: HTMLElement, startIdx: number) {
-    if (!lightbox || !lbStrip) return;
-
-    // If the tapped strip sits in the upper half of the screen, flip the layout
-    // so the scrub goes on top and the image grows toward the bottom — that way
-    // the image always has the larger region to fit into.
+  // Anchor the panel to whichever edge (top/bottom) the card's strip leaves more room
+  function positionPanel(strip: HTMLElement) {
+    if (!lightbox) return;
     const rect = strip.getBoundingClientRect();
-    const stripInTopHalf = (rect.top + rect.height / 2) < window.innerHeight / 2;
-    lightbox.classList.toggle('is-strip-top', stripInTopHalf);
+    const vh = window.innerHeight;
+    if (vh - rect.bottom >= rect.top) {
+      // more room below the strip → panel from strip down to the bottom edge
+      lightbox.style.top = rect.bottom + 'px';
+      lightbox.style.bottom = '0px';
+    } else {
+      // more room above → panel from the top edge down to the strip
+      lightbox.style.top = '0px';
+      lightbox.style.bottom = (vh - rect.top) + 'px';
+    }
+  }
 
-    // Rebuild the lightbox strip from this card's thumbnails (image fills the
-    // larger region; strip stays pinned to the opposite edge — handled in CSS)
-    const cardThumbs = Array.from(card.querySelectorAll<HTMLElement>('.project-card__thumb-item'));
-    lbStrip.innerHTML = '';
-    lbThumbs = cardThumbs.map((ct, i) => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'project-lightbox__thumb';
-      btn.dataset.src = ct.dataset.src ?? '';
-      btn.dataset.alt = ct.dataset.alt ?? '';
-      const img = document.createElement('img');
-      img.src = ct.dataset.src ?? '';
-      img.alt = '';
-      img.loading = 'lazy';
-      btn.appendChild(img);
-      btn.addEventListener('click', (e) => { e.stopPropagation(); setLbActive(i); });
-      lbStrip.appendChild(btn);
-      return btn;
-    });
-
+  function openLightbox(card: HTMLElement, strip: HTMLElement, startIdx: number) {
+    if (!lightbox) return;
+    lbThumbs = Array.from(card.querySelectorAll<HTMLElement>('.project-card__thumb-item'));
+    lbStripEl = strip;
+    positionPanel(strip);
     setLbActive(startIdx);
     lightbox.classList.add('is-open');
     lightbox.setAttribute('aria-hidden', 'false');
-    document.documentElement.style.overflow = 'hidden'; // lock background scroll
+    document.documentElement.style.overflow = 'hidden'; // lock scroll so the strip stays put
   }
 
   function closeLightbox() {
@@ -1351,13 +1278,18 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     lightbox.classList.remove('is-open');
     lightbox.setAttribute('aria-hidden', 'true');
     document.documentElement.style.overflow = '';
+    lbThumbs.forEach(t => t.classList.remove('is-active'));
+    lbStripEl = null;
   }
 
-  if (lightbox && lbStrip) {
-    // Tap the backdrop or the image to exit; taps on the strip navigate instead
+  if (lightbox) {
+    // Tap the panel/image to dismiss; the card's strip is outside the panel so
+    // its thumbnails stay tappable for navigation
     lightbox.addEventListener('click', closeLightbox);
-    lbStrip.addEventListener('click', (e) => e.stopPropagation());
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLightbox(); });
+    window.addEventListener('resize', () => {
+      if (lbStripEl && lightbox.classList.contains('is-open')) positionPanel(lbStripEl);
+    });
   }
 
   // ── In-card scrub preview (desktop hover) / lightbox (mobile tap) ──
