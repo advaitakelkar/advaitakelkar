@@ -130,11 +130,10 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
           { label: 'Status',   val: p.data.status },
           { label: 'Program',  val: p.data.program },
         ].filter(m => m.val);
-        // Take first 5 images only, no padding
-        const rawImgs: string[] = [];
-        if (p.data.coverImage) rawImgs.push(p.data.coverImage);
-        if (p.data.multiImage) rawImgs.push(...(p.data.multiImage as string[]));
-        const allImgs: string[] = rawImgs.slice(0, 5);
+        // All images — cover first, then the rest; strip is horizontally scrollable
+        const allImgs: string[] = [];
+        if (p.data.coverImage) allImgs.push(p.data.coverImage);
+        if (p.data.multiImage) allImgs.push(...(p.data.multiImage as string[]));
         return (
         <div
           class="project-card"
@@ -652,12 +651,6 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     align-items: center;
     gap: 12px;
     flex-shrink: 0;
-    transition: opacity 0.2s ease;
-  }
-
-  .project-card.is-open:hover .project-card__stack-right {
-    opacity: 0;
-    pointer-events: none;
   }
 
   .project-card__stack-tags,
@@ -721,7 +714,6 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     flex-direction: row;
     width: 100%;
     min-height: 120px;
-    border-bottom: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
     overflow: visible;
     position: relative;
   }
@@ -757,35 +749,38 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     width: 40%;
     flex-shrink: 0;
     overflow: hidden;
-    border-left: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
     position: relative;
     display: flex;
     align-items: stretch;
     background: none;
   }
 
-  /* ── Thumbnail strip: flush images, no scroll, right-aligned ── */
+  /* ── Thumbnail strip: square thumbs, horizontally scrollable through ALL images ── */
   .project-card__thumbs-scroll {
     display: flex;
     flex-direction: row;
     align-items: center;
     justify-content: flex-end;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
     width: 100%;
     height: 100%;
     gap: 2px;
     padding: 0;
     background: none;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
   }
 
-  /* Flush square thumbnails — no border, no bg, no padding */
+  .project-card__thumbs-scroll::-webkit-scrollbar { display: none; }
+
+  /* Fixed square thumbnails — scrub across them, scroll if they overflow */
   .project-card__thumb-item {
     all: unset;
     display: block;
-    flex: 1;
-    min-width: 0;
-    max-width: 80px;
-    aspect-ratio: 1;
+    flex: 0 0 auto;
+    width: 80px;
+    height: 80px;
     overflow: hidden;
     cursor: crosshair;
     position: relative;
@@ -805,46 +800,41 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     opacity: 0.6;
   }
 
-  /* ── In-card hover preview: covers description col (left), image bleeds 1.5× ── */
+  /* ── Scrub preview: big image filling the left 60% of the viewport, centered,
+        independent of card height. Fixed → escapes the card bounds entirely. ── */
   .project-card__hover-preview {
-    position: absolute;
+    position: fixed;
     left: 0;
     top: 0;
     bottom: 0;
-    right: 40%; /* Stop at the thumbnail strip — keeps thumbs hoverable */
-    z-index: 10;
+    width: 60vw; /* left 60% of the screen */
+    z-index: 95; /* above the filter header (90), under breadcrumb (100) + sidenav (200) */
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: color-mix(in srgb, var(--_tokens---color--bg) 88%, transparent);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    padding: 48px;
+    box-sizing: border-box;
+    background-color: color-mix(in srgb, var(--_tokens---color--bg) 80%, transparent);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.2s ease;
-    overflow: visible;
   }
 
   .project-card__hover-preview.is-visible {
     opacity: 1;
-    /* pointer-events stays none so scrubbing works through to thumbs */
-    pointer-events: none;
+    pointer-events: none; /* scrubbing passes through to the thumbnails */
   }
 
-  /* Image grows 1.5× the description col height — bleeds above + below card, anchored left */
+  /* As big as it can fit in the left 60%, centered. Portrait images go tall. */
   .project-card__hover-preview-img {
-    position: absolute;
-    top: 50%;
-    left: 16px;
-    transform: translateY(-50%);
-    height: auto;
+    max-width: 100%;
+    max-height: 90vh;
     width: auto;
-    max-height: 360px;
-    max-width: calc(100% - 16px);
+    height: auto;
     object-fit: contain;
-    border-radius: 8px;
     display: block;
-    box-shadow: 0 24px 60px -12px color-mix(in srgb, var(--_tokens---color--fg) 35%, transparent);
   }
 
   .project-card__placeholder {
@@ -858,16 +848,10 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 20px;
+    padding: 8px 20px 14px;
     box-sizing: border-box;
     font-size: var(--_tokens---type--micro);
     color: var(--_tokens---color--muted);
-    transition: opacity 0.2s ease;
-  }
-
-  .project-card.is-open:hover .project-card__bottom-bar {
-    opacity: 0;
-    pointer-events: none;
   }
 
   .project-card__bottom-left {
@@ -1062,16 +1046,20 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     }
     .project-card__image-col {
       width: 100%;
-      height: 80px;
-      border-left: none;
-      border-top: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+      height: 64px;
     }
-    /* Thumbs take equal share on mobile too, slightly smaller */
+    /* Smaller thumbs on mobile */
     .project-card__thumb-item {
-      max-width: 50px;
+      width: 60px;
+      height: 60px;
     }
-    /* Preview covers full columns on mobile (already inset:0) */
+    .project-card__thumbs-scroll {
+      justify-content: flex-start;
+    }
+    /* Preview goes full-screen on mobile, not the desktop left-60% split */
     .project-card__hover-preview {
+      width: 100vw;
+      padding: 24px;
       background-color: color-mix(in srgb, var(--_tokens---color--bg) 95%, transparent);
     }
   }
@@ -1156,27 +1144,20 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   initImagePreview();
   document.addEventListener('astro:after-swap', initImagePreview);
 
-  // ── Accordion toggle open/close ──
+  // ── Accordion toggle: click the name to open/close the whole card ──
   function initAccordion() {
     document.querySelectorAll<HTMLElement>('.project-card').forEach(card => {
       const header = card.querySelector<HTMLElement>('.project-card__header');
-      
-      // Click to toggle
+
+      // Click toggles open/close (ignore clicks on the "Go to project" pill)
       header?.addEventListener('click', (e) => {
         const target = e.target as HTMLElement;
         if (target.closest('.project-card__pill')) return;
         card.classList.toggle('is-open');
       });
 
-      // Hover header to open
-      header?.addEventListener('mouseenter', () => {
-        card.classList.add('is-open');
-      });
-
-      // Mouse leave the entire card to collapse it back
+      // Leaving the card just clears the scrub preview — the card stays open
       card.addEventListener('mouseleave', () => {
-        card.classList.remove('is-open');
-        // Clear active states of inside previews
         card.querySelectorAll<HTMLElement>('.project-card__hover-preview').forEach(p => p.classList.remove('is-visible'));
         card.querySelectorAll<HTMLElement>('.project-card__thumb-item').forEach(t => t.classList.remove('is-active'));
       });
