@@ -263,6 +263,14 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
          side of the card's scrub has more room). The card's own scrub strip
          stays in place and visible; tap the panel to dismiss. -->
     <div class="project-lightbox" id="project-lightbox" aria-hidden="true">
+      <!-- Header (top-anchored loads only): project name + link -->
+      <div class="project-lightbox__header" id="lightbox-header">
+        <span class="project-lightbox__name" id="lightbox-name"></span>
+        <a class="project-lightbox__link" id="lightbox-link" href="#">
+          <span>Go to project</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"/><polyline points="10 6 18 6 18 14"/></svg>
+        </a>
+      </div>
       <button class="project-lightbox__close" id="lightbox-close" type="button" aria-label="Close image">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
@@ -1222,6 +1230,50 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
   .project-lightbox.is-open { display: flex; }
 
+  /* Header — name + link — only on the top-anchored load; the image clears it */
+  .project-lightbox:not(.lb-anchor-bottom) { padding-top: 68px; }
+
+  .project-lightbox__header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 60px 16px 18px; /* right gap clears the ✕ */
+    box-sizing: border-box;
+  }
+
+  .project-lightbox.lb-anchor-bottom .project-lightbox__header { display: none; }
+
+  .project-lightbox__name {
+    flex: 1;
+    min-width: 0;
+    font-size: var(--_tokens---type--small);
+    font-weight: 600;
+    color: var(--_tokens---color--fg);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .project-lightbox__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    font-size: var(--_tokens---type--micro);
+    font-weight: 500;
+    color: var(--_tokens---color--fg);
+    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
+    border-radius: 999px;
+    padding: 6px 12px;
+  }
+
+  .project-lightbox__link svg { width: 0.85em; height: 0.85em; }
+
   /* Close button — top-right by default (image on top); moves to bottom-right
      when the image sits on the bottom (.lb-anchor-bottom). */
   .project-lightbox__close {
@@ -1262,6 +1314,9 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   // ── Mobile image preview controller (shared, top-level — floats over cards) ──
   const lightbox = document.getElementById('project-lightbox');
   const lbImg = document.getElementById('lightbox-img') as HTMLImageElement | null;
+  const lbName = document.getElementById('lightbox-name');
+  const lbLink = document.getElementById('lightbox-link') as HTMLAnchorElement | null;
+  const lbHeader = document.getElementById('lightbox-header');
   let lbThumbs: HTMLElement[] = [];     // the CARD's own thumbnails (strip stays put)
   let lbStripEl: HTMLElement | null = null; // the card strip currently being previewed
   let activeCard: HTMLElement | null = null; // card whose preview is showing (for grayscale)
@@ -1310,6 +1365,10 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     lbStripEl = strip;
     activeCard = card;
     card.classList.add('is-previewing'); // grayscales the non-active thumbnails
+    // Populate the top-anchored header (name + link)
+    if (lbName) lbName.textContent = card.dataset.name ?? '';
+    const href = card.querySelector('.project-card__pill')?.getAttribute('href');
+    if (lbLink && href) lbLink.href = href;
     positionPanel(strip);
     setLbActive(startIdx);
     lightbox.classList.add('is-open');
@@ -1332,6 +1391,8 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     // Tap the panel/image to dismiss; the card's strip is outside the panel so
     // its thumbnails stay tappable for navigation
     lightbox.addEventListener('click', closeLightbox);
+    // The header (name + link) shouldn't close the lightbox; the link still navigates
+    lbHeader?.addEventListener('click', (e) => e.stopPropagation());
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLightbox(); });
     window.addEventListener('resize', () => {
       if (lbStripEl && lightbox.classList.contains('is-open')) positionPanel(lbStripEl);
