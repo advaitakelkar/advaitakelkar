@@ -277,7 +277,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       <div class="project-lightbox__pane project-lightbox__pane--filler" id="lightbox-filler"></div>
       <div class="project-lightbox__bar" id="lightbox-bar">
         <a class="project-lightbox__link" id="lightbox-link" href="#">
-          <span class="project-lightbox__link-name" id="lightbox-link-name"></span>
+          <span>Go to project</span>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"/><polyline points="10 6 18 6 18 14"/></svg>
         </a>
         <button class="project-lightbox__close" id="lightbox-close" type="button" aria-label="Close image">
@@ -669,8 +669,8 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     border-radius: 0;
     overflow: visible;
     box-shadow: 0 8px 24px -10px color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
-    /* background stays clipped to border-radius visually via this trick */
-    isolation: isolate;
+    /* No isolation: the fixed hover-preview must escape the card's stacking
+       context so the image floats above ALL cards, not just its own */
   }
 
   .project-card[hidden] { display: none !important; }
@@ -867,10 +867,10 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   .project-card__hover-preview {
     position: fixed;
     left: 44px; /* clear the side-nav index bar */
-    top: 64px;  /* clear the breadcrumb strip */
+    top: 0;     /* grows up beneath the frosted breadcrumb (it sits over the image) */
     bottom: 0;
     width: 56vw; /* left ~60% of the screen, minus the side-nav bar */
-    z-index: 95; /* under breadcrumb (100) + sidenav (200) so they sit over it */
+    z-index: 95; /* above all cards, under breadcrumb (100) + sidenav (200) */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1284,17 +1284,10 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     pointer-events: auto;
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    min-width: 0;
-    font-size: var(--_tokens---type--small);
-    font-weight: 600;
+    gap: 6px;
+    font-size: var(--_tokens---type--micro);
+    font-weight: 500;
     color: var(--_tokens---color--fg);
-  }
-
-  .project-lightbox__link-name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 
   .project-lightbox__link svg { width: 0.9em; height: 0.9em; flex-shrink: 0; }
@@ -1343,7 +1336,6 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   const lbFiller = document.getElementById('lightbox-filler');
   const lbBar = document.getElementById('lightbox-bar');
   const lbLink = document.getElementById('lightbox-link') as HTMLAnchorElement | null;
-  const lbLinkName = document.getElementById('lightbox-link-name');
   const lbPrev = document.getElementById('lightbox-prev');
   const lbNext = document.getElementById('lightbox-next');
   let lbThumbs: HTMLElement[] = [];     // the CARD's own thumbnails (strip stays put)
@@ -1415,7 +1407,6 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     card.classList.add('is-previewing'); // grayscales the non-active thumbnails
     const href = card.querySelector('.project-card__pill')?.getAttribute('href');
     if (lbLink && href) lbLink.href = href;
-    if (lbLinkName) lbLinkName.textContent = card.dataset.name ?? ''; // "<Project name> ↗"
     positionPanel(strip);
     setLbActive(startIdx);
     lightbox.classList.add('is-open');
