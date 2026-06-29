@@ -190,9 +190,9 @@ if (activeProject) {
         </div>
 
         <div class="breadcrumb__menu-column breadcrumb__menu-column--projects">
-          <!-- all projects -->
+          <!-- all projects (same order as mobile: featured first, then the rest) -->
           <div class="breadcrumb__proj-list is-active" data-cat-id="all">
-            {projects.map(p => (
+            {mobileProjects.map(p => (
               <a href={`/projects/${p.id}`} class:list={["breadcrumb__proj-item", currentProjectId === p.id && "is-active"]} data-cat-id={p.data.category?.id || ''}>
                 <span class="breadcrumb__proj-name">{p.data.name}</span>
                 <svg class="breadcrumb__arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"/><polyline points="10 6 18 6 18 14"/></svg>
@@ -823,14 +823,21 @@ if (activeProject) {
             : document.querySelector('.breadcrumb__arrow--prev') as HTMLAnchorElement | null;
           if (arrow) { e.preventDefault(); window.location.href = arrow.href; }
         } else {
-          // Cycle through Home, About, Projects and each category page
-          const catPaths = Array.from(document.querySelectorAll('#bc-catdd-panel .bc-catdd__item'))
-            .map(a => new URL((a as HTMLAnchorElement).href).pathname.replace(/\/$/, '') || '/');
-          const pages = ['/', '/about', '/projects', ...catPaths];
-          const ci = pages.indexOf(p);
-          if (ci === -1) return;
-          if (e.key === 'ArrowRight' && ci < pages.length - 1) { e.preventDefault(); window.location.href = pages[ci + 1]; }
-          if (e.key === 'ArrowLeft'  && ci > 0)                 { e.preventDefault(); window.location.href = pages[ci - 1]; }
+          // Left/Right cycles Home → About → Projects → Category dropdown.
+          // Reaching "Category" focuses the dropdown trigger (then Up/Down opens
+          // the menu) — it never auto-loads a category page.
+          const catTrigger = document.getElementById('bc-catdd-trigger') as HTMLElement | null;
+          const pages = ['/', '/about', '/projects'];
+          const isCat = pages.indexOf(p) === -1; // a category page → treat as the Category stop
+          const ci = isCat ? pages.length : pages.indexOf(p);
+
+          if (e.key === 'ArrowRight') {
+            if (ci < pages.length - 1) { e.preventDefault(); window.location.href = pages[ci + 1]; }
+            else if (ci === pages.length - 1) { e.preventDefault(); catTrigger?.focus(); } // Projects → Category
+          } else if (e.key === 'ArrowLeft') {
+            if (ci > 0 && ci <= pages.length - 1) { e.preventDefault(); window.location.href = pages[ci - 1]; }
+            else if (ci === pages.length) { e.preventDefault(); window.location.href = '/projects'; } // Category page → back to Projects
+          }
         }
       });
     }
