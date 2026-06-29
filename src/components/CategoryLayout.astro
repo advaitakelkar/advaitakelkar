@@ -20,6 +20,14 @@ const sliderImages = projects.map(p => p.data.coverImage).filter(Boolean);
 if (sliderImages.length === 0) {
   sliderImages.push('/images/admin/placeholder.webp');
 }
+
+// Split this category's projects into studio tabs by tag (Studio 823 / FKD Workshop)
+const tagHas = (p: any, id: string) => (p.data.tags ?? []).some((t: any) => t.id === id);
+const tabGroups = [
+  { id: 'studio-823',   label: 'Studio 823',   projects: projects.filter((p: any) => tagHas(p, 'studio-823')) },
+  { id: 'faizan-khatri', label: 'FKD Workshop', projects: projects.filter((p: any) => tagHas(p, 'faizan-khatri')) },
+];
+const showTabs = tabGroups.some(g => g.projects.length > 0);
 ---
 
 <PageLayout
@@ -68,12 +76,44 @@ if (sliderImages.length === 0) {
       </div>
     </div>
 
-    <!-- Stacked Projects List -->
-    <div class="category-projects-list" style="margin-top: clamp(4rem, 8vh, 6rem);">
-      {projects.map(p => {
-        const tagsArr = (p.data.tags ?? []).map(t => tagMap[t.id] || t.id);
-        const tagLine = tagsArr.join(', ');
-        return (
+    <!-- Project groups — tabbed (Studio 823 / FKD Workshop), styled like the About tabs -->
+    {showTabs ? (
+      <section class="cat-tabs" style="margin-top: clamp(4rem, 8vh, 6rem);">
+        <div class="cat-tabs__bar" role="tablist" aria-label="Project groups">
+          {tabGroups.map((g, i) => (
+            <button class:list={["cat-tab-btn", i === 0 && "is-active"]} role="tab" aria-selected={i === 0 ? 'true' : 'false'} data-tab={g.id} type="button">
+              <span>{g.label}</span>
+              <svg class="pill-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+            </button>
+          ))}
+        </div>
+        {tabGroups.map((g, i) => (
+          <div class:list={["cat-tab-panel", i === 0 && "is-active"]} id={`cat-panel-${g.id}`} role="tabpanel" style={i === 0 ? undefined : 'display:none;'}>
+            <div class="category-projects-list">
+              {g.projects.map(p => (
+                <a href={`/projects/${p.id}`} class="category-list-item switch-row">
+                  <div class="switch-row__content">
+                    <h2 class="switch-row__name">{p.data.name}</h2>
+                    <span class="project-card__pill">
+                      <span>View</span>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+                    </span>
+                  </div>
+                  {p.data.coverImage && (
+                    <div class="hover-reveal-img" aria-hidden="true">
+                      <img src={p.data.coverImage} alt={p.data.name} loading="lazy" />
+                    </div>
+                  )}
+                </a>
+              ))}
+              {g.projects.length === 0 && <p class="cat-tab-empty text-muted">No projects in this group yet.</p>}
+            </div>
+          </div>
+        ))}
+      </section>
+    ) : (
+      <div class="category-projects-list" style="margin-top: clamp(4rem, 8vh, 6rem);">
+        {projects.map(p => (
           <a href={`/projects/${p.id}`} class="category-list-item switch-row">
             <div class="switch-row__content">
               <h2 class="switch-row__name">{p.data.name}</h2>
@@ -88,9 +128,9 @@ if (sliderImages.length === 0) {
               </div>
             )}
           </a>
-        );
-      })}
-    </div>
+        ))}
+      </div>
+    )}
 
   </article>
 
@@ -184,6 +224,62 @@ if (sliderImages.length === 0) {
       display: flex;
       flex-direction: column;
     }
+
+    /* ── Project group tabs (same look as the About page tabs) ── */
+    .cat-tabs__bar {
+      display: flex;
+      flex-direction: row;
+      gap: 6px;
+      flex-wrap: nowrap;
+      width: 100%;
+      margin-bottom: 16px;
+      border-bottom: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+      padding-bottom: 12px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .cat-tabs__bar::-webkit-scrollbar { display: none; }
+
+    .cat-tab-btn {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: var(--_tokens---type--medium);
+      font-family: inherit;
+      font-weight: 500;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+      border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+      color: var(--_tokens---color--muted);
+      padding: 14px 22px;
+      cursor: pointer;
+      border-radius: 999px;
+      white-space: nowrap;
+      transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    }
+    .cat-tab-btn .pill-arrow {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      opacity: 0.55;
+      transition: opacity 0.2s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .cat-tab-btn:hover {
+      background-color: color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
+      color: var(--_tokens---color--fg);
+      border-color: color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
+    }
+    .cat-tab-btn:hover .pill-arrow { opacity: 1; transform: translate(2px, -2px); }
+    .cat-tab-btn.is-active {
+      background-color: var(--_tokens---color--fg);
+      color: var(--_tokens---color--bg);
+      border-color: var(--_tokens---color--fg);
+    }
+    .cat-tab-btn.is-active .pill-arrow { opacity: 0.7; }
+
+    .cat-tab-empty { padding: 2rem 24px; }
 
     /* Switch-style Row (Premium Typography & Hover) */
     .switch-row {
@@ -391,9 +487,36 @@ if (sliderImages.length === 0) {
       });
     }
 
-    document.addEventListener('astro:page-load', () => {
+    function initCategoryTabs() {
+      const tabs = document.querySelectorAll<HTMLElement>('.cat-tab-btn');
+      const panels = document.querySelectorAll<HTMLElement>('.cat-tab-panel');
+      if (!tabs.length) return;
+      tabs.forEach((tab) => {
+        tab.addEventListener('click', () => {
+          const target = tab.dataset.tab;
+          tabs.forEach((t) => {
+            const m = t === tab;
+            t.classList.toggle('is-active', m);
+            t.setAttribute('aria-selected', String(m));
+          });
+          panels.forEach((p) => {
+            const m = p.id === `cat-panel-${target}`;
+            p.style.display = m ? '' : 'none';
+            p.classList.toggle('is-active', m);
+          });
+        });
+      });
+    }
+
+    // Run on initial load (no View Transitions router here, so astro:page-load
+    // doesn't fire) and again after any swap.
+    initCategorySliders();
+    initHoverReveal();
+    initCategoryTabs();
+    document.addEventListener('astro:after-swap', () => {
       initCategorySliders();
       initHoverReveal();
+      initCategoryTabs();
     });
   </script>
 </PageLayout>
