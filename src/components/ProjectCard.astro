@@ -208,92 +208,150 @@ if (p.data.multiImage) allImgs.push(...(p.data.multiImage as string[]));
     .pcard__meta { display: none; }
   }
   .pcard__thumb { cursor: pointer; }
+  .pcard__thumb img { transition: filter 0.15s ease, opacity 0.15s ease; }
+  /* While scrubbing: active thumb in colour, the rest grayscale */
+  .pcard.is-previewing .pcard__thumb img { filter: grayscale(1); opacity: 0.5; }
+  .pcard.is-previewing .pcard__thumb.is-active img { filter: none; opacity: 1; }
+
+  @media (max-width: 768px) {
+    /* Lift the strip above the mobile glass and scrub (no native scroll) */
+    .pcard.is-previewing .pcard__thumbs {
+      position: relative;
+      z-index: 96;
+      touch-action: none;
+    }
+  }
 </style>
 
 <script>
-  // Hover/tap image preview for project cards — frosted overlay, one per page.
-  // Desktop: hover/drag across the thumbnails scrubs the preview. Mobile: tap a
-  // thumbnail to open it, tap to close.
-  function initPcardPreview() {
+  // Scrub preview for category project cards — mirrors the projects page.
+  // Desktop: a frosted preview fills the LEFT of the screen; hover/drag the
+  // thumbnails to scrub. Mobile: a frosted lightbox where the image sits ABOVE
+  // or BELOW the strip (whichever has room); the strip stays sharp and scrubs.
+  function initPcardScrub() {
     const strips = Array.from(document.querySelectorAll<HTMLElement>('.pcard__thumbs'));
     if (!strips.length) return;
     const isHover = window.matchMedia('(hover: hover)').matches;
 
-    let overlay = document.getElementById('pcard-preview');
-    if (!overlay) {
-      overlay = document.createElement('div');
-      overlay.id = 'pcard-preview';
-      Object.assign(overlay.style, {
-        position: 'fixed', left: '44px', top: '0', right: '0', bottom: '0',
-        zIndex: '95', display: 'none', alignItems: 'center', justifyContent: 'center',
-        padding: '6vh 5vw', boxSizing: 'border-box',
-        backgroundColor: 'color-mix(in srgb, var(--_tokens---color--bg) 35%, transparent)',
-        backdropFilter: 'blur(20px)', webkitBackdropFilter: 'blur(20px)',
-        opacity: '0', pointerEvents: 'none', transition: 'opacity 0.18s ease',
-      } as Partial<CSSStyleDeclaration>);
-      const i = document.createElement('img');
-      Object.assign(i.style, { maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block' } as Partial<CSSStyleDeclaration>);
-      overlay.appendChild(i);
-      document.body.appendChild(overlay);
-    }
-    const ov = overlay as HTMLElement;
-    const previewImg = ov.querySelector('img') as HTMLImageElement;
-    let locked = false;
-
-    const show = (src: string) => {
-      if (!src) return;
-      previewImg.src = src;
-      ov.style.display = 'flex';
-      requestAnimationFrame(() => { ov.style.opacity = '1'; });
+    // Overlays must live inside .page-wrap (a z-index:1 stacking context) so the
+    // nav/breadcrumb stay above them and the lifted mobile strip can sit on top.
+    const host = (document.querySelector('.page-wrap') as HTMLElement) || document.body;
+    const imgsOf = (strip: HTMLElement) => Array.from(strip.querySelectorAll('img')) as HTMLImageElement[];
+    const imgAtX = (imgs: HTMLImageElement[], x: number) => {
+      for (const im of imgs) { const r = im.getBoundingClientRect(); if (x >= r.left && x <= r.right) return im; }
+      return imgs[imgs.length - 1];
     };
-    const hide = () => {
-      ov.style.opacity = '0';
-      ov.style.display = 'none';
-      ov.style.pointerEvents = 'none';
-      if (locked) { document.documentElement.style.overflow = ''; document.body.style.overflow = ''; locked = false; }
-    };
+    const mark = (imgs: HTMLImageElement[], active: HTMLImageElement | null) =>
+      imgs.forEach(im => im.closest('.pcard__thumb')?.classList.toggle('is-active', im === active));
 
-    const srcAtX = (imgs: HTMLImageElement[], x: number) => {
-      for (const im of imgs) {
-        const r = im.getBoundingClientRect();
-        if (x >= r.left && x <= r.right) return im.src;
+    if (isHover) {
+      // ── Desktop: left-side frosted preview ──
+      let pv = document.getElementById('pcard-preview');
+      if (!pv) {
+        pv = document.createElement('div');
+        pv.id = 'pcard-preview';
+        Object.assign(pv.style, {
+          position: 'fixed', left: '44px', top: '0', bottom: '0', width: '56vw', zIndex: '95',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px', boxSizing: 'border-box',
+          backgroundColor: 'color-mix(in srgb, var(--_tokens---color--bg) 35%, transparent)',
+          backdropFilter: 'blur(20px)', webkitBackdropFilter: 'blur(20px)',
+          opacity: '0', pointerEvents: 'none', transition: 'opacity 0.18s ease',
+        } as Partial<CSSStyleDeclaration>);
+        const im = document.createElement('img');
+        Object.assign(im.style, { maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', display: 'block' } as Partial<CSSStyleDeclaration>);
+        pv.appendChild(im);
+        host.appendChild(pv);
       }
-      return imgs[imgs.length - 1]?.src ?? '';
-    };
+      const pvImg = pv.querySelector('img') as HTMLImageElement;
 
-    strips.forEach((strip) => {
-      if ((strip as any)._pcInit) return;
-      (strip as any)._pcInit = true;
-      const imgs = Array.from(strip.querySelectorAll('img')) as HTMLImageElement[];
-      if (!imgs.length) return;
+      strips.forEach((strip) => {
+        if ((strip as any)._pc) return; (strip as any)._pc = true;
+        const imgs = imgsOf(strip); if (!imgs.length) return;
+        const card = strip.closest('.pcard');
+        strip.addEventListener('pointerenter', () => { pvImg.src = imgs[0].src; pv!.style.opacity = '1'; card?.classList.add('is-previewing'); mark(imgs, imgs[0]); });
+        strip.addEventListener('pointermove', (e) => { const t = imgAtX(imgs, (e as PointerEvent).clientX); pvImg.src = t.src; mark(imgs, t); });
+        strip.addEventListener('pointerleave', () => { pv!.style.opacity = '0'; card?.classList.remove('is-previewing'); mark(imgs, null); });
+      });
+    } else {
+      // ── Mobile: lightbox anchored above/below the strip ──
+      let lb = document.getElementById('pcard-lb');
+      if (!lb) {
+        lb = document.createElement('div');
+        lb.id = 'pcard-lb';
+        Object.assign(lb.style, {
+          position: 'fixed', left: '44px', top: '0', right: '0', bottom: '0', zIndex: '95', display: 'none',
+          backgroundColor: 'color-mix(in srgb, var(--_tokens---color--bg) 35%, transparent)',
+          backdropFilter: 'blur(20px)', webkitBackdropFilter: 'blur(20px)',
+        } as Partial<CSSStyleDeclaration>);
+        const area = document.createElement('div');
+        area.className = 'pcard-lb-area';
+        Object.assign(area.style, { position: 'absolute', left: '0', right: '0', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', boxSizing: 'border-box', pointerEvents: 'none' } as Partial<CSSStyleDeclaration>);
+        const im = document.createElement('img');
+        Object.assign(im.style, { maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block' } as Partial<CSSStyleDeclaration>);
+        area.appendChild(im);
+        const close = document.createElement('button');
+        close.className = 'pcard-lb-close';
+        close.setAttribute('aria-label', 'Close');
+        close.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+        Object.assign(close.style, { position: 'absolute', right: '14px', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', color: 'var(--_tokens---color--fg)', cursor: 'pointer', pointerEvents: 'auto', zIndex: '3' } as Partial<CSSStyleDeclaration>);
+        lb.appendChild(area); lb.appendChild(close);
+        host.appendChild(lb);
+      }
+      const lbEl = lb as HTMLElement;
+      const area = lbEl.querySelector('.pcard-lb-area') as HTMLElement;
+      const lbImg = area.querySelector('img') as HTMLImageElement;
+      const closeBtn = lbEl.querySelector('.pcard-lb-close') as HTMLElement;
+      let activeStrip: HTMLElement | null = null;
 
-      if (isHover) {
-        strip.addEventListener('pointerenter', () => show(imgs[0].src));
-        strip.addEventListener('pointermove', (e) => show(srcAtX(imgs, (e as PointerEvent).clientX)));
-        strip.addEventListener('pointerleave', hide);
-      } else {
+      const position = (strip: HTMLElement) => {
+        const r = strip.getBoundingClientRect();
+        const vh = window.innerHeight;
+        if (vh - r.bottom >= r.top) { // image below the strip
+          area.style.top = (r.bottom + 44) + 'px'; area.style.bottom = '84px';
+          closeBtn.style.top = (r.bottom + 6) + 'px'; closeBtn.style.bottom = 'auto';
+        } else { // image above the strip
+          area.style.top = '0px'; area.style.bottom = (vh - r.top + 44) + 'px';
+          closeBtn.style.top = (r.top - 46) + 'px'; closeBtn.style.bottom = 'auto';
+        }
+      };
+      const open = (strip: HTMLElement, im: HTMLImageElement) => {
+        activeStrip = strip;
+        position(strip);
+        lbImg.src = im.src;
+        strip.closest('.pcard')?.classList.add('is-previewing');
+        lbEl.style.display = 'block';
+        document.documentElement.style.overflow = 'hidden'; document.body.style.overflow = 'hidden';
+      };
+      const close = () => {
+        lbEl.style.display = 'none';
+        document.documentElement.style.overflow = ''; document.body.style.overflow = '';
+        activeStrip?.closest('.pcard')?.classList.remove('is-previewing');
+        activeStrip = null;
+      };
+
+      if (!(lbEl as any)._bound) {
+        (lbEl as any)._bound = true;
+        lbEl.addEventListener('click', close);
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+      }
+
+      strips.forEach((strip) => {
+        if ((strip as any)._pc) return; (strip as any)._pc = true;
+        const imgs = imgsOf(strip); if (!imgs.length) return;
         imgs.forEach((im) => {
-          const thumb = im.closest('.pcard__thumb') as HTMLElement | null;
-          thumb?.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            locked = true;
-            document.documentElement.style.overflow = 'hidden';
-            document.body.style.overflow = 'hidden';
-            ov.style.pointerEvents = 'auto';
-            show(im.src);
+          im.closest('.pcard__thumb')?.addEventListener('click', (e) => {
+            e.preventDefault(); e.stopPropagation();
+            mark(imgs, im); open(strip, im);
           });
         });
-      }
-    });
-
-    if (!(ov as any)._closeBound) {
-      (ov as any)._closeBound = true;
-      ov.addEventListener('click', hide);
-      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hide(); });
+        strip.addEventListener('pointermove', (e) => {
+          if (lbEl.style.display !== 'block' || activeStrip !== strip) return;
+          const t = imgAtX(imgs, (e as PointerEvent).clientX); lbImg.src = t.src; mark(imgs, t);
+        });
+      });
     }
   }
 
-  initPcardPreview();
-  document.addEventListener('astro:after-swap', initPcardPreview);
+  initPcardScrub();
+  document.addEventListener('astro:after-swap', initPcardScrub);
 </script>
