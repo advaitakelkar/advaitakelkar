@@ -28,6 +28,20 @@ const tabGroups = [
   { id: 'faizan-khatri', label: 'FKD Workshop', projects: projects.filter((p: any) => tagHas(p, 'faizan-khatri')) },
 ];
 const showTabs = tabGroups.some(g => g.projects.length > 0);
+
+// 3-column intro copy — Work tells the studio story; other categories fall back to a generic intro
+const introsByTitle: Record<string, string[]> = {
+  Work: [
+    "Welcome. This is the archive of my professional work — a collection of every project I've had the privilege of being part of across my career, from 2018 to 2024. Each one is something I genuinely loved building, and together they trace how I've grown as a designer and architect.",
+    "My working life began in college in 2018. Through my batchmate Varun Mehta I met Samir Raut, Faizan Khatri, and Siddhesh Kadam, and was introduced to Studio 823 — a small independent practice run out of a garage in Shivaji Park, Mumbai. I joined as an intern and grew into an architect there; much of my work ethic and the way I approach making still traces back to that team.",
+    "From Studio 823 I went on to work with Faizan Khatri at FKD Workshop, an offshoot of 823, where I helped build a new studio from the ground up. In a short but intense stretch we grew from three people to eight, and I stepped into far bigger roles — leading projects, mentoring, and learning first-hand what it takes to build, and be part of, a team.",
+  ],
+};
+const introCols = introsByTitle[title] ?? [
+  `Welcome to the ${title} category — a curated collection of projects highlighting work in this space.`,
+  "Each project is part of a unified practice — different mediums tracing the threads of form, material, and concept that recur and evolve from one project to the next.",
+  "Browse the selected work below to explore the projects gathered in this collection.",
+];
 ---
 
 <PageLayout
@@ -39,21 +53,17 @@ const showTabs = tabGroups.some(g => g.projects.length > 0);
   <article class="category-detail">
     <!-- Top Full Width Header -->
     <header class="project-top-header category-hero-header" id="project-top-header">
-      <h1 class="project-card__title" style="font-size: clamp(3rem, 8vw, 6rem); line-height: 1; letter-spacing: -0.02em;">{title}</h1>
+      <h1 class="project-card__title" style="font-size: clamp(3rem, 8vw, 6rem); font-weight: 500; line-height: 1; letter-spacing: -0.02em;">{title}</h1>
     </header>
 
     <!-- 3-Column Intro (mirrors the home page) -->
     <section class="category-intro">
       <div class="category-intro__body">
-        <div class="category-intro__column">
-          <p class="category-intro__desc">Welcome to the {title} category — a curated collection of projects highlighting work in this space.</p>
-        </div>
-        <div class="category-intro__column">
-          <p class="category-intro__desc">Each project is part of a unified practice — different mediums tracing the threads of form, material, and concept that recur and evolve from one project to the next.</p>
-        </div>
-        <div class="category-intro__column">
-          <p class="category-intro__desc">Browse the selected work below, or reach me at <a href="mailto:advaitakelkar@gmail.com" class="category-intro__link">advaitakelkar@gmail.com<svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg></a> to start a conversation.</p>
-        </div>
+        {introCols.map(text => (
+          <div class="category-intro__column">
+            <p class="category-intro__desc">{text}</p>
+          </div>
+        ))}
       </div>
     </section>
 
