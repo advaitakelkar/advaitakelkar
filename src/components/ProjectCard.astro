@@ -1,0 +1,225 @@
+---
+// Reusable project card — matches the projects-page card. Set showDescription
+// to false (e.g. on the category tabs) to drop the intro + description column.
+export interface Props {
+  project: any;
+  tagMap: Record<string, string>;
+  catMap?: Record<string, string>;
+  showDescription?: boolean;
+}
+const { project: p, tagMap, catMap = {}, showDescription = true } = Astro.props;
+
+const tagsArr = (p.data.tags ?? []).map((t: any) => tagMap[t.id] || t.id);
+const tagLine = tagsArr.join(', ');
+const metaParts = [p.data.location, p.data.client, p.data.status, p.data.program].filter(Boolean);
+
+const allImgs: string[] = [];
+if (p.data.coverImage) allImgs.push(p.data.coverImage);
+if (p.data.multiImage) allImgs.push(...(p.data.multiImage as string[]));
+---
+
+<a href={`/projects/${p.id}`} class:list={["pcard", !showDescription && "pcard--no-desc"]}>
+  <div class="pcard__header">
+    <h2 class="pcard__name">{p.data.name}</h2>
+    <span class="pcard__pill">
+      <span>Go to project</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+    </span>
+  </div>
+
+  <div class="pcard__columns">
+    {showDescription && (p.data.smallIntro || p.data.description) && (
+      <div class="pcard__desc-col">
+        {p.data.smallIntro && <p class="pcard__intro">{p.data.smallIntro}</p>}
+        {p.data.description && (
+          <p class="pcard__desc">
+            {p.data.description.replace(/<[^>]*>/g, '').substring(0, 120) + (p.data.description.replace(/<[^>]*>/g, '').length > 120 ? '...' : '')}
+          </p>
+        )}
+      </div>
+    )}
+    <div class="pcard__image-col">
+      <div class:list={["pcard__thumbs", allImgs.length < 5 && "is-few"]}>
+        {allImgs.map((src, idx) => (
+          <span class="pcard__thumb"><img src={src} alt={`${p.data.name} ${idx + 1}`} loading="lazy" /></span>
+        ))}
+        {allImgs.length === 0 && <span class="pcard__placeholder" />}
+      </div>
+    </div>
+  </div>
+
+  <div class="pcard__meta">
+    <div class="pcard__meta-left">
+      {metaParts.map((m, idx) => (
+        <span class="pcard__meta-item">
+          {idx > 0 && <span class="pcard__meta-sep">·</span>}
+          <span class="pcard__meta-val">{m}</span>
+        </span>
+      ))}
+    </div>
+    <div class="pcard__meta-right">
+      {tagLine && <span>{tagLine}</span>}
+      {p.data.year && <span>{p.data.year}</span>}
+    </div>
+  </div>
+</a>
+
+<style>
+  .pcard {
+    display: block;
+    text-decoration: none;
+    color: var(--_tokens---color--fg);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 2.5%, var(--_tokens---color--bg));
+    box-shadow: 0 8px 24px -10px color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .pcard__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px 20px;
+  }
+
+  .pcard__name {
+    font-size: clamp(2rem, 1.375rem + 3.5vw, 4rem);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    line-height: 1.05;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .pcard__pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    flex-shrink: 0;
+    font-size: var(--_tokens---type--micro);
+    font-weight: 500;
+    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
+    border-radius: 999px;
+    padding: 7px 14px;
+    white-space: nowrap;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  }
+  .pcard__pill svg { width: 0.85em; height: 0.85em; transition: transform 0.25s ease; }
+  .pcard:hover .pcard__pill {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
+  }
+  .pcard:hover .pcard__pill svg { transform: translate(2px, -2px); }
+
+  .pcard__columns {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    min-height: 120px;
+  }
+
+  .pcard__desc-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px 20px;
+    box-sizing: border-box;
+  }
+  .pcard__intro {
+    font-size: var(--_tokens---type--small);
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--_tokens---color--muted);
+    margin: 0;
+    max-width: 62ch;
+  }
+  .pcard__desc {
+    font-size: var(--_tokens---type--micro);
+    line-height: 1.55;
+    color: var(--_tokens---color--muted);
+    margin: 0;
+    max-width: 62ch;
+    opacity: 0.85;
+  }
+
+  /* No-description cards keep the images on the right, empty space on the left */
+  .pcard--no-desc .pcard__columns::before {
+    content: "";
+    flex: 1;
+  }
+
+  .pcard__image-col {
+    width: 40%;
+    flex-shrink: 0;
+    overflow: hidden;
+    display: flex;
+    align-items: stretch;
+  }
+
+  .pcard__thumbs {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    overflow-x: auto;
+    overflow-y: hidden;
+    width: 100%;
+    height: 100%;
+    gap: 2px;
+    scrollbar-width: none;
+  }
+  .pcard__thumbs::-webkit-scrollbar { display: none; }
+  .pcard__thumbs.is-few { justify-content: flex-end; }
+
+  .pcard__thumb {
+    flex: 0 0 calc((100% - 8px) / 5);
+    aspect-ratio: 1;
+    max-height: 100%;
+    overflow: hidden;
+    display: block;
+  }
+  .pcard__thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .pcard__placeholder {
+    width: 100%;
+    height: 100%;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
+  }
+
+  .pcard__meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 20px 14px;
+    font-size: var(--_tokens---type--micro);
+    color: var(--_tokens---color--muted);
+  }
+  .pcard__meta-left { display: flex; align-items: center; min-width: 0; }
+  .pcard__metaline, .pcard__meta-left { gap: 4px; }
+  .pcard__meta-item { display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; }
+  .pcard__meta-sep { color: color-mix(in srgb, var(--_tokens---color--fg) 25%, transparent); margin-right: 4px; }
+  .pcard__meta-val { color: var(--_tokens---color--fg); font-weight: 400; }
+  .pcard__meta-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; font-weight: 300; }
+
+  @media (max-width: 768px) {
+    .pcard__header { padding: 10px 16px; }
+    .pcard__name { white-space: normal; }
+    .pcard__desc-col { display: none; }
+    .pcard--no-desc .pcard__columns::before { display: none; }
+    .pcard__columns { flex-direction: column; min-height: auto; }
+    .pcard__image-col { width: 100%; height: auto; }
+    .pcard__thumbs { padding: 0 0 0 16px; box-sizing: border-box; }
+    .pcard__thumb { flex: 0 0 calc((100% - 16px - 8px) / 5); }
+    .pcard__meta { display: none; }
+  }
+</style>

@@ -1,6 +1,7 @@
 ---
 import { getCollection } from 'astro:content';
 import PageLayout from '../layouts/PageLayout.astro';
+import ProjectCard from './ProjectCard.astro';
 
 export interface Props {
   projects: any[];
@@ -102,22 +103,9 @@ const introCols = introsByTitle[title] ?? [
         </div>
         {tabGroups.map((g, i) => (
           <div class:list={["cat-tab-panel", i === 0 && "is-active"]} id={`cat-panel-${g.id}`} role="tabpanel" style={i === 0 ? undefined : 'display:none;'}>
-            <div class="category-projects-list">
+            <div class="cat-card-list">
               {g.projects.map(p => (
-                <a href={`/projects/${p.id}`} class="category-list-item switch-row">
-                  <div class="switch-row__content">
-                    <h2 class="switch-row__name">{p.data.name}</h2>
-                    <span class="project-card__pill">
-                      <span>View</span>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
-                    </span>
-                  </div>
-                  {p.data.coverImage && (
-                    <div class="hover-reveal-img" aria-hidden="true">
-                      <img src={p.data.coverImage} alt={p.data.name} loading="lazy" />
-                    </div>
-                  )}
-                </a>
+                <ProjectCard project={p} tagMap={tagMap} showDescription={false} />
               ))}
               {g.projects.length === 0 && <p class="cat-tab-empty text-muted">No projects in this group yet.</p>}
             </div>
@@ -293,6 +281,12 @@ const introCols = introsByTitle[title] ?? [
     .cat-tab-btn.is-active .pill-arrow { opacity: 0.7; }
 
     .cat-tab-empty { padding: 2rem 24px; }
+
+    .cat-card-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
 
     /* Switch-style Row (Premium Typography & Hover) */
     .switch-row {
