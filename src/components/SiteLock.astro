@@ -1,0 +1,193 @@
+---
+// Site-wide soft lock for project detail pages. Password: advt.
+// Public pages (home, about, projects index, categories) stay open.
+// State lives in sessionStorage; the SideNav lock toggle ([data-lock-toggle])
+// can lock/unlock the whole site at once.
+---
+
+<div class="site-lock" id="site-lock" hidden aria-hidden="true">
+  <div class="site-lock__panel">
+    <svg class="site-lock__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="4" y="10.5" width="16" height="10.5" rx="2.2"></rect>
+      <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"></path>
+      <circle cx="12" cy="15.4" r="1.3"></circle>
+      <line x1="12" y1="16.7" x2="12" y2="18.4"></line>
+    </svg>
+    <p class="site-lock__title">Private project</p>
+    <p class="site-lock__sub">Enter the password to open the project archive.</p>
+    <form class="site-lock__form" id="site-lock-form">
+      <input class="site-lock__input" id="site-lock-input" type="password" placeholder="Password" autocomplete="current-password" aria-label="Password" />
+      <button class="site-lock__btn" type="submit">Unlock</button>
+    </form>
+    <p class="site-lock__error" id="site-lock-error" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+  const PASSWORD = 'advt';
+  const KEY = 'ak-project-access';
+
+  const lock  = document.getElementById('site-lock');
+  const form  = document.getElementById('site-lock-form');
+  const input = document.getElementById('site-lock-input') as HTMLInputElement | null;
+  const error = document.getElementById('site-lock-error');
+
+  const isUnlocked = () => sessionStorage.getItem(KEY) === PASSWORD;
+  const onProjectPage = () => {
+    const p = window.location.pathname.replace(/\/$/, '') || '/';
+    return p.startsWith('/projects/') && p !== '/projects';
+  };
+
+  function reflectToggles() {
+    document.querySelectorAll('[data-lock-toggle]').forEach(t =>
+      t.setAttribute('data-unlocked', String(isUnlocked()))
+    );
+  }
+
+  function openLock() {
+    if (!lock) return;
+    lock.hidden = false;
+    lock.setAttribute('aria-hidden', 'false');
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => input?.focus(), 60);
+  }
+  function closeLock() {
+    if (!lock) return;
+    lock.hidden = true;
+    lock.setAttribute('aria-hidden', 'true');
+    document.documentElement.style.overflow = '';
+    document.body.style.overflow = '';
+    if (error) error.textContent = '';
+  }
+
+  // Gate the current page: project pages require unlock; everything else is open.
+  function applyGate() {
+    if (!isUnlocked() && onProjectPage()) openLock();
+    else closeLock();
+    reflectToggles();
+  }
+
+  form?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (input && input.value === PASSWORD) {
+      sessionStorage.setItem(KEY, PASSWORD);
+      input.value = '';
+      applyGate();
+    } else {
+      if (error) error.textContent = 'Incorrect password.';
+      input?.focus();
+      input?.select();
+    }
+  });
+
+  // SideNav lock toggle: unlocked → re-lock; locked → open the password screen.
+  // Capture phase so it intercepts before the surrounding side-nav bar's click
+  // (which would otherwise open the nav panel).
+  document.addEventListener('click', (e) => {
+    const toggle = (e.target as HTMLElement).closest('[data-lock-toggle]');
+    if (!toggle) return;
+    e.stopPropagation();
+    e.preventDefault();
+    if (isUnlocked()) {
+      sessionStorage.removeItem(KEY);
+      applyGate();
+    } else {
+      openLock();
+      reflectToggles();
+    }
+  }, true);
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && lock && !lock.hidden && !onProjectPage()) closeLock();
+  });
+
+  applyGate();
+  document.addEventListener('astro:after-swap', applyGate);
+</script>
+
+<style>
+  .site-lock {
+    position: fixed;
+    left: 44px; /* clear the side-nav bar */
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 90; /* over the page content, under breadcrumb (100) + side nav (200) */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    box-sizing: border-box;
+    background-color: var(--_tokens---color--bg);
+  }
+  .site-lock[hidden] { display: none; }
+
+  .site-lock__panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 14px;
+    width: min(100%, 420px);
+  }
+
+  .site-lock__icon {
+    width: clamp(120px, 26vh, 220px);
+    height: clamp(120px, 26vh, 220px);
+    color: var(--_tokens---color--fg);
+    margin-bottom: 4px;
+  }
+
+  .site-lock__title {
+    font-size: var(--_tokens---type--medium);
+    font-weight: 500;
+    color: var(--_tokens---color--fg);
+    margin: 0;
+  }
+  .site-lock__sub {
+    font-size: var(--_tokens---type--micro);
+    color: var(--_tokens---color--muted);
+    margin: 0;
+  }
+
+  .site-lock__form {
+    display: flex;
+    gap: 10px;
+    width: min(100%, 360px);
+    margin-top: 8px;
+  }
+  .site-lock__input,
+  .site-lock__btn {
+    height: 48px;
+    border: 1px solid var(--_tokens---color--line);
+    border-radius: 999px;
+    font: inherit;
+    font-size: var(--_tokens---type--small);
+  }
+  .site-lock__input {
+    flex: 1;
+    min-width: 0;
+    padding-inline: 18px;
+    background: var(--_tokens---color--bg);
+    color: var(--_tokens---color--fg);
+    outline: none;
+  }
+  .site-lock__btn {
+    padding-inline: 22px;
+    background: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    cursor: pointer;
+    font-weight: 500;
+  }
+  .site-lock__error {
+    min-height: 1.2em;
+    font-size: var(--_tokens---type--micro);
+    color: var(--_tokens---color--muted);
+    margin: 0;
+  }
+
+  @media (max-width: 767px) {
+    .site-lock { padding: 20px; }
+  }
+</style>

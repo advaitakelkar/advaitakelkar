@@ -123,6 +123,18 @@ const schemes = [
 
     <!-- Vertical label (bottom): index / current page -->
     <span class="sn-bar__label" id="sn-bar-label"><span class="sn-bar__label-index">index</span><span class="sn-bar__label-page"> / {pageName(currentPath)}</span></span>
+
+    <!-- Lock / unlock toggle (bottom corner) — unlocks all project pages at once -->
+    <button class="sn-lock" id="sn-lock-toggle" data-lock-toggle data-unlocked="false" type="button" aria-label="Lock or unlock the project archive" title="Lock / unlock projects">
+      <svg class="sn-lock__icon sn-lock__icon--locked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="5" y="11" width="14" height="9" rx="2"></rect>
+        <path d="M8 11V8a4 4 0 0 1 8 0v3"></path>
+      </svg>
+      <svg class="sn-lock__icon sn-lock__icon--unlocked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="5" y="11" width="14" height="9" rx="2"></rect>
+        <path d="M8 11V8a4 4 0 0 1 7.5-1.9"></path>
+      </svg>
+    </button>
   </div>
 
   <!-- ── Slide-in panel ── -->
@@ -503,6 +515,30 @@ const schemes = [
     color: var(--_tokens---color--muted);
     vertical-align: middle;
   }
+
+  /* ── Lock / unlock toggle (bottom of the bar, just under the label) ── */
+  .sn-lock {
+    all: unset;
+    margin-top: 16px;   /* gap below the index / page label */
+    margin-bottom: 10px; /* nudge it up from the very bottom */
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--_tokens---color--fg);
+    cursor: pointer;
+    flex-shrink: 0;
+    opacity: 0.65;
+    transition: opacity 0.2s ease;
+  }
+  .sn-lock:hover,
+  .sn-lock:focus-visible { opacity: 1; outline: none; }
+  .sn-lock__icon { width: 100%; height: 100%; }
+  .sn-lock__icon--unlocked { display: none; }
+  .sn-lock[data-unlocked="true"] { opacity: 1; }
+  .sn-lock[data-unlocked="true"] .sn-lock__icon--locked { display: none; }
+  .sn-lock[data-unlocked="true"] .sn-lock__icon--unlocked { display: block; }
 
   /* ── Slide-in panel ── */
   .sn-panel {
