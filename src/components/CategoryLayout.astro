@@ -28,6 +28,7 @@ const tabGroups = [
   { id: 'faizan-khatri', label: 'FKD Workshop', projects: projects.filter((p: any) => tagHas(p, 'faizan-khatri')) },
 ];
 const showTabs = tabGroups.some(g => g.projects.length > 0);
+const showSlider = title !== 'Work';
 
 // 3-column intro copy — Work tells the studio story; other categories fall back to a generic intro
 const introsByTitle: Record<string, string[]> = {
@@ -67,24 +68,26 @@ const introCols = introsByTitle[title] ?? [
       </div>
     </section>
 
-    <!-- Full-width Image Slider -->
-    <div class="category-slider" id="project-slider-col">
-      <div class="project-slider" id="project-slider">
-        {sliderImages.map((img, i) => (
-          <img src={img} alt={`Slide ${i + 1}`} class:list={["slider-image", i === 0 && "active"]} loading={i === 0 ? "eager" : "lazy"} />
-        ))}
-        {sliderImages.length > 1 && (
-          <div class="slider-controls">
-            <button class="slider-btn prev" aria-label="Previous image">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-            </button>
-            <button class="slider-btn next" aria-label="Next image">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-            </button>
-          </div>
-        )}
+    <!-- Full-width Image Slider (hidden on the Work page) -->
+    {showSlider && (
+      <div class="category-slider" id="project-slider-col">
+        <div class="project-slider" id="project-slider">
+          {sliderImages.map((img, i) => (
+            <img src={img} alt={`Slide ${i + 1}`} class:list={["slider-image", i === 0 && "active"]} loading={i === 0 ? "eager" : "lazy"} />
+          ))}
+          {sliderImages.length > 1 && (
+            <div class="slider-controls">
+              <button class="slider-btn prev" aria-label="Previous image">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+              </button>
+              <button class="slider-btn next" aria-label="Next image">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    )}
 
     <!-- Project groups — tabbed (Studio 823 / FKD Workshop), styled like the About tabs -->
     {showTabs ? (
