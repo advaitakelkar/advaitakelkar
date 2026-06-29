@@ -194,11 +194,6 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
                     {allImgs.length === 0 && <div class="project-card__placeholder" />}
                   </div>
                 </div>
-
-                <!-- In-card hover preview (overlays description col on desktop, full card on mobile) -->
-                <div class="project-card__hover-preview">
-                  <img class="project-card__hover-preview-img" src="" alt="" />
-                </div>
               </div>
 
               <!-- Bottom Bar -->
@@ -262,6 +257,11 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
          Frosted/translucent panel anchored to the top OR bottom edge (whichever
          side of the card's scrub has more room). The card's own scrub strip
          stays in place and visible; tap the panel to dismiss. -->
+    <!-- Single shared desktop scrub preview (one element, not one per card) -->
+    <div class="project-card__hover-preview" id="desktop-preview">
+      <img class="project-card__hover-preview-img" id="desktop-preview-img" src="" alt="" />
+    </div>
+
     <!-- Single full-screen frosted-glass background. The card's scrub strip is
          lifted sharp on top; image fills the larger region; link + ✕ bar by the strip -->
     <div class="project-lightbox" id="project-lightbox" aria-hidden="true">
@@ -1446,8 +1446,9 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       let lastIdx = -1;
 
       if (isHoverDevice) {
-        const preview = card.querySelector<HTMLElement>('.project-card__hover-preview');
-        const previewImg = card.querySelector<HTMLImageElement>('.project-card__hover-preview-img');
+        // One shared preview element for the whole page (not one per card)
+        const preview = document.getElementById('desktop-preview');
+        const previewImg = document.getElementById('desktop-preview-img') as HTMLImageElement | null;
         if (!preview || !previewImg) return;
         let hideTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -1496,12 +1497,14 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   initImagePreview();
   document.addEventListener('astro:after-swap', initImagePreview);
 
-  // Cards are always open (no accordion). Leaving a card just clears its scrub
-  // preview so the next hover starts clean.
+  // Cards are always open (no accordion). Leaving a card just clears the shared
+  // scrub preview so the next hover starts clean.
   function initCardLeave() {
+    const preview = document.getElementById('desktop-preview');
     document.querySelectorAll<HTMLElement>('.project-card').forEach(card => {
       card.addEventListener('mouseleave', () => {
-        card.querySelectorAll<HTMLElement>('.project-card__hover-preview').forEach(p => p.classList.remove('is-visible'));
+        preview?.classList.remove('is-visible');
+        card.classList.remove('is-previewing');
         card.querySelectorAll<HTMLElement>('.project-card__thumb-item').forEach(t => t.classList.remove('is-active'));
       });
     });
