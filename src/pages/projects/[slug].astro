@@ -130,16 +130,6 @@ dynamicCrumbs.push({ label: data.name });
           </div>
         </div> <!-- End Right Column -->
       </div> <!-- End 2-Column Grid -->
-
-      <!-- Design Section (Full Width Bottom) -->
-      <section class="project-design-section" id="project-design-section">
-        <h1 class="project-design-title" id="design-bottom-header">Design</h1>
-        <div class="project-design-columns" id="design-content-target">
-          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
-          <p>Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Curabitur pretium tincidunt lacus. Nulla gravida orci a odio. Nullam varius, turpis et commodo pharetra, est eros bibendum elit, nec luctus magna felis sollicitudin mauris. Integer in mauris eu nibh euismod gravida.</p>
-        </div>
-      </section>
-      </div> <!-- End Grid -->
     </article>
 </PageLayout>
 
@@ -193,27 +183,6 @@ dynamicCrumbs.push({ label: data.name });
   }
 
   .project-top-header:hover .project-card__title {
-    opacity: 0.8;
-  }
-
-  .project-design-title {
-    font-size: clamp(4rem, 4rem + 5vw, 8rem);
-    font-weight: 500;
-    line-height: 1.05;
-    margin-bottom: 0;
-    color: var(--_tokens---color--fg);
-    letter-spacing: -0.03em;
-    position: sticky;
-    bottom: 0;
-    z-index: 40;
-    background-color: var(--_tokens---color--bg);
-    padding-top: 16px;
-    padding-bottom: 16px;
-    cursor: pointer;
-    border-top: 1px solid color-mix(in srgb, var(--_tokens---color--line) 20%, transparent);
-    transition: opacity 0.3s;
-  }
-  .project-design-title:hover {
     opacity: 0.8;
   }
 
@@ -312,7 +281,7 @@ dynamicCrumbs.push({ label: data.name });
   }
 
   .project-card__title {
-    font-size: clamp(4rem, 4rem + 5vw, 8rem); /* Much larger project name font size */
+    font-size: var(--_tokens---type--display); /* oversized project name */
     font-weight: 500;
     line-height: 1.05;
     letter-spacing: -0.03em;
@@ -397,32 +366,11 @@ dynamicCrumbs.push({ label: data.name });
   .tag-link:hover {
     opacity: 0.7;
   }
-
-  /* ── Design Section ── */
-  .project-design-section {
-    width: 100%;
-  }
-
-  .project-design-columns {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: var(--_tokens---space--medium);
-    font-size: var(--_tokens---type--small);
-    line-height: 1.6;
-    color: var(--_tokens---color--muted);
-    padding-bottom: 30vh; /* Extra space so user can scroll down and read */
-  }
-
-  @media (max-width: 767px) {
-    .project-design-columns {
-      grid-template-columns: 1fr;
-      gap: 24px;
-    }
-  }
 </style>
 
 <script>
   let autoSlideInterval;
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // Slider Controls
   function initSlider() {
@@ -434,6 +382,7 @@ dynamicCrumbs.push({ label: data.name });
     if (!track) return;
 
     const startAutoSlide = () => {
+      if (reduceMotion) return; // no auto-advance when motion is reduced
       if (autoSlideInterval) clearInterval(autoSlideInterval);
       autoSlideInterval = setInterval(() => {
         // If at the end of the scroll track, loop back to the start
@@ -477,24 +426,12 @@ dynamicCrumbs.push({ label: data.name });
     if (autoSlideInterval) clearInterval(autoSlideInterval);
   });
 
-  // Smooth Scrolling for Sticky Headers
+  // Smooth Scrolling for Sticky Header — click the title to return to top
   function initStickyScroll() {
     const topHeader = document.getElementById('project-top-header');
-    const bottomHeader = document.getElementById('design-bottom-header');
-    const designContent = document.getElementById('design-content-target');
-
     if (topHeader) {
       topHeader.addEventListener('click', () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
-      });
-    }
-
-    if (bottomHeader && designContent) {
-      bottomHeader.addEventListener('click', () => {
-        // Scroll so the design content is fully visible below the header
-        const rect = designContent.getBoundingClientRect();
-        const offset = window.scrollY + rect.top - window.innerHeight + rect.height + 150;
-        window.scrollTo({ top: offset, behavior: 'smooth' });
       });
     }
   }

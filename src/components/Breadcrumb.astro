@@ -10,18 +10,11 @@ const { currentPath = '/' } = Astro.props;
 const allProjects = await getCollection('projects');
 const allCats     = await getCollection('categories');
 
-const categoryDisplayNames: Record<string, string> = {
-  'studio-823':    '823',
-  'faizan-khatri': 'FKD',
-  'archv':         'ARCHV',
-  'scad':          'SCAD',
-  'collaboration': 'COLLAB',
-  'freelancer':    'FREE',
-};
-
+// Categories, alphabetised by their own display name (Academic, ARCHV,
+// Freelancer, Work). Labels come straight from the content collection so the
+// breadcrumb can never drift from the real category set.
 const categories = [...allCats].sort((a, b) =>
-  (categoryDisplayNames[a.id] || a.data.displayName)
-    .localeCompare(categoryDisplayNames[b.id] || b.data.displayName)
+  a.data.displayName.localeCompare(b.data.displayName)
 );
 
 // Desktop project list (alphabetical)
@@ -103,7 +96,7 @@ if (activeProject) {
       <div class="bc-catdd__panel" id="bc-catdd-panel" role="menu">
         {categories.map(c => (
           <a href={`/${c.id}`} class:list={["bc-catdd__item", normalizedPath === `/${c.id}` && "is-active"]} role="menuitem">
-            <span>{categoryDisplayNames[c.id] || c.data.displayName}</span>
+            <span>{c.data.displayName}</span>
             <svg class="breadcrumb__arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"/><polyline points="10 6 18 6 18 14"/></svg>
           </a>
         ))}
@@ -153,7 +146,7 @@ if (activeProject) {
           <!-- Category pages -->
           {[...categories].reverse().map(c => (
             <a href={`/${c.id}`} class="breadcrumb__list-item breadcrumb__list-item--cat">
-              <span>{categoryDisplayNames[c.id] || c.data.displayName}</span>
+              <span>{c.data.displayName}</span>
               <svg class="breadcrumb__arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"/><polyline points="10 6 18 6 18 14"/></svg>
             </a>
           ))}
@@ -183,7 +176,7 @@ if (activeProject) {
           </a>
           {categories.map(c => (
             <a href={`/${c.id}`} class="breadcrumb__cat-item" data-cat-id={c.id}>
-              <span>{categoryDisplayNames[c.id] || c.data.displayName}</span>
+              <span>{c.data.displayName}</span>
               <svg class="breadcrumb__arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"/><polyline points="10 6 18 6 18 14"/></svg>
             </a>
           ))}
@@ -260,8 +253,8 @@ if (activeProject) {
     align-items: center;
     gap: 6px;
     padding: 5px 12px;
-    border-radius: 999px;
-    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+    border-radius: var(--_tokens---radius--pill);
+    border: 1px solid var(--_tokens---color--line-soft);
     background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
     color: var(--_tokens---color--muted);
     text-decoration: none;
@@ -316,7 +309,7 @@ if (activeProject) {
     max-height: min(60vh, 420px);
     overflow-y: auto;
     padding: 8px;
-    background-color: color-mix(in srgb, var(--_tokens---color--bg) 35%, transparent);
+    background-color: var(--_tokens---color--bg-glass);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
@@ -333,7 +326,7 @@ if (activeProject) {
     justify-content: space-between;
     gap: 14px;
     padding: 9px 14px;
-    border-radius: 999px;
+    border-radius: var(--_tokens---radius--pill);
     color: var(--_tokens---color--fg);
     text-decoration: none;
     font-family: var(--_tokens---font--mono);
@@ -379,8 +372,8 @@ if (activeProject) {
     align-items: center;
     gap: 6px;
     padding: 5px 12px;
-    border-radius: 999px;
-    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+    border-radius: var(--_tokens---radius--pill);
+    border: 1px solid var(--_tokens---color--line-soft);
     background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
     color: var(--_tokens---color--muted);
     font-family: var(--_tokens---font--mono);
@@ -511,7 +504,7 @@ if (activeProject) {
     flex-direction: column;
     gap: 1px;
     padding: 8px;
-    background-color: color-mix(in srgb, var(--_tokens---color--bg) 35%, transparent);
+    background-color: var(--_tokens---color--bg-glass);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
@@ -538,7 +531,7 @@ if (activeProject) {
     flex-direction: column;
     gap: 1px;
     padding: 8px;
-    background-color: color-mix(in srgb, var(--_tokens---color--bg) 35%, transparent);
+    background-color: var(--_tokens---color--bg-glass);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
@@ -566,7 +559,7 @@ if (activeProject) {
     justify-content: space-between;
     gap: 8px;
     padding: 5px 10px;
-    border-radius: 999px;
+    border-radius: var(--_tokens---radius--pill);
     border: 1px solid transparent;
     background-color: transparent;
     color: var(--_tokens---color--muted);
@@ -654,13 +647,8 @@ if (activeProject) {
   }
   .breadcrumb__backdrop.is-open { display: block; }
 
-  /* Focus outlines suppressed in favour of background invert */
-  .breadcrumb__link:focus-visible,
-  .breadcrumb__dropdown-trigger:focus-visible,
-  .breadcrumb__list-item:focus-visible,
-  .breadcrumb__cat-item:focus-visible,
-  .breadcrumb__proj-item:focus-visible,
-  .breadcrumb__arrow:focus-visible { outline: none !important; }
+  /* Pills signal keyboard focus by inverting (bg↔fg) in the :focus-visible
+     rules above; the prev/next arrows fall back to the global focus ring. */
 </style>
 
 <script>

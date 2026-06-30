@@ -9,6 +9,9 @@ export interface Props {
 
 const { title, description = 'Advaita Kelkar — Architect & Designer', ogImage } = Astro.props;
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+// Absolute share image (per-page override → site default). Crawlers need an
+// absolute URL, so resolve against the canonical site origin.
+const shareImage = new URL(ogImage ?? '/images/admin/profile.webp', Astro.site).href;
 ---
 
 <!doctype html>
@@ -23,11 +26,20 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalURL} />
 
-    <!-- OG -->
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Advaita Kelkar" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonicalURL} />
-    {ogImage && <meta property="og:image" content={ogImage} />}
+    <meta property="og:image" content={shareImage} />
+    <meta property="og:image:alt" content={`${title} — Advaita Kelkar`} />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={shareImage} />
 
     <!-- ── Scheme: runs synchronously in <head> → no FOUC, correct on every page load ── -->
     <script is:inline>
@@ -79,7 +91,9 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     <slot />
     <script>
       // Global Arrow Hover Random Rotation
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       document.addEventListener('mouseover', (e) => {
+        if (prefersReducedMotion) return; // honor OS "reduce motion"
         const target = e.target as HTMLElement;
         const hoverContainer = target.closest('a, button, .project-card, .about-link-row, .qs-row, .home-slider__slide, .sn-panel__link');
         if (hoverContainer) {
@@ -284,7 +298,9 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         ) as HTMLElement || scrambleEl;
       }
 
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       document.addEventListener('mouseover', (e) => {
+        if (reduceMotion) return; // honor OS "reduce motion" — skip scramble
         const target = e.target as HTMLElement;
         const scrambleEl = getScrambleTarget(target);
 

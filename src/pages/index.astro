@@ -285,7 +285,12 @@ const STUDIO = { 'studio-823': 'Studio 823', 'faizan-khatri': 'FKD Workshop' };
           r.style.animation = '';
         });
       }
-      function startAuto() { restartRing(); timer = setInterval(advance, 3000); }
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      function startAuto() {
+        if (reduceMotion) return; // no auto-advance when motion is reduced
+        restartRing();
+        timer = setInterval(advance, 3000);
+      }
       function stopAuto()  { clearInterval(timer); }
 
       // Start centered on the real first slide (last/next slides peek at edges).
@@ -739,7 +744,7 @@ const STUDIO = { 'studio-823': 'Studio 823', 'faizan-khatri': 'FKD Workshop' };
   .home-slider__studio {
     align-self: flex-end;
     border: 1px solid currentColor;
-    border-radius: 999px;
+    border-radius: var(--_tokens---radius--pill);
     padding: 5px 16px;
     font-size: var(--_tokens---type--micro);
     letter-spacing: 0.02em;
@@ -931,13 +936,13 @@ const STUDIO = { 'studio-823': 'Studio 823', 'faizan-khatri': 'FKD Workshop' };
     justify-content: space-between;
     text-decoration: none;
     color: var(--_tokens---color--fg);
-    border-top: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+    border-top: 1px solid var(--_tokens---color--line-soft);
     padding-block: 22px;
     transition: opacity 0.2s ease, padding-left 0.2s ease;
   }
 
   .home-nav-row:last-child {
-    border-bottom: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+    border-bottom: 1px solid var(--_tokens---color--line-soft);
   }
 
   .home-nav-row:hover {

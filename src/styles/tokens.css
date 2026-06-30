@@ -1,8 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 
 :root {
   /* Typography */
   --_tokens---font--body: 'Inter', sans-serif;
+  /* --font--mono is an intentional alias of the body family (Inter). It tags
+     "technical" UI — metadata, breadcrumb pills, wayfinding labels — as a single
+     semantic slot, so a true monospace can be swapped in here in one place later
+     without touching components. (Fira Code was imported but never rendered.) */
   --_tokens---font--mono: 'Inter', sans-serif;
 
   /* ── Type scale — 5-level hierarchy, fluid via clamp() ──────
@@ -18,15 +22,34 @@
   --_tokens---type--micro:     clamp(0.75rem, 0.4rem + 0.8vw, 1rem);
   --_tokens---type--ultrathin: clamp(0.625rem, 0.58rem + 0.15vw, 0.72rem);
 
-  /* Spacing */
+  /* Display — oversized headings (project detail title + "Design" header).
+     Bigger than --type--big; tracked here so the two stay in lockstep. */
+  --_tokens---type--display:   clamp(4rem, 4rem + 5vw, 8rem);
+
+  /* ── Layout spacing — page rhythm (section gaps, page insets) ──────────── */
   --_tokens---space--micro:  0.75rem;
   --_tokens---space--small:  3rem;
   --_tokens---space--medium: 6rem;
   --_tokens---space--big:    11rem;
 
+  /* ── Component spacing — the fine step used inside cards, bars, pills.
+     Components previously hard-coded these px values; the scale names them so
+     padding/gaps stay on a 4px grid everywhere. (Values equal the old literals,
+     so adopting them changes nothing visually.) ─────────────────────────── */
+  --_tokens---space-1: 4px;
+  --_tokens---space-2: 8px;
+  --_tokens---space-3: 12px;
+  --_tokens---space-4: 16px;
+  --_tokens---space-5: 24px;
+  --_tokens---space-6: 32px;
+
+  /* Fixed left nav bar width — referenced by sticky offsets, overlays, insets */
+  --_tokens---layout--nav: 44px;
+
   /* Radius */
   --_tokens---radius--small:  0.5rem;
   --_tokens---radius--medium: 0.5rem;
+  --_tokens---radius--pill:   999px;
 
   /* Layout */
   --_tokens---layout--container: 72rem;
@@ -59,16 +82,24 @@ html.mode-dark {
   }
 }
 
-/* 
-  Dynamically derived third and fourth colors based on the two primary colors.
-  - 3rd color: --_tokens---color--muted (Foreground at 60% opacity)
-  - 4th color: --_tokens---color--bg-overlay / --_tokens---color--bg-glass (Background at 75% / 40% opacity)
+/*
+  Colors derived from the two primary colors (bg + fg).
+  - muted     : foreground at 60% — secondary text
+  - line      : full-strength foreground hairline
+  - line-soft : foreground at 8% — the faint hairline repeated across cards,
+                bars, pills and dropdowns (was hand-written dozens of times)
+  - bg-overlay: background at 75% — solid-ish scrim
+  - bg-glass  : background at 35% — the frosted-glass fill behind the side-nav
+                panel, breadcrumb dropdowns and image previews. Pair with
+                backdrop-filter: blur(20px). (Was written inline in 8 places;
+                the token now matches that real value.)
 */
 :root, html {
   --_tokens---color--muted:      color-mix(in srgb, var(--_tokens---color--fg) 60%, transparent);
   --_tokens---color--line:       var(--_tokens---color--fg);
+  --_tokens---color--line-soft:  color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
   --_tokens---color--bg-overlay: color-mix(in srgb, var(--_tokens---color--bg) 75%, transparent);
-  --_tokens---color--bg-glass:   color-mix(in srgb, var(--_tokens---color--bg) 40%, transparent);
+  --_tokens---color--bg-glass:   color-mix(in srgb, var(--_tokens---color--bg) 35%, transparent);
 }
 
 /* ─── Color Schemes ──────────────────────────────────────── */
@@ -154,6 +185,28 @@ a {
 img {
   max-width: 100%;
   display: block;
+}
+
+/* ─── Accessibility primitives ───────────────────────────────
+   Keyboard focus ring. :focus-visible only matches keyboard/AT focus, so
+   mouse users never see it — but tab/arrow users always get a clear marker.
+   Components may layer their own invert on top; this is the floor. */
+:focus-visible {
+  outline: 2px solid var(--_tokens---color--fg);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Respect the OS "reduce motion" setting: collapse every CSS transition,
+   animation and smooth-scroll. JS-driven effects (text scramble, logo spin,
+   slider autoplay) are gated separately in their own scripts. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* ─── Utility Classes ────────────────────────────────────── */

@@ -13,5 +13,7 @@ if (isDev) {
 
 export default defineConfig({
   integrations,
-  site: 'https://advaitakelkar-site.web.app',
+  // Canonical brand domain (Porkbun → Firebase). Drives <link rel="canonical">,
+  // OG URLs and the sitemap, so search engines index the name, not the *.web.app.
+  site: 'https://advaitakelkar.com',
 });

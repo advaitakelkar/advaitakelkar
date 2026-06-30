@@ -545,7 +545,7 @@ const schemes = [
     left: 44px; /* Positioned relative to 44px sidebar */
     width: min(400px, calc(85vw - 44px));
     height: 100dvh;
-    background-color: color-mix(in srgb, var(--_tokens---color--bg) 35%, transparent);
+    background-color: var(--_tokens---color--bg-glass);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     display: flex;
@@ -648,7 +648,7 @@ const schemes = [
     text-decoration: none;
     padding: 6px 16px;
     border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
-    border-radius: 999px;
+    border-radius: var(--_tokens---radius--pill);
     background-color: transparent;
     gap: 12px;
     opacity: 0.8;
@@ -761,7 +761,7 @@ const schemes = [
     text-decoration: none;
     padding: 5px 12px;
     border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
-    border-radius: 999px;
+    border-radius: var(--_tokens---radius--pill);
     background-color: transparent;
     gap: 8px;
     opacity: 0.8;
@@ -889,26 +889,29 @@ const schemes = [
   let logoAngle = 0;
   let logoAngVel = 0;
   let lastScrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  window.addEventListener('scroll', () => {
-    const y = window.pageYOffset || document.documentElement.scrollTop || 0;
-    const delta = y - lastScrollY;
-    lastScrollY = y;
-    // Each pixel of scroll feeds angular velocity; clamp so it stays tasteful
-    logoAngVel += delta * 0.5;
-    logoAngVel = Math.max(-45, Math.min(45, logoAngVel));
-  }, { passive: true });
+  if (!reduceMotion) {
+    window.addEventListener('scroll', () => {
+      const y = window.pageYOffset || document.documentElement.scrollTop || 0;
+      const delta = y - lastScrollY;
+      lastScrollY = y;
+      // Each pixel of scroll feeds angular velocity; clamp so it stays tasteful
+      logoAngVel += delta * 0.5;
+      logoAngVel = Math.max(-45, Math.min(45, logoAngVel));
+    }, { passive: true });
 
-  function spinLogo() {
-    logoAngle += logoAngVel;
-    logoAngVel *= 0.80; // rapid deceleration when scrolling stops
-    if (Math.abs(logoAngVel) < 0.01) logoAngVel = 0;
-    if (logoMark) {
-      logoMark.style.transform = `rotate(${logoAngle}deg)`;
-    }
+    const spinLogo = () => {
+      logoAngle += logoAngVel;
+      logoAngVel *= 0.80; // rapid deceleration when scrolling stops
+      if (Math.abs(logoAngVel) < 0.01) logoAngVel = 0;
+      if (logoMark) {
+        logoMark.style.transform = `rotate(${logoAngle}deg)`;
+      }
+      requestAnimationFrame(spinLogo);
+    };
     requestAnimationFrame(spinLogo);
   }
-  requestAnimationFrame(spinLogo);
   const schemeEl  = document.getElementById('sn-scheme')!;
   const schemeBtn = document.getElementById('sn-scheme-btn')!;
   const dropdown  = document.getElementById('sn-scheme-dropdown')!;
