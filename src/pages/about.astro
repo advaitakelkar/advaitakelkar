@@ -1,6 +1,16 @@
 ---
+import { getEntry } from 'astro:content';
 import PageLayout from '../layouts/PageLayout.astro';
 import Footer from '../components/Footer.astro';
+
+// Editable about-page prose (inline edit mode writes src/content/pages/about.yaml).
+const about = await getEntry('pages', 'about');
+const aboutRole = about?.data.role ?? 'Architectural Designer + Researcher';
+const aboutDegree = about?.data.degree ?? 'Master of Architecture · SCAD ‘27 · Mumbai';
+const aboutBioLead = about?.data.bioLead ?? '';
+const aboutBioMore = about?.data.bioMore ?? [];
+const aboutCareerTagline = about?.data.careerTagline ?? 'Dissolving roles and evolutions: Professional journey from Mumbai teams to SCAD fabrication, always fusing leadership with innovation.';
+const aboutSkillsetSubtitle = about?.data.skillsetSubtitle ?? 'A searchable interface that blends all projects—academic, work, free, and experiments—into one seamless digital archive for holistic discovery';
 
 // Structured career experience data
 const experience = [
@@ -214,8 +224,8 @@ const skillsets = [
       <header class="profile-header">
         <div class="profile-header__text">
           <h1 class="profile-name" data-scramble>Advaita Kelkar</h1>
-          <p class="profile-role" data-scramble>Architectural Designer + Researcher</p>
-          <p class="profile-degree">Master of Architecture · SCAD ‘27 · Mumbai</p>
+          <p class="profile-role" data-scramble data-edit="pages/about/role">{aboutRole}</p>
+          <p class="profile-degree" data-edit="pages/about/degree">{aboutDegree}</p>
         </div>
         <div class="profile-photo-circle" aria-hidden="true"></div>
       </header>
@@ -226,12 +236,12 @@ const skillsets = [
         <!-- LEFT COLUMN: bio text + read more -->
         <div class="about-top-left">
           <div class="about-bio__text" id="bio-text-container">
-            <p>I’m Adi – <span class="bio-highlight-name">Advaita Kelkar</span>, a Master of Architecture student at the Savannah College of Art and Design (SCAD), with professional experience and interests spanning architecture, interior design, and web design. Hailing from Mumbai, India, my upbringing instilled in me a profound passion for design thinking and hands-on creation.</p>
+            <p data-edit="pages/about/bioLead" data-edit-html set:html={aboutBioLead} />
 
             <div class="bio-collapsed-content" id="bio-collapsed-content" style="display: none;">
-              <p>I am driven by a commitment to continuous growth and collaboration, leveraging design’s transformative power to address challenges across creative domains. My problem-solving approach is multidimensional, drawing from a wide range of disciplines, and I find immense joy in the process of creation—always aiming to innovate and push boundaries.</p>
-              <p>Throughout my journey, I’ve explored dynamic intersections between architecture, interior design, and web design, contributing to projects such as installations, exhibitions, and product design. Additionally, I curate content on computational design and AI, reflecting my keen interest in the intersection of technology and creativity.</p>
-              <p>I believe in the limitless potential of design to overcome obstacles and inspire change, and I aspire to explore and create across all realms of creativity. Let’s connect and collaborate to shape impactful designs together.</p>
+              {aboutBioMore.map((para, i) => (
+                <p data-edit={`pages/about/bioMore.${i}`}>{para}</p>
+              ))}
             </div>
 
             <div class="bio-buttons-row">
@@ -354,7 +364,7 @@ const skillsets = [
           </button>
         </div>
 
-        <p class="about-career__tagline text-muted">Dissolving roles and evolutions: Professional journey from Mumbai teams to SCAD fabrication, always fusing leadership with innovation.</p>
+        <p class="about-career__tagline text-muted" data-edit="pages/about/careerTagline">{aboutCareerTagline}</p>
 
         <div class="about-tab-content">
           <!-- Panel 1: About (Experience) -->
@@ -449,7 +459,7 @@ const skillsets = [
         />
       </div>
       
-      <p class="skillset-subtitle text-muted">A searchable interface that blends all projects—academic, work, free, and experiments—into one seamless digital archive for holistic discovery</p>
+      <p class="skillset-subtitle text-muted" data-edit="pages/about/skillsetSubtitle">{aboutSkillsetSubtitle}</p>
 
       <div class="skillset-grid skillset-grid--two">
         <!-- Languages: show title -->

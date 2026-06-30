@@ -83,6 +83,11 @@ export default config({
       schema: {
         name: fields.slug({ name: { label: 'Category Name' } }),
         displayName: fields.text({ label: 'Display Name' }),
+        tagline: fields.text({ label: 'Tagline' }),
+        intro: fields.array(
+          fields.text({ label: 'Paragraph', multiline: true }),
+          { label: 'Intro paragraphs', itemLabel: () => 'Paragraph' }
+        ),
       },
     }),
   },

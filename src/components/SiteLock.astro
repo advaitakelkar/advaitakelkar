@@ -24,13 +24,22 @@
 </div>
 
 <script>
-  const PASSWORD = 'advt';
+  const PASSWORD = 'advt';       // Tier 1 — unlocks viewing the gated project pages
+  const EDIT_PASSWORD = 'edit';  // Tier 2 — enters inline Edit Mode (localhost only)
   const KEY = 'ak-project-access';
+
+  const isLocal = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
 
   const lock  = document.getElementById('site-lock');
   const form  = document.getElementById('site-lock-form');
   const input = document.getElementById('site-lock-input') as HTMLInputElement | null;
   const error = document.getElementById('site-lock-error');
+
+  // On localhost, hint that this gate doubles as the editing entrance.
+  if (isLocal) {
+    const sub = document.querySelector('.site-lock__sub');
+    if (sub) sub.textContent = 'Enter the password to view — or the edit password to edit text in place.';
+  }
 
   const isUnlocked = () => sessionStorage.getItem(KEY) === PASSWORD;
   const onProjectPage = () => {
@@ -70,7 +79,14 @@
 
   form?.addEventListener('submit', (e) => {
     e.preventDefault();
-    if (input && input.value === PASSWORD) {
+    if (input && isLocal && input.value === EDIT_PASSWORD) {
+      // Edit Mode: also unlock previews so project pages are viewable while editing.
+      sessionStorage.setItem(KEY, PASSWORD);
+      input.value = '';
+      closeLock();
+      reflectToggles();
+      document.dispatchEvent(new Event('ak:editmode:on'));
+    } else if (input && input.value === PASSWORD) {
       sessionStorage.setItem(KEY, PASSWORD);
       input.value = '';
       applyGate();
@@ -81,7 +97,11 @@
     }
   });
 
-  // SideNav lock toggle: unlocked → re-lock; locked → open the password screen.
+  // SideNav lock toggle.
+  // • On localhost it's the Edit-Mode entrance: open the password screen (or, if
+  //   already editing, leave it to the toolbar's Exit button).
+  // • On the live site it keeps its original meaning: unlocked → re-lock,
+  //   locked → open the preview password screen.
   // Capture phase so it intercepts before the surrounding side-nav bar's click
   // (which would otherwise open the nav panel).
   document.addEventListener('click', (e) => {
@@ -89,6 +109,11 @@
     if (!toggle) return;
     e.stopPropagation();
     e.preventDefault();
+    if (isLocal) {
+      openLock();
+      reflectToggles();
+      return;
+    }
     if (isUnlocked()) {
       sessionStorage.removeItem(KEY);
       applyGate();

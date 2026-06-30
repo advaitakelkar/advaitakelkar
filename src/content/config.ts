@@ -12,6 +12,25 @@ const categories = defineCollection({
   schema: z.object({
     name: z.string(),
     displayName: z.string(),
+    // Editable copy for the category archive page (inline edit mode writes here).
+    tagline: z.string().optional(),
+    intro: z.array(z.string()).optional(),
+  }),
+});
+
+// Editable prose for the static pages (home, about). Inline edit mode writes
+// these YAML files; the pages render from them instead of hard-coded strings.
+const pages = defineCollection({
+  type: 'data',
+  schema: z.object({
+    tagline: z.string().optional(),
+    intro: z.array(z.string()).optional(),
+    role: z.string().optional(),
+    degree: z.string().optional(),
+    bioLead: z.string().optional(),
+    bioMore: z.array(z.string()).optional(),
+    careerTagline: z.string().optional(),
+    skillsetSubtitle: z.string().optional(),
   }),
 });
 
@@ -39,4 +58,4 @@ const projects = defineCollection({
   }),
 });
 
-export const collections = { projects, tags, categories };
+export const collections = { projects, tags, categories, pages };

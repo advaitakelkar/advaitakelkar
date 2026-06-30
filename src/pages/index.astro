@@ -1,10 +1,15 @@
 ---
-import { getCollection } from 'astro:content';
+import { getCollection, getEntry } from 'astro:content';
 import PageLayout from '../layouts/PageLayout.astro';
 import Footer from '../components/Footer.astro';
 
 // ── Data ──────────────────────────────────────────────────────
 const allProjects = await getCollection('projects');
+
+// Editable home copy (inline edit mode writes src/content/pages/home.yaml).
+const home = await getEntry('pages', 'home');
+const homeTagline = home?.data.tagline ?? 'Architectural Designer and Researcher';
+const homeIntro = home?.data.intro ?? [];
 
 // Featured slider (featured:true, sorted by numbr)
 const featured = allProjects
@@ -33,20 +38,20 @@ const STUDIO = { 'studio-823': 'Studio 823', 'faizan-khatri': 'FKD Workshop' };
   <section class="home-section home-section--hero" id="home-hero-section">
     <div class="home-intro home-intro--animated">
       <div class="home-intro__header">
-        <h1 class="home-intro__label" id="tagline-main" data-scramble>Architectural Designer and Researcher</h1>
+        <h1 class="home-intro__label" id="tagline-main" data-scramble data-edit="pages/home/tagline">{homeTagline}</h1>
       </div>
 
       <!-- Small About Me — flexible, responsive 3-column structure -->
       <div class="home-intro__body">
         <div class="home-intro__column">
-          <p class="home-intro__desc">
-            Welcome. This is the living archive of my design practice — a unified ecosystem bringing together everything I build, draw, research, and make. Projects across architecture, interiors, computation, sculpture, graphic design, and product — not isolated endeavours, but interconnected expressions of one way of seeing the world.
+          <p class="home-intro__desc" data-edit="pages/home/intro.0">
+            {homeIntro[0] ?? 'Welcome. This is the living archive of my design practice — a unified ecosystem bringing together everything I build, draw, research, and make. Projects across architecture, interiors, computation, sculpture, graphic design, and product — not isolated endeavours, but interconnected expressions of one way of seeing the world.'}
           </p>
         </div>
         <div class="home-intro__column home-intro__column--collapsible">
           <div class="home-intro__collapsed-content" id="intro-collapsed-content">
-            <p class="home-intro__desc">
-              I’m an architect at heart. Every discipline I work across — building, image-making, code, object — is just a different medium for the same singular idea. This archive doesn’t compartmentalise. It invites fluid navigation, tracing the threads of form, material, and concept that recur and evolve from one project to the next.
+            <p class="home-intro__desc" data-edit="pages/home/intro.1">
+              {homeIntro[1] ?? 'I’m an architect at heart. Every discipline I work across — building, image-making, code, object — is just a different medium for the same singular idea. This archive doesn’t compartmentalise. It invites fluid navigation, tracing the threads of form, material, and concept that recur and evolve from one project to the next.'}
             </p>
           </div>
           <button class="intro-read-more-btn" id="intro-read-more-btn" type="button">Read More</button>

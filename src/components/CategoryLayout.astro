@@ -8,9 +8,11 @@ export interface Props {
   title: string;
   crumbs?: { label: string; href?: string }[];
   categoryId?: string;
+  intro?: string[];
+  tagline?: string;
 }
 
-const { projects, title, crumbs, categoryId } = Astro.props;
+const { projects, title, crumbs, categoryId, intro, tagline } = Astro.props;
 
 // Get all tags and categories for formatting
 const allTags = await getCollection('tags');
@@ -25,34 +27,16 @@ const tabGroups = [
 ];
 const showTabs = tabGroups.some(g => g.projects.length > 0);
 
-// 3-column intro copy — Work tells the studio story; other categories fall back to a generic intro
-const introsByTitle: Record<string, string[]> = {
-  Work: [
-    "This is my professional work from Studio 823 and FKD Workshop — hospitality, commercial, and residential projects built across Mumbai between 2018 and 2023.",
-    "I began at Studio 823 (Studio Eight Twentythree) as an intern in my final year of architecture and grew into a full-time architect. Mentored by Samir Raut and Faizan Khatri, I worked across hospitality, commercial spaces, architectural research, and residential interiors in a dynamic, enriching environment that laid the foundation for my professional growth.",
-    "From 2021 I joined Faizan Khatri to build FKD Workshop from the ground up — establishing a new studio, building and leading teams, and mentoring junior professionals. I led architecture, interior design, visualization, rendering, and project management for hospitality, public spaces, and residential projects, while crafting proposals and coordinating several projects at once.",
-  ],
-  Academic: [
-    "This is my academic work — from my Bachelor of Architecture in Mumbai to my Master of Architecture at SCAD (Savannah College of Art and Design, 2024–2027), where ideas can be pushed without the constraints of a brief or a client.",
-    "At SCAD I work across parametric tools — Grasshopper, Midjourney, Unreal — and AI-assisted processes, with a thesis exploring cultural fusions. School is where I learned to think through making: each project tests a question rather than delivering an answer.",
-    "From hands-on, full-scale builds to computational research, this is where I refine the principles and curiosity that carry into everything I make — balancing intensity with personal growth.",
-  ],
-  ARCHV: [
-    "ARCHV is an inclusive architecture collective I co-founded — a transdisciplinary space built around collaborative learning and creation.",
-    "We prioritize passion over the constraints of money and time, facilitating projects with diverse participation, driven by collective effort and a shared love for design and innovation.",
-    "ARCHV's work spans installations and public exhibitions — Celebrate Bandra, Dhal Ni Pol, Raw Collaborative, and Virtual Gods, India's first online group art exhibition — connecting creators through design and technology.",
-  ],
-  Freelancer: [
-    "This is my independent and freelance work — self-directed projects across architecture, interiors, visual identity, product, and art.",
-    "Working independently means shaping each project end to end, from concept to delivery, often in collaboration with other artists and studios.",
-    "It includes art and exhibition collaborations such as the CARLO and Urban Dichotomy collections, shown with Nayan Mote Studio at the India Art Fair in Mumbai.",
-  ],
-};
-const introCols = introsByTitle[title] ?? [
+// 3-column intro copy now lives in the category's YAML (editable inline). Sub-views
+// without their own category record (e.g. the Work studio tabs) fall back to a
+// generic intro. The data-edit bindings below only attach when a categoryId exists.
+const introCols = (intro && intro.length) ? intro : [
   `Welcome to the ${title} category — a curated collection of projects highlighting work in this space.`,
   "Each project is part of a unified practice — different mediums tracing the threads of form, material, and concept that recur and evolve from one project to the next.",
   "Browse the selected work below to explore the projects gathered in this collection.",
 ];
+const introTagline = tagline ?? "A curated collection of work in this space.";
+const editable = Boolean(categoryId && intro && intro.length);
 ---
 
 <PageLayout
@@ -70,11 +54,11 @@ const introCols = introsByTitle[title] ?? [
 
     <!-- 3-Column Intro (mirrors the home page) -->
     <section class="category-intro">
-      <p class="category-intro__tagline">A curated collection of work in this space.</p>
+      <p class="category-intro__tagline" data-edit={editable ? `categories/${categoryId}/tagline` : undefined}>{introTagline}</p>
       <div class="category-intro__body">
-        {introCols.map(text => (
+        {introCols.map((text, i) => (
           <div class="category-intro__column">
-            <p class="category-intro__desc">{text}</p>
+            <p class="category-intro__desc" data-edit={editable ? `categories/${categoryId}/intro.${i}` : undefined}>{text}</p>
           </div>
         ))}
       </div>

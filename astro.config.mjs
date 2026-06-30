@@ -9,6 +9,17 @@ const integrations = [];
 if (isDev) {
   const { default: keystatic } = await import('@keystatic/astro');
   integrations.push(keystatic());
+
+  // Inline edit mode's save endpoint — dev only, so it never ships to the
+  // static production build (which has no server to run it).
+  integrations.push({
+    name: 'ak-inline-edit',
+    hooks: {
+      'astro:config:setup': ({ injectRoute }) => {
+        injectRoute({ pattern: '/api/edit', entrypoint: './src/edit-api/edit.ts' });
+      },
+    },
+  });
 }
 
 export default defineConfig({

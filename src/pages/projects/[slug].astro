@@ -23,13 +23,13 @@ const gallery = (data.multiImage ?? []).filter(Boolean);
 const allImages = [cover, ...gallery];
 
 const metaParts = [
-  { label: 'Year', val: data.year },
-  { label: 'Location', val: data.location },
-  { label: 'Client', val: data.client && data.client !== 'NA' ? data.client : null },
-  { label: 'With', val: data.collaborator },
-  { label: 'Program', val: data.program },
-  { label: 'Status', val: data.status },
-  { label: 'Category', val: category ? category.data.displayName : null }
+  { label: 'Year', val: data.year, field: 'year' },
+  { label: 'Location', val: data.location, field: 'location' },
+  { label: 'Client', val: data.client && data.client !== 'NA' ? data.client : null, field: 'client' },
+  { label: 'With', val: data.collaborator, field: 'collaborator' },
+  { label: 'Program', val: data.program, field: 'program' },
+  { label: 'Status', val: data.status, field: 'status' },
+  { label: 'Category', val: category ? category.data.displayName : null, field: null }
 ].filter(m => m.val);
 
 // Build dynamic breadcrumbs based on category structure
@@ -65,7 +65,8 @@ dynamicCrumbs.push({ label: data.name });
       
       <!-- Top Full Width Header (Sticky Top) -->
       <header class="project-top-header" id="project-top-header">
-        <h1 class="project-card__title">{data.name}</h1>
+        <h1 class="project-card__title" data-edit={`projects/${project.id}/name`}>{data.name}</h1>
+        <span class="project-shortname" data-edit-only data-edit={`projects/${project.id}/shortName`}>{data.shortName ?? ''}</span>
       </header>
 
       <div class="project-content-grid">
@@ -77,9 +78,9 @@ dynamicCrumbs.push({ label: data.name });
             <!-- Row 2: intro + description -->
             <div class="project-card__row project-card__row2">
               <div class="project-card__text-block">
-                {data.smallIntro && <p class="project-card__intro">{data.smallIntro}</p>}
+                {data.smallIntro && <p class="project-card__intro" data-edit={`projects/${project.id}/smallIntro`}>{data.smallIntro}</p>}
                 {data.description && (
-                  <div class="project-card__desc" set:html={data.description} />
+                  <div class="project-card__desc" data-edit={`projects/${project.id}/description`} data-edit-html set:html={data.description} />
                 )}
               </div>
             </div>
@@ -90,7 +91,7 @@ dynamicCrumbs.push({ label: data.name });
                 {metaParts.map((m, idx) => (
                   <span class="project-card__meta-item">
                     {idx > 0 && <span class="project-card__meta-sep">·</span>}
-                    <span class="meta-label-inline">{m.label}:</span> <span class="project-card__meta-val">{m.val}</span>
+                    <span class="meta-label-inline">{m.label}:</span> <span class="project-card__meta-val" data-edit={m.field ? `projects/${project.id}/${m.field}` : undefined}>{m.val}</span>
                   </span>
                 ))}
                 {tags.length > 0 && (
@@ -287,6 +288,17 @@ dynamicCrumbs.push({ label: data.name });
     letter-spacing: -0.03em;
     margin: 0;
     color: var(--_tokens---color--fg);
+  }
+
+  /* Short name — only surfaced in edit mode (via [data-edit-only]) */
+  .project-shortname {
+    font-size: var(--_tokens---type--micro);
+    color: var(--_tokens---color--muted);
+    margin-top: 8px;
+  }
+  .project-shortname::before {
+    content: "Short name: ";
+    opacity: 0.6;
   }
 
   .project-card__text-block {
