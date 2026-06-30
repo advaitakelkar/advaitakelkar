@@ -3,9 +3,10 @@ import { getCollection } from 'astro:content';
 
 export interface Props {
   isEmbedded?: boolean;
+  categoryId?: string;
 }
 
-const { isEmbedded = false } = Astro.props;
+const { isEmbedded = false, categoryId } = Astro.props;
 
 // Fetch projects, categories, and tags
 const allProjects = await getCollection('projects');
@@ -31,7 +32,7 @@ const sorted = [...allProjects].sort((a, b) => {
 });
 ---
 
-<footer class:list={["home-search-footer", isEmbedded && "home-search-footer--embedded"]} id="home-search-footer">
+<footer class:list={["home-search-footer", isEmbedded && "home-search-footer--embedded", categoryId && "is-category-filter"]} id="home-search-footer" data-category={categoryId}>
   <div class="home-search__header">
     <h2 class="home-search__title">Projects Quick Search</h2>
   </div>
@@ -44,11 +45,10 @@ const sorted = [...allProjects].sort((a, b) => {
       autocomplete="off"
       aria-label="Search projects"
     />
-    <button class="home-search__clear" id="qs-clear" type="button">
-      <span>@Clear All</span>
-      <svg class="link-arrow qs-clear-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
-        <line x1="6" y1="18" x2="18" y2="6"></line>
-        <polyline points="10 6 18 6 18 14"></polyline>
+    <button class="home-search__clear" id="qs-clear" type="button" aria-label="Clear search">
+      <svg class="qs-clear-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
       </svg>
     </button>
   </div>
@@ -58,6 +58,7 @@ const sorted = [...allProjects].sort((a, b) => {
   <div class="proj-bubbles supersmall" id="qs-grid" role="list" style="margin-top: 28px; border-top: none; padding-top: 0;">
     {sorted.map(p => {
       const tagsArr = (p.data.tags ?? []).map(t => tagMap[t.id] || t.id);
+      const catId = p.data.category ? p.data.category.id : '';
       return (
         <a
           href={`/projects/${p.id}`}
@@ -65,6 +66,7 @@ const sorted = [...allProjects].sort((a, b) => {
           data-name={p.data.name}
           data-tags={tagsArr.join(',')}
           data-cat={p.data.category ? (catMap[p.data.category.id] || p.data.category.id) : ''}
+          data-cat-id={catId}
           data-year={p.data.year ?? ''}
           data-loc={p.data.location ?? ''}
           data-client={p.data.client ?? ''}
@@ -245,26 +247,25 @@ const sorted = [...allProjects].sort((a, b) => {
   .home-search__clear {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
-    font-size: var(--_tokens---type--ultrathin);
-    font-weight: 300;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
     color: var(--_tokens---color--muted);
     background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
     border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
-    border-radius: 999px;
-    padding: 6px 12px;
+    border-radius: 50%;
+    padding: 0;
     cursor: pointer;
-    white-space: nowrap;
     opacity: 0.35; /* grayed out by default */
     transition: background-color 0.2s, color 0.2s, transform 0.15s, box-shadow 0.2s, opacity 0.3s ease;
   }
 
-  .qs-clear-arrow {
-    width: 0.8em;
-    height: 0.8em;
+  .qs-clear-icon {
+    width: 18px;
+    height: 18px;
     flex-shrink: 0;
-    opacity: 0.55;
-    transition: transform 0.2s ease, opacity 0.2s ease;
+    transition: transform 0.2s ease;
   }
 
   .home-search__input:focus ~ .home-search__clear,
@@ -420,6 +421,19 @@ const sorted = [...allProjects].sort((a, b) => {
     opacity: 1;
   }
 
+  /* Category filter state: lighten non-matching projects (lighter than muted) */
+  .is-category-filter .proj-bubbles .proj-bubble {
+    opacity: 0.35;
+  }
+
+  .is-category-filter .proj-bubbles .proj-bubble.is-category-match {
+    opacity: 1;
+  }
+
+  .is-category-filter .proj-bubbles .proj-bubble:not(.is-category-match):hover {
+    opacity: 0.6;
+  }
+
   /* ── Admin Bubbles ── */
   .admin-bubble {
     border-color: color-mix(in srgb, var(--_tokens---color--fg) 14%, transparent);
@@ -464,6 +478,7 @@ const sorted = [...allProjects].sort((a, b) => {
     if (!grid || grid.dataset.qsInit) return;  // guard against double-init on the same DOM
     grid.dataset.qsInit = '1';
     const g = grid;
+    const categoryId = footer.dataset.category || '';
 
     // Shuffle the original pills once
     const originals = Array.from(g.querySelectorAll('.proj-bubble')) as HTMLElement[];
@@ -567,6 +582,15 @@ const sorted = [...allProjects].sort((a, b) => {
         ].join(';');
         rowPills.forEach(p => row.appendChild(p));
         g.appendChild(row);
+      });
+    }
+
+    // Mark category-matching bubbles if category filtering is active
+    if (categoryId) {
+      Array.from(g.querySelectorAll('.proj-bubble')).forEach(el0 => {
+        const el = el0 as HTMLElement;
+        const bubbleCatId = el.dataset.catId || '';
+        el.classList.toggle('is-category-match', bubbleCatId === categoryId);
       });
     }
 
@@ -690,7 +714,8 @@ const sorted = [...allProjects].sort((a, b) => {
       input.classList.toggle('is-active', !!input.value.trim());
     });
 
-    clearBtn?.addEventListener('click', () => {
+    clearBtn?.addEventListener('click', (e) => {
+      e.preventDefault();
       if (input) { input.value = ''; input.classList.remove('is-active'); render(''); input.focus(); }
     });
 

@@ -7,9 +7,10 @@ export interface Props {
   projects: any[];
   title: string;
   crumbs?: { label: string; href?: string }[];
+  categoryId?: string;
 }
 
-const { projects, title, crumbs } = Astro.props;
+const { projects, title, crumbs, categoryId } = Astro.props;
 
 // Get all tags and categories for formatting
 const allTags = await getCollection('tags');
@@ -59,6 +60,7 @@ const introCols = introsByTitle[title] ?? [
   label={title}
   crumbs={crumbs || [{ label: 'Home', href: '/' }, { label: title }]}
   showFooter={true}
+  categoryId={categoryId}
 >
   <article class="category-detail">
     <!-- Top Full Width Header -->
@@ -68,6 +70,7 @@ const introCols = introsByTitle[title] ?? [
 
     <!-- 3-Column Intro (mirrors the home page) -->
     <section class="category-intro">
+      <p class="category-intro__tagline">A curated collection of work in this space.</p>
       <div class="category-intro__body">
         {introCols.map(text => (
           <div class="category-intro__column">
@@ -125,22 +128,30 @@ const introCols = introsByTitle[title] ?? [
     .category-intro__body {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 32px;
+      gap: 24px;
       width: 100%;
     }
 
     @media (max-width: 767px) {
       .category-intro__body {
         grid-template-columns: 1fr;
-        gap: 20px;
+        gap: 16px;
       }
+    }
+
+    .category-intro__tagline {
+      font-size: var(--_tokens---type--micro);
+      font-weight: 400;
+      color: var(--_tokens---color--muted);
+      margin: 0 0 12px 0;
+      letter-spacing: 0.01em;
     }
 
     .category-intro__desc {
       font-size: var(--_tokens---type--small);
       font-weight: 500; /* medium — matches the big title's weight */
       line-height: 1.4;
-      color: var(--_tokens---color--fg);
+      color: var(--_tokens---color--muted);
       margin: 0;
     }
 
@@ -260,7 +271,7 @@ const introCols = introsByTitle[title] ?? [
     .cat-card-list {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 12px;
     }
 
     /* Switch-style Row (Premium Typography & Hover) */
