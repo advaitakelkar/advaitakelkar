@@ -1,5 +1,5 @@
 ---
-import { getCollection, getEntry } from 'astro:content';
+import { getEntry } from 'astro:content';
 import PageLayout from '../../layouts/PageLayout.astro';
 import { isPlaceholder, realText } from '../../lib/content';
 
@@ -16,33 +16,19 @@ const category = data.category ? await getEntry(data.category) : null;
 const gallery = (data.multiImage ?? []).filter(Boolean);
 const allImages = [data.coverImage, ...gallery].filter(Boolean);
 const hasImages = allImages.length > 0;
-const cover = allImages[0] ?? '';
 
-// Metadata, two rows (values only):
-//   row 1 — "year, location" left · status right
-//   row 2 — tag left · category (link) right
 const firstTag = tags.find(t => t);
 const yearLoc = [data.year, data.location].filter(Boolean).join(', ');
 
-// Build dynamic breadcrumbs based on category structure
-const dynamicCrumbs = [ { label: 'Home', href: '/' } ];
+const dynamicCrumbs = [
+  { label: 'Home', href: '/' }
+];
 
 if (category) {
-  // e.g. Home > Work
   dynamicCrumbs.push({ label: category.data.displayName, href: `/${category.id}` });
-  
-  // If it's Work and has a special sub-tag, nest it further
-  if (category.id === 'work' && data.tags) {
-    const subTag = data.tags.find(t => t.id === 'studio-823' || t.id === 'faizan-khatri');
-    if (subTag) {
-      const subLabel = subTag.id === 'studio-823' ? 'Studio 823' : 'FKD Workshop';
-      dynamicCrumbs.push({ label: subLabel, href: `/work/${subTag.id}` });
-    }
-  }
 } else {
   dynamicCrumbs.push({ label: 'Projects', href: '/projects' });
 }
-
 dynamicCrumbs.push({ label: data.name });
 ---
 
@@ -53,22 +39,16 @@ dynamicCrumbs.push({ label: data.name });
   label={data.name}
   crumbs={dynamicCrumbs}
 >
-    <article class="project-detail" data-project-id={project.id} data-project-name={data.name} data-images={JSON.stringify(allImages)}>
+    <article class="project-detail" data-project-id={project.id} data-project-name={data.name}>
       
-      <!-- Top Full Width Header (Section 1 Toggle Header) -->
+      <!-- Top Header -->
       <header class="project-top-header" id="project-top-header">
         <div class="project-header-title-row">
-          <h1 class="project-name-title" id="project-name-click" data-edit={`projects/${project.id}/name`}>
+          <h1 class="project-name-title" id="project-name-click">
             <span class="project-name-main">{data.name}</span>
           </h1>
-          <button class="project-detail-collapse-btn" id="project-detail-toggle" type="button" aria-expanded="true" aria-label="Toggle details">
-            <svg class="toggle-icon-minus link-arrow" viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
-            <svg class="toggle-icon-plus link-arrow" viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" style="display: none;"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
-          </button>
         </div>
-        <span class="project-shortname" data-edit-only data-edit={`projects/${project.id}/shortName`}>{data.shortName ?? ''}</span>
         
-        <!-- Metadata: two rows — year, location · status / tag · category -->
         <div class="project-card__metaline">
           {(yearLoc || data.status) && (
             <div class="project-meta-row">
@@ -85,119 +65,77 @@ dynamicCrumbs.push({ label: data.name });
         </div>
       </header>
 
-      <!-- Main content body of Section 1 -->
-      <div class:list={["project-content-grid", !hasImages && "project-content-grid--no-images"]}>
-        <!-- Left Column: Text Content -->
+      <!-- Main content body (stacked, no top slider) -->
+      <div class="project-content-grid">
         <div class="project-col-left">
           <div class="project-card-info">
             <div class="project-card__row project-card__row2">
               <div class="project-card__text-block">
-                {data.smallIntro && <p class="project-card__intro" data-edit-only={isPlaceholder(data.smallIntro) || undefined} data-edit={`projects/${project.id}/smallIntro`}>{data.smallIntro}</p>}
+                {data.smallIntro && <p class="project-card__intro">{data.smallIntro}</p>}
                 {data.description && (
-                  <div class="project-card__desc" data-edit-only={isPlaceholder(data.description) || undefined} data-edit={`projects/${project.id}/description`} data-edit-html set:html={data.description} />
+                  <div class="project-card__desc" set:html={data.description} />
                 )}
               </div>
             </div>
           </div>
-        </div> <!-- End Left Column -->
+        </div>
+      </div>
 
-        <!-- Right Column: Image Scrub Viewer -->
-        {hasImages && (
-        <div class="project-col-right" id="project-slider-col">
-          <!-- Active display image with navigation arrows -->
-          <div class="project-detail__active-wrap" id="active-image-trigger">
-            <button class="project-detail__nav-arrow project-detail__nav-arrow--prev" id="active-prev-btn" type="button" aria-label="Previous image">
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-            </button>
-            <img class="project-detail__active-img" id="active-display-img" src={cover} alt={data.name} />
-            <button class="project-detail__nav-arrow project-detail__nav-arrow--next" id="active-next-btn" type="button" aria-label="Next image">
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-            </button>
-          </div>
-
-          <!-- Pagination label below image -->
-          <div class="project-detail__pagination" id="active-pagination">1 / {allImages.length}</div>
-          
-          <!-- Thumbnails scrub bar -->
-          <div class="project-detail__thumbs">
+      <!-- Card Deck Grid section (always visible) -->
+      {hasImages && (
+        <section class="card-deck-section">
+          <div class="deck-grid" id="deck-grid" data-images={JSON.stringify(allImages)}>
             {allImages.map((img, idx) => (
               <button
                 type="button"
-                class:list={[
-                  "project-detail__thumb-item",
-                  idx === 0 && "is-active"
-                ]}
+                class="deck-card-item"
                 data-index={idx}
+                aria-label={`Open card ${idx + 1}`}
               >
-                <img src={img} alt={`${data.name} thumbnail ${idx + 1}`} loading="lazy" />
+                <div class="deck-card-inner">
+                  <img src={img} alt={`Card ${idx + 1}`} loading="lazy" />
+                  <div class="deck-card-glow"></div>
+                </div>
               </button>
             ))}
           </div>
-        </div>
-        )}
-      </div> <!-- End 2-Column Grid -->
+        </section>
+      )}
 
-      <!-- Section 2: Design Collapsible Section -->
-      <section class="project-design-section">
-        <div class="project-header-title-row project-design-header" id="project-design-click">
-          <h1 class="project-name-title project-section-subtitle">Design</h1>
-          <button class="project-detail-collapse-btn" id="project-design-toggle" type="button" aria-expanded="false" aria-label="Toggle design details">
-            <svg class="toggle-icon-minus link-arrow" viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" style="display: none;"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
-            <svg class="toggle-icon-plus link-arrow" viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+      <!-- Fullscreen Lightbox Modal (hidden by default) -->
+      <div id="card-lightbox" class="card-lightbox" aria-hidden="true" style="display: none;">
+        <div class="lightbox-backdrop"></div>
+        
+        <!-- Top Action Bar -->
+        <div class="lightbox-header">
+          <div class="lightbox-pagination" id="lightbox-counter">1 / 35</div>
+          <button class="lightbox-close-btn" id="lightbox-close" type="button" aria-label="Close lightbox">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
           </button>
         </div>
-        
-        <div class="project-design-content" id="project-design-panel">
-          <div class="project-design-grid">
-            <div class="project-design-item">
-              <span class="design-label">Program</span>
-              <span class="design-val">{data.program ?? 'N/A'}</span>
-            </div>
-            <div class="project-design-item">
-              <span class="design-label">Collaborator</span>
-              <span class="design-val">{data.collaborator ?? 'Self-initiated'}</span>
-            </div>
-            {category && (
-              <div class="project-design-item">
-                <span class="design-label">Category</span>
-                <span class="design-val">{category.data.displayName}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
 
-      <!-- Section 3: Making Collapsible Section -->
-      <section class="project-making-section">
-        <div class="project-header-title-row project-making-header" id="project-making-click">
-          <h1 class="project-name-title project-section-subtitle">Making</h1>
-          <button class="project-detail-collapse-btn" id="project-making-toggle" type="button" aria-expanded="false" aria-label="Toggle making details">
-            <svg class="toggle-icon-minus link-arrow" viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" style="display: none;"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
-            <svg class="toggle-icon-plus link-arrow" viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
-          </button>
-        </div>
+        <!-- Left/Right navigation arrows (desktop) -->
+        <button class="lightbox-nav-arrow lightbox-nav-arrow--prev" id="lightbox-prev" type="button" aria-label="Previous card">
+          <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
         
-        <div class="project-making-content" id="project-making-panel">
-          <div class="project-making-grid">
-            <div class="project-making-item">
-              <span class="design-label">Client</span>
-              <span class="design-val">{data.client ?? 'N/A'}</span>
-            </div>
-            <div class="project-making-item">
-              <span class="design-label">Size</span>
-              <span class="design-val">{data.size ?? 'N/A'}</span>
-            </div>
-            <div class="project-making-item">
-              <span class="design-label">Location</span>
-              <span class="design-val">{data.location ?? 'N/A'}</span>
-            </div>
-            <div class="project-making-item">
-              <span class="design-label">Status</span>
-              <span class="design-val">{data.status ?? 'N/A'}</span>
-            </div>
+        <!-- Centered Card Container (with 3D perspective wrapper) -->
+        <div class="lightbox-perspective-wrap">
+          <div class="lightbox-card-container" id="lightbox-card-container">
+            <img class="lightbox-card-img" id="lightbox-card-img" src="" alt="Active Playing Card" />
+            <div class="lightbox-card-shadow"></div>
+            <div class="lightbox-card-shine"></div>
           </div>
         </div>
-      </section>
+
+        <button class="lightbox-nav-arrow lightbox-nav-arrow--next" id="lightbox-next" type="button" aria-label="Next card">
+          <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+
+        <!-- Tap target hint on mobile -->
+        <div class="lightbox-hint">Tap card to flip to next</div>
+      </div>
+
     </article>
 </PageLayout>
 
@@ -210,75 +148,19 @@ dynamicCrumbs.push({ label: data.name });
     flex-direction: column;
     gap: var(--_tokens---space-5);
     position: relative;
-    transition: padding-bottom 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  /* When collapsed, keep the viewport height filled with no scrollable overflow */
-  .project-detail.is-collapsed {
-    min-height: 100dvh !important;
-    padding-bottom: 80px !important;
-    overflow: hidden !important;
-  }
-
-  /* ── 2-Column Grid ── */
-  .project-content-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: var(--_tokens---space-6);
-    max-height: 3000px;
-    opacity: 1;
-    transition: max-height 0.5s cubic-bezier(0.16, 1, 0.3, 1),
-                opacity 0.4s ease,
-                gap 0.5s ease;
-  }
-
-  /* No images → the text column takes the full width, no empty gutter */
-  .project-content-grid--no-images {
-    grid-template-columns: 1fr !important;
-  }
-
-  .project-detail.is-collapsed .project-content-grid {
-    max-height: 0 !important;
-    opacity: 0 !important;
-    gap: 0 !important;
-    overflow: hidden !important;
-  }
-
-  @media (min-width: 1024px) {
-    .project-content-grid {
-      grid-template-columns: 1fr 1fr;
-      align-items: start; /* critical for sticky right column */
-    }
-  }
-
-  @media (min-width: 1200px) {
-    .project-content-grid {
-      grid-template-columns: 4.5fr 5.5fr; /* Give slightly more room to slider */
-    }
-  }
-
-  /* ── Header — same family rhythm as home / category pages ── */
   .project-top-header {
     position: static;
-    padding-top: calc(clamp(2rem, 5vh, 3rem) + 48px); /* = home hero */
+    padding-top: calc(clamp(2rem, 5vh, 3rem) + 48px);
     padding-bottom: 0;
-    margin: 0 0 8px;                                   /* = home header gap */
+    margin: 0 0 8px;
   }
 
-  /* PAGE HEADING (mobile) — fixed bar, full length, glass, muted border;
-     same recipe as home / about / projects / category pages */
   @media (max-width: 768px) {
-    /* Mobile: the project name sits at the very TOP of the page, in flow
-       — no fixed bar, no clearance padding, no dead space above it. The
-       bottom breadcrumb keeps wayfinding while scrolling. */
     .project-top-header {
-      position: static;
       padding: 0;
       margin: 0;
-      box-sizing: border-box;
-    }
-    .project-detail {
-      padding-top: 0;
     }
   }
 
@@ -287,10 +169,8 @@ dynamicCrumbs.push({ label: data.name });
     justify-content: space-between;
     align-items: center;
     width: 100%;
-    gap: 16px;
   }
 
-  /* Name — H1 big on desktop; family style on mobile */
   .project-name-title {
     font-size: var(--_tokens---type--big);
     font-weight: 500;
@@ -298,247 +178,19 @@ dynamicCrumbs.push({ label: data.name });
     line-height: 0.95;
     color: var(--_tokens---color--fg);
     margin: 0;
-    cursor: pointer;
-    user-select: none;
   }
 
-
-
-  /* Collapse / Expand Toggle Button */
-  .project-detail-collapse-btn {
-    all: unset;
-    cursor: pointer;
-    color: var(--_tokens---color--fg);
-    width: 40px;   /* comfortable tap target — the arrow floats inside */
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0.55;
-    transition: opacity 0.2s ease, transform 0.2s ease;
-    flex-shrink: 0;
-  }
-  .project-detail-collapse-btn .link-arrow {
-    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .project-detail-collapse-btn:hover {
-    opacity: 1;
-  }
-
-  /* When collapsed (closed), the toggle chevron is fully visible/active */
-  .project-detail.is-collapsed .project-detail-collapse-btn {
-    opacity: 1 !important;
-  }
-
-  /* Short name — only surfaced in edit mode (via [data-edit-only]) */
-  .project-shortname {
-    font-size: var(--_tokens---type--micro);
-    color: var(--_tokens---color--muted);
-    margin-top: 8px;
-    display: none; /* hidden unless in edit mode */
-  }
-  .project-shortname::before {
-    content: "Short name: ";
-    opacity: 0.6;
-  }
-
-  /* ── Right Column (Sticky Slider) ── */
-  .project-col-right {
-    position: sticky;
-    top: calc(clamp(2rem, 5vh, 3rem) + 48px); /* below the compact family header */
-  }
-
-  /* ── Image Scrub Viewer ── */
-  .project-detail__active-wrap {
-    width: 100%;
-    aspect-ratio: 16/10;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    background: transparent;
-  }
-
-  .project-detail__active-img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-  }
-
-  /* Centered navigation arrows on display image sides */
-  .project-detail__nav-arrow {
-    all: unset;
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 10;
-    cursor: pointer;
-    color: var(--_tokens---color--fg);
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: opacity 0.2s ease, transform 0.2s ease, color 0.2s ease;
-  }
-
-  .project-detail__active-wrap:hover .project-detail__nav-arrow {
-    opacity: 0.6;
-  }
-
-  .project-detail__nav-arrow:hover {
-    opacity: 1 !important;
-    transform: translateY(-50%) scale(1.15);
-  }
-
-  .project-detail__nav-arrow--prev {
-    left: 8px;
-  }
-
-  .project-detail__nav-arrow--next {
-    right: 8px;
-  }
-
-  /* Pagination Counter */
-  .project-detail__pagination {
-    display: block;
-    text-align: center;
-    font-family: var(--_tokens---font--mono);
-    font-size: var(--_tokens---type--micro);
-    color: var(--_tokens---color--muted);
-    margin-top: 8px;
-  }
-
-  .project-detail__thumbs {
-    display: flex;
-    gap: 6px;
-    margin-top: 12px;
-    width: 100%;
-    justify-content: flex-start;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-  }
-  .project-detail__thumbs::-webkit-scrollbar {
-    display: none;
-  }
-
-  .project-detail__thumb-item {
-    flex: 0 0 calc((100% - 24px) / 5); /* exact 5-column slot size, aligns left if fewer than 5 */
-    scroll-snap-align: start;
-    aspect-ratio: 1; /* square! */
-    border-radius: 0; /* sharp corners */
-    border: none;
-    overflow: hidden;
-    position: relative;
-    padding: 0;
-    cursor: pointer;
-    background: transparent;
-    transition: opacity 0.2s ease;
-  }
-
-  .project-detail__thumb-item img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    filter: grayscale(1);
-    opacity: 0.6;
-    transition: filter 0.2s ease, opacity 0.2s ease;
-  }
-
-  .project-detail__thumb-item.is-active img,
-  .project-detail__thumb-item:hover img {
-    filter: grayscale(0);
-    opacity: 1;
-  }
-
-  /* Grayscale remaining items during previewing */
-  .project-detail.is-previewing .project-detail__thumb-item img {
-    filter: grayscale(1);
-    opacity: 0.6;
-  }
-  .project-detail.is-previewing .project-detail__thumb-item.is-active img {
-    filter: grayscale(0);
-    opacity: 1;
-  }
-
-  /* ── Collapsible Design & Making Sections ── */
-  .project-design-section,
-  .project-making-section {
-    /* hairline sits right below the section's text — equal rhythm when
-       closed; the expanded content grows between text and line */
-    border-bottom: 1px solid var(--_tokens---color--line-soft);
-    padding: 0 0 12px;
-    margin-top: 0;
+  .project-content-grid {
     display: flex;
     flex-direction: column;
-  }
-
-  .project-meta-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 12px;
     width: 100%;
-  }
-  .project-meta-left { min-width: 0; overflow-wrap: anywhere; }
-  .project-meta-right { flex-shrink: 0; white-space: nowrap; }
-
-  .project-design-header,
-  .project-making-header {
-    cursor: pointer;
-    user-select: none;
+    gap: var(--_tokens---space-4);
   }
 
-
-
-  .project-design-content,
-  .project-making-content {
-    max-height: 0;
-    opacity: 0;
-    overflow: hidden;
-    transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-                opacity 0.3s ease,
-                margin-top 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  .project-col-left {
+    max-width: 80ch;
   }
 
-  .project-design-section.is-expanded .project-design-content,
-  .project-making-section.is-expanded .project-making-content {
-    max-height: 300px;
-    opacity: 1;
-    margin-top: 16px;
-  }
-
-  .project-design-grid,
-  .project-making-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    max-width: 600px;
-  }
-
-  .project-design-item,
-  .project-making-item {
-    display: flex;
-    justify-content: space-between;
-    font-size: var(--_tokens---type--micro);
-    color: var(--_tokens---color--muted);
-  }
-
-  .design-label {
-    font-weight: 300;
-    letter-spacing: 0.02em;
-  }
-
-  .design-val {
-    font-weight: 400;
-    color: var(--_tokens---color--fg);
-  }
-
-  /* ── Enlarged Card Info ── */
   .project-card-info {
     display: flex;
     flex-direction: column;
@@ -547,20 +199,12 @@ dynamicCrumbs.push({ label: data.name });
     padding: 16px 0;
   }
 
-  .project-card__row {
-    display: flex;
-    width: 100%;
-  }
-
   .project-card__text-block {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    max-width: 80ch;
   }
 
-  /* Family text — intro slightly emphasized, description micro muted
-     (same voice as the home / category paragraphs) */
   .project-card__intro {
     font-size: var(--_tokens---type--micro);
     font-weight: 500;
@@ -581,7 +225,6 @@ dynamicCrumbs.push({ label: data.name });
     margin-bottom: 1em;
   }
 
-  /* Metadata row */
   .project-card__metaline {
     display: flex;
     flex-direction: column;
@@ -589,44 +232,21 @@ dynamicCrumbs.push({ label: data.name });
     margin-top: 16px;
     padding-top: 12px;
     width: 100%;
-    max-height: 200px;
-    opacity: 1;
-    transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-                opacity 0.3s ease,
-                margin-top 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-                padding-top 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-                border-color 0.3s ease;
+    border-top: 1px solid var(--_tokens---color--line-soft);
   }
 
-  .project-detail.is-collapsed .project-card__metaline {
-    max-height: 0 !important;
-    opacity: 0 !important;
-    margin-top: 0 !important;
-    padding-top: 0 !important;
-    border-top-color: transparent !important;
-    overflow: hidden !important;
-  }
-
-  .project-card__meta-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: var(--_tokens---type--micro);
-    color: var(--_tokens---color--muted);
-  }
-
-  .project-card__meta-sep {
-    color: var(--_tokens---color--line-soft);
-  }
-
-  .meta-label-inline {
-    font-weight: 300;
-    color: var(--_tokens---color--muted);
-    letter-spacing: 0.04em;
+  .project-meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    width: 100%;
   }
 
   .project-card__meta-val {
     font-weight: 400;
+    font-size: var(--_tokens---type--micro);
+    color: var(--_tokens---color--muted);
   }
 
   .category-link {
@@ -640,513 +260,444 @@ dynamicCrumbs.push({ label: data.name });
     color: var(--_tokens---color--fg);
   }
 
+  /* ── Card Deck Grid ── */
+  .card-deck-section {
+    width: 100%;
+    margin-top: 24px;
+  }
+
+  .deck-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* 3 columns on mobile */
+    gap: 16px;
+    width: 100%;
+  }
+
+  @media (min-width: 1024px) {
+    .deck-grid {
+      grid-template-columns: repeat(9, 1fr); /* 9 columns on desktop */
+      gap: 20px;
+    }
+  }
+
+  .deck-card-item {
+    all: unset;
+    width: 100%;
+    aspect-ratio: 2/3; /* Portrait aspect ratio of playing cards */
+    cursor: pointer;
+    perspective: 1000px;
+    outline: none;
+  }
+
+  .deck-card-inner {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    border-radius: 6px;
+    overflow: hidden;
+    background-color: var(--_tokens---color--bg-glass);
+    border: 1px solid var(--_tokens---color--line-soft);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 0.3s ease;
+    transform-style: preserve-3d;
+  }
+
+  .deck-card-inner img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: grayscale(1);
+    opacity: 0.8;
+    transition: filter 0.3s ease, opacity 0.3s ease, transform 0.4s ease;
+  }
+
+  /* Hover & Active Card Effects */
+  .deck-card-item:hover .deck-card-inner,
+  .deck-card-item:focus .deck-card-inner {
+    transform: translateY(-8px) rotateY(5deg) scale(1.03);
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.25);
+    border-color: var(--_tokens---color--fg);
+  }
+
+  .deck-card-item:hover img,
+  .deck-card-item:focus img {
+    filter: grayscale(0);
+    opacity: 1;
+    transform: scale(1.02);
+  }
+
+  /* Card shine reflection effect on hover */
+  .deck-card-glow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 50%, rgba(255,255,255,0) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .deck-card-item:hover .deck-card-glow {
+    opacity: 1;
+  }
+
+  /* ── Immersive Lightbox Modal ── */
+  .card-lightbox {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+
+  .lightbox-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(10, 10, 10, 0.88);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    transition: opacity 0.4s ease;
+  }
+
+  .lightbox-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px;
+    box-sizing: border-box;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  .lightbox-pagination {
+    font-family: var(--_tokens---font--mono);
+    font-size: var(--_tokens---type--micro);
+    color: #ffffff;
+    opacity: 0.6;
+    letter-spacing: 0.05em;
+  }
+
+  .lightbox-close-btn {
+    all: unset;
+    cursor: pointer;
+    color: #ffffff;
+    opacity: 0.6;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    pointer-events: auto;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .lightbox-close-btn:hover {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+
+  /* Lightbox arrows */
+  .lightbox-nav-arrow {
+    all: unset;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    cursor: pointer;
+    color: #ffffff;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.3;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .lightbox-nav-arrow:hover {
+    opacity: 1;
+    transform: translateY(-50%) scale(1.1);
+  }
+
+  .lightbox-nav-arrow--prev {
+    left: 24px;
+  }
+
+  .lightbox-nav-arrow--next {
+    right: 24px;
+  }
+
+  @media (max-width: 768px) {
+    .lightbox-nav-arrow {
+      display: none;
+    }
+  }
+
+  /* 3D Perspective Card Wrapper */
+  .lightbox-perspective-wrap {
+    perspective: 1500px;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  .lightbox-card-container {
+    width: 90vw;
+    height: 65vh;
+    max-width: 420px;
+    max-height: 630px;
+    position: relative;
+    cursor: pointer;
+    transform-style: preserve-3d;
+    transition: transform 0.1s cubic-bezier(0.25, 1, 0.5, 1),
+                opacity 0.4s ease;
+    pointer-events: auto;
+    border-radius: 12px;
+    background-color: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+  }
+
+  .lightbox-card-container.is-transitioning {
+    opacity: 0;
+    transform: perspective(1000px) translate3d(0, -30px, -100px) rotateX(15deg) scale(0.9);
+  }
+
+  .lightbox-card-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+    border-radius: 11px;
+  }
+
+  .lightbox-card-shadow {
+    position: absolute;
+    top: 5%;
+    left: 5%;
+    width: 90%;
+    height: 90%;
+    box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8);
+    pointer-events: none;
+    z-index: -1;
+    transform: translateZ(-20px);
+  }
+
+  .lightbox-card-shine {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(105deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 40%, rgba(255,255,255,0) 100%);
+    pointer-events: none;
+    z-index: 3;
+    mix-blend-mode: overlay;
+    transform: translateZ(10px);
+  }
+
+  .lightbox-hint {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: var(--_tokens---type--ultrathin);
+    color: #ffffff;
+    opacity: 0.4;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    pointer-events: none;
+  }
+
   @media (max-width: 768px) {
     .project-detail {
-      height: 100dvh !important;
-      min-height: 100dvh !important;
-      max-height: 100dvh !important;
-      overflow-y: auto !important; /* fits exactly 100% vh, scrolls if expanded details overflow */
-      scrollbar-width: none;
       padding-bottom: 96px !important;
-      gap: 8px !important;
-      display: flex;
-      flex-direction: column;
     }
-    .project-detail::-webkit-scrollbar {
-      display: none;
+    .deck-grid {
+      gap: 10px !important;
     }
-
-    /* All three tab headers (name / Design / Making) share the SAME box:
-       no bleed, no side padding — text aligns to the page inset and can
-       never clip; each carries its hairline right below. */
-    .project-top-header {
-      position: sticky !important;
-      top: 0 !important;
-      z-index: 100 !important;
-      background-color: var(--_tokens---color--bg) !important; /* opaque — no glass */
-      padding: 12px 0 12px 0 !important;
-      margin: 0 !important;
-      border-bottom: 1px solid var(--_tokens---color--line-soft);
+    .lightbox-card-container {
+      width: 78vw !important;
+      height: auto !important;
+      aspect-ratio: 2/3 !important;
     }
-    .project-design-section,
-    .project-making-section {
-      margin-inline: 0 !important;
-      padding-inline: 0 !important;
-    }
-    /* collapsed content-grid: cancel its flex gap so title→Design spacing
-       equals Design→Making */
-    .project-detail.is-collapsed .project-content-grid {
-      margin-top: -8px;
-    }
-
-    .project-card__metaline {
-      flex-wrap: nowrap;
-      overflow-x: auto;
-      scrollbar-width: none;
-      gap: 8px;
-      padding-top: 8px !important;
-      margin-top: 8px !important;
-    }
-    .project-card__metaline::-webkit-scrollbar {
-      display: none;
-    }
-
-    .meta-label-inline {
-      display: none;
-    }
-
-    .project-content-grid {
-      gap: 12px !important;
-    }
-
-    .project-card-info {
-      padding: 4px 0 0 !important;
-    }
-
-    .project-card__text-block {
-      gap: 4px !important;
-    }
-
-    .project-card__desc :global(p) {
-      margin-bottom: 0.4em !important;
-    }
-
-    /* Mobile specific layout ordering: pagination on top, active image middle, scrub on bottom */
-    .project-col-right {
-      display: flex;
-      flex-direction: column;
-    }
-    .project-detail__pagination {
-      order: 1; /* pagination counter on top */
-      margin-top: 0;
-      margin-bottom: 4px !important;
-    }
-    .project-detail__active-wrap {
-      order: 2; /* active image in the middle */
-      display: flex !important;
-      width: 100% !important;
-      aspect-ratio: auto !important;
-      height: 38dvh !important; /* large image relative to viewport */
-      max-height: 360px !important;
-      align-items: center;
-      justify-content: center;
-    }
-    .project-detail__active-img {
-      width: 100% !important;
-      height: 100% !important;
-      object-fit: contain !important;
-    }
-    .project-detail__thumbs {
-      order: 3; /* scrub on the bottom */
-      margin-top: 8px !important;
-      margin-bottom: 0;
-      gap: 6px;
-      width: 100%;
-    }
-    .project-detail__nav-arrow {
-      opacity: 0.8 !important; /* always show arrows on mobile display image sides */
-      width: 36px !important;
-      height: 36px !important;
-    }
-    .project-detail__thumb-item {
-      flex: 0 0 calc((100% - 24px) / 5) !important; /* show exactly 5 thumbnails on mobile also */
-      aspect-ratio: 1 !important;
-      border-radius: 0 !important;
-    }
-    .project-detail__thumb-item img {
-      filter: grayscale(1) !important; /* start grayscale, colored by activity */
-      opacity: 0.6;
-    }
-    .project-detail__thumb-item.is-active img {
-      filter: grayscale(0) !important;
-      opacity: 1;
-    }
-
-    .project-design-section,
-    .project-making-section {
-      margin-top: 0 !important;
-      padding-top: 0 !important;
-    }
-  }
-
-  /* ── Custom Layout Overrides for Sups In The Hinterland ── */
-  .project-content-grid {
-    display: flex !important;
-    flex-direction: column !important;
-    width: 100% !important;
-    gap: var(--_tokens---space-4) !important;
-  }
-
-  .project-col-left {
-    max-width: 80ch;
-  }
-
-  .project-col-right {
-    position: relative !important;
-    top: auto !important;
-    width: auto !important;
-    margin-inline: calc(-1 * var(--_tokens---space--small)) !important;
-  }
-  @media (min-width: 1200px) {
-    .project-col-right {
-      margin-inline: calc(-1 * clamp(6rem, 12vw, 16rem)) !important;
-    }
-  }
-
-  .project-detail__active-wrap {
-    width: 100% !important;
-    height: 75dvh !important;
-    max-height: 800px !important;
-    aspect-ratio: auto !important;
-    background: color-mix(in srgb, var(--_tokens---color--fg) 5%, transparent) !important;
-  }
-  @media (max-width: 768px) {
-    .project-detail__active-wrap {
-      height: 60dvh !important;
-      max-height: 500px !important;
-    }
-  }
-
-  .project-detail__active-img {
-    height: 90% !important;
-    width: auto !important;
-    max-width: 90% !important;
-    object-fit: contain !important;
-  }
-
-  /* Grid of portrait cards */
-  .project-detail__thumbs {
-    display: grid !important;
-    grid-template-columns: repeat(3, 1fr) !important; /* 3 columns on mobile */
-    gap: 12px !important;
-    margin-top: 24px !important;
-    width: auto !important;
-    padding-inline: var(--_tokens---space--small) !important;
-    overflow-x: visible !important;
-    scroll-snap-type: none !important;
-  }
-  @media (min-width: 1024px) {
-    .project-detail__thumbs {
-      grid-template-columns: repeat(9, 1fr) !important; /* 9 columns on desktop */
-      padding-inline: clamp(6rem, 12vw, 16rem) !important;
-      gap: 16px !important;
-    }
-  }
-
-  .project-detail__thumb-item {
-    flex: none !important;
-    width: 100% !important;
-    aspect-ratio: 2/3 !important; /* Portrait aspect ratio */
-    border-radius: 4px !important;
-    border: none !important;
-    overflow: hidden !important;
-    padding: 0 !important;
-    background: transparent !important;
-    transition: opacity 0.2s ease, transform 0.2s ease !important;
-  }
-  .project-detail__thumb-item img {
-    width: 100% !important;
-    height: 100% !important;
-    object-fit: cover !important;
-  }
-  .project-detail__thumb-item:hover {
-    transform: translateY(-4px) !important;
   }
 </style>
 
 <script>
-  function initGallery() {
-    const detailContainer = document.querySelector('.project-detail') as HTMLElement | null;
-    const activeImg = document.getElementById('active-display-img') as HTMLImageElement | null;
-    const thumbs = Array.from(document.querySelectorAll<HTMLButtonElement>('.project-detail__thumb-item'));
-    const strip = document.querySelector<HTMLElement>('.project-detail__thumbs');
-    const activePrev = document.getElementById('active-prev-btn');
-    const activeNext = document.getElementById('active-next-btn');
+  function initCardDeck() {
+    const deck = document.getElementById('deck-grid');
+    const lightbox = document.getElementById('card-lightbox');
+    const lightboxImg = document.getElementById('lightbox-card-img') as HTMLImageElement | null;
+    const cardContainer = document.getElementById('lightbox-card-container');
+    const closeBtn = document.getElementById('lightbox-close');
+    const prevBtn = document.getElementById('lightbox-prev');
+    const nextBtn = document.getElementById('lightbox-next');
+    const counter = document.getElementById('lightbox-counter');
 
-    if (!detailContainer || !activeImg || !strip) return;
-    const images = JSON.parse(detailContainer.dataset.images || '[]');
+    if (!deck || !lightbox || !lightboxImg || !cardContainer) return;
+
+    const images = JSON.parse(deck.getAttribute('data-images') || '[]');
     let currentIdx = 0;
-    let autoplayInterval: number | null = null;
+    let isOpen = false;
 
-    // Helper: find index of thumbnail under clientX and clientY
-    function thumbIndexAtXY(clientX: number, clientY: number): number {
-      if (!thumbs.length) return -1;
-      for (let i = 0; i < thumbs.length; i++) {
-        const r = thumbs[i].getBoundingClientRect();
-        if (clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom) {
-          return i;
-        }
-      }
-      return -1;
-    }
-
-    const setDisplayImage = (idx: number) => {
-      currentIdx = idx;
-      activeImg.src = images[idx] || '';
+    // Open lightbox
+    const openLightbox = (index: number) => {
+      currentIdx = index;
+      isOpen = true;
+      lightboxImg.src = images[index];
       
-      const pagination = document.getElementById('active-pagination');
-      if (pagination) {
-        pagination.textContent = `${idx + 1} / ${images.length}`;
+      if (counter) {
+        counter.textContent = `${index + 1} / ${images.length}`;
       }
 
-      thumbs.forEach((t, i) => {
-        t.classList.toggle('is-active', i === idx);
-      });
+      lightbox.style.display = 'flex';
+      lightbox.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+    };
 
-      // Scroll active thumbnail smoothly into view
-      const activeThumb = thumbs[idx];
-      if (activeThumb && strip) {
-        const stripRect = strip.getBoundingClientRect();
-        const thumbRect = activeThumb.getBoundingClientRect();
-        if (thumbRect.left < stripRect.left || thumbRect.right > stripRect.right) {
-          activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+    // Close lightbox
+    const closeLightbox = () => {
+      isOpen = false;
+      lightbox.style.display = 'none';
+      lightbox.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      cardContainer.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale(1)';
+    };
+
+    // Switch card with transition
+    const setCard = (index: number) => {
+      currentIdx = (index + images.length) % images.length;
+      
+      cardContainer.classList.add('is-transitioning');
+      
+      setTimeout(() => {
+        lightboxImg.src = images[currentIdx];
+        if (counter) {
+          counter.textContent = `${currentIdx + 1} / ${images.length}`;
         }
-      }
+        
+        cardContainer.classList.remove('is-transitioning');
+      }, 180);
     };
 
-    // Autoplay Timer (3 seconds)
-    const startAutoplay = () => {
-      stopAutoplay();
-      autoplayInterval = window.setInterval(() => {
-        const nextIdx = (currentIdx + 1) % images.length;
-        setDisplayImage(nextIdx);
-      }, 3000);
-    };
-
-    const stopAutoplay = () => {
-      if (autoplayInterval) {
-        clearInterval(autoplayInterval);
-        autoplayInterval = null;
-      }
-    };
-
-    const handleUserInteraction = () => {
-      startAutoplay(); // resets the 3-second timer interval
-    };
-
-    // Desktop hover & scrub preview directly on page
-    const isHoverDevice = window.matchMedia('(hover: hover)').matches;
-    if (isHoverDevice) {
-      thumbs.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.preventDefault();
-          const idx = parseInt(btn.dataset.index || '0', 10);
-          setDisplayImage(idx);
-          handleUserInteraction();
-        });
+    // Bind clicks on cards
+    const cardButtons = Array.from(deck.querySelectorAll('.deck-card-item'));
+    cardButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.getAttribute('data-index') || '0', 10);
+        openLightbox(idx);
       });
-
-      strip.addEventListener('pointerenter', () => {
-        detailContainer.classList.add('is-previewing');
-        stopAutoplay();
-      });
-      strip.addEventListener('pointermove', (e) => {
-        const idx = thumbIndexAtXY(e.clientX, e.clientY);
-        if (idx >= 0 && idx !== currentIdx) {
-          setDisplayImage(idx);
-        }
-      });
-      strip.addEventListener('pointerleave', () => {
-        detailContainer.classList.remove('is-previewing');
-        startAutoplay();
-      });
-    } else {
-      // Mobile: tap thumb updates active image on page
-      thumbs.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.preventDefault();
-          const idx = parseInt(btn.dataset.index || '0', 10);
-          setDisplayImage(idx);
-          handleUserInteraction();
-        });
-      });
-
-      // Slide/drag across strip scrubs image
-      strip.addEventListener('pointermove', (e) => {
-        const idx = thumbIndexAtXY(e.clientX, e.clientY);
-        if (idx >= 0 && idx !== currentIdx) {
-          setDisplayImage(idx);
-          handleUserInteraction();
-        }
-      });
-    }
-
-    // Prev/Next arrows on the page display image sides
-    if (activePrev) {
-      activePrev.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const prevIdx = (currentIdx - 1 + images.length) % images.length;
-        setDisplayImage(prevIdx);
-        handleUserInteraction();
-      });
-    }
-
-    if (activeNext) {
-      activeNext.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const nextIdx = (currentIdx + 1) % images.length;
-        setDisplayImage(nextIdx);
-        handleUserInteraction();
-      });
-    }
-
-    // Keyboard navigation (left/right keys)
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowLeft') {
-        const prevIdx = (currentIdx - 1 + images.length) % images.length;
-        setDisplayImage(prevIdx);
-        handleUserInteraction();
-      }
-      if (e.key === 'ArrowRight') {
-        const nextIdx = (currentIdx + 1) % images.length;
-        setDisplayImage(nextIdx);
-        handleUserInteraction();
-      }
     });
 
-    // Start autoplay on load
-    startAutoplay();
+    // Close button click
+    closeBtn?.addEventListener('click', closeLightbox);
+    
+    // Click outside to close
+    lightbox.querySelector('.lightbox-backdrop')?.addEventListener('click', closeLightbox);
 
-    // Clean up interval when page changes (Astro transitions)
-    document.addEventListener('astro:before-preparation', stopAutoplay, { once: true });
-  }
-
-  function initCollapseToggle() {
-    const detailContainer = document.querySelector('.project-detail');
-    const toggleBtn = document.getElementById('project-detail-toggle');
-    const nameTitle = document.getElementById('project-name-click');
-    if (!detailContainer || !toggleBtn) return;
-
-    const iconMinus = toggleBtn.querySelector('.toggle-icon-minus') as HTMLElement | null;
-    const iconPlus = toggleBtn.querySelector('.toggle-icon-plus') as HTMLElement | null;
-
-    const toggleCollapse = () => {
-      const isCollapsed = detailContainer.classList.toggle('is-collapsed');
-      toggleBtn.setAttribute('aria-expanded', String(!isCollapsed));
-      if (iconMinus && iconPlus) {
-        if (isCollapsed) {
-          iconMinus.style.display = 'none';
-          iconPlus.style.display = 'block';
-        } else {
-          iconMinus.style.display = 'block';
-          iconPlus.style.display = 'none';
-        }
-      }
-      spinToggleArrow(document.getElementById('project-detail-toggle'));
-    };
-
-    toggleBtn.addEventListener('click', (e) => {
+    // Click card to advance to next
+    cardContainer.addEventListener('click', (e) => {
       e.stopPropagation();
-      toggleCollapse();
+      setCard(currentIdx + 1);
     });
 
-    if (nameTitle) {
-      nameTitle.addEventListener('click', (e) => {
-        e.stopPropagation();
-        toggleCollapse();
-      });
-    }
+    // Left/Right navigation
+    prevBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setCard(currentIdx - 1);
+    });
 
-    // Every toggle click spins its arrow to a random angle — same play
-    // as the site's hover arrows, but click-driven so it works on touch.
-    function spinToggleArrow(btn: Element | null) {
-      btn?.querySelectorAll('.link-arrow').forEach((a) => {
-        (a as HTMLElement).style.transform = `rotate(${Math.floor(Math.random() * 360)}deg)`;
-      });
-    }
+    nextBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setCard(currentIdx + 1);
+    });
 
-    // Toggle for Design collapsible panel
-    const designSection = document.querySelector('.project-design-section');
-    const designToggle = document.getElementById('project-design-toggle');
-    const designHeader = document.getElementById('project-design-click');
-    if (designSection && designToggle) {
-      const dMinus = designToggle.querySelector('.toggle-icon-minus') as HTMLElement | null;
-      const dPlus = designToggle.querySelector('.toggle-icon-plus') as HTMLElement | null;
-
-      const toggleDesign = () => {
-        const isExpanded = designSection.classList.toggle('is-expanded');
-        designToggle.setAttribute('aria-expanded', String(isExpanded));
-        spinToggleArrow(designToggle);
-        if (dMinus && dPlus) {
-          if (isExpanded) {
-            dMinus.style.display = 'block';
-            dPlus.style.display = 'none';
-          } else {
-            dMinus.style.display = 'none';
-            dPlus.style.display = 'block';
-          }
-        }
-      };
-
-      designToggle.addEventListener('click', (e) => {
-        e.stopPropagation();
-        toggleDesign();
-      });
-
-      if (designHeader) {
-        designHeader.addEventListener('click', (e) => {
-          e.stopPropagation();
-          toggleDesign();
-        });
+    // 3D Tilt Effect
+    cardContainer.addEventListener('pointermove', (e: PointerEvent) => {
+      const rect = cardContainer.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+      
+      const maxTilt = 15;
+      const tiltX = ((x - centerX) / centerX) * maxTilt;
+      const tiltY = -((y - centerY) / centerY) * maxTilt;
+      
+      cardContainer.style.transform = `perspective(1000px) rotateX(${tiltY}deg) rotateY(${tiltX}deg) scale(1.04)`;
+      
+      const shine = cardContainer.querySelector('.lightbox-card-shine') as HTMLElement | null;
+      if (shine) {
+        const angle = Math.atan2(y - centerY, x - centerX) * (180 / Math.PI);
+        shine.style.background = `linear-gradient(${angle + 180}deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0) 60%)`;
       }
-    }
+    });
 
-    // Toggle for Making collapsible panel
-    const makingSection = document.querySelector('.project-making-section');
-    const makingToggle = document.getElementById('project-making-toggle');
-    const makingHeader = document.getElementById('project-making-click');
-    if (makingSection && makingToggle) {
-      const mMinus = makingToggle.querySelector('.toggle-icon-minus') as HTMLElement | null;
-      const mPlus = makingToggle.querySelector('.toggle-icon-plus') as HTMLElement | null;
-
-      const toggleMaking = () => {
-        const isExpanded = makingSection.classList.toggle('is-expanded');
-        makingToggle.setAttribute('aria-expanded', String(isExpanded));
-        spinToggleArrow(makingToggle);
-        if (mMinus && mPlus) {
-          if (isExpanded) {
-            mMinus.style.display = 'block';
-            mPlus.style.display = 'none';
-          } else {
-            mMinus.style.display = 'none';
-            mPlus.style.display = 'block';
-          }
-        }
-      };
-
-      makingToggle.addEventListener('click', (e) => {
-        e.stopPropagation();
-        toggleMaking();
-      });
-
-      if (makingHeader) {
-        makingHeader.addEventListener('click', (e) => {
-          e.stopPropagation();
-          toggleMaking();
-        });
+    cardContainer.addEventListener('pointerleave', () => {
+      cardContainer.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale(1)';
+      const shine = cardContainer.querySelector('.lightbox-card-shine') as HTMLElement | null;
+      if (shine) {
+        shine.style.background = 'linear-gradient(105deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 40%, rgba(255,255,255,0) 100%)';
       }
-    }
+    });
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+      if (!isOpen) return;
+
+      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowRight') setCard(currentIdx + 1);
+      if (e.key === 'ArrowLeft') setCard(currentIdx - 1);
+    });
+
+    // Mobile swipe detection
+    let startX = 0;
+    let endX = 0;
+
+    lightbox.addEventListener('touchstart', (e: TouchEvent) => {
+      startX = e.touches[0].clientX;
+    }, { passive: true });
+
+    lightbox.addEventListener('touchend', (e: TouchEvent) => {
+      endX = e.changedTouches[0].clientX;
+      const diffX = endX - startX;
+      
+      if (Math.abs(diffX) > 60) {
+        if (diffX > 0) {
+          setCard(currentIdx - 1); // swipe right -> prev
+        } else {
+          setCard(currentIdx + 1); // swipe left -> next
+        }
+      }
+    }, { passive: true });
   }
 
-  // Page heading (fixed on mobile): tap scrolls back to top — same as
-  // home / about / category pages
-  function initHeadingScrollTop() {
-    const h = document.getElementById('project-top-header');
-    if (h && !(h as any)._topWired) {
-      (h as any)._topWired = true;
-      h.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
-    }
-  }
-
-
-  document.addEventListener('astro:page-load', () => {
-    initGallery();
-    initCollapseToggle();
-    initHeadingScrollTop();
-  });
+  document.addEventListener('astro:page-load', initCardDeck);
   if (document.readyState !== 'loading') {
-    initGallery();
-    initCollapseToggle();
-    initHeadingScrollTop();
+    initCardDeck();
   }
 </script>
