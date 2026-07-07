@@ -99,8 +99,9 @@ const LOGO_RULES: Array<{ match: RegExp; src: string; mono: boolean }> = [
   { match: /wolverine|cyclops|strom|storm|jean grey|professor|nightcrawler|gambit|emma frost|magneto|juggernaut/i,
                                                                  src: '/images/logos/xmen.png',            mono: true },
   { match: /martian|cygborg|cyborg/i,                            src: '/images/logos/dc.png',              mono: true },
+  { match: /corleone|hagen|clemenza/i,                           src: '/images/logos/godfather.png',       mono: true },
 ];
-const logoProjects = ['sups-cards', 'sups-in-the-hinterland'];
+const logoProjects = ['sups-cards', 'sups-in-the-hinterland', 'alt-verse'];
 const logoFor = (url: string): { src: string; mono: boolean } | null => {
   if (!logoProjects.includes(project.id)) return null;
   const name = cardNameFromUrl(url);
@@ -159,6 +160,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                 
                 <!-- Card Name & Pagination in left column (horizontally aligned with image bottom) -->
                 <div class="project-card-name-pagination-row">
+                  <div class="page-active-logo" id="page-active-logo" aria-hidden="true"></div>
                   <div class="project-detail__pagination-wrap">
                     <div class="project-detail__pagination" id="page-pagination">
                       1 / {allImages.length}
@@ -395,6 +397,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                   type="button"
                   class:list={["deck-card-item", idx === 0 && "is-active"]}
                   data-index={idx}
+                  data-logo={logo?.src}
                   aria-label={`Open card ${name}`}
                 >
                   <div class="deck-card-inner">
@@ -1037,7 +1040,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   /* ── Name & Pagination alignment row inside Left Column ── */
   .project-card-name-pagination-row {
     display: flex;
-    justify-content: flex-end; /* pagination + ring sit on the right edge of the left column */
+    justify-content: space-between; /* active-card logo left, pagination + ring right */
     align-items: center;
     gap: 10px;
     width: 100%;
@@ -1052,6 +1055,27 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     align-items: center;
     gap: 8px;
     flex: 0 0 auto;
+  }
+
+  /* Active card's team/publisher logo — tinted to the scheme's fg colour via
+     mask so it reads on any background; pops softly when the card changes */
+  .page-active-logo {
+    width: 34px;
+    height: 26px;
+    flex: 0 0 auto;
+    background-color: var(--_tokens---color--fg);
+    -webkit-mask: var(--logo) left center / contain no-repeat;
+    mask: var(--logo) left center / contain no-repeat;
+    display: none;
+  }
+
+  .page-active-logo.is-swap {
+    animation: logo-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  @keyframes logo-pop {
+    0%   { transform: scale(0.7); opacity: 0.2; }
+    100% { transform: scale(1);   opacity: 1; }
   }
 
   /* Timer ring beside the pagination counter (both mobile and desktop) */
@@ -2257,6 +2281,21 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       if (pageOverlayName) scrambleTo(pageOverlayName, activeName);
       if (pagePagination) pagePagination.textContent = `${currentPos + 1} / ${images.length}`;
 
+      // Active card's logo beside the pagination (fg-tinted mask, pops on change)
+      const logoEl = document.getElementById('page-active-logo');
+      if (logoEl) {
+        const logoSrc = deck.querySelector(`.deck-card-item[data-index="${currentIdx}"]`)?.getAttribute('data-logo');
+        if (logoSrc) {
+          logoEl.style.setProperty('--logo', `url("${logoSrc}")`);
+          logoEl.style.display = 'block';
+          logoEl.classList.remove('is-swap');
+          void (logoEl as HTMLElement).offsetWidth;
+          logoEl.classList.add('is-swap');
+        } else {
+          logoEl.style.display = 'none';
+        }
+      }
+
       resetTimerRing();
       updateScrubActiveState();
 
@@ -2372,6 +2411,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       img.addEventListener('error', () => dropCard(idx));
     });
 
+    updateDisplay(false);
     startAutoplay();
     updateScrubActiveState();
 
