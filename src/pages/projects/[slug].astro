@@ -93,7 +93,7 @@ const isCardPage = cardPageSlugs.includes(project.id);
           </header>
 
           <div class="project-content-grid project-content-grid--card">
-            <!-- Left Column: Description Text -->
+            <!-- Left Column: Description Text & Name/Pagination Alignment Row -->
             <div class="project-col-left">
               <div class="project-card-info">
                 <div class="project-card__row project-card__row2">
@@ -104,10 +104,28 @@ const isCardPage = cardPageSlugs.includes(project.id);
                     )}
                   </div>
                 </div>
+                
+                <!-- Card Name & Pagination in left column (horizontally aligned with image bottom) -->
+                <div class="project-card-name-pagination-row">
+                  <div class="project-detail__active-label" id="page-active-label">
+                    {(() => {
+                      const firstImg = allImages[0];
+                      const filename = firstImg.substring(firstImg.lastIndexOf('/') + 1);
+                      const ext = filename.substring(filename.lastIndexOf('.'));
+                      let name = filename.slice(0, filename.length - ext.length);
+                      name = name.replace(/^ADVT_[A-Z_]+_/, '').replace(/^ADVT_SP_\s*/, '').trim();
+                      name = name.replace(/\s+\d+\s*$/, '').replace(/\s*\d+$/, '').trim();
+                      return name;
+                    })()}
+                  </div>
+                  <div class="project-detail__pagination" id="page-pagination">
+                    1 / {allImages.length}
+                  </div>
+                </div>
               </div>
             </div>
 
-            <!-- Right Column: Active Card Slider -->
+            <!-- Right Column: Active Card Slider (Clean, image-only) -->
             {hasImages && (
             <div class="project-col-right" id="project-slider-col">
               <div class="project-slider-wrapper" id="page-slider-wrapper" data-images={JSON.stringify(allImages)}>
@@ -128,24 +146,6 @@ const isCardPage = cardPageSlugs.includes(project.id);
                   <button class="project-detail__nav-arrow project-detail__nav-arrow--next" id="page-next" type="button" aria-label="Next card">
                     <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
                   </button>
-                </div>
-
-                <!-- Active Card Name Overlay below image container (left aligned) -->
-                <div class="project-detail__active-label" id="page-active-label">
-                  {(() => {
-                    const firstImg = allImages[0];
-                    const filename = firstImg.substring(firstImg.lastIndexOf('/') + 1);
-                    const ext = filename.substring(filename.lastIndexOf('.'));
-                    let name = filename.slice(0, filename.length - ext.length);
-                    name = name.replace(/^ADVT_[A-Z_]+_/, '').replace(/^ADVT_SP_\s*/, '').trim();
-                    name = name.replace(/\s+\d+\s*$/, '').replace(/\s*\d+$/, '').trim();
-                    return name;
-                  })()}
-                </div>
-
-                <!-- Pagination counter label -->
-                <div class="project-detail__pagination" id="page-pagination">
-                  1 / {allImages.length}
                 </div>
               </div>
             </div>
@@ -350,7 +350,7 @@ const isCardPage = cardPageSlugs.includes(project.id);
 
             <img class="lightbox-card-img" id="lightbox-card-img" src="" alt="Active Playing Card" />
             
-            <!-- Autoplay Timer Ring inside Lightbox container (top right corner) -->
+            <!-- Autoplay Timer Ring inside Lightbox container -->
             <div class="autoplay-timer-ring">
               <svg width="24" height="24" viewBox="0 0 24 24">
                 <circle cx="12" cy="12" r="10" class="timer-ring-bg" />
@@ -436,12 +436,14 @@ const isCardPage = cardPageSlugs.includes(project.id);
   .project-content-grid--card {
     grid-template-columns: 1.2fr 1fr !important;
     gap: var(--_tokens---space-5) !important;
+    align-items: end !important; /* Align left row exactly with the bottom of the card image */
   }
 
   @media (min-width: 1200px) {
     .project-content-grid--card {
       grid-template-columns: 4.5fr 5.5fr !important;
       gap: var(--_tokens---space-6) !important;
+      align-items: end !important;
     }
   }
 
@@ -459,7 +461,7 @@ const isCardPage = cardPageSlugs.includes(project.id);
     flex-direction: column;
     gap: 16px;
     width: 100%;
-    padding: 16px 0;
+    padding: 16px 0 0;
     transition: padding 0.3s ease, gap 0.3s ease;
   }
 
@@ -679,26 +681,37 @@ const isCardPage = cardPageSlugs.includes(project.id);
     stroke-dashoffset: 0;
   }
 
-  /* Left-aligned name label overlay below active slider image */
-  .project-detail__active-label {
+  /* ── Name & Pagination alignment row inside Left Column ── */
+  .project-card-name-pagination-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    width: 100%;
     margin-top: 12px;
-    font-size: clamp(1rem, 1.2vw, 1.25rem); /* medium size font */
-    font-weight: 600; /* bolder */
-    color: var(--_tokens---color--fg);
-    text-align: left;
-    text-transform: none;
-    letter-spacing: -0.01em;
+    padding-top: 10px;
+    border-top: 1px solid var(--_tokens---color--line-soft);
+    box-sizing: border-box;
   }
 
-  .project-detail__pagination {
-    margin-top: 8px;
+  .project-card-name-pagination-row .project-detail__active-label {
+    margin-top: 0;
+    font-size: clamp(0.95rem, 1.25vw, 1.15rem);
+    font-weight: 600;
+    color: var(--_tokens---color--fg);
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .project-card-name-pagination-row .project-detail__pagination {
+    margin-top: 0;
     font-family: var(--_tokens---font--mono);
     font-size: var(--_tokens---type--micro);
     color: var(--_tokens---color--muted);
-    letter-spacing: 0.05em;
-    text-transform: none;
     font-weight: 600;
-    text-align: center;
+    text-align: right;
+    white-space: nowrap;
   }
 
   /* ── Design & Making Sections (Standard Pages Only) ── */
@@ -819,9 +832,9 @@ const isCardPage = cardPageSlugs.includes(project.id);
   /* ── Card Deck Grid ── */
   .card-deck-section {
     width: 100%;
-    margin-top: 40px;
-    border-top: 1px solid var(--_tokens---color--line-soft);
-    padding-top: 32px;
+    margin-top: 0;
+    border-top: none; /* Removed double border */
+    padding-top: 24px;
   }
 
   .deck-grid {
@@ -1217,7 +1230,7 @@ const isCardPage = cardPageSlugs.includes(project.id);
   /* ── Compact responsive styles for Card Pages on mobile ── */
   @media (max-width: 768px) {
     .project-dashboard-wrap {
-      padding-top: calc(0.3rem + 48px) !important;
+      padding-top: 12px !important; /* Move title directly to the top of mobile screen */
       padding-bottom: 8px !important;
     }
     .project-content-grid--card {
@@ -1240,12 +1253,14 @@ const isCardPage = cardPageSlugs.includes(project.id);
       font-size: clamp(0.7rem, 1.8vw, 0.8rem) !important;
       line-height: 1.35 !important;
     }
-    .project-detail__active-label {
+    .project-card-name-pagination-row {
       margin-top: 4px !important;
+      padding-top: 4px !important;
+    }
+    .project-card-name-pagination-row .project-detail__active-label {
       font-size: 0.9rem !important;
     }
-    .project-detail__pagination {
-      margin-top: 4px !important;
+    .project-card-name-pagination-row .project-detail__pagination {
       font-size: 0.8rem !important;
     }
 
