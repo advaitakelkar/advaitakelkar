@@ -65,8 +65,9 @@ dynamicCrumbs.push({ label: data.name });
         </div>
       </header>
 
-      <!-- Main content body (stacked, no top slider) -->
+      <!-- Main content body (2-column layout on desktop) -->
       <div class="project-content-grid">
+        <!-- Left Column: Description Text -->
         <div class="project-col-left">
           <div class="project-card-info">
             <div class="project-card__row project-card__row2">
@@ -79,9 +80,51 @@ dynamicCrumbs.push({ label: data.name });
             </div>
           </div>
         </div>
+
+        <!-- Right Column: Active Card Slider -->
+        {hasImages && (
+        <div class="project-col-right" id="project-slider-col">
+          <div class="project-slider-wrapper" id="page-slider-wrapper" data-images={JSON.stringify(allImages)}>
+            <div class="project-detail__active-wrap" id="page-active-wrap" style="cursor: pointer;" title="Click to open fullscreen modal">
+              <button class="project-detail__nav-arrow project-detail__nav-arrow--prev" id="page-prev" type="button" aria-label="Previous card">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+              </button>
+              <img class="project-detail__active-img" id="page-active-img" src={allImages[0]} alt={data.name} />
+              
+              <!-- Active Card Name Overlay on top of image -->
+              <div class="project-detail__active-label" id="page-active-label">
+                {(() => {
+                  const firstImg = allImages[0];
+                  const filename = firstImg.substring(firstImg.lastIndexOf('/') + 1);
+                  const ext = filename.substring(filename.lastIndexOf('.'));
+                  let name = filename.slice(0, filename.length - ext.length);
+                  name = name.replace(/^ADVT_[A-Z_]+_/, '').replace(/^ADVT_SP_\s*/, '').trim();
+                  return name;
+                })()}
+              </div>
+
+              <button class="project-detail__nav-arrow project-detail__nav-arrow--next" id="page-next" type="button" aria-label="Next card">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              </button>
+            </div>
+
+            <!-- Pagination label below image -->
+            <div class="project-detail__pagination" id="page-pagination">
+              {(() => {
+                const firstImg = allImages[0];
+                const filename = firstImg.substring(firstImg.lastIndexOf('/') + 1);
+                const ext = filename.substring(filename.lastIndexOf('.'));
+                let name = filename.slice(0, filename.length - ext.length);
+                name = name.replace(/^ADVT_[A-Z_]+_/, '').replace(/^ADVT_SP_\s*/, '').trim();
+                return `${name} — 1 / ${allImages.length}`;
+              })()}
+            </div>
+          </div>
+        </div>
+        )}
       </div>
 
-      <!-- Card Deck Grid section (always visible) -->
+      <!-- Card Deck Grid section (always visible, 3 columns on mobile, 9 columns on desktop) -->
       {hasImages && (
         <section class="card-deck-section">
           <div class="deck-grid" id="deck-grid" data-images={JSON.stringify(allImages)}>
@@ -195,14 +238,32 @@ dynamicCrumbs.push({ label: data.name });
   }
 
   .project-content-grid {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--_tokens---space-6);
     width: 100%;
-    gap: var(--_tokens---space-4);
+  }
+
+  @media (min-width: 1024px) {
+    .project-content-grid {
+      grid-template-columns: 1fr 1fr;
+      align-items: start;
+    }
+  }
+
+  @media (min-width: 1200px) {
+    .project-content-grid {
+      grid-template-columns: 4.5fr 5.5fr;
+    }
   }
 
   .project-col-left {
     max-width: 80ch;
+  }
+
+  .project-col-right {
+    position: sticky;
+    top: calc(clamp(2rem, 5vh, 3rem) + 48px);
   }
 
   .project-card-info {
@@ -274,10 +335,104 @@ dynamicCrumbs.push({ label: data.name });
     color: var(--_tokens---color--fg);
   }
 
+  /* ── Right-Column Active Slider ── */
+  .project-slider-wrapper {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .project-detail__active-wrap {
+    width: 100%;
+    aspect-ratio: 2/3; /* Playing Card aspect ratio */
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    background-color: var(--_tokens---color--bg-glass);
+    border: 1px solid var(--_tokens---color--line-soft);
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  }
+
+  .project-detail__active-img {
+    max-width: 100%;
+    max-height: 100%;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .project-detail__nav-arrow {
+    all: unset;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    cursor: pointer;
+    color: #ffffff;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease, transform 0.2s ease, color 0.2s ease;
+  }
+
+  .project-detail__active-wrap:hover .project-detail__nav-arrow {
+    opacity: 0.6;
+  }
+
+  .project-detail__nav-arrow:hover {
+    opacity: 1 !important;
+    transform: translateY(-50%) scale(1.15);
+  }
+
+  .project-detail__nav-arrow--prev {
+    left: 16px;
+  }
+
+  .project-detail__nav-arrow--next {
+    right: 16px;
+  }
+
+  /* Label overlay on active slider image */
+  .project-detail__active-label {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 16px 20px;
+    font-size: var(--_tokens---type--micro);
+    font-family: var(--_tokens---font--mono);
+    color: #ffffff;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0) 100%);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    z-index: 3;
+    pointer-events: none;
+    text-align: center;
+  }
+
+  .project-detail__pagination {
+    margin-top: 12px;
+    font-family: var(--_tokens---font--mono);
+    font-size: var(--_tokens---type--micro);
+    color: var(--_tokens---color--muted);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    text-align: center;
+  }
+
   /* ── Card Deck Grid ── */
   .card-deck-section {
     width: 100%;
-    margin-top: 24px;
+    margin-top: 40px;
+    border-top: 1px solid var(--_tokens---color--line-soft);
+    padding-top: 32px;
   }
 
   .deck-grid {
@@ -560,7 +715,6 @@ dynamicCrumbs.push({ label: data.name });
     border-radius: 11px;
   }
 
-  /* Active card name text overlay inside lightbox */
   .lightbox-card-label-overlay {
     position: absolute;
     bottom: 0;
@@ -643,10 +797,18 @@ dynamicCrumbs.push({ label: data.name });
     const prevBtn = document.getElementById('lightbox-prev');
     const nextBtn = document.getElementById('lightbox-next');
     
-    // Top headers labels
+    // Top headers labels in Lightbox
     const headerTitle = document.getElementById('lightbox-card-title');
     const counter = document.getElementById('lightbox-counter');
     const cardOverlay = document.getElementById('lightbox-card-label');
+
+    // Page-level slider elements
+    const pageActiveImg = document.getElementById('page-active-img') as HTMLImageElement | null;
+    const pageActiveLabel = document.getElementById('page-active-label');
+    const pagePagination = document.getElementById('page-pagination');
+    const pagePrev = document.getElementById('page-prev');
+    const pageNext = document.getElementById('page-next');
+    const pageActiveWrap = document.getElementById('page-active-wrap');
 
     if (!deck || !lightbox || !lightboxImg || !cardContainer) return;
 
@@ -690,17 +852,24 @@ dynamicCrumbs.push({ label: data.name });
       stopAutoplay();
     };
 
-    // Update display content
+    // Update display content for both page-level slider and lightbox
     const updateDisplay = () => {
       const activeUrl = images[currentIdx];
       const activeName = getCardName(activeUrl);
 
-      lightboxImg.src = activeUrl;
-      
+      // Lightbox elements
+      if (lightboxImg) lightboxImg.src = activeUrl;
       if (headerTitle) headerTitle.textContent = activeName;
       if (cardOverlay) cardOverlay.textContent = activeName;
       if (counter) {
         counter.textContent = `${currentIdx + 1} / ${images.length}`;
+      }
+
+      // Page-level slider elements (keep in sync!)
+      if (pageActiveImg) pageActiveImg.src = activeUrl;
+      if (pageActiveLabel) pageActiveLabel.textContent = activeName;
+      if (pagePagination) {
+        pagePagination.textContent = `${activeName} — ${currentIdx + 1} / ${images.length}`;
       }
     };
 
@@ -708,12 +877,16 @@ dynamicCrumbs.push({ label: data.name });
     const setCard = (index: number) => {
       currentIdx = (index + images.length) % images.length;
       
-      cardContainer.classList.add('is-transitioning');
-      
-      setTimeout(() => {
+      // If lightbox is open, transition the lightbox card
+      if (isOpen) {
+        cardContainer.classList.add('is-transitioning');
+        setTimeout(() => {
+          updateDisplay();
+          cardContainer.classList.remove('is-transitioning');
+        }, 180);
+      } else {
         updateDisplay();
-        cardContainer.classList.remove('is-transitioning');
-      }, 180);
+      }
     };
 
     // Autoplay logic
@@ -732,10 +905,10 @@ dynamicCrumbs.push({ label: data.name });
     };
 
     const handleUserInteraction = () => {
-      startAutoplay(); // resets timer on click/action
+      if (isOpen) startAutoplay(); // resets timer on click/action
     };
 
-    // Bind clicks on cards
+    // Bind clicks on cards in the bottom deck grid
     const cardButtons = Array.from(deck.querySelectorAll('.deck-card-item'));
     cardButtons.forEach(btn => {
       btn.addEventListener('click', () => {
@@ -750,14 +923,13 @@ dynamicCrumbs.push({ label: data.name });
     // Click outside to close
     lightbox.querySelector('.lightbox-backdrop')?.addEventListener('click', closeLightbox);
 
-    // Click card to advance to next (playing card flip feel)
+    // Lightbox interactions
     cardContainer.addEventListener('click', (e) => {
       e.stopPropagation();
       setCard(currentIdx + 1);
       handleUserInteraction();
     });
 
-    // Left/Right navigation
     prevBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
       setCard(currentIdx - 1);
@@ -770,7 +942,25 @@ dynamicCrumbs.push({ label: data.name });
       handleUserInteraction();
     });
 
-    // 3D Tilt Effect
+    // Page-level slider interactions
+    pageActiveWrap?.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      // If they clicked nav arrows, don't open lightbox
+      if (target.closest('.project-detail__nav-arrow')) return;
+      openLightbox(currentIdx);
+    });
+
+    pagePrev?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setCard(currentIdx - 1);
+    });
+
+    pageNext?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setCard(currentIdx + 1);
+    });
+
+    // 3D Tilt Effect inside Lightbox
     cardContainer.addEventListener('pointermove', (e: PointerEvent) => {
       const rect = cardContainer.getBoundingClientRect();
       const x = e.clientX - rect.left;
@@ -802,9 +992,6 @@ dynamicCrumbs.push({ label: data.name });
 
     // Keyboard navigation
     document.addEventListener('keydown', (e) => {
-      if (!isOpen) return;
-
-      if (e.key === 'Escape') closeLightbox();
       if (e.key === 'ArrowRight') {
         setCard(currentIdx + 1);
         handleUserInteraction();
@@ -813,9 +1000,12 @@ dynamicCrumbs.push({ label: data.name });
         setCard(currentIdx - 1);
         handleUserInteraction();
       }
+      if (e.key === 'Escape' && isOpen) {
+        closeLightbox();
+      }
     });
 
-    // Mobile swipe detection
+    // Mobile swipe detection inside Lightbox
     let startX = 0;
     let endX = 0;
 
