@@ -1,8 +1,7 @@
 ---
-import { getCollection, getEntry } from 'astro:content';
+import { getEntry } from 'astro:content';
 import PageLayout from '../../layouts/PageLayout.astro';
 import { isPlaceholder, realText } from '../../lib/content';
-
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -16,61 +15,50 @@ const { data } = project;
 const tags = await Promise.all((data.tags ?? []).map(t => getEntry(t)));
 const category = data.category ? await getEntry(data.category) : null;
 
-// Dynamically select 5 random images from each subfolder of public/images/ai-works
+// Dynamically read AI works project folders
 const aiWorksDir = path.resolve('public/images/ai-works');
-let allImages = [];
+let folderProjects = [];
 
 if (fs.existsSync(aiWorksDir)) {
   const folders = fs.readdirSync(aiWorksDir).filter(f => {
     const fullPath = path.join(aiWorksDir, f);
     return fs.statSync(fullPath).isDirectory();
-  });
+  }).sort();
 
   for (const folder of folders) {
     const folderPath = path.join(aiWorksDir, folder);
     const files = fs.readdirSync(folderPath).filter(file => {
       const ext = path.extname(file).toLowerCase();
       return ['.png', '.jpg', '.jpeg', '.webp'].includes(ext);
-    });
+    }).sort();
 
-    // Shuffle and pick 5 random images
-    const shuffled = [...files].sort(() => 0.5 - Math.random());
-    const selected = shuffled.slice(0, 5);
-
-    selected.forEach(file => {
-      allImages.push(`/images/ai-works/${folder}/${file}`);
-    });
+    const imagePaths = files.map(file => `/images/ai-works/${folder}/${file}`);
+    if (imagePaths.length > 0) {
+      folderProjects.push({
+        name: folder.trim(),
+        images: imagePaths
+      });
+    }
   }
 }
 
+// Main scrub at the top: one image from each project folder
+const allImages = folderProjects.map(proj => proj.images[0]).filter(Boolean);
 const hasImages = allImages.length > 0;
 const cover = allImages[0] ?? '';
 
-// Metadata, two rows (values only):
-//   row 1 — "year, location" left · status right
-//   row 2 — tag left · category (link) right
 const firstTag = tags.find(t => t);
 const yearLoc = [data.year, data.location].filter(Boolean).join(', ');
 
-// Build dynamic breadcrumbs based on category structure
-const dynamicCrumbs = [ { label: 'Home', href: '/' } ];
+const dynamicCrumbs = [
+  { label: 'Home', href: '/' }
+];
 
 if (category) {
-  // e.g. Home > Work
   dynamicCrumbs.push({ label: category.data.displayName, href: `/${category.id}` });
-  
-  // If it's Work and has a special sub-tag, nest it further
-  if (category.id === 'work' && data.tags) {
-    const subTag = data.tags.find(t => t.id === 'studio-823' || t.id === 'faizan-khatri');
-    if (subTag) {
-      const subLabel = subTag.id === 'studio-823' ? 'Studio 823' : 'FKD Workshop';
-      dynamicCrumbs.push({ label: subLabel, href: `/work/${subTag.id}` });
-    }
-  }
 } else {
   dynamicCrumbs.push({ label: 'Projects', href: '/projects' });
 }
-
 dynamicCrumbs.push({ label: data.name });
 ---
 
@@ -81,12 +69,12 @@ dynamicCrumbs.push({ label: data.name });
   label={data.name}
   crumbs={dynamicCrumbs}
 >
-    <article class="project-detail" data-project-id={project.id} data-project-name={data.name} data-images={JSON.stringify(allImages)}>
+    <article class="project-detail" data-project-id={project.id} data-project-name={data.name}>
       
-      <!-- Top Full Width Header (Section 1 Toggle Header) -->
+      <!-- Top Full Width Header -->
       <header class="project-top-header" id="project-top-header">
         <div class="project-header-title-row">
-          <h1 class="project-name-title" id="project-name-click" data-edit={`projects/${project.id}/name`}>
+          <h1 class="project-name-title" id="project-name-click">
             <span class="project-name-main">{data.name}</span>
           </h1>
           <button class="project-detail-collapse-btn" id="project-detail-toggle" type="button" aria-expanded="true" aria-label="Toggle details">
@@ -94,9 +82,7 @@ dynamicCrumbs.push({ label: data.name });
             <svg class="toggle-icon-plus link-arrow" viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" style="display: none;"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
           </button>
         </div>
-        <span class="project-shortname" data-edit-only data-edit={`projects/${project.id}/shortName`}>{data.shortName ?? ''}</span>
         
-        <!-- Metadata: two rows — year, location · status / tag · category -->
         <div class="project-card__metaline">
           {(yearLoc || data.status) && (
             <div class="project-meta-row">
@@ -120,112 +106,98 @@ dynamicCrumbs.push({ label: data.name });
           <div class="project-card-info">
             <div class="project-card__row project-card__row2">
               <div class="project-card__text-block">
-                {data.smallIntro && <p class="project-card__intro" data-edit-only={isPlaceholder(data.smallIntro) || undefined} data-edit={`projects/${project.id}/smallIntro`}>{data.smallIntro}</p>}
+                {data.smallIntro && <p class="project-card__intro">{data.smallIntro}</p>}
                 {data.description && (
-                  <div class="project-card__desc" data-edit-only={isPlaceholder(data.description) || undefined} data-edit={`projects/${project.id}/description`} data-edit-html set:html={data.description} />
+                  <div class="project-card__desc" set:html={data.description} />
                 )}
               </div>
             </div>
           </div>
-        </div> <!-- End Left Column -->
+        </div>
 
-        <!-- Right Column: Image Scrub Viewer -->
+        <!-- Right Column: Main Image Scrub Viewer -->
         {hasImages && (
         <div class="project-col-right" id="project-slider-col">
-          <!-- Active display image with navigation arrows -->
-          <div class="project-detail__active-wrap" id="active-image-trigger">
-            <button class="project-detail__nav-arrow project-detail__nav-arrow--prev" id="active-prev-btn" type="button" aria-label="Previous image">
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-            </button>
-            <img class="project-detail__active-img" id="active-display-img" src={cover} alt={data.name} />
-            <button class="project-detail__nav-arrow project-detail__nav-arrow--next" id="active-next-btn" type="button" aria-label="Next image">
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-            </button>
-          </div>
-
-          <!-- Pagination label below image -->
-          <div class="project-detail__pagination" id="active-pagination">1 / {allImages.length}</div>
-          
-          <!-- Thumbnails scrub bar -->
-          <div class="project-detail__thumbs">
-            {allImages.map((img, idx) => (
-              <button
-                type="button"
-                class:list={[
-                  "project-detail__thumb-item",
-                  idx === 0 && "is-active"
-                ]}
-                data-index={idx}
-              >
-                <img src={img} alt={`${data.name} thumbnail ${idx + 1}`} loading="lazy" />
+          <div class="project-slider-wrapper" data-images={JSON.stringify(allImages)}>
+            <div class="project-detail__active-wrap">
+              <button class="project-detail__nav-arrow project-detail__nav-arrow--prev" type="button" aria-label="Previous image">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
               </button>
-            ))}
+              <img class="project-detail__active-img" src={cover} alt={data.name} />
+              <button class="project-detail__nav-arrow project-detail__nav-arrow--next" type="button" aria-label="Next image">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              </button>
+            </div>
+
+            <!-- Pagination label below image -->
+            <div class="project-detail__pagination">1 / {allImages.length}</div>
+            
+            <!-- Thumbnails scrub bar -->
+            <div class="project-detail__thumbs">
+              {allImages.map((img, idx) => (
+                <button
+                  type="button"
+                  class:list={[
+                    "project-detail__thumb-item",
+                    idx === 0 && "is-active"
+                  ]}
+                  data-index={idx}
+                >
+                  <img src={img} alt={`${data.name} thumbnail ${idx + 1}`} loading="lazy" />
+                </button>
+              ))}
+            </div>
           </div>
         </div>
         )}
-      </div> <!-- End 2-Column Grid -->
+      </div>
 
-      <!-- Section 2: Design Collapsible Section -->
-      <section class="project-design-section">
-        <div class="project-header-title-row project-design-header" id="project-design-click">
-          <h1 class="project-name-title project-section-subtitle">Design</h1>
-          <button class="project-detail-collapse-btn" id="project-design-toggle" type="button" aria-expanded="false" aria-label="Toggle design details">
-            <svg class="toggle-icon-minus link-arrow" viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" style="display: none;"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
-            <svg class="toggle-icon-plus link-arrow" viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
-          </button>
-        </div>
-        
-        <div class="project-design-content" id="project-design-panel">
-          <div class="project-design-grid">
-            <div class="project-design-item">
-              <span class="design-label">Program</span>
-              <span class="design-val">{data.program ?? 'N/A'}</span>
-            </div>
-            <div class="project-design-item">
-              <span class="design-label">Collaborator</span>
-              <span class="design-val">{data.collaborator ?? 'Self-initiated'}</span>
-            </div>
-            {category && (
-              <div class="project-design-item">
-                <span class="design-label">Category</span>
-                <span class="design-val">{category.data.displayName}</span>
+      <!-- Collapsible Sections for each project/folder -->
+      {folderProjects.map((proj, projIdx) => (
+        <section class="collapsible-project-section">
+          <div class="project-header-title-row project-section-header">
+            <h2 class="project-name-title project-section-subtitle">{proj.name}</h2>
+            <button class="project-detail-collapse-btn" type="button" aria-expanded="false" aria-label={`Toggle ${proj.name} details`}>
+              <svg class="toggle-icon-minus link-arrow" viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" style="display: none;"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+              <svg class="toggle-icon-plus link-arrow" viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+            </button>
+          </div>
+          
+          <div class="project-section-content">
+            <div class="project-slider-wrapper" data-images={JSON.stringify(proj.images)}>
+              <div class="project-detail__active-wrap">
+                <button class="project-detail__nav-arrow project-detail__nav-arrow--prev" type="button" aria-label="Previous image">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </button>
+                <img class="project-detail__active-img" src={proj.images[0]} alt={proj.name} />
+                <button class="project-detail__nav-arrow project-detail__nav-arrow--next" type="button" aria-label="Next image">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
               </div>
-            )}
-          </div>
-        </div>
-      </section>
 
-      <!-- Section 3: Making Collapsible Section -->
-      <section class="project-making-section">
-        <div class="project-header-title-row project-making-header" id="project-making-click">
-          <h1 class="project-name-title project-section-subtitle">Making</h1>
-          <button class="project-detail-collapse-btn" id="project-making-toggle" type="button" aria-expanded="false" aria-label="Toggle making details">
-            <svg class="toggle-icon-minus link-arrow" viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" style="display: none;"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
-            <svg class="toggle-icon-plus link-arrow" viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
-          </button>
-        </div>
-        
-        <div class="project-making-content" id="project-making-panel">
-          <div class="project-making-grid">
-            <div class="project-making-item">
-              <span class="design-label">Client</span>
-              <span class="design-val">{data.client ?? 'N/A'}</span>
-            </div>
-            <div class="project-making-item">
-              <span class="design-label">Size</span>
-              <span class="design-val">{data.size ?? 'N/A'}</span>
-            </div>
-            <div class="project-making-item">
-              <span class="design-label">Location</span>
-              <span class="design-val">{data.location ?? 'N/A'}</span>
-            </div>
-            <div class="project-making-item">
-              <span class="design-label">Status</span>
-              <span class="design-val">{data.status ?? 'N/A'}</span>
+              <!-- Pagination label below image -->
+              <div class="project-detail__pagination">1 / {proj.images.length}</div>
+              
+              <!-- Thumbnails scrub bar -->
+              <div class="project-detail__thumbs">
+                {proj.images.map((img, idx) => (
+                  <button
+                    type="button"
+                    class:list={[
+                      "project-detail__thumb-item",
+                      idx === 0 && "is-active"
+                    ]}
+                    data-index={idx}
+                  >
+                    <img src={img} alt={`${proj.name} thumbnail ${idx + 1}`} loading="lazy" />
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      ))}
+
     </article>
 </PageLayout>
 
@@ -241,14 +213,12 @@ dynamicCrumbs.push({ label: data.name });
     transition: padding-bottom 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  /* When collapsed, keep the viewport height filled with no scrollable overflow */
   .project-detail.is-collapsed {
     min-height: 100dvh !important;
     padding-bottom: 80px !important;
     overflow: hidden !important;
   }
 
-  /* ── 2-Column Grid ── */
   .project-content-grid {
     display: grid;
     grid-template-columns: 1fr;
@@ -260,7 +230,6 @@ dynamicCrumbs.push({ label: data.name });
                 gap 0.5s ease;
   }
 
-  /* No images → the text column takes the full width, no empty gutter */
   .project-content-grid--no-images {
     grid-template-columns: 1fr !important;
   }
@@ -275,30 +244,24 @@ dynamicCrumbs.push({ label: data.name });
   @media (min-width: 1024px) {
     .project-content-grid {
       grid-template-columns: 1fr 1fr;
-      align-items: start; /* critical for sticky right column */
+      align-items: start;
     }
   }
 
   @media (min-width: 1200px) {
     .project-content-grid {
-      grid-template-columns: 4.5fr 5.5fr; /* Give slightly more room to slider */
+      grid-template-columns: 4.5fr 5.5fr;
     }
   }
 
-  /* ── Header — same family rhythm as home / category pages ── */
   .project-top-header {
     position: static;
-    padding-top: calc(clamp(2rem, 5vh, 3rem) + 48px); /* = home hero */
+    padding-top: calc(clamp(2rem, 5vh, 3rem) + 48px);
     padding-bottom: 0;
-    margin: 0 0 8px;                                   /* = home header gap */
+    margin: 0 0 8px;
   }
 
-  /* PAGE HEADING (mobile) — fixed bar, full length, glass, muted border;
-     same recipe as home / about / projects / category pages */
   @media (max-width: 768px) {
-    /* Mobile: the project name sits at the very TOP of the page, in flow
-       — no fixed bar, no clearance padding, no dead space above it. The
-       bottom breadcrumb keeps wayfinding while scrolling. */
     .project-top-header {
       position: static;
       padding: 0;
@@ -318,7 +281,6 @@ dynamicCrumbs.push({ label: data.name });
     gap: 16px;
   }
 
-  /* Name — H1 big on desktop; family style on mobile */
   .project-name-title {
     font-size: var(--_tokens---type--big);
     font-weight: 500;
@@ -330,14 +292,11 @@ dynamicCrumbs.push({ label: data.name });
     user-select: none;
   }
 
-
-
-  /* Collapse / Expand Toggle Button */
   .project-detail-collapse-btn {
     all: unset;
     cursor: pointer;
     color: var(--_tokens---color--fg);
-    width: 40px;   /* comfortable tap target — the arrow floats inside */
+    width: 40px;
     height: 40px;
     display: flex;
     align-items: center;
@@ -353,30 +312,15 @@ dynamicCrumbs.push({ label: data.name });
     opacity: 1;
   }
 
-  /* When collapsed (closed), the toggle chevron is fully visible/active */
   .project-detail.is-collapsed .project-detail-collapse-btn {
     opacity: 1 !important;
   }
 
-  /* Short name — only surfaced in edit mode (via [data-edit-only]) */
-  .project-shortname {
-    font-size: var(--_tokens---type--micro);
-    color: var(--_tokens---color--muted);
-    margin-top: 8px;
-    display: none; /* hidden unless in edit mode */
-  }
-  .project-shortname::before {
-    content: "Short name: ";
-    opacity: 0.6;
-  }
-
-  /* ── Right Column (Sticky Slider) ── */
   .project-col-right {
     position: sticky;
-    top: calc(clamp(2rem, 5vh, 3rem) + 48px); /* below the compact family header */
+    top: calc(clamp(2rem, 5vh, 3rem) + 48px);
   }
 
-  /* ── Image Scrub Viewer ── */
   .project-detail__active-wrap {
     width: 100%;
     aspect-ratio: 16/10;
@@ -394,7 +338,6 @@ dynamicCrumbs.push({ label: data.name });
     object-fit: contain;
   }
 
-  /* Centered navigation arrows on display image sides */
   .project-detail__nav-arrow {
     all: unset;
     position: absolute;
@@ -429,7 +372,6 @@ dynamicCrumbs.push({ label: data.name });
     right: 8px;
   }
 
-  /* Pagination Counter */
   .project-detail__pagination {
     display: block;
     text-align: center;
@@ -455,10 +397,10 @@ dynamicCrumbs.push({ label: data.name });
   }
 
   .project-detail__thumb-item {
-    flex: 0 0 calc((100% - 24px) / 5); /* exact 5-column slot size, aligns left if fewer than 5 */
+    flex: 0 0 calc((100% - 24px) / 5);
     scroll-snap-align: start;
-    aspect-ratio: 1; /* square! */
-    border-radius: 0; /* sharp corners */
+    aspect-ratio: 1;
+    border-radius: 0;
     border: none;
     overflow: hidden;
     position: relative;
@@ -483,26 +425,47 @@ dynamicCrumbs.push({ label: data.name });
     opacity: 1;
   }
 
-  /* Grayscale remaining items during previewing */
-  .project-detail.is-previewing .project-detail__thumb-item img {
+  .project-slider-wrapper.is-previewing .project-detail__thumb-item img {
     filter: grayscale(1);
     opacity: 0.6;
   }
-  .project-detail.is-previewing .project-detail__thumb-item.is-active img {
+  .project-slider-wrapper.is-previewing .project-detail__thumb-item.is-active img {
     filter: grayscale(0);
     opacity: 1;
   }
 
-  /* ── Collapsible Design & Making Sections ── */
-  .project-design-section,
-  .project-making-section {
-    /* hairline sits right below the section's text — equal rhythm when
-       closed; the expanded content grows between text and line */
+  /* ── Collapsible Section Custom Styles ── */
+  .collapsible-project-section {
     border-bottom: 1px solid var(--_tokens---color--line-soft);
     padding: 0 0 12px;
     margin-top: 0;
     display: flex;
     flex-direction: column;
+  }
+
+  .project-section-header {
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .project-section-content {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: max-height 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                opacity 0.4s ease,
+                margin-top 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .collapsible-project-section.is-expanded .project-section-content {
+    max-height: 1200px;
+    opacity: 1;
+    margin-top: 20px;
+  }
+
+  .project-section-subtitle {
+    font-size: var(--_tokens---type--medium);
+    margin-bottom: 0;
   }
 
   .project-meta-row {
@@ -515,58 +478,6 @@ dynamicCrumbs.push({ label: data.name });
   .project-meta-left { min-width: 0; overflow-wrap: anywhere; }
   .project-meta-right { flex-shrink: 0; white-space: nowrap; }
 
-  .project-design-header,
-  .project-making-header {
-    cursor: pointer;
-    user-select: none;
-  }
-
-
-
-  .project-design-content,
-  .project-making-content {
-    max-height: 0;
-    opacity: 0;
-    overflow: hidden;
-    transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-                opacity 0.3s ease,
-                margin-top 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .project-design-section.is-expanded .project-design-content,
-  .project-making-section.is-expanded .project-making-content {
-    max-height: 300px;
-    opacity: 1;
-    margin-top: 16px;
-  }
-
-  .project-design-grid,
-  .project-making-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    max-width: 600px;
-  }
-
-  .project-design-item,
-  .project-making-item {
-    display: flex;
-    justify-content: space-between;
-    font-size: var(--_tokens---type--micro);
-    color: var(--_tokens---color--muted);
-  }
-
-  .design-label {
-    font-weight: 300;
-    letter-spacing: 0.02em;
-  }
-
-  .design-val {
-    font-weight: 400;
-    color: var(--_tokens---color--fg);
-  }
-
-  /* ── Enlarged Card Info ── */
   .project-card-info {
     display: flex;
     flex-direction: column;
@@ -587,8 +498,6 @@ dynamicCrumbs.push({ label: data.name });
     max-width: 80ch;
   }
 
-  /* Family text — intro slightly emphasized, description micro muted
-     (same voice as the home / category paragraphs) */
   .project-card__intro {
     font-size: var(--_tokens---type--micro);
     font-weight: 500;
@@ -609,7 +518,6 @@ dynamicCrumbs.push({ label: data.name });
     margin-bottom: 1em;
   }
 
-  /* Metadata row */
   .project-card__metaline {
     display: flex;
     flex-direction: column;
@@ -635,24 +543,6 @@ dynamicCrumbs.push({ label: data.name });
     overflow: hidden !important;
   }
 
-  .project-card__meta-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: var(--_tokens---type--micro);
-    color: var(--_tokens---color--muted);
-  }
-
-  .project-card__meta-sep {
-    color: var(--_tokens---color--line-soft);
-  }
-
-  .meta-label-inline {
-    font-weight: 300;
-    color: var(--_tokens---color--muted);
-    letter-spacing: 0.04em;
-  }
-
   .project-card__meta-val {
     font-weight: 400;
   }
@@ -673,7 +563,7 @@ dynamicCrumbs.push({ label: data.name });
       height: 100dvh !important;
       min-height: 100dvh !important;
       max-height: 100dvh !important;
-      overflow-y: auto !important; /* fits exactly 100% vh, scrolls if expanded details overflow */
+      overflow-y: auto !important;
       scrollbar-width: none;
       padding-bottom: 96px !important;
       gap: 8px !important;
@@ -684,25 +574,19 @@ dynamicCrumbs.push({ label: data.name });
       display: none;
     }
 
-    /* All three tab headers (name / Design / Making) share the SAME box:
-       no bleed, no side padding — text aligns to the page inset and can
-       never clip; each carries its hairline right below. */
     .project-top-header {
       position: sticky !important;
       top: 0 !important;
       z-index: 100 !important;
-      background-color: var(--_tokens---color--bg) !important; /* opaque — no glass */
+      background-color: var(--_tokens---color--bg) !important;
       padding: 12px 0 12px 0 !important;
       margin: 0 !important;
       border-bottom: 1px solid var(--_tokens---color--line-soft);
     }
-    .project-design-section,
-    .project-making-section {
+    .collapsible-project-section {
       margin-inline: 0 !important;
       padding-inline: 0 !important;
     }
-    /* collapsed content-grid: cancel its flex gap so title→Design spacing
-       equals Design→Making */
     .project-detail.is-collapsed .project-content-grid {
       margin-top: -8px;
     }
@@ -716,10 +600,6 @@ dynamicCrumbs.push({ label: data.name });
       margin-top: 8px !important;
     }
     .project-card__metaline::-webkit-scrollbar {
-      display: none;
-    }
-
-    .meta-label-inline {
       display: none;
     }
 
@@ -739,22 +619,19 @@ dynamicCrumbs.push({ label: data.name });
       margin-bottom: 0.4em !important;
     }
 
-    /* Mobile specific layout ordering: pagination on top, active image middle, scrub on bottom */
     .project-col-right {
       display: flex;
       flex-direction: column;
     }
     .project-detail__pagination {
-      order: 1; /* pagination counter on top */
       margin-top: 0;
       margin-bottom: 4px !important;
     }
     .project-detail__active-wrap {
-      order: 2; /* active image in the middle */
       display: flex !important;
       width: 100% !important;
       aspect-ratio: auto !important;
-      height: 38dvh !important; /* large image relative to viewport */
+      height: 38dvh !important;
       max-height: 360px !important;
       align-items: center;
       justify-content: center;
@@ -765,24 +642,23 @@ dynamicCrumbs.push({ label: data.name });
       object-fit: contain !important;
     }
     .project-detail__thumbs {
-      order: 3; /* scrub on the bottom */
       margin-top: 8px !important;
       margin-bottom: 0;
       gap: 6px;
       width: 100%;
     }
     .project-detail__nav-arrow {
-      opacity: 0.8 !important; /* always show arrows on mobile display image sides */
+      opacity: 0.8 !important;
       width: 36px !important;
       height: 36px !important;
     }
     .project-detail__thumb-item {
-      flex: 0 0 calc((100% - 24px) / 5) !important; /* show exactly 5 thumbnails on mobile also */
+      flex: 0 0 calc((100% - 24px) / 5) !important;
       aspect-ratio: 1 !important;
       border-radius: 0 !important;
     }
     .project-detail__thumb-item img {
-      filter: grayscale(1) !important; /* start grayscale, colored by activity */
+      filter: grayscale(1) !important;
       opacity: 0.6;
     }
     .project-detail__thumb-item.is-active img {
@@ -790,8 +666,7 @@ dynamicCrumbs.push({ label: data.name });
       opacity: 1;
     }
 
-    .project-design-section,
-    .project-making-section {
+    .collapsible-project-section {
       margin-top: 0 !important;
       padding-top: 0 !important;
     }
@@ -799,158 +674,159 @@ dynamicCrumbs.push({ label: data.name });
 </style>
 
 <script>
-  function initGallery() {
-    const detailContainer = document.querySelector('.project-detail') as HTMLElement | null;
-    const activeImg = document.getElementById('active-display-img') as HTMLImageElement | null;
-    const thumbs = Array.from(document.querySelectorAll<HTMLButtonElement>('.project-detail__thumb-item'));
-    const strip = document.querySelector<HTMLElement>('.project-detail__thumbs');
-    const activePrev = document.getElementById('active-prev-btn');
-    const activeNext = document.getElementById('active-next-btn');
+  function initGalleries() {
+    const sliders = Array.from(document.querySelectorAll('.project-slider-wrapper'));
+    sliders.forEach(slider => {
+      const activeImg = slider.querySelector('.project-detail__active-img') as HTMLImageElement | null;
+      const thumbs = Array.from(slider.querySelectorAll<HTMLButtonElement>('.project-detail__thumb-item'));
+      const strip = slider.querySelector<HTMLElement>('.project-detail__thumbs');
+      const activePrev = slider.querySelector('.project-detail__nav-arrow--prev');
+      const activeNext = slider.querySelector('.project-detail__nav-arrow--next');
+      const pagination = slider.querySelector('.project-detail__pagination');
 
-    if (!detailContainer || !activeImg || !strip) return;
-    const images = JSON.parse(detailContainer.dataset.images || '[]');
-    let currentIdx = 0;
-    let autoplayInterval: number | null = null;
+      if (!activeImg || !strip) return;
+      const images = JSON.parse(slider.getAttribute('data-images') || '[]');
+      let currentIdx = 0;
+      let autoplayInterval: number | null = null;
 
-    // Helper: find index of thumbnail under clientX
-    function thumbIndexAtX(clientX: number): number {
-      if (!thumbs.length) return -1;
-      for (let i = 0; i < thumbs.length; i++) {
-        const r = thumbs[i].getBoundingClientRect();
-        if (clientX >= r.left && clientX <= r.right) return i;
-      }
-      return clientX < thumbs[0].getBoundingClientRect().left ? 0 : thumbs.length - 1;
-    }
-
-    const setDisplayImage = (idx: number) => {
-      currentIdx = idx;
-      activeImg.src = images[idx] || '';
-      
-      const pagination = document.getElementById('active-pagination');
-      if (pagination) {
-        pagination.textContent = `${idx + 1} / ${images.length}`;
-      }
-
-      thumbs.forEach((t, i) => {
-        t.classList.toggle('is-active', i === idx);
-      });
-
-      // Scroll active thumbnail smoothly into view
-      const activeThumb = thumbs[idx];
-      if (activeThumb && strip) {
-        const stripRect = strip.getBoundingClientRect();
-        const thumbRect = activeThumb.getBoundingClientRect();
-        if (thumbRect.left < stripRect.left || thumbRect.right > stripRect.right) {
-          activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+      // Helper: find index of thumbnail under clientX
+      function thumbIndexAtX(clientX: number): number {
+        if (!thumbs.length) return -1;
+        for (let i = 0; i < thumbs.length; i++) {
+          const r = thumbs[i].getBoundingClientRect();
+          if (clientX >= r.left && clientX <= r.right) return i;
         }
+        return clientX < thumbs[0].getBoundingClientRect().left ? 0 : thumbs.length - 1;
       }
-    };
 
-    // Autoplay Timer (3 seconds)
-    const startAutoplay = () => {
-      stopAutoplay();
-      autoplayInterval = window.setInterval(() => {
-        const nextIdx = (currentIdx + 1) % images.length;
-        setDisplayImage(nextIdx);
-      }, 3000);
-    };
+      const setDisplayImage = (idx: number) => {
+        currentIdx = idx;
+        activeImg.src = images[idx] || '';
+        
+        if (pagination) {
+          pagination.textContent = `${idx + 1} / ${images.length}`;
+        }
 
-    const stopAutoplay = () => {
-      if (autoplayInterval) {
-        clearInterval(autoplayInterval);
-        autoplayInterval = null;
-      }
-    };
-
-    const handleUserInteraction = () => {
-      startAutoplay(); // resets the 3-second timer interval
-    };
-
-    // Desktop hover & scrub preview directly on page
-    const isHoverDevice = window.matchMedia('(hover: hover)').matches;
-    if (isHoverDevice) {
-      thumbs.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.preventDefault();
-          const idx = parseInt(btn.dataset.index || '0', 10);
-          setDisplayImage(idx);
-          handleUserInteraction();
+        thumbs.forEach((t, i) => {
+          t.classList.toggle('is-active', i === idx);
         });
-      });
 
-      strip.addEventListener('pointerenter', () => {
-        detailContainer.classList.add('is-previewing');
+        // Scroll active thumbnail smoothly into view
+        const activeThumb = thumbs[idx];
+        if (activeThumb && strip) {
+          const stripRect = strip.getBoundingClientRect();
+          const thumbRect = activeThumb.getBoundingClientRect();
+          if (thumbRect.left < stripRect.left || thumbRect.right > stripRect.right) {
+            activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+          }
+        }
+      };
+
+      const startAutoplay = () => {
         stopAutoplay();
-      });
-      strip.addEventListener('pointermove', (e) => {
-        const idx = thumbIndexAtX(e.clientX);
-        if (idx >= 0 && idx !== currentIdx) {
-          setDisplayImage(idx);
+        autoplayInterval = window.setInterval(() => {
+          const nextIdx = (currentIdx + 1) % images.length;
+          setDisplayImage(nextIdx);
+        }, 3000);
+      };
+
+      const stopAutoplay = () => {
+        if (autoplayInterval) {
+          clearInterval(autoplayInterval);
+          autoplayInterval = null;
         }
-      });
-      strip.addEventListener('pointerleave', () => {
-        detailContainer.classList.remove('is-previewing');
+      };
+
+      const handleUserInteraction = () => {
         startAutoplay();
-      });
-    } else {
-      // Mobile: tap thumb updates active image on page
-      thumbs.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.preventDefault();
-          const idx = parseInt(btn.dataset.index || '0', 10);
-          setDisplayImage(idx);
+      };
+
+      const isHoverDevice = window.matchMedia('(hover: hover)').matches;
+      if (isHoverDevice) {
+        thumbs.forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const idx = parseInt(btn.dataset.index || '0', 10);
+            setDisplayImage(idx);
+            handleUserInteraction();
+          });
+        });
+
+        strip.addEventListener('pointerenter', () => {
+          slider.classList.add('is-previewing');
+          stopAutoplay();
+        });
+        strip.addEventListener('pointermove', (e) => {
+          const idx = thumbIndexAtX(e.clientX);
+          if (idx >= 0 && idx !== currentIdx) {
+            setDisplayImage(idx);
+          }
+        });
+        strip.addEventListener('pointerleave', () => {
+          slider.classList.remove('is-previewing');
+          startAutoplay();
+        });
+      } else {
+        thumbs.forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const idx = parseInt(btn.dataset.index || '0', 10);
+            setDisplayImage(idx);
+            handleUserInteraction();
+          });
+        });
+
+        strip.addEventListener('pointermove', (e) => {
+          const idx = thumbIndexAtX(e.clientX);
+          if (idx >= 0 && idx !== currentIdx) {
+            setDisplayImage(idx);
+            handleUserInteraction();
+          }
+        });
+      }
+
+      if (activePrev) {
+        activePrev.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const prevIdx = (currentIdx - 1 + images.length) % images.length;
+          setDisplayImage(prevIdx);
           handleUserInteraction();
         });
-      });
+      }
 
-      // Slide/drag across strip scrubs image
-      strip.addEventListener('pointermove', (e) => {
-        const idx = thumbIndexAtX(e.clientX);
-        if (idx >= 0 && idx !== currentIdx) {
-          setDisplayImage(idx);
+      if (activeNext) {
+        activeNext.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const nextIdx = (currentIdx + 1) % images.length;
+          setDisplayImage(nextIdx);
+          handleUserInteraction();
+        });
+      }
+
+      // Keyboard navigation (left/right keys) only if slider is visible in viewport
+      document.addEventListener('keydown', (e) => {
+        const rect = slider.getBoundingClientRect();
+        const isVisible = rect.top < window.innerHeight && rect.bottom > 0;
+        if (!isVisible) return;
+
+        if (e.key === 'ArrowLeft') {
+          const prevIdx = (currentIdx - 1 + images.length) % images.length;
+          setDisplayImage(prevIdx);
+          handleUserInteraction();
+        }
+        if (e.key === 'ArrowRight') {
+          const nextIdx = (currentIdx + 1) % images.length;
+          setDisplayImage(nextIdx);
           handleUserInteraction();
         }
       });
-    }
 
-    // Prev/Next arrows on the page display image sides
-    if (activePrev) {
-      activePrev.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const prevIdx = (currentIdx - 1 + images.length) % images.length;
-        setDisplayImage(prevIdx);
-        handleUserInteraction();
-      });
-    }
+      // Start autoplay
+      startAutoplay();
 
-    if (activeNext) {
-      activeNext.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const nextIdx = (currentIdx + 1) % images.length;
-        setDisplayImage(nextIdx);
-        handleUserInteraction();
-      });
-    }
-
-    // Keyboard navigation (left/right keys)
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowLeft') {
-        const prevIdx = (currentIdx - 1 + images.length) % images.length;
-        setDisplayImage(prevIdx);
-        handleUserInteraction();
-      }
-      if (e.key === 'ArrowRight') {
-        const nextIdx = (currentIdx + 1) % images.length;
-        setDisplayImage(nextIdx);
-        handleUserInteraction();
-      }
+      // Clean up on page changes
+      document.addEventListener('astro:before-preparation', stopAutoplay, { once: true });
     });
-
-    // Start autoplay on load
-    startAutoplay();
-
-    // Clean up interval when page changes (Astro transitions)
-    document.addEventListener('astro:before-preparation', stopAutoplay, { once: true });
   }
 
   function initCollapseToggle() {
@@ -974,7 +850,6 @@ dynamicCrumbs.push({ label: data.name });
           iconPlus.style.display = 'none';
         }
       }
-      spinToggleArrow(document.getElementById('project-detail-toggle'));
     };
 
     toggleBtn.addEventListener('click', (e) => {
@@ -988,90 +863,50 @@ dynamicCrumbs.push({ label: data.name });
         toggleCollapse();
       });
     }
-
-    // Every toggle click spins its arrow to a random angle — same play
-    // as the site's hover arrows, but click-driven so it works on touch.
-    function spinToggleArrow(btn: Element | null) {
-      btn?.querySelectorAll('.link-arrow').forEach((a) => {
-        (a as HTMLElement).style.transform = `rotate(${Math.floor(Math.random() * 360)}deg)`;
-      });
-    }
-
-    // Toggle for Design collapsible panel
-    const designSection = document.querySelector('.project-design-section');
-    const designToggle = document.getElementById('project-design-toggle');
-    const designHeader = document.getElementById('project-design-click');
-    if (designSection && designToggle) {
-      const dMinus = designToggle.querySelector('.toggle-icon-minus') as HTMLElement | null;
-      const dPlus = designToggle.querySelector('.toggle-icon-plus') as HTMLElement | null;
-
-      const toggleDesign = () => {
-        const isExpanded = designSection.classList.toggle('is-expanded');
-        designToggle.setAttribute('aria-expanded', String(isExpanded));
-        spinToggleArrow(designToggle);
-        if (dMinus && dPlus) {
-          if (isExpanded) {
-            dMinus.style.display = 'block';
-            dPlus.style.display = 'none';
-          } else {
-            dMinus.style.display = 'none';
-            dPlus.style.display = 'block';
-          }
-        }
-      };
-
-      designToggle.addEventListener('click', (e) => {
-        e.stopPropagation();
-        toggleDesign();
-      });
-
-      if (designHeader) {
-        designHeader.addEventListener('click', (e) => {
-          e.stopPropagation();
-          toggleDesign();
-        });
-      }
-    }
-
-    // Toggle for Making collapsible panel
-    const makingSection = document.querySelector('.project-making-section');
-    const makingToggle = document.getElementById('project-making-toggle');
-    const makingHeader = document.getElementById('project-making-click');
-    if (makingSection && makingToggle) {
-      const mMinus = makingToggle.querySelector('.toggle-icon-minus') as HTMLElement | null;
-      const mPlus = makingToggle.querySelector('.toggle-icon-plus') as HTMLElement | null;
-
-      const toggleMaking = () => {
-        const isExpanded = makingSection.classList.toggle('is-expanded');
-        makingToggle.setAttribute('aria-expanded', String(isExpanded));
-        spinToggleArrow(makingToggle);
-        if (mMinus && mPlus) {
-          if (isExpanded) {
-            mMinus.style.display = 'block';
-            mPlus.style.display = 'none';
-          } else {
-            mMinus.style.display = 'none';
-            mPlus.style.display = 'block';
-          }
-        }
-      };
-
-      makingToggle.addEventListener('click', (e) => {
-        e.stopPropagation();
-        toggleMaking();
-      });
-
-      if (makingHeader) {
-        makingHeader.addEventListener('click', (e) => {
-          e.stopPropagation();
-          toggleMaking();
-        });
-      }
-    }
   }
 
-  // Page heading (fixed on mobile): tap scrolls back to top — same as
-  // home / about / category pages
+  function initCollapsibleSections() {
+    const sections = Array.from(document.querySelectorAll('.collapsible-project-section'));
+    sections.forEach(section => {
+      const header = section.querySelector('.project-section-header');
+      const toggleBtn = section.querySelector('.project-detail-collapse-btn');
+      const content = section.querySelector('.project-section-content');
+
+      if (!header || !toggleBtn || !content) return;
+
+      const iconMinus = toggleBtn.querySelector('.toggle-icon-minus') as HTMLElement | null;
+      const iconPlus = toggleBtn.querySelector('.toggle-icon-plus') as HTMLElement | null;
+
+      const toggleSection = () => {
+        const isExpanded = section.classList.toggle('is-expanded');
+        toggleBtn.setAttribute('aria-expanded', String(isExpanded));
+        
+        toggleBtn.querySelectorAll('.link-arrow').forEach((a) => {
+          (a as HTMLElement).style.transform = `rotate(${Math.floor(Math.random() * 360)}deg)`;
+        });
+
+        if (iconMinus && iconPlus) {
+          if (isExpanded) {
+            iconMinus.style.display = 'block';
+            iconPlus.style.display = 'none';
+          } else {
+            iconMinus.style.display = 'none';
+            iconPlus.style.display = 'block';
+          }
+        }
+      };
+
+      header.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleSection();
+      });
+      toggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleSection();
+      });
+    });
+  }
+
   function initHeadingScrollTop() {
     const h = document.getElementById('project-top-header');
     if (h && !(h as any)._topWired) {
@@ -1080,15 +915,16 @@ dynamicCrumbs.push({ label: data.name });
     }
   }
 
-
   document.addEventListener('astro:page-load', () => {
-    initGallery();
+    initGalleries();
     initCollapseToggle();
+    initCollapsibleSections();
     initHeadingScrollTop();
   });
   if (document.readyState !== 'loading') {
-    initGallery();
+    initGalleries();
     initCollapseToggle();
+    initCollapsibleSections();
     initHeadingScrollTop();
   }
 </script>
