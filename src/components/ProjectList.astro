@@ -1653,6 +1653,8 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 </script>
 
 <script>
+  import { shuffleChildren, pickRandom } from '../lib/random';
+
   const container = document.getElementById('project-cards-container');
   const cards = Array.from(container?.querySelectorAll<HTMLElement>('.project-card') ?? []);
   const searchInput = document.getElementById('projects-search-input') as HTMLInputElement;
@@ -1687,30 +1689,20 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   }
 
   // Project cards: shuffle so the list order is different on every load
-  const cardsContainer = document.getElementById('project-cards-container');
-  if (cardsContainer) {
-    const cardsArr = Array.from(cardsContainer.children) as HTMLElement[];
-    for (let i = cardsArr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      const temp = cardsArr[i];
-      cardsArr[i] = cardsArr[j];
-      cardsArr[j] = temp;
-    }
-    cardsArr.forEach(c => cardsContainer.appendChild(c));
-  }
+  if (container) shuffleChildren(container);
+
+  // Thumbnail scrub: show at most 5 random images per card — the full
+  // gallery lives on the project page, so no horizontal scrolling here.
+  document.querySelectorAll('.project-card__thumbs-scroll').forEach(strip => {
+    const thumbs = Array.from(strip.children) as HTMLElement[];
+    if (thumbs.length <= 5) return;
+    const keep = new Set(pickRandom(thumbs, 5));
+    thumbs.forEach(t => { if (!keep.has(t)) t.remove(); });
+  });
 
   // Bottom bubbles: always present, grey by default, highlight on search match
   const grid = document.getElementById('proj-bubbles');
-  if (grid) {
-    const bubblesArr = Array.from(grid.querySelectorAll('.proj-bubble')) as HTMLElement[];
-    for (let i = bubblesArr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      const temp = bubblesArr[i];
-      bubblesArr[i] = bubblesArr[j];
-      bubblesArr[j] = temp;
-    }
-    bubblesArr.forEach(b => grid.appendChild(b));
-  }
+  if (grid) shuffleChildren(grid);
 
   // Hover name swap: abbreviated → full on mouseenter, back on mouseleave
   document.querySelectorAll<HTMLElement>('.proj-bubble__name').forEach(nameEl => {

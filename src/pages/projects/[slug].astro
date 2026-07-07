@@ -118,17 +118,6 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
                 
                 <!-- Card Name & Pagination in left column (horizontally aligned with image bottom) -->
                 <div class="project-card-name-pagination-row">
-                  <div class="project-detail__active-label" id="page-active-label">
-                    {(() => {
-                      const firstImg = allImages[0];
-                      const filename = firstImg.substring(firstImg.lastIndexOf('/') + 1);
-                      const ext = filename.substring(filename.lastIndexOf('.'));
-                      let name = filename.slice(0, filename.length - ext.length);
-                      name = name.replace(/^ADVT_[A-Z_]+_/, '').replace(/^ADVT_SP_\s*/, '').trim();
-                      name = name.replace(/\s+\d+\s*$/, '').replace(/\s*\d+$/, '').trim();
-                      return name;
-                    })()}
-                  </div>
                   <div class="project-detail__pagination-wrap">
                     <div class="project-detail__pagination" id="page-pagination">
                       1 / {allImages.length}
@@ -149,13 +138,7 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
             <div class="project-col-right" id="project-slider-col">
               <div class="project-slider-wrapper" id="page-slider-wrapper" data-images={JSON.stringify(allImages)}>
                 <div class="project-detail__active-wrap" id="page-active-wrap" style="cursor: pointer;" title="Click to open fullscreen modal">
-                  <button class="project-detail__nav-arrow project-detail__nav-arrow--prev" id="page-prev" type="button" aria-label="Previous card">
-                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                  </button>
                   <img class="project-detail__active-img" id="page-active-img" src={allImages[0]} alt={data.name} />
-
-                  <!-- Card name overlaid on the image (desktop only, glitches on change) -->
-                  <h2 class="project-card__overlay-name" id="page-overlay-name">{firstCardName}</h2>
 
                   <!-- Autoplay Timer Ring (top-left on desktop) -->
                   <div class="autoplay-timer-ring">
@@ -164,11 +147,10 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
                       <circle cx="12" cy="12" r="10" class="timer-ring-progress" id="page-timer-progress" />
                     </svg>
                   </div>
-
-                  <button class="project-detail__nav-arrow project-detail__nav-arrow--next" id="page-next" type="button" aria-label="Next card">
-                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                  </button>
                 </div>
+
+                <!-- Active card name below the image — one word per row, glitches on change -->
+                <h1 class="project-card__name-below" id="page-overlay-name">{firstCardName}</h1>
               </div>
             </div>
             )}
@@ -751,30 +733,16 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
     }
   }
 
-  /* ── Card name overlaid on the active card image (desktop only) ── */
-  .project-card__overlay-name {
-    position: absolute;
-    left: 20px;
-    bottom: 16px;
-    max-width: 70%;
-    margin: 0;
+  /* ── Active card name below the image — H1, one word per row ── */
+  .project-card__name-below {
+    width: min-content; /* element is as narrow as its longest word → every word wraps to its own row */
+    margin: 12px 0 0;
     font-size: var(--_tokens---type--medium);
     font-weight: 600;
-    line-height: 1.05;
+    line-height: 1.02;
     letter-spacing: -0.02em;
-    color: #ffffff;
+    color: var(--_tokens---color--fg);
     text-align: left;
-    overflow-wrap: break-word; /* multiline: long names wrap */
-    z-index: 9;
-    pointer-events: none;
-    text-shadow: 0 2px 24px rgba(0, 0, 0, 0.55);
-    display: none;
-  }
-
-  @media (min-width: 1024px) {
-    .project-card__overlay-name {
-      display: block;
-    }
   }
 
   .timer-ring-bg {
@@ -1489,7 +1457,6 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
 
     const pageActiveImg = document.getElementById('page-active-img') as HTMLImageElement | null;
     const pageOverlayName = document.getElementById('page-overlay-name');
-    const pageActiveLabel = document.getElementById('page-active-label');
 
     // Glitch/scramble the overlay name into the new text on card change
     let scrambleRaf: number | null = null;
@@ -1519,8 +1486,6 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
       step();
     };
     const pagePagination = document.getElementById('page-pagination');
-    const pagePrev = document.getElementById('page-prev');
-    const pageNext = document.getElementById('page-next');
     const pageActiveWrap = document.getElementById('page-active-wrap');
 
     const timerRings = ['page-timer-progress', 'page-timer-progress-mini']
@@ -1633,7 +1598,6 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
 
       if (pageActiveImg) pageActiveImg.src = activeUrl;
       if (pageOverlayName) scrambleTo(pageOverlayName, activeName);
-      if (pageActiveLabel) pageActiveLabel.textContent = activeName;
       if (pagePagination) {
         pagePagination.textContent = `${currentIdx + 1} / ${images.length}`;
       }
@@ -1680,11 +1644,14 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
       startAutoplay();
     };
 
+    // Scrub tap: activate that card in the two-column slider (no lightbox).
+    // The lightbox only opens from the big card image itself.
     const cardButtons = Array.from(deck.querySelectorAll('.deck-card-item'));
     cardButtons.forEach(btn => {
       btn.addEventListener('click', () => {
         const idx = parseInt(btn.getAttribute('data-index') || '0', 10);
-        openLightbox(idx);
+        setCard(idx);
+        handleUserInteraction();
       });
     });
 
@@ -1709,22 +1676,9 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
       handleUserInteraction();
     });
 
-    pageActiveWrap?.addEventListener('click', (e) => {
-      const target = e.target as HTMLElement;
-      if (target.closest('.project-detail__nav-arrow')) return;
+    // Big card image is the ONLY trigger for the lightbox
+    pageActiveWrap?.addEventListener('click', () => {
       openLightbox(currentIdx);
-    });
-
-    pagePrev?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      setCard(currentIdx - 1);
-      handleUserInteraction();
-    });
-
-    pageNext?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      setCard(currentIdx + 1);
-      handleUserInteraction();
     });
 
     cardContainer.addEventListener('pointermove', (e: PointerEvent) => {
