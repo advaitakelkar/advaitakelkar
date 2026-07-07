@@ -1,4 +1,6 @@
 ---
+import fs from 'node:fs';
+import path from 'node:path';
 // Reusable project card — matches the projects-page card. Set showDescription
 // to false (e.g. on the category tabs) to drop the intro + description column.
 export interface Props {
@@ -22,8 +24,34 @@ const tagsArr = (p.data.tags ?? []).map((t: any) => tagMap[t.id] || t.id);
 const factsLine = [p.data.year, p.data.location, tagsArr[0]].filter(Boolean).join(', ');
 
 const allImgs: string[] = [];
-if (p.data.coverImage) allImgs.push(p.data.coverImage);
-if (p.data.multiImage) allImgs.push(...(p.data.multiImage as string[]));
+if (p.id === 'ai-works') {
+  try {
+    const aiWorksDir = path.resolve('public/images/ai-works');
+    if (fs.existsSync(aiWorksDir)) {
+      const folders = fs.readdirSync(aiWorksDir).filter(f => {
+        const fullPath = path.join(aiWorksDir, f);
+        return fs.statSync(fullPath).isDirectory();
+      }).sort();
+
+      for (const folder of folders) {
+        const folderPath = path.join(aiWorksDir, folder);
+        const files = fs.readdirSync(folderPath).filter(file => {
+          const ext = path.extname(file).toLowerCase();
+          return ['.png', '.jpg', '.jpeg', '.webp'].includes(ext);
+        }).sort();
+
+        if (files.length > 0) {
+          allImgs.push(`/images/ai-works/${folder}/${files[0]}`);
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Error reading AI works folders in ProjectCard:", e);
+  }
+} else {
+  if (p.data.coverImage) allImgs.push(p.data.coverImage);
+  if (p.data.multiImage) allImgs.push(...(p.data.multiImage as string[]));
+}
 ---
 
 <a href={`/projects/${p.id}`} class:list={["pcard", !showDescription && "pcard--no-desc"]} data-name={p.data.name}>

@@ -1,6 +1,8 @@
 ---
 import { getCollection } from 'astro:content';
 import PageLayout from '../layouts/PageLayout.astro';
+import fs from 'node:fs';
+import path from 'node:path';
 
 export interface Props {
   projects: any[];
@@ -23,6 +25,32 @@ const sorted = [...projects].sort((a, b) => {
 
 const tagMap = Object.fromEntries(allTags.map(t => [t.id, t.data.name]));
 const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
+
+// Resolve AI works preview images if any project is ai-works
+const aiWorksImages: string[] = [];
+try {
+  const aiWorksDir = path.resolve('public/images/ai-works');
+  if (fs.existsSync(aiWorksDir)) {
+    const folders = fs.readdirSync(aiWorksDir).filter(f => {
+      const fullPath = path.join(aiWorksDir, f);
+      return fs.statSync(fullPath).isDirectory();
+    }).sort();
+
+    for (const folder of folders) {
+      const folderPath = path.join(aiWorksDir, folder);
+      const files = fs.readdirSync(folderPath).filter(file => {
+        const ext = path.extname(file).toLowerCase();
+        return ['.png', '.jpg', '.jpeg', '.webp'].includes(ext);
+      }).sort();
+
+      if (files.length > 0) {
+        aiWorksImages.push(`/images/ai-works/${folder}/${files[0]}`);
+      }
+    }
+  }
+} catch (e) {
+  console.error("Error reading AI works folders in ProjectList:", e);
+}
 
 // Abbreviate project names for footer bubbles (same logic as Footer.astro)
 function abbrevName(name: string): string {
@@ -138,8 +166,12 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
         ].filter(m => m.val);
         // All images — cover first, then the rest; strip is horizontally scrollable
         const allImgs: string[] = [];
-        if (p.data.coverImage) allImgs.push(p.data.coverImage);
-        if (p.data.multiImage) allImgs.push(...(p.data.multiImage as string[]));
+        if (p.id === 'ai-works') {
+          allImgs.push(...aiWorksImages);
+        } else {
+          if (p.data.coverImage) allImgs.push(p.data.coverImage);
+          if (p.data.multiImage) allImgs.push(...(p.data.multiImage as string[]));
+        }
         return (
         <div
           class="project-card"
