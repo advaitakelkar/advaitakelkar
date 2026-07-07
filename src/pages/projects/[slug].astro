@@ -248,13 +248,17 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
         <div class="project-chapters">
           {data.chapters.map((ch: { title: string; subtitle?: string; body: string }) => {
             const words = (ch.subtitle || ch.title).split(' ');
-            const lead = words.slice(0, 2).join(' ');
-            const rest = words.slice(2).join(' ');
+            // Only peel off a small "lead" line (e.g. "Living with") when
+            // there's more than two words — otherwise a short subtitle like
+            // "Chrysalis Unveil" would have nothing left for the big line.
+            const hasLead = words.length > 2;
+            const lead = hasLead ? words.slice(0, 2).join(' ') : '';
+            const rest = hasLead ? words.slice(2).join(' ') : words.join(' ');
             return (
             <section class="project-chapter">
               <div class="project-header-title-row project-chapter__header">
                 <h3 class="project-chapter__title">
-                  <span class="project-chapter__title-lead">{lead}</span>
+                  {lead && <span class="project-chapter__title-lead">{lead}</span>}
                   {rest && <span class="project-chapter__title-rest">{rest}</span>}
                 </h3>
                 <button class="project-detail-collapse-btn" type="button" aria-expanded="false" aria-label={`Toggle ${ch.title}`}>
