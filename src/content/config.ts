@@ -56,6 +56,10 @@ const projects = defineCollection({
     // If set, the project-list scrub draws from these instead of all images
     // (e.g. renders only, no sketches). The project page still shows everything.
     scrubImages: z.array(z.string()).optional(),
+    // Team members shown as avatar circles + names on the project page.
+    // Names must match the PEOPLE registry in projects/[slug].astro.
+    // Defaults to Advaita only when omitted.
+    people: z.array(z.string()).optional(),
     // Long-form chapter dropdowns rendered below the summary on the project
     // page (replaces the Design/Making sections). body is raw HTML.
     chapters: z.array(z.object({

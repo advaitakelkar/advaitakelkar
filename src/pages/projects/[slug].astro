@@ -25,6 +25,21 @@ const hasImages = allImages.length > 0;
 const firstTag = tags.find(t => t);
 const yearLoc = [data.year, data.location].filter(Boolean).join(', ');
 
+// People registry — avatar portrait per collaborator (files in /images/people/)
+const PEOPLE: Record<string, string> = {
+  'Advaita Kelkar':  '/images/people/advaita-kelkar.jpg',
+  'Nayan Mote':      '/images/people/nayan-mote.png',
+  'Varun Mehta':     '/images/people/varun-mehta.jpeg',
+  'Sneha Desai':     '/images/people/sneha-desai.jpeg',
+  'Casimir Esbach':  '/images/people/casimir-esbach.jpeg',
+  'Nicole Hammond':  '/images/people/nicole-hammond.png',
+  'Ben Cho':         '/images/people/ben-cho.jpeg',
+  'Pankti Thakkar':  '/images/people/pankti-thakkar.jpeg',
+  'Faizan Khatri':   '/images/people/faizan-khatri.jpeg',
+  'Samir Raut':      '/images/people/samir-raut.jpeg',
+};
+const people: string[] = (data.people?.length ? data.people : ['Advaita Kelkar']);
+
 // Build dynamic breadcrumbs based on category structure
 const dynamicCrumbs = [ { label: 'Home', href: '/' } ];
 
@@ -187,9 +202,12 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
                 </div>
 
                 <div class="project-people">
-                  {[0, 1, 2, 3, 4].map(() => (
-                    <div class="project-people__avatar">
-                      <img src="/images/admin/profile.jpg" alt="" loading="lazy" />
+                  {people.map((person) => (
+                    <div class="project-people__person">
+                      <div class="project-people__avatar">
+                        <img src={PEOPLE[person] ?? PEOPLE['Advaita Kelkar']} alt={person} loading="lazy" />
+                      </div>
+                      <span class="project-people__name">{person}</span>
                     </div>
                   ))}
                 </div>
@@ -673,16 +691,25 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
     border-bottom: 1px solid var(--_tokens---color--line-soft);
   }
 
-  /* ── People: circular portrait placeholders ── */
+  /* ── People: circular portraits with the name below each ── */
   .project-people {
     display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .project-people__person {
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
+    max-width: 72px;
   }
 
   .project-people__avatar {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     overflow: hidden;
     flex-shrink: 0;
@@ -695,6 +722,26 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
     height: 100%;
     object-fit: cover;
     filter: grayscale(1);
+  }
+
+  .project-people__name {
+    font-size: var(--_tokens---type--ultrathin);
+    color: var(--_tokens---color--muted);
+    text-align: center;
+    line-height: 1.25;
+  }
+
+  @media (min-width: 1024px) {
+    .project-people {
+      gap: 18px;
+    }
+    .project-people__person {
+      max-width: 88px;
+    }
+    .project-people__avatar {
+      width: 60px;
+      height: 60px;
+    }
   }
 
   .project-meta-row {
@@ -2322,7 +2369,19 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
       } else {
         updateDisplay();
       }
+      restartAutoplay();
     };
+
+    // ── Autoplay: advance every 2s; any manual interaction resets the clock ──
+    let autoplayInterval: number | null = null;
+    const restartAutoplay = () => {
+      if (autoplayInterval) clearInterval(autoplayInterval);
+      autoplayInterval = window.setInterval(() => {
+        goToPos(currentPos + 1);
+        updateDisplay();
+      }, 2000);
+    };
+    restartAutoplay();
 
     // Thumb strip listeners
     if (strip) {
