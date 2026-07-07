@@ -119,13 +119,12 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
                 
                 <!-- Card Name & Pagination in left column (horizontally aligned with image bottom) -->
                 <div class="project-card-name-pagination-row">
-                  <div class="project-detail__active-label" id="page-active-label">{firstCardName}</div>
                   <div class="project-detail__pagination-wrap">
                     <div class="project-detail__pagination" id="page-pagination">
                       1 / {allImages.length}
                     </div>
                     <div class="autoplay-timer-ring autoplay-timer-ring--mini" aria-hidden="true">
-                      <svg width="14" height="14" viewBox="0 0 24 24">
+                      <svg width="20" height="20" viewBox="0 0 24 24">
                         <circle cx="12" cy="12" r="10" class="timer-ring-bg" />
                         <circle cx="12" cy="12" r="10" class="timer-ring-progress" id="page-timer-progress-mini" />
                       </svg>
@@ -236,8 +235,30 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
         </>
       )}
 
-      <!-- STANDARD PAGE ONLY: Design & Making Collapsible Sections -->
-      {!isCardPage && (
+      <!-- STANDARD PAGE ONLY: chapter dropdowns (when defined) or Design & Making -->
+      {!isCardPage && (data.chapters?.length ?? 0) > 0 && (
+        <div class="project-chapters">
+          {data.chapters.map((ch: { title: string; subtitle?: string; body: string }) => (
+            <section class="project-chapter">
+              <div class="project-header-title-row project-chapter__header">
+                <h3 class="project-section-subtitle">
+                  {ch.title}
+                  {ch.subtitle && <span class="project-chapter__subtitle"> — {ch.subtitle}</span>}
+                </h3>
+                <button class="project-detail-collapse-btn" type="button" aria-expanded="false" aria-label={`Toggle ${ch.title}`}>
+                  <svg class="toggle-icon-minus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" style="display: none;"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+                  <svg class="toggle-icon-plus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+                </button>
+              </div>
+              <div class="project-chapter__content">
+                <div class="project-chapter__body" set:html={ch.body} />
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
+
+      {!isCardPage && !(data.chapters?.length) && (
         <div class="project-metadata-sections">
           <section class="project-design-section">
             <div class="project-header-title-row project-design-header" id="project-design-click">
@@ -328,7 +349,41 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
         </section>
       )}
 
-      <!-- Fullscreen Lightbox Modal -->
+      <!-- Fullscreen Lightbox: card pages get a horizontally scrolling deck -->
+      {isCardPage && (
+        <div id="card-lightbox" class="card-lightbox card-lightbox--deck" aria-hidden="true" style="display: none;">
+          <img class="lightbox-bg-ambient" id="lightbox-ambient-img" src="" alt="" />
+          <div class="lightbox-backdrop"></div>
+
+          <!-- Top row: timer ring left, pagination centered, close right -->
+          <div class="lightbox-header lightbox-header--deck">
+            <div class="autoplay-timer-ring lightbox-header__ring" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" class="timer-ring-bg" />
+                <circle cx="12" cy="12" r="10" class="timer-ring-progress" id="lightbox-timer-progress" />
+              </svg>
+            </div>
+            <span class="lightbox-pagination lightbox-pagination--deck" id="lightbox-counter">1 / {allImages.length}</span>
+            <button class="lightbox-close-btn" id="lightbox-close" type="button" aria-label="Close lightbox">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+          </div>
+
+          <!-- Scroll-snap deck: one card at a time, neighbours peeking -->
+          <div class="lightbox-deck" id="lightbox-deck">
+            {allImages.map((img, idx) => (
+              <div class="lightbox-deck__item" data-index={idx}>
+                <img src={img} alt={cardNameFromUrl(img)} loading="lazy" />
+              </div>
+            ))}
+          </div>
+
+          <!-- Card name: bottom-left at page padding, one word per row -->
+          <h2 class="lightbox-name" id="lightbox-card-label">{firstCardName}</h2>
+        </div>
+      )}
+
+      {!isCardPage && (
       <div id="card-lightbox" class="card-lightbox" aria-hidden="true" style="display: none;">
         <!-- Dynamic Blurred Background Ambient Image -->
         <img class="lightbox-bg-ambient" id="lightbox-ambient-img" src="" alt="" />
@@ -732,12 +787,9 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
     pointer-events: none;
   }
 
-  /* Desktop: ring sits on the LEFT of the card image */
-  @media (min-width: 1024px) {
-    .project-slider-wrapper .autoplay-timer-ring {
-      right: auto;
-      left: 16px;
-    }
+  /* Card slider: the ring lives beside the pagination counter, never on the image */
+  .project-slider-wrapper .autoplay-timer-ring:not(.autoplay-timer-ring--mini) {
+    display: none;
   }
 
   /* ── Active card name on the image — H2, one word per row ── */
@@ -768,18 +820,6 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
     }
   }
 
-  /* Desktop: the name lives in the left-column row (name left, pagination right),
-     not on the card. Below desktop it's the reverse. */
-  @media (min-width: 1024px) {
-    .project-card__overlay-name {
-      display: none;
-    }
-  }
-  @media (max-width: 1023px) {
-    .project-card-name-pagination-row .project-detail__active-label {
-      display: none;
-    }
-  }
 
   .timer-ring-bg {
     fill: none;
@@ -807,8 +847,8 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
   /* ── Name & Pagination alignment row inside Left Column ── */
   .project-card-name-pagination-row {
     display: flex;
-    justify-content: space-between;
-    align-items: baseline;
+    justify-content: flex-end; /* pagination + ring sit on the right edge of the left column */
+    align-items: center;
     gap: 10px;
     width: 100%;
     margin-top: 12px;
@@ -817,32 +857,19 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
     box-sizing: border-box;
   }
 
-  .project-card-name-pagination-row .project-detail__active-label {
-    margin-top: 0;
-    flex: 1 1 auto;
-    min-width: 0; /* long card names truncate instead of colliding with the counter */
-    font-size: clamp(0.95rem, 1.25vw, 1.15rem);
-    font-weight: 600;
-    color: var(--_tokens---color--fg);
-    text-align: left;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
   .project-detail__pagination-wrap {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     flex: 0 0 auto;
   }
 
-  /* Small timer ring beside the pagination counter (mobile only) */
+  /* Timer ring beside the pagination counter (both mobile and desktop) */
   .autoplay-timer-ring--mini {
     position: static;
-    width: 14px;
-    height: 14px;
-    display: none;
+    width: 20px;
+    height: 20px;
+    display: block;
     pointer-events: none;
   }
 
@@ -862,6 +889,211 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
     font-weight: 600;
     text-align: right;
     white-space: nowrap;
+  }
+
+  /* ── Chapter Dropdowns (data.chapters) ── */
+  .project-chapters {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    margin-top: 24px;
+  }
+
+  .project-chapter {
+    border-top: 1px solid var(--_tokens---color--line-soft);
+    padding-top: var(--_tokens---space-3);
+    margin-top: var(--_tokens---space-3);
+  }
+
+  .project-chapter__header {
+    cursor: pointer;
+  }
+
+  .project-chapter__header .project-section-subtitle {
+    font-size: var(--_tokens---type--small);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .project-chapter__subtitle {
+    color: var(--_tokens---color--muted);
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  /* Smooth expand via grid rows (content can be any height) */
+  .project-chapter__content {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .project-chapter__content > .project-chapter__body {
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  .project-chapter.is-expanded .project-chapter__content {
+    grid-template-rows: 1fr;
+  }
+
+  /* ── Chapter body content (raw HTML via set:html → :global) ── */
+  .project-chapter__body :global(.ch-hero) {
+    margin: 20px 0 0;
+  }
+
+  .project-chapter__body :global(.ch-hero img) {
+    width: 100%;
+    height: clamp(220px, 45vh, 460px);
+    object-fit: cover;
+    display: block;
+  }
+
+  .project-chapter__body :global(.ch-statement) {
+    font-size: var(--_tokens---type--small);
+    font-weight: 600;
+    line-height: 1.45;
+    color: var(--_tokens---color--fg);
+    max-width: 72ch;
+    margin: 24px 0 0;
+  }
+
+  .project-chapter__body :global(.ch-text) {
+    margin-top: 20px;
+    max-width: 100%;
+  }
+
+  @media (min-width: 1024px) {
+    .project-chapter__body :global(.ch-text) {
+      column-count: 2;
+      column-gap: var(--_tokens---space--medium, 3rem);
+    }
+  }
+
+  .project-chapter__body :global(.ch-text p) {
+    font-size: var(--_tokens---type--micro);
+    line-height: 1.6;
+    color: var(--_tokens---color--muted);
+    margin: 0 0 1em;
+    break-inside: avoid-column;
+  }
+
+  .project-chapter__body :global(.ch-stat) {
+    font-size: var(--_tokens---type--medium);
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--_tokens---color--fg);
+    max-width: 24ch;
+    margin: 36px 0;
+  }
+
+  .project-chapter__body :global(.ch-stat small) {
+    display: block;
+    margin-top: 10px;
+    font-size: var(--_tokens---type--ultrathin);
+    font-weight: 400;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--_tokens---color--muted);
+  }
+
+  .project-chapter__body :global(.ch-context) {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+    margin: 24px 0;
+  }
+
+  .project-chapter__body :global(.ch-context img) {
+    width: 100%;
+    aspect-ratio: 4/5;
+    object-fit: cover;
+    display: block;
+  }
+
+  .project-chapter__body :global(.ch-int) {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    border-top: 1px solid var(--_tokens---color--line-soft);
+    padding: 24px 0 8px;
+    margin-top: 24px;
+  }
+
+  @media (min-width: 1024px) {
+    .project-chapter__body :global(.ch-int) {
+      grid-template-columns: 1fr 1.4fr;
+      gap: var(--_tokens---space--medium, 3rem);
+      align-items: start;
+    }
+  }
+
+  .project-chapter__body :global(.ch-int h4) {
+    font-size: var(--_tokens---type--medium);
+    font-weight: 600;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: var(--_tokens---color--fg);
+    margin: 0;
+  }
+
+  .project-chapter__body :global(.ch-int .ch-int__tagline) {
+    font-size: var(--_tokens---type--ultrathin);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--_tokens---color--muted);
+    margin: 8px 0 0;
+  }
+
+  .project-chapter__body :global(.ch-int .ch-int__desc) {
+    font-size: var(--_tokens---type--micro);
+    line-height: 1.6;
+    color: var(--_tokens---color--muted);
+    margin: 14px 0 0;
+  }
+
+  .project-chapter__body :global(.ch-areas) {
+    list-style: none;
+    margin: 18px 0 0;
+    padding: 0;
+  }
+
+  .project-chapter__body :global(.ch-areas li) {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: var(--_tokens---type--micro);
+    color: var(--_tokens---color--muted);
+    padding: 4px 0;
+  }
+
+  .project-chapter__body :global(.ch-areas li span:last-child) {
+    color: var(--_tokens---color--fg);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .project-chapter__body :global(.ch-areas li.ch-areas__total) {
+    border-top: 1px solid var(--_tokens---color--line-soft);
+    margin-top: 6px;
+    padding-top: 8px;
+    color: var(--_tokens---color--fg);
+    font-weight: 600;
+  }
+
+  .project-chapter__body :global(.ch-int__imgs) {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .project-chapter__body :global(.ch-int__imgs img) {
+    width: 100%;
+    aspect-ratio: 4/5;
+    object-fit: cover;
+    display: block;
   }
 
   /* ── Design & Making Sections (Standard Pages Only) ── */
@@ -1409,13 +1641,6 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
       aspect-ratio: 2/3 !important;
       margin: 0;
     }
-    /* Timer ring moves from the card image to beside the pagination counter */
-    .project-slider-wrapper .autoplay-timer-ring {
-      display: none;
-    }
-    .autoplay-timer-ring--mini {
-      display: block;
-    }
     .project-card__desc {
       max-height: 12vh;
       overflow-y: auto;
@@ -1495,7 +1720,6 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
 
     const pageActiveImg = document.getElementById('page-active-img') as HTMLImageElement | null;
     const pageOverlayName = document.getElementById('page-overlay-name');
-    const pageActiveLabel = document.getElementById('page-active-label');
 
     // Glitch/scramble a name element into new text. Each element keeps its own
     // animation handle, and only textContent changes — the glitch is fully
@@ -1643,7 +1867,6 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
 
       if (pageActiveImg) pageActiveImg.src = activeUrl;
       if (pageOverlayName) scrambleTo(pageOverlayName, activeName);
-      if (pageActiveLabel) scrambleTo(pageActiveLabel, activeName);
       if (pagePagination) {
         pagePagination.textContent = `${currentIdx + 1} / ${images.length}`;
       }
@@ -2063,6 +2286,26 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
 
     wireCollapse(designSection, 'project-design-click', 'project-design-toggle', 'project-design-panel');
     wireCollapse(makingSection, 'project-making-click', 'project-making-toggle', 'project-making-panel');
+
+    // Chapter dropdowns (data.chapters) — same open/close behaviour as Design/Making
+    document.querySelectorAll('.project-chapter').forEach(sect => {
+      const header = sect.querySelector('.project-chapter__header');
+      const toggleBtn = sect.querySelector('.project-detail-collapse-btn');
+      if (!header || !toggleBtn) return;
+      const iconMinus = toggleBtn.querySelector('.toggle-icon-minus') as HTMLElement | null;
+      const iconPlus = toggleBtn.querySelector('.toggle-icon-plus') as HTMLElement | null;
+      header.addEventListener('click', () => {
+        const isExpanded = sect.classList.toggle('is-expanded');
+        toggleBtn.setAttribute('aria-expanded', String(isExpanded));
+        toggleBtn.querySelectorAll('.link-arrow').forEach((a) => {
+          (a as HTMLElement).style.transform = `rotate(${Math.floor(Math.random() * 360)}deg)`;
+        });
+        if (iconMinus && iconPlus) {
+          iconMinus.style.display = isExpanded ? 'block' : 'none';
+          iconPlus.style.display = isExpanded ? 'none' : 'block';
+        }
+      });
+    });
   }
 
   function initHeadingScrollTop() {

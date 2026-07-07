@@ -53,6 +53,16 @@ const projects = defineCollection({
     program: z.string().optional(),
     coverImage: z.string().optional(),
     multiImage: z.array(z.string()).optional(),
+    // If set, the project-list scrub draws from these instead of all images
+    // (e.g. renders only, no sketches). The project page still shows everything.
+    scrubImages: z.array(z.string()).optional(),
+    // Long-form chapter dropdowns rendered below the summary on the project
+    // page (replaces the Design/Making sections). body is raw HTML.
+    chapters: z.array(z.object({
+      title: z.string(),
+      subtitle: z.string().optional(),
+      body: z.string(),
+    })).optional(),
     tags: z.array(reference('tags')).optional(),
     category: reference('categories').optional(),
   }),
