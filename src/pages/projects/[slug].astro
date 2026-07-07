@@ -43,6 +43,18 @@ if (category) {
 }
 
 dynamicCrumbs.push({ label: data.name });
+
+// Card deck page slugs
+const cardPageSlugs = [
+  'alt-verse',
+  'architect-x-architects',
+  'future-of-dance',
+  'indian-royals',
+  'sups-cards',
+  'sups-in-the-hinterland',
+  'human-pods'
+];
+const isCardPage = cardPageSlugs.includes(project.id);
 ---
 
 <PageLayout
@@ -52,7 +64,7 @@ dynamicCrumbs.push({ label: data.name });
   label={data.name}
   crumbs={dynamicCrumbs}
 >
-    <article class="project-detail" data-project-id={project.id} data-project-name={data.name}>
+    <article class="project-detail" data-project-id={project.id} data-project-name={data.name} data-is-card={isCardPage ? "true" : "false"}>
       
       <!-- Top Header -->
       <header class="project-top-header" id="project-top-header">
@@ -78,9 +90,9 @@ dynamicCrumbs.push({ label: data.name });
         </div>
       </header>
 
-      <!-- Main content body (2-column layout on both mobile and desktop) -->
-      <div class="project-content-grid">
-        <!-- Left Column: Description Text & Details -->
+      <!-- Main content body (Conditional column styling) -->
+      <div class:list={["project-content-grid", isCardPage && "project-content-grid--card"]}>
+        <!-- Left Column: Description Text -->
         <div class="project-col-left">
           <div class="project-card-info">
             <div class="project-card__row project-card__row2">
@@ -92,116 +104,153 @@ dynamicCrumbs.push({ label: data.name });
               </div>
             </div>
           </div>
-
-          <!-- Section 2 & 3: Design & Making Collapsible Sections (Only if project has NO card images) -->
-          {!hasImages && (
-            <>
-              <section class="project-design-section">
-                <div class="project-header-title-row project-design-header" id="project-design-click">
-                  <h3 class="project-section-subtitle">Design</h3>
-                  <button class="project-detail-collapse-btn" id="project-design-toggle" type="button" aria-expanded="false" aria-label="Toggle design details">
-                    <svg class="toggle-icon-minus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" style="display: none;"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
-                    <svg class="toggle-icon-plus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
-                  </button>
-                </div>
-                
-                <div class="project-design-content" id="project-design-panel">
-                  <div class="project-design-grid">
-                    <div class="project-design-item">
-                      <span class="design-label">Program</span>
-                      <span class="design-val">{data.program ?? 'N/A'}</span>
-                    </div>
-                    <div class="project-design-item">
-                      <span class="design-label">Collaborator</span>
-                      <span class="design-val">{data.collaborator ?? 'Self-initiated'}</span>
-                    </div>
-                    {category && (
-                      <div class="project-design-item">
-                        <span class="design-label">Category</span>
-                        <span class="design-val">{category.data.displayName}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </section>
-
-              <section class="project-making-section">
-                <div class="project-header-title-row project-making-header" id="project-making-click">
-                  <h3 class="project-section-subtitle">Making</h3>
-                  <button class="project-detail-collapse-btn" id="project-making-toggle" type="button" aria-expanded="false" aria-label="Toggle making details">
-                    <svg class="toggle-icon-minus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" style="display: none;"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
-                    <svg class="toggle-icon-plus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
-                  </button>
-                </div>
-                
-                <div class="project-making-content" id="project-making-panel">
-                  <div class="project-making-grid">
-                    <div class="project-making-item">
-                      <span class="design-label">Client</span>
-                      <span class="design-val">{data.client ?? 'N/A'}</span>
-                    </div>
-                    <div class="project-making-item">
-                      <span class="design-label">Size</span>
-                      <span class="design-val">{data.size ?? 'N/A'}</span>
-                    </div>
-                    <div class="project-making-item">
-                      <span class="design-label">Location</span>
-                      <span class="design-val">{data.location ?? 'N/A'}</span>
-                    </div>
-                  </div>
-                </div>
-              </section>
-            </>
-          )}
         </div>
 
-        <!-- Right Column: Active Card Slider -->
+        <!-- Right Column: Card Slider or Standard Slider -->
         {hasImages && (
         <div class="project-col-right" id="project-slider-col">
-          <div class="project-slider-wrapper" id="page-slider-wrapper" data-images={JSON.stringify(allImages)}>
-            <div class="project-detail__active-wrap" id="page-active-wrap" style="cursor: pointer;" title="Click to open fullscreen modal">
-              <button class="project-detail__nav-arrow project-detail__nav-arrow--prev" id="page-prev" type="button" aria-label="Previous card">
-                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-              </button>
-              <img class="project-detail__active-img" id="page-active-img" src={allImages[0]} alt={data.name} />
+          {isCardPage ? (
+            /* CARD LAYOUT SLIDER */
+            <div class="project-slider-wrapper" id="page-slider-wrapper" data-images={JSON.stringify(allImages)}>
+              <div class="project-detail__active-wrap" id="page-active-wrap" style="cursor: pointer;" title="Click to open fullscreen modal">
+                <button class="project-detail__nav-arrow project-detail__nav-arrow--prev" id="page-prev" type="button" aria-label="Previous card">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </button>
+                <img class="project-detail__active-img" id="page-active-img" src={allImages[0]} alt={data.name} />
+                
+                <!-- Autoplay Timer Ring in Top-Right Corner -->
+                <div class="autoplay-timer-ring">
+                  <svg width="24" height="24" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" class="timer-ring-bg" />
+                    <circle cx="12" cy="12" r="10" class="timer-ring-progress" id="page-timer-progress" />
+                  </svg>
+                </div>
+
+                <!-- Active Card Name Overlay on top of image (left aligned) -->
+                <div class="project-detail__active-label" id="page-active-label">
+                  {(() => {
+                    const firstImg = allImages[0];
+                    const filename = firstImg.substring(firstImg.lastIndexOf('/') + 1);
+                    const ext = filename.substring(filename.lastIndexOf('.'));
+                    let name = filename.slice(0, filename.length - ext.length);
+                    name = name.replace(/^ADVT_[A-Z_]+_/, '').replace(/^ADVT_SP_\s*/, '').trim();
+                    name = name.replace(/\s+\d+\s*$/, '').replace(/\s*\d+$/, '').trim();
+                    return name;
+                  })()}
+                </div>
+
+                <button class="project-detail__nav-arrow project-detail__nav-arrow--next" id="page-next" type="button" aria-label="Next card">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+              </div>
+
+              <!-- Pagination counter label (omits card name to prevent repetition) -->
+              <div class="project-detail__pagination" id="page-pagination">
+                1 / {allImages.length}
+              </div>
+            </div>
+          ) : (
+            /* STANDARD LAYOUT SLIDER WITH THUMBNAILS */
+            <div class="project-slider-wrapper project-slider-wrapper--standard" id="standard-slider-wrapper" data-images={JSON.stringify(allImages)}>
+              <div class="project-detail__active-wrap" id="standard-active-wrap" style="cursor: pointer;" title="Click to open image">
+                <button class="project-detail__nav-arrow project-detail__nav-arrow--prev" id="standard-prev" type="button" aria-label="Previous image">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </button>
+                <img class="project-detail__active-img" id="standard-active-img" src={allImages[0]} alt={data.name} />
+                <button class="project-detail__nav-arrow project-detail__nav-arrow--next" id="standard-next" type="button" aria-label="Next image">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+              </div>
+
+              <!-- Pagination counter -->
+              <div class="project-detail__pagination" id="standard-pagination">
+                1 / {allImages.length}
+              </div>
               
-              <!-- Autoplay Timer Ring in Top-Right Corner -->
-              <div class="autoplay-timer-ring">
-                <svg width="24" height="24" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="10" class="timer-ring-bg" />
-                  <circle cx="12" cy="12" r="10" class="timer-ring-progress" id="page-timer-progress" />
-                </svg>
+              <!-- Horizontal Thumbnail Strip below Active Image -->
+              <div class="project-detail__thumbs" id="standard-thumbs">
+                {allImages.map((img, idx) => (
+                  <button
+                    type="button"
+                    class:list={[
+                      "project-detail__thumb-item",
+                      idx === 0 && "is-active"
+                    ]}
+                    data-index={idx}
+                  >
+                    <img src={img} alt={`${data.name} thumbnail ${idx + 1}`} loading="lazy" />
+                  </button>
+                ))}
               </div>
-
-              <!-- Active Card Name Overlay on top of image (left aligned) -->
-              <div class="project-detail__active-label" id="page-active-label">
-                {(() => {
-                  const firstImg = allImages[0];
-                  const filename = firstImg.substring(firstImg.lastIndexOf('/') + 1);
-                  const ext = filename.substring(filename.lastIndexOf('.'));
-                  let name = filename.slice(0, filename.length - ext.length);
-                  name = name.replace(/^ADVT_[A-Z_]+_/, '').replace(/^ADVT_SP_\s*/, '').trim();
-                  name = name.replace(/\s+\d+\s*$/, '').replace(/\s*\d+$/, '').trim();
-                  return name;
-                })()}
-              </div>
-
-              <button class="project-detail__nav-arrow project-detail__nav-arrow--next" id="page-next" type="button" aria-label="Next card">
-                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-              </button>
             </div>
-
-            <!-- Pagination counter label (omits card name to prevent repetition) -->
-            <div class="project-detail__pagination" id="page-pagination">
-              1 / {allImages.length}
-            </div>
-          </div>
+          )}
         </div>
         )}
       </div>
 
-      <!-- Card Deck Grid section (always visible, 3 columns on mobile, 9 columns on desktop) -->
-      {hasImages && (
+      <!-- STANDARD PAGE ONLY: Design & Making Collapsible Sections (At bottom of article, stacked) -->
+      {!isCardPage && (
+        <div class="project-metadata-sections">
+          <section class="project-design-section">
+            <div class="project-header-title-row project-design-header" id="project-design-click">
+              <h3 class="project-section-subtitle">Design</h3>
+              <button class="project-detail-collapse-btn" id="project-design-toggle" type="button" aria-expanded="false" aria-label="Toggle design details">
+                <svg class="toggle-icon-minus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" style="display: none;"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+                <svg class="toggle-icon-plus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+              </button>
+            </div>
+            
+            <div class="project-design-content" id="project-design-panel">
+              <div class="project-design-grid">
+                <div class="project-design-item">
+                  <span class="design-label">Program</span>
+                  <span class="design-val">{data.program ?? 'N/A'}</span>
+                </div>
+                <div class="project-design-item">
+                  <span class="design-label">Collaborator</span>
+                  <span class="design-val">{data.collaborator ?? 'Self-initiated'}</span>
+                </div>
+                {category && (
+                  <div class="project-design-item">
+                    <span class="design-label">Category</span>
+                    <span class="design-val">{category.data.displayName}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+
+          <section class="project-making-section">
+            <div class="project-header-title-row project-making-header" id="project-making-click">
+              <h3 class="project-section-subtitle">Making</h3>
+              <button class="project-detail-collapse-btn" id="project-making-toggle" type="button" aria-expanded="false" aria-label="Toggle making details">
+                <svg class="toggle-icon-minus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" style="display: none;"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+                <svg class="toggle-icon-plus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+              </button>
+            </div>
+            
+            <div class="project-making-content" id="project-making-panel">
+              <div class="project-making-grid">
+                <div class="project-making-item">
+                  <span class="design-label">Client</span>
+                  <span class="design-val">{data.client ?? 'N/A'}</span>
+                </div>
+                <div class="project-making-item">
+                  <span class="design-label">Size</span>
+                  <span class="design-val">{data.size ?? 'N/A'}</span>
+                </div>
+                <div class="project-making-item">
+                  <span class="design-label">Location</span>
+                  <span class="design-val">{data.location ?? 'N/A'}</span>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
+
+      <!-- CARD DECK SECTION ONLY: synced card grid (always visible, 3 columns on mobile, 9 columns on desktop) -->
+      {hasImages && isCardPage && (
         <section class="card-deck-section">
           <div class="deck-grid" id="deck-grid" data-images={JSON.stringify(allImages)}>
             {allImages.map((img, idx) => {
@@ -231,7 +280,7 @@ dynamicCrumbs.push({ label: data.name });
         </section>
       )}
 
-      <!-- Fullscreen Lightbox Modal (hidden by default) -->
+      <!-- Fullscreen Lightbox Modal (Conditional arrows depending on page layout) -->
       <div id="card-lightbox" class="card-lightbox" aria-hidden="true" style="display: none;">
         <!-- Dynamic Blurred Background Ambient Image -->
         <img class="lightbox-bg-ambient" id="lightbox-ambient-img" src="" alt="" />
@@ -252,7 +301,7 @@ dynamicCrumbs.push({ label: data.name });
         <!-- Centered Card Container (with 3D perspective wrapper) -->
         <div class="lightbox-perspective-wrap">
           <div class="lightbox-card-container" id="lightbox-card-container">
-            <!-- Left/Right navigation inputs (overlaid directly on image container) -->
+            <!-- Left/Right navigation inputs overlaid directly on image container (Card Page style) -->
             <button class="lightbox-nav-arrow lightbox-nav-arrow--prev" id="lightbox-prev" type="button" aria-label="Previous card">
               <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
             </button>
@@ -268,7 +317,6 @@ dynamicCrumbs.push({ label: data.name });
           </div>
         </div>
 
-        <!-- Tap target hint on mobile -->
         <div class="lightbox-hint">Tap card to flip to next</div>
       </div>
 
@@ -316,18 +364,37 @@ dynamicCrumbs.push({ label: data.name });
     margin: 0;
   }
 
-  /* 2-Column Content Grid: Side-by-side on both mobile and desktop */
+  /* 2-Column Content Grid: Stacks on mobile by default for standard pages */
   .project-content-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--_tokens---space-5);
+    grid-template-columns: 1fr;
+    gap: var(--_tokens---space-6);
     width: 100%;
+  }
+
+  @media (min-width: 1024px) {
+    .project-content-grid {
+      grid-template-columns: 1fr 1fr;
+      align-items: start;
+    }
   }
 
   @media (min-width: 1200px) {
     .project-content-grid {
       grid-template-columns: 4.5fr 5.5fr;
-      gap: var(--_tokens---space-6);
+    }
+  }
+
+  /* Overrides for Card Page layout (forces 2-column side-by-side even on mobile) */
+  .project-content-grid--card {
+    grid-template-columns: 1fr 1fr !important;
+    gap: var(--_tokens---space-5) !important;
+  }
+
+  @media (min-width: 1200px) {
+    .project-content-grid--card {
+      grid-template-columns: 4.5fr 5.5fr !important;
+      gap: var(--_tokens---space-6) !important;
     }
   }
 
@@ -418,7 +485,7 @@ dynamicCrumbs.push({ label: data.name });
 
   .project-detail__active-wrap {
     width: 100%;
-    aspect-ratio: 2/3; /* Playing Card aspect ratio */
+    aspect-ratio: 2/3; /* Card aspect ratio */
     overflow: hidden;
     display: flex;
     align-items: center;
@@ -430,12 +497,24 @@ dynamicCrumbs.push({ label: data.name });
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
   }
 
+  .project-slider-wrapper--standard .project-detail__active-wrap {
+    aspect-ratio: 16/10 !important; /* Standard landscape aspect ratio */
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
   .project-detail__active-img {
     max-width: 100%;
     max-height: 100%;
     width: 100%;
     height: 100%;
     object-fit: cover;
+  }
+
+  .project-slider-wrapper--standard .project-detail__active-img {
+    object-fit: contain;
   }
 
   .project-detail__nav-arrow {
@@ -453,6 +532,10 @@ dynamicCrumbs.push({ label: data.name });
     justify-content: center;
     opacity: 0;
     transition: opacity 0.2s ease, transform 0.2s ease, color 0.2s ease;
+  }
+
+  .project-slider-wrapper--standard .project-detail__nav-arrow {
+    color: var(--_tokens---color--fg) !important;
   }
 
   .project-detail__active-wrap:hover .project-detail__nav-arrow {
@@ -537,7 +620,14 @@ dynamicCrumbs.push({ label: data.name });
     text-align: center;
   }
 
-  /* ── Design & Making Sections ── */
+  /* ── Design & Making Sections (Standard Pages Only) ── */
+  .project-metadata-sections {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    margin-top: 24px;
+  }
+
   .project-design-section,
   .project-making-section {
     border-top: 1px solid var(--_tokens---color--line-soft);
@@ -598,6 +688,51 @@ dynamicCrumbs.push({ label: data.name });
 
   .link-arrow {
     transition: transform 0.3s ease;
+  }
+
+  /* ── Standard Horizontal Thumbnails Strip ── */
+  .project-detail__thumbs {
+    display: flex;
+    gap: 6px;
+    margin-top: 12px;
+    width: 100%;
+    justify-content: flex-start;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .project-detail__thumbs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .project-detail__thumb-item {
+    flex: 0 0 calc((100% - 24px) / 5);
+    scroll-snap-align: start;
+    aspect-ratio: 1;
+    border-radius: 0;
+    border: none;
+    overflow: hidden;
+    position: relative;
+    padding: 0;
+    cursor: pointer;
+    background: transparent;
+    transition: opacity 0.2s ease;
+  }
+
+  .project-detail__thumb-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: grayscale(1);
+    opacity: 0.6;
+    transition: filter 0.2s ease, opacity 0.2s ease;
+  }
+
+  .project-detail__thumb-item.is-active img,
+  .project-detail__thumb-item:hover img {
+    filter: grayscale(0);
+    opacity: 1;
   }
 
   /* ── Card Deck Grid ── */
@@ -853,6 +988,14 @@ dynamicCrumbs.push({ label: data.name });
     overflow: hidden;
   }
 
+  /* Adjust perspective bounds for standard landscape lightbox views */
+  .project-detail[data-is-card="false"] .lightbox-card-container {
+    max-width: 900px;
+    max-height: 560px;
+    aspect-ratio: 16/10;
+    height: auto;
+  }
+
   .lightbox-card-container.is-transitioning {
     opacity: 0;
     transform: perspective(1000px) translate3d(0, -30px, -100px) rotateX(15deg) scale(0.9);
@@ -864,6 +1007,10 @@ dynamicCrumbs.push({ label: data.name });
     object-fit: cover;
     pointer-events: none;
     border-radius: 11px;
+  }
+
+  .project-detail[data-is-card="false"] .lightbox-card-img {
+    object-fit: contain; /* Don't crop landscape projects */
   }
 
   /* Lightbox arrow controls overlaid directly on the image/card itself */
@@ -926,6 +1073,10 @@ dynamicCrumbs.push({ label: data.name });
     transition: opacity 0.3s ease;
   }
 
+  .project-detail[data-is-card="false"] .lightbox-card-label-overlay {
+    display: none !important; /* Hide labels on standard landscape galleries */
+  }
+
   .lightbox-card-shadow {
     position: absolute;
     top: 5%;
@@ -977,13 +1128,33 @@ dynamicCrumbs.push({ label: data.name });
       height: auto !important;
       aspect-ratio: 2/3 !important;
     }
+    .project-detail[data-is-card="false"] .lightbox-card-container {
+      width: 90vw !important;
+      aspect-ratio: 16/10 !important;
+    }
     .lightbox-nav-arrow {
       opacity: 0.65 !important;
+    }
+    .project-detail__thumb-item {
+      flex: 0 0 calc((100% - 24px) / 5) !important;
     }
   }
 </style>
 
 <script>
+  function initProjectPage() {
+    const article = document.querySelector('.project-detail');
+    if (!article) return;
+
+    const isCardPage = article.getAttribute('data-is-card') === 'true';
+
+    if (isCardPage) {
+      initCardDeck();
+    } else {
+      initStandardSlider();
+    }
+  }
+
   function initCardDeck() {
     const deck = document.getElementById('deck-grid');
     const lightbox = document.getElementById('card-lightbox');
@@ -994,12 +1165,10 @@ dynamicCrumbs.push({ label: data.name });
     const prevBtn = document.getElementById('lightbox-prev');
     const nextBtn = document.getElementById('lightbox-next');
     
-    // Top headers labels in Lightbox
     const headerTitle = document.getElementById('lightbox-card-title');
     const counter = document.getElementById('lightbox-counter');
     const cardOverlay = document.getElementById('lightbox-card-label');
 
-    // Page-level slider elements
     const pageActiveImg = document.getElementById('page-active-img') as HTMLImageElement | null;
     const pageActiveLabel = document.getElementById('page-active-label');
     const pagePagination = document.getElementById('page-pagination');
@@ -1007,12 +1176,7 @@ dynamicCrumbs.push({ label: data.name });
     const pageNext = document.getElementById('page-next');
     const pageActiveWrap = document.getElementById('page-active-wrap');
 
-    // Timer ring element
     const timerProgress = document.getElementById('page-timer-progress');
-
-    // Section triggers
-    const designSection = document.querySelector('.project-design-section');
-    const makingSection = document.querySelector('.project-making-section');
 
     if (!deck || !lightbox || !lightboxImg || !cardContainer) return;
 
@@ -1022,15 +1186,13 @@ dynamicCrumbs.push({ label: data.name });
     let isOpen = false;
     let autoplayInterval: number | null = null;
 
-    // Helper: extract card name from image URL path and strip numbers
     const getCardName = (url: string): string => {
       const filename = url.substring(url.lastIndexOf('/') + 1);
       const ext = filename.substring(filename.lastIndexOf('.'));
       let name = filename.slice(0, filename.length - ext.length);
       name = name.replace(/^ADVT_[A-Z_]+_/, '').replace(/^ADVT_SP_\s*/, '').trim();
-      name = name.replace(/\s+\d+\s*$/, '').replace(/\s*\d+$/, '').trim(); // strip 01, 02, etc.
+      name = name.replace(/\s+\d+\s*$/, '').replace(/\s*\d+$/, '').trim();
       
-      // Fallback if generic or short name
       if (!name || /^\d+$/.test(name) || name.length <= 1) {
         return projectName;
       }
@@ -1044,17 +1206,14 @@ dynamicCrumbs.push({ label: data.name });
       return name;
     };
 
-    // Reset progress ring transition
     const resetTimerRing = () => {
       if (timerProgress) {
         timerProgress.classList.remove('is-animating');
-        // Force reflow
         void timerProgress.offsetWidth;
         timerProgress.classList.add('is-animating');
       }
     };
 
-    // Open lightbox
     const openLightbox = (index: number) => {
       currentIdx = index;
       isOpen = true;
@@ -1068,7 +1227,6 @@ dynamicCrumbs.push({ label: data.name });
       startAutoplay();
     };
 
-    // Close lightbox
     const closeLightbox = () => {
       isOpen = false;
       lightbox.style.display = 'none';
@@ -1076,15 +1234,13 @@ dynamicCrumbs.push({ label: data.name });
       document.body.style.overflow = '';
       cardContainer.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale(1)';
       
-      startAutoplay(); // Restore page autoplay
+      startAutoplay();
     };
 
-    // Update display content
     const updateDisplay = () => {
       const activeUrl = images[currentIdx];
       const activeName = getCardName(activeUrl);
 
-      // Lightbox elements
       if (lightboxImg) lightboxImg.src = activeUrl;
       if (ambientImg) ambientImg.src = activeUrl;
       if (headerTitle) headerTitle.textContent = activeName;
@@ -1093,7 +1249,6 @@ dynamicCrumbs.push({ label: data.name });
         counter.textContent = `${currentIdx + 1} / ${images.length}`;
       }
 
-      // Page-level slider elements
       if (pageActiveImg) pageActiveImg.src = activeUrl;
       if (pageActiveLabel) pageActiveLabel.textContent = activeName;
       if (pagePagination) {
@@ -1103,7 +1258,6 @@ dynamicCrumbs.push({ label: data.name });
       resetTimerRing();
     };
 
-    // Switch card
     const setCard = (index: number) => {
       currentIdx = (index + images.length) % images.length;
       
@@ -1118,7 +1272,6 @@ dynamicCrumbs.push({ label: data.name });
       }
     };
 
-    // Autoplay
     const startAutoplay = () => {
       stopAutoplay();
       resetTimerRing();
@@ -1141,7 +1294,6 @@ dynamicCrumbs.push({ label: data.name });
       startAutoplay();
     };
 
-    // Bind clicks on cards in the bottom grid
     const cardButtons = Array.from(deck.querySelectorAll('.deck-card-item'));
     cardButtons.forEach(btn => {
       btn.addEventListener('click', () => {
@@ -1153,7 +1305,6 @@ dynamicCrumbs.push({ label: data.name });
     closeBtn?.addEventListener('click', closeLightbox);
     lightbox.querySelector('.lightbox-backdrop')?.addEventListener('click', closeLightbox);
 
-    // Lightbox image clicks flip to next card
     lightboxImg.addEventListener('click', (e) => {
       e.stopPropagation();
       setCard(currentIdx + 1);
@@ -1172,7 +1323,6 @@ dynamicCrumbs.push({ label: data.name });
       handleUserInteraction();
     });
 
-    // Page-level slider interactions
     pageActiveWrap?.addEventListener('click', (e) => {
       const target = e.target as HTMLElement;
       if (target.closest('.project-detail__nav-arrow')) return;
@@ -1191,7 +1341,6 @@ dynamicCrumbs.push({ label: data.name });
       handleUserInteraction();
     });
 
-    // 3D Tilt Effect
     cardContainer.addEventListener('pointermove', (e: PointerEvent) => {
       const rect = cardContainer.getBoundingClientRect();
       const x = e.clientX - rect.left;
@@ -1221,7 +1370,6 @@ dynamicCrumbs.push({ label: data.name });
       }
     });
 
-    // Keyboard navigation
     document.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowRight') {
         setCard(currentIdx + 1);
@@ -1236,7 +1384,6 @@ dynamicCrumbs.push({ label: data.name });
       }
     });
 
-    // Mobile swipe detection
     let startX = 0;
     let endX = 0;
 
@@ -1258,7 +1405,235 @@ dynamicCrumbs.push({ label: data.name });
       }
     }, { passive: true });
 
-    // Design & Making collapse logic
+    startAutoplay();
+  }
+
+  function initStandardSlider() {
+    const slider = document.getElementById('standard-slider-wrapper');
+    const lightbox = document.getElementById('card-lightbox');
+    const lightboxImg = document.getElementById('lightbox-card-img') as HTMLImageElement | null;
+    const ambientImg = document.getElementById('lightbox-ambient-img') as HTMLImageElement | null;
+    const cardContainer = document.getElementById('lightbox-card-container');
+    const closeBtn = document.getElementById('lightbox-close');
+    const prevBtn = document.getElementById('lightbox-prev');
+    const nextBtn = document.getElementById('lightbox-next');
+
+    const headerTitle = document.getElementById('lightbox-card-title');
+    const counter = document.getElementById('lightbox-counter');
+
+    const activeImg = document.getElementById('standard-active-img') as HTMLImageElement | null;
+    const activeWrap = document.getElementById('standard-active-wrap');
+    const pagination = document.getElementById('standard-pagination');
+    const prevArrow = document.getElementById('standard-prev');
+    const nextArrow = document.getElementById('standard-next');
+    const thumbs = Array.from(document.querySelectorAll('#standard-thumbs .project-detail__thumb-item'));
+    const strip = document.getElementById('standard-thumbs');
+
+    const designSection = document.querySelector('.project-design-section');
+    const makingSection = document.querySelector('.project-making-section');
+
+    if (!slider || !activeImg) return;
+
+    const images = JSON.parse(slider.getAttribute('data-images') || '[]');
+    const projectName = document.querySelector('.project-detail')?.getAttribute('data-project-name') || '';
+    let currentIdx = 0;
+    let isOpen = false;
+
+    function thumbIndexAtX(clientX: number): number {
+      if (!thumbs.length) return -1;
+      for (let i = 0; i < thumbs.length; i++) {
+        const r = thumbs[i].getBoundingClientRect();
+        if (clientX >= r.left && clientX <= r.right) return i;
+      }
+      return clientX < thumbs[0].getBoundingClientRect().left ? 0 : thumbs.length - 1;
+    }
+
+    const openLightbox = (index: number) => {
+      currentIdx = index;
+      isOpen = true;
+      updateDisplay();
+
+      if (lightbox) {
+        lightbox.style.display = 'flex';
+        lightbox.setAttribute('aria-hidden', 'false');
+      }
+      document.body.style.overflow = 'hidden';
+    };
+
+    const closeLightbox = () => {
+      isOpen = false;
+      if (lightbox) {
+        lightbox.style.display = 'none';
+        lightbox.setAttribute('aria-hidden', 'true');
+      }
+      document.body.style.overflow = '';
+      if (cardContainer) {
+        cardContainer.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale(1)';
+      }
+    };
+
+    const updateDisplay = () => {
+      const activeUrl = images[currentIdx];
+
+      // Lightbox elements
+      if (lightboxImg) lightboxImg.src = activeUrl;
+      if (ambientImg) ambientImg.src = activeUrl;
+      if (headerTitle) headerTitle.textContent = `${projectName} — Photo`;
+      if (counter) {
+        counter.textContent = `${currentIdx + 1} / ${images.length}`;
+      }
+
+      // Page active elements
+      if (activeImg) activeImg.src = activeUrl;
+      if (pagination) {
+        pagination.textContent = `${currentIdx + 1} / ${images.length}`;
+      }
+
+      thumbs.forEach((t, i) => {
+        t.classList.toggle('is-active', i === currentIdx);
+      });
+
+      // Scroll thumbnail
+      const activeThumb = thumbs[currentIdx];
+      if (activeThumb && strip) {
+        const stripRect = strip.getBoundingClientRect();
+        const thumbRect = activeThumb.getBoundingClientRect();
+        if (thumbRect.left < stripRect.left || thumbRect.right > stripRect.right) {
+          activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+        }
+      }
+    };
+
+    const setCard = (index: number) => {
+      currentIdx = (index + images.length) % images.length;
+      
+      if (isOpen && cardContainer) {
+        cardContainer.classList.add('is-transitioning');
+        setTimeout(() => {
+          updateDisplay();
+          cardContainer.classList.remove('is-transitioning');
+        }, 180);
+      } else {
+        updateDisplay();
+      }
+    };
+
+    // Thumb strip listeners
+    if (strip) {
+      const isHoverDevice = window.matchMedia('(hover: hover)').matches;
+      if (isHoverDevice) {
+        thumbs.forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const idx = parseInt(btn.getAttribute('data-index') || '0', 10);
+            setCard(idx);
+          });
+        });
+
+        strip.addEventListener('pointerenter', () => {
+          slider.classList.add('is-previewing');
+        });
+        strip.addEventListener('pointermove', (e) => {
+          const idx = thumbIndexAtX(e.clientX);
+          if (idx >= 0 && idx !== currentIdx) {
+            setCard(idx);
+          }
+        });
+        strip.addEventListener('pointerleave', () => {
+          slider.classList.remove('is-previewing');
+        });
+      } else {
+        thumbs.forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const idx = parseInt(btn.getAttribute('data-index') || '0', 10);
+            setCard(idx);
+          });
+        });
+
+        strip.addEventListener('pointermove', (e) => {
+          const idx = thumbIndexAtX(e.clientX);
+          if (idx >= 0 && idx !== currentIdx) {
+            setCard(idx);
+          }
+        });
+      }
+    }
+
+    activeWrap?.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('.project-detail__nav-arrow')) return;
+      openLightbox(currentIdx);
+    });
+
+    prevArrow?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setCard(currentIdx - 1);
+    });
+
+    nextArrow?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setCard(currentIdx + 1);
+    });
+
+    closeBtn?.addEventListener('click', closeLightbox);
+    lightbox?.querySelector('.lightbox-backdrop')?.addEventListener('click', closeLightbox);
+
+    if (lightboxImg) {
+      lightboxImg.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setCard(currentIdx + 1);
+      });
+    }
+
+    prevBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setCard(currentIdx - 1);
+    });
+
+    nextBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setCard(currentIdx + 1);
+    });
+
+    if (cardContainer) {
+      cardContainer.addEventListener('pointermove', (e: PointerEvent) => {
+        const rect = cardContainer.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        
+        const maxTilt = 15;
+        const tiltX = ((x - centerX) / centerX) * maxTilt;
+        const tiltY = -((y - centerY) / centerY) * maxTilt;
+        
+        cardContainer.style.transform = `perspective(1000px) rotateX(${tiltY}deg) rotateY(${tiltX}deg) scale(1.04)`;
+        
+        const shine = cardContainer.querySelector('.lightbox-card-shine') as HTMLElement | null;
+        if (shine) {
+          const angle = Math.atan2(y - centerY, x - centerX) * (180 / Math.PI);
+          shine.style.background = `linear-gradient(${angle + 180}deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0) 60%)`;
+        }
+      });
+
+      cardContainer.addEventListener('pointerleave', () => {
+        cardContainer.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale(1)';
+        const shine = cardContainer.querySelector('.lightbox-card-shine') as HTMLElement | null;
+        if (shine) {
+          shine.style.background = 'linear-gradient(105deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 40%, rgba(255,255,255,0) 100%)';
+        }
+      });
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight') setCard(currentIdx + 1);
+      if (e.key === 'ArrowLeft') setCard(currentIdx - 1);
+      if (e.key === 'Escape' && isOpen) closeLightbox();
+    });
+
+    // Metadata collapser
     const wireCollapse = (sect: Element | null, headerId: string, toggleId: string, panelId: string) => {
       if (!sect) return;
       const header = sect.querySelector(`#${headerId}`);
@@ -1299,9 +1674,6 @@ dynamicCrumbs.push({ label: data.name });
 
     wireCollapse(designSection, 'project-design-click', 'project-design-toggle', 'project-design-panel');
     wireCollapse(makingSection, 'project-making-click', 'project-making-toggle', 'project-making-panel');
-
-    // Start Page Autoplay on load
-    startAutoplay();
   }
 
   function initHeadingScrollTop() {
@@ -1313,11 +1685,11 @@ dynamicCrumbs.push({ label: data.name });
   }
 
   document.addEventListener('astro:page-load', () => {
-    initCardDeck();
+    initProjectPage();
     initHeadingScrollTop();
   });
   if (document.readyState !== 'loading') {
-    initCardDeck();
+    initProjectPage();
     initHeadingScrollTop();
   }
 </script>
