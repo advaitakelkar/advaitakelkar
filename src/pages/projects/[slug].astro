@@ -166,26 +166,34 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
                 <span class="project-name-main">{data.name}</span>
               </h1>
             </div>
-            
-            <div class="project-card__metaline">
-              {(yearLoc || data.status) && (
-                <div class="project-meta-row">
-                  <span class="project-meta-left project-card__meta-val">{yearLoc}</span>
-                  {data.status && <span class="project-meta-right project-card__meta-val">{data.status}</span>}
-                </div>
-              )}
-              {(firstTag || category) && (
-                <div class="project-meta-row">
-                  <span class="project-meta-left project-card__meta-val">{firstTag ? firstTag.data.name : ''}</span>
-                  {category && <a href={`/${category.id}`} class="category-link project-meta-right project-card__meta-val">{category.data.displayName}</a>}
-                </div>
-              )}
-            </div>
           </header>
 
           <div class="project-content-grid">
             <div class="project-col-left">
               <div class="project-card-info">
+                <div class="project-card__metaline project-card__metaline--incol">
+                  {(yearLoc || data.status) && (
+                    <div class="project-meta-row">
+                      <span class="project-meta-left project-card__meta-val">{yearLoc}</span>
+                      {data.status && <span class="project-meta-right project-card__meta-val">{data.status}</span>}
+                    </div>
+                  )}
+                  {(firstTag || category) && (
+                    <div class="project-meta-row">
+                      <span class="project-meta-left project-card__meta-val">{firstTag ? firstTag.data.name : ''}</span>
+                      {category && <a href={`/${category.id}`} class="category-link project-meta-right project-card__meta-val">{category.data.displayName}</a>}
+                    </div>
+                  )}
+                </div>
+
+                <div class="project-people">
+                  {[0, 1, 2, 3, 4].map(() => (
+                    <div class="project-people__avatar">
+                      <img src="/images/admin/profile.jpg" alt="" loading="lazy" />
+                    </div>
+                  ))}
+                </div>
+
                 <div class="project-card__row project-card__row2">
                   <div class="project-card__text-block">
                     {data.smallIntro && <p class="project-card__intro">{data.smallIntro}</p>}
@@ -224,7 +232,7 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
                       ]}
                       data-index={idx}
                     >
-                      <img src={img} alt={`${data.name} thumbnail ${idx + 1}`} loading="lazy" />
+                      <img src={img} alt={`${data.name} thumbnail ${idx + 1}`} />
                     </button>
                   ))}
                 </div>
@@ -238,22 +246,27 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
       <!-- STANDARD PAGE ONLY: chapter dropdowns (when defined) or Design & Making -->
       {!isCardPage && (data.chapters?.length ?? 0) > 0 && (
         <div class="project-chapters">
-          {data.chapters.map((ch: { title: string; subtitle?: string; body: string }) => (
+          {data.chapters.map((ch: { title: string; subtitle?: string; body: string }) => {
+            const words = (ch.subtitle || ch.title).split(' ');
+            const lead = words.slice(0, 2).join(' ');
+            const rest = words.slice(2).join(' ');
+            return (
             <section class="project-chapter">
               <div class="project-header-title-row project-chapter__header">
                 <h3 class="project-chapter__title">
-                  {ch.subtitle || ch.title}
+                  <span class="project-chapter__title-lead">{lead}</span>
+                  {rest && <span class="project-chapter__title-rest">{rest}</span>}
                 </h3>
                 <button class="project-detail-collapse-btn" type="button" aria-expanded="false" aria-label={`Toggle ${ch.title}`}>
-                  <svg class="toggle-icon-minus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" style="display: none;"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
-                  <svg class="toggle-icon-plus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+                  <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
                 </button>
               </div>
               <div class="project-chapter__content">
                 <div class="project-chapter__body" set:html={ch.body} />
               </div>
             </section>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -646,6 +659,40 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
     transition: opacity 0.3s ease, margin-top 0.3s ease;
   }
 
+  /* In-column placement (left column, standard pages): no leading divider,
+     it's already the first block in the column. */
+  .project-card__metaline--incol {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--_tokens---color--line-soft);
+  }
+
+  /* ── People: circular portrait placeholders ── */
+  .project-people {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .project-people__avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    background-color: var(--_tokens---color--bg-glass);
+    border: 1px solid var(--_tokens---color--line-soft);
+  }
+
+  .project-people__avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: grayscale(1);
+  }
+
   .project-meta-row {
     display: flex;
     justify-content: space-between;
@@ -684,6 +731,13 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
       padding: calc(12px + env(safe-area-inset-top)) 12px 8px !important; /* 12px matches page-main mobile padding */
       box-sizing: border-box;
       box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+    }
+
+    /* The wrapper above already clears the top safe area — the header inside
+       it doesn't need its own (desktop-oriented) breadcrumb-clearing padding
+       on top of that, which was doubling the gap. */
+    .project-detail[data-is-card="true"] .project-top-header {
+      padding-top: 0;
     }
 
     /* Spacer: pushes the card deck below the fixed dashboard (height set by JS) */
@@ -801,7 +855,7 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
     font-weight: 600;
     line-height: 1.02;
     letter-spacing: -0.02em;
-    color: #ffffff;
+    color: var(--_tokens---color--bg);
     text-align: left;
     overflow-wrap: break-word;
     z-index: 9;
@@ -843,7 +897,7 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
   }
 
   .timer-ring-progress.is-animating {
-    transition: stroke-dashoffset 3s linear;
+    transition: stroke-dashoffset 2s linear;
     stroke-dashoffset: 0;
   }
 
@@ -910,15 +964,38 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
 
   .project-chapter__header {
     cursor: pointer;
+    align-items: center;
   }
 
   .project-chapter__title {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+  }
+
+  .project-chapter__title-lead {
+    font-size: var(--_tokens---type--micro);
+    font-weight: 500;
+    color: var(--_tokens---color--muted);
+  }
+
+  .project-chapter__title-rest {
     font-size: var(--_tokens---type--big);
     font-weight: 500;
     letter-spacing: -0.03em;
     line-height: 1.05;
     color: var(--_tokens---color--fg);
-    margin: 0;
+  }
+
+  .project-chapter__header .project-detail-collapse-btn {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+  }
+
+  .project-chapter__header .project-detail-collapse-btn svg {
+    width: 32px;
+    height: 32px;
   }
 
   /* Smooth expand via grid rows (content can be any height) */
@@ -1407,7 +1484,7 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
   }
 
   .card-lightbox--deck .lightbox-backdrop {
-    background-color: rgba(0, 0, 0, 0.9);
+    background-color: rgba(0, 0, 0, 0.97);
   }
 
   /* ── Top row: ring (left) | pagination (center) | X (right) ── */
@@ -1517,16 +1594,19 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
     overflow: hidden;
     scroll-snap-align: center;
     transition: transform 0.35s cubic-bezier(0.25,1,0.5,1),
-                opacity   0.35s ease;
-    /* Non-center cards: slightly scaled down + dimmed; JS overrides dynamically */
+                opacity   0.35s ease,
+                filter    0.35s ease;
+    /* Non-center cards: slightly scaled down, dimmed, muted; JS overrides dynamically */
     transform: scale(0.82);
-    opacity: 0.45;
-    will-change: transform, opacity;
+    opacity: 0.35;
+    filter: grayscale(1) blur(1.5px);
+    will-change: transform, opacity, filter;
   }
 
   .lightbox-deck__item.is-center {
-    transform: scale(1) !important;
+    transform: scale(1.08) !important;
     opacity: 1 !important;
+    filter: grayscale(0) blur(0) !important;
   }
 
   .lightbox-deck__item img {
@@ -1562,7 +1642,7 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
     font-size: clamp(1.4rem, 4vw, 2.2rem);
     font-weight: 700;
     line-height: 1;
-    color: #ffffff;
+    color: var(--_tokens---color--bg);
     text-transform: none;
     pointer-events: none;
   }
@@ -1578,20 +1658,15 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
     }
   }
 
-  /* Deck variant: H1 styling at medium weight, bottom-left at the page's own padding */
+  /* Deck variant: H1 styling at medium weight, centred directly below the active card */
   .card-lightbox--deck .lightbox-name {
     font-family: var(--_tokens---font--body);
     font-size: var(--_tokens---type--big);
     font-weight: 500;
     letter-spacing: -0.03em;
     line-height: 1.05;
-    padding: 12px var(--_tokens---space--small) 24px;
-  }
-
-  @media (min-width: 1200px) {
-    .card-lightbox--deck .lightbox-name {
-      padding-inline: clamp(6rem, 12vw, 16rem);
-    }
+    padding: 12px 0 24px;
+    text-align: center;
   }
 
   /* ── Standard (non-card) lightbox: single centred image ── */
@@ -1798,7 +1873,7 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
 </style>
 
 <script>
-  import { shuffleChildren } from '../../lib/random';
+  import { shuffle, reorderChildrenByIndex } from '../../lib/random';
 
   function initProjectPage() {
     const article = document.querySelector('.project-detail');
@@ -1874,12 +1949,23 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
 
     const images = JSON.parse(deck.getAttribute('data-images') || '[]');
     const projectName = document.querySelector('.project-detail')?.getAttribute('data-project-name') || '';
-    let currentIdx = 0;
+
+    // Randomise the navigation sequence once per load; the scrub grid and the
+    // fullscreen deck are both reordered to match it, so next/prev always
+    // lands on the visually-adjacent card, and it stays fixed until reload.
+    const order = shuffle(Array.from({ length: images.length }, (_, i) => i));
+    let currentPos = 0;
+    let currentIdx = order[0] ?? 0;
     let isOpen = false;
     let autoplayInterval: number | null = null;
 
-    // Randomise the scrub order on every load
-    shuffleChildren(deck);
+    reorderChildrenByIndex(deck, order);
+
+    const goToPos = (pos: number) => {
+      const count = images.length;
+      currentPos = ((pos % count) + count) % count;
+      currentIdx = order[currentPos];
+    };
 
     const getCardName = (url: string): string => {
       const filename = url.substring(url.lastIndexOf('/') + 1);
@@ -1896,8 +1982,9 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
       return name;
     };
 
-    // ── Lightbox deck elements ──────────────────────────────────────────────
+    // ── Lightbox deck elements (reordered to match the shuffled sequence) ──
     const lightboxDeck = document.getElementById('lightbox-deck') as HTMLElement | null;
+    if (lightboxDeck) reorderChildrenByIndex(lightboxDeck, order);
     const deckItems = lightboxDeck
       ? Array.from(lightboxDeck.querySelectorAll('.lightbox-deck__item')) as HTMLElement[]
       : [];
@@ -1916,7 +2003,7 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
         const maxDist = deckRect.width * 0.6;
         const t = Math.min(dist / maxDist, 1);
         const sc = 1 - 0.18 * t;
-        const op = 1 - 0.55 * t;
+        const op = 1 - 0.8 * t;
         item.style.transform = `scale(${sc.toFixed(3)})`;
         item.style.opacity = `${op.toFixed(3)}`;
         if (dist < closestDist) { closestDist = dist; closestIdx = i; }
@@ -1970,17 +2057,17 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
       const activeName = getCardName(activeUrl);
 
       if (ambientImg) ambientImg.src = activeUrl;
-      if (counter) counter.textContent = `${currentIdx + 1} / ${images.length}`;
+      if (counter) counter.textContent = `${currentPos + 1} / ${images.length}`;
       setNameLabel(activeName);
 
       if (pageActiveImg) pageActiveImg.src = activeUrl;
       if (pageOverlayName) scrambleTo(pageOverlayName, activeName);
-      if (pagePagination) pagePagination.textContent = `${currentIdx + 1} / ${images.length}`;
+      if (pagePagination) pagePagination.textContent = `${currentPos + 1} / ${images.length}`;
 
       resetTimerRing();
       updateScrubActiveState();
 
-      if (scrollDeck && isOpen) scrollDeckTo(currentIdx);
+      if (scrollDeck && isOpen) scrollDeckTo(currentPos);
     };
 
     // ── Autoplay ────────────────────────────────────────────────────────────
@@ -1995,21 +2082,21 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
       stopAutoplay();
       resetTimerRing();
       autoplayInterval = window.setInterval(() => {
-        currentIdx = (currentIdx + 1) % images.length;
+        goToPos(currentPos + 1);
         updateDisplay(true);
-      }, 3000);
+      }, 2000);
     };
 
     // ── Open / close ────────────────────────────────────────────────────────
     const openLightbox = (index: number) => {
-      currentIdx = index;
+      goToPos(order.indexOf(index));
       isOpen = true;
       lightbox.style.display = 'flex';
       lightbox.setAttribute('aria-hidden', 'false');
       document.body.style.overflow = 'hidden';
       updateDisplay(false);
       requestAnimationFrame(() => {
-        scrollDeckTo(currentIdx, 'instant' as ScrollBehavior);
+        scrollDeckTo(currentPos, 'instant' as ScrollBehavior);
         updateDeckTransforms();
         startAutoplay();
       });
@@ -2026,17 +2113,17 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
     // ── Deck scroll listener ─────────────────────────────────────────────────
     if (lightboxDeck) {
       lightboxDeck.addEventListener('scroll', () => {
-        const centerIdx = updateDeckTransforms();
-        if (centerIdx !== undefined && centerIdx !== currentIdx) {
-          currentIdx = centerIdx;
+        const centerPos = updateDeckTransforms();
+        if (centerPos !== undefined && centerPos !== currentPos) {
+          goToPos(centerPos);
           const activeUrl = images[currentIdx];
           const activeName = getCardName(activeUrl);
           if (ambientImg) ambientImg.src = activeUrl;
-          if (counter) counter.textContent = `${currentIdx + 1} / ${images.length}`;
+          if (counter) counter.textContent = `${currentPos + 1} / ${images.length}`;
           setNameLabel(activeName);
           if (pageActiveImg) pageActiveImg.src = activeUrl;
           if (pageOverlayName) scrambleTo(pageOverlayName, activeName);
-          if (pagePagination) pagePagination.textContent = `${currentIdx + 1} / ${images.length}`;
+          if (pagePagination) pagePagination.textContent = `${currentPos + 1} / ${images.length}`;
           updateScrubActiveState();
           stopAutoplay();
           startAutoplay();
@@ -2049,7 +2136,7 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
     cardButtons.forEach(btn => {
       btn.addEventListener('click', () => {
         const idx = parseInt(btn.getAttribute('data-index') || '0', 10);
-        currentIdx = idx;
+        goToPos(order.indexOf(idx));
         updateDisplay(true);
         startAutoplay();
       });
@@ -2062,8 +2149,8 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
 
     document.addEventListener('keydown', (e) => {
       if (!isOpen) return;
-      if (e.key === 'ArrowRight') { currentIdx = (currentIdx + 1) % images.length; updateDisplay(true); startAutoplay(); }
-      if (e.key === 'ArrowLeft')  { currentIdx = (currentIdx - 1 + images.length) % images.length; updateDisplay(true); startAutoplay(); }
+      if (e.key === 'ArrowRight') { goToPos(currentPos + 1); updateDisplay(true); startAutoplay(); }
+      if (e.key === 'ArrowLeft')  { goToPos(currentPos - 1); updateDisplay(true); startAutoplay(); }
       if (e.key === 'Escape') closeLightbox();
     });
 
@@ -2127,7 +2214,6 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
     const pagination = document.getElementById('standard-pagination');
     const prevArrow = document.getElementById('standard-prev');
     const nextArrow = document.getElementById('standard-next');
-    const thumbs = Array.from(document.querySelectorAll('#standard-thumbs .project-detail__thumb-item'));
     const strip = document.getElementById('standard-thumbs');
 
     const designSection = document.querySelector('.project-design-section');
@@ -2137,8 +2223,23 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
 
     const images = JSON.parse(slider.getAttribute('data-images') || '[]');
     const projectName = document.querySelector('.project-detail')?.getAttribute('data-project-name') || '';
-    let currentIdx = 0;
+
+    // Randomise the navigation sequence once per load; the thumbnail strip is
+    // reordered to match it, so next/prev always lands on the adjacent thumb,
+    // and it stays fixed until reload.
+    const order = shuffle(Array.from({ length: images.length }, (_, i) => i));
+    if (strip) reorderChildrenByIndex(strip, order);
+    const thumbs = strip ? Array.from(strip.querySelectorAll('.project-detail__thumb-item')) : [];
+
+    let currentPos = 0;
+    let currentIdx = order[0] ?? 0;
     let isOpen = false;
+
+    const goToPos = (pos: number) => {
+      const count = images.length;
+      currentPos = ((pos % count) + count) % count;
+      currentIdx = order[currentPos];
+    };
 
     function thumbIndexAtX(clientX: number): number {
       if (!thumbs.length) return -1;
@@ -2150,7 +2251,7 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
     }
 
     const openLightbox = (index: number) => {
-      currentIdx = index;
+      goToPos(order.indexOf(index));
       isOpen = true;
       updateDisplay();
 
@@ -2180,7 +2281,7 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
       if (lightboxImg) lightboxImg.src = activeUrl;
       if (ambientImg) ambientImg.src = activeUrl;
       if (headerTitle) headerTitle.textContent = `${projectName} — Photo`;
-      if (counter) counter.textContent = `${currentIdx + 1} / ${images.length}`;
+      if (counter) counter.textContent = `${currentPos + 1} / ${images.length}`;
 
       // Lightbox name label: word-by-word spans
       const lbName = document.getElementById('lightbox-card-label');
@@ -2190,12 +2291,12 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
 
       // Page active elements
       if (activeImg) activeImg.src = activeUrl;
-      if (pagination) pagination.textContent = `${currentIdx + 1} / ${images.length}`;
+      if (pagination) pagination.textContent = `${currentPos + 1} / ${images.length}`;
 
-      thumbs.forEach((t, i) => t.classList.toggle('is-active', i === currentIdx));
+      thumbs.forEach((t, i) => t.classList.toggle('is-active', i === currentPos));
 
       // Scroll thumbnail
-      const activeThumb = thumbs[currentIdx];
+      const activeThumb = thumbs[currentPos];
       if (activeThumb && strip) {
         const stripRect = strip.getBoundingClientRect();
         const thumbRect = activeThumb.getBoundingClientRect();
@@ -2205,9 +2306,9 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
       }
     };
 
-    const setCard = (index: number) => {
-      currentIdx = (index + images.length) % images.length;
-      
+    const applyPos = (pos: number) => {
+      goToPos(pos);
+
       if (isOpen && cardContainer) {
         cardContainer.classList.add('is-transitioning');
         setTimeout(() => {
@@ -2227,7 +2328,7 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
           btn.addEventListener('click', (e) => {
             e.preventDefault();
             const idx = parseInt(btn.getAttribute('data-index') || '0', 10);
-            setCard(idx);
+            applyPos(order.indexOf(idx));
           });
         });
 
@@ -2236,8 +2337,8 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
         });
         strip.addEventListener('pointermove', (e) => {
           const idx = thumbIndexAtX(e.clientX);
-          if (idx >= 0 && idx !== currentIdx) {
-            setCard(idx);
+          if (idx >= 0 && idx !== currentPos) {
+            applyPos(idx);
           }
         });
         strip.addEventListener('pointerleave', () => {
@@ -2248,14 +2349,14 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
           btn.addEventListener('click', (e) => {
             e.preventDefault();
             const idx = parseInt(btn.getAttribute('data-index') || '0', 10);
-            setCard(idx);
+            applyPos(order.indexOf(idx));
           });
         });
 
         strip.addEventListener('pointermove', (e) => {
           const idx = thumbIndexAtX(e.clientX);
-          if (idx >= 0 && idx !== currentIdx) {
-            setCard(idx);
+          if (idx >= 0 && idx !== currentPos) {
+            applyPos(idx);
           }
         });
       }
@@ -2269,12 +2370,12 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
 
     prevArrow?.addEventListener('click', (e) => {
       e.stopPropagation();
-      setCard(currentIdx - 1);
+      applyPos(currentPos - 1);
     });
 
     nextArrow?.addEventListener('click', (e) => {
       e.stopPropagation();
-      setCard(currentIdx + 1);
+      applyPos(currentPos + 1);
     });
 
     closeBtn?.addEventListener('click', closeLightbox);
@@ -2283,18 +2384,18 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
     if (lightboxImg) {
       lightboxImg.addEventListener('click', (e) => {
         e.stopPropagation();
-        setCard(currentIdx + 1);
+        applyPos(currentPos + 1);
       });
     }
 
     prevBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
-      setCard(currentIdx - 1);
+      applyPos(currentPos - 1);
     });
 
     nextBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
-      setCard(currentIdx + 1);
+      applyPos(currentPos + 1);
     });
 
     if (cardContainer) {
@@ -2329,8 +2430,8 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
     }
 
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowRight') setCard(currentIdx + 1);
-      if (e.key === 'ArrowLeft') setCard(currentIdx - 1);
+      if (e.key === 'ArrowRight') applyPos(currentPos + 1);
+      if (e.key === 'ArrowLeft') applyPos(currentPos - 1);
       if (e.key === 'Escape' && isOpen) closeLightbox();
     });
 
@@ -2376,23 +2477,32 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
     wireCollapse(designSection, 'project-design-click', 'project-design-toggle', 'project-design-panel');
     wireCollapse(makingSection, 'project-making-click', 'project-making-toggle', 'project-making-panel');
 
-    // Chapter dropdowns (data.chapters) — same open/close behaviour as Design/Making
-    document.querySelectorAll('.project-chapter').forEach(sect => {
+    // Chapter dropdowns (data.chapters) — accordion: only one open at a time
+    const chapterSections = Array.from(document.querySelectorAll('.project-chapter'));
+    const collapseChapter = (sect: Element) => {
+      const toggleBtn = sect.querySelector('.project-detail-collapse-btn');
+      if (!toggleBtn) return;
+      sect.classList.remove('is-expanded');
+      toggleBtn.setAttribute('aria-expanded', 'false');
+    };
+
+    chapterSections.forEach(sect => {
       const header = sect.querySelector('.project-chapter__header');
       const toggleBtn = sect.querySelector('.project-detail-collapse-btn');
       if (!header || !toggleBtn) return;
-      const iconMinus = toggleBtn.querySelector('.toggle-icon-minus') as HTMLElement | null;
-      const iconPlus = toggleBtn.querySelector('.toggle-icon-plus') as HTMLElement | null;
       header.addEventListener('click', () => {
-        const isExpanded = sect.classList.toggle('is-expanded');
-        toggleBtn.setAttribute('aria-expanded', String(isExpanded));
+        const willExpand = !sect.classList.contains('is-expanded');
+
+        // Collapse every other chapter before opening this one
+        chapterSections.forEach(other => {
+          if (other !== sect) collapseChapter(other);
+        });
+
+        sect.classList.toggle('is-expanded', willExpand);
+        toggleBtn.setAttribute('aria-expanded', String(willExpand));
         toggleBtn.querySelectorAll('.link-arrow').forEach((a) => {
           (a as HTMLElement).style.transform = `rotate(${Math.floor(Math.random() * 360)}deg)`;
         });
-        if (iconMinus && iconPlus) {
-          iconMinus.style.display = isExpanded ? 'block' : 'none';
-          iconPlus.style.display = isExpanded ? 'none' : 'block';
-        }
       });
     });
   }

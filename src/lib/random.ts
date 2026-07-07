@@ -19,3 +19,18 @@ export function pickRandom<T>(arr: T[], n: number): T[] {
 export function shuffleChildren(container: Element): void {
   shuffle(Array.from(container.children)).forEach(child => container.appendChild(child));
 }
+
+/**
+ * Reorder an element's children to follow `order` — a permutation of each
+ * child's original `data-index` value. Used to keep a shuffled-once
+ * navigation sequence (computed at load) and the visible strip/deck in
+ * lockstep, so stepping through them next/prev always lands on a DOM-adjacent
+ * item instead of jumping around.
+ */
+export function reorderChildrenByIndex(container: Element, order: number[]): void {
+  const children = Array.from(container.children) as HTMLElement[];
+  order.forEach(originalIdx => {
+    const el = children.find(c => parseInt(c.getAttribute('data-index') || '-1', 10) === originalIdx);
+    if (el) container.appendChild(el);
+  });
+}
