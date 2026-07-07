@@ -42,11 +42,6 @@ if (fs.existsSync(aiWorksDir)) {
   }
 }
 
-// Main scrub at the top: one image from each project folder
-const allImages = folderProjects.map(proj => proj.images[0]).filter(Boolean);
-const hasImages = allImages.length > 0;
-const cover = allImages[0] ?? '';
-
 const firstTag = tags.find(t => t);
 const yearLoc = [data.year, data.location].filter(Boolean).join(', ');
 
@@ -100,7 +95,7 @@ dynamicCrumbs.push({ label: data.name });
       </header>
 
       <!-- Main content body of Section 1 -->
-      <div class:list={["project-content-grid", !hasImages && "project-content-grid--no-images"]}>
+      <div class="project-content-grid project-content-grid--no-images">
         <!-- Left Column: Text Content -->
         <div class="project-col-left">
           <div class="project-card-info">
@@ -114,42 +109,6 @@ dynamicCrumbs.push({ label: data.name });
             </div>
           </div>
         </div>
-
-        <!-- Right Column: Main Image Scrub Viewer -->
-        {hasImages && (
-        <div class="project-col-right" id="project-slider-col">
-          <div class="project-slider-wrapper" data-images={JSON.stringify(allImages)}>
-            <div class="project-detail__active-wrap">
-              <button class="project-detail__nav-arrow project-detail__nav-arrow--prev" type="button" aria-label="Previous image">
-                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-              </button>
-              <img class="project-detail__active-img" src={cover} alt={data.name} />
-              <button class="project-detail__nav-arrow project-detail__nav-arrow--next" type="button" aria-label="Next image">
-                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-              </button>
-            </div>
-
-            <!-- Pagination label below image -->
-            <div class="project-detail__pagination">1 / {allImages.length}</div>
-            
-            <!-- Thumbnails scrub bar -->
-            <div class="project-detail__thumbs">
-              {allImages.map((img, idx) => (
-                <button
-                  type="button"
-                  class:list={[
-                    "project-detail__thumb-item",
-                    idx === 0 && "is-active"
-                  ]}
-                  data-index={idx}
-                >
-                  <img src={img} alt={`${data.name} thumbnail ${idx + 1}`} loading="lazy" />
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-        )}
       </div>
 
       <!-- Collapsible Sections for each project/folder -->
