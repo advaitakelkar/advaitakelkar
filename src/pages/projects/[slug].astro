@@ -74,6 +74,7 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
   ogImage={data.coverImage}
   label={data.name}
   crumbs={dynamicCrumbs}
+  showFooter={!isCardPage}
 >
     <article class="project-detail" data-project-id={project.id} data-project-name={data.name} data-is-card={isCardPage ? "true" : "false"}>
       
@@ -118,6 +119,7 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
                 
                 <!-- Card Name & Pagination in left column (horizontally aligned with image bottom) -->
                 <div class="project-card-name-pagination-row">
+                  <div class="project-detail__active-label" id="page-active-label">{firstCardName}</div>
                   <div class="project-detail__pagination-wrap">
                     <div class="project-detail__pagination" id="page-pagination">
                       1 / {allImages.length}
@@ -140,6 +142,9 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
                 <div class="project-detail__active-wrap" id="page-active-wrap" style="cursor: pointer;" title="Click to open fullscreen modal">
                   <img class="project-detail__active-img" id="page-active-img" src={allImages[0]} alt={data.name} />
 
+                  <!-- Active card name on the image — one word per row, glitches on change -->
+                  <h2 class="project-card__overlay-name" id="page-overlay-name">{firstCardName}</h2>
+
                   <!-- Autoplay Timer Ring (top-left on desktop) -->
                   <div class="autoplay-timer-ring">
                     <svg width="24" height="24" viewBox="0 0 24 24">
@@ -148,9 +153,6 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
                     </svg>
                   </div>
                 </div>
-
-                <!-- Active card name below the image — one word per row, glitches on change -->
-                <h1 class="project-card__name-below" id="page-overlay-name">{firstCardName}</h1>
               </div>
             </div>
             )}
@@ -391,13 +393,19 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
     position: relative;
   }
 
-  /* ── Desktop grid area layout using display: contents flattening ── */
+  /* ── Desktop: viewport-locked layout — nothing scrolls except the deck ── */
   @media (min-width: 1024px) {
     .project-detail[data-is-card="true"] {
       display: grid;
       grid-template-columns: 1.2fr 1fr;
+      grid-template-rows: auto auto 1fr;
       column-gap: var(--_tokens---space-6);
       align-items: start;
+      height: 100dvh;
+      min-height: 0;
+      overflow: hidden; /* the page itself never scrolls */
+      padding-bottom: clamp(1rem, 3vh, 2rem);
+      box-sizing: border-box;
     }
 
     .project-detail[data-is-card="true"] .project-dashboard-wrap {
@@ -411,42 +419,61 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
     .project-detail[data-is-card="true"] .project-top-header {
       grid-column: 1 / -1;
       grid-row: 1;
-      position: sticky;
-      top: 0;
-      z-index: 55;
       background-color: var(--_tokens---color--bg);
       padding-top: calc(clamp(1.2rem, 3vh, 1.8rem) + 48px);
       padding-bottom: 12px;
       border-bottom: 1px solid var(--_tokens---color--line-soft);
       box-sizing: border-box;
-      transition: padding-top 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-                  padding-bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .project-detail[data-is-card="true"] .project-col-left {
       grid-column: 1;
       grid-row: 2;
-      position: sticky;
-      top: calc(72px + env(safe-area-inset-top)); /* sticks exactly below the sticky header */
-      z-index: 50;
       background-color: var(--_tokens---color--bg);
       padding-bottom: 4px;
     }
 
     .project-detail[data-is-card="true"] .project-col-right {
       grid-column: 2;
-      grid-row: 2 / 4; /* Spans across left col and card deck scrub section */
-      position: sticky;
-      top: calc(72px + env(safe-area-inset-top));
-      z-index: 50;
+      grid-row: 2 / 4; /* full remaining height beside text + deck */
+      position: static;
+      min-height: 0;
+      height: 100%;
+      display: flex;
+      justify-content: center;
     }
 
+    /* Card fills the available height, keeps 2:3, never spills */
+    .project-detail[data-is-card="true"] .project-slider-wrapper {
+      width: auto;
+      height: 100%;
+      min-height: 0;
+      align-items: center;
+    }
+
+    .project-detail[data-is-card="true"] .project-detail__active-wrap {
+      height: 100%;
+      max-height: 100%;
+      width: auto;
+      max-width: 100%;
+      aspect-ratio: 2/3;
+    }
+
+    /* Deck scrubs inside its own scroll area */
     .project-detail[data-is-card="true"] .card-deck-section {
       grid-column: 1;
-      grid-row: 3; /* Sits directly in left column beneath description and row */
+      grid-row: 3;
       margin-top: 16px;
       padding-top: 0;
       border-top: none;
+      min-height: 0;
+      height: 100%;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: none;
+    }
+    .project-detail[data-is-card="true"] .card-deck-section::-webkit-scrollbar {
+      display: none;
     }
   }
 
@@ -613,26 +640,6 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
     }
   }
 
-  /* Scrolled Transitions (Desktop) */
-  @media (min-width: 1024px) {
-    .project-detail[data-is-card="true"].is-scrolled .project-top-header {
-      padding-top: calc(0.3rem + 48px) !important;
-      padding-bottom: 8px !important;
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-    }
-  }
-
-  /* Title/text shrink on scroll — desktop only; the mobile dashboard is fixed at constant height */
-  @media (min-width: 1024px) {
-    .project-detail.is-scrolled .project-name-title {
-      font-size: var(--_tokens---type--normal) !important;
-    }
-
-    .project-detail.is-scrolled .project-card-info {
-      padding: 4px 0 !important;
-      gap: 8px !important;
-    }
-  }
 
   /* ── Right-Column Active Slider ── */
   .project-slider-wrapper {
@@ -733,16 +740,45 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
     }
   }
 
-  /* ── Active card name below the image — H1, one word per row ── */
-  .project-card__name-below {
-    width: min-content; /* element is as narrow as its longest word → every word wraps to its own row */
-    margin: 12px 0 0;
+  /* ── Active card name on the image — H2, one word per row ── */
+  .project-card__overlay-name {
+    position: absolute;
+    left: 16px;
+    bottom: 14px;
+    width: min-content; /* element is as narrow as its longest word → every word gets its own row */
+    max-width: calc(100% - 32px);
+    margin: 0;
     font-size: var(--_tokens---type--medium);
     font-weight: 600;
     line-height: 1.02;
     letter-spacing: -0.02em;
-    color: var(--_tokens---color--fg);
+    color: #ffffff;
     text-align: left;
+    overflow-wrap: break-word;
+    z-index: 9;
+    pointer-events: none;
+    text-shadow: 0 2px 24px rgba(0, 0, 0, 0.55);
+  }
+
+  @media (max-width: 768px) {
+    .project-card__overlay-name {
+      left: 10px;
+      bottom: 8px;
+      font-size: clamp(0.85rem, 3.2vw, 1.15rem);
+    }
+  }
+
+  /* Desktop: the name lives in the left-column row (name left, pagination right),
+     not on the card. Below desktop it's the reverse. */
+  @media (min-width: 1024px) {
+    .project-card__overlay-name {
+      display: none;
+    }
+  }
+  @media (max-width: 1023px) {
+    .project-card-name-pagination-row .project-detail__active-label {
+      display: none;
+    }
   }
 
   .timer-ring-bg {
@@ -1428,6 +1464,8 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
 </style>
 
 <script>
+  import { shuffleChildren } from '../../lib/random';
+
   function initProjectPage() {
     const article = document.querySelector('.project-detail');
     if (!article) return;
@@ -1457,11 +1495,14 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
 
     const pageActiveImg = document.getElementById('page-active-img') as HTMLImageElement | null;
     const pageOverlayName = document.getElementById('page-overlay-name');
+    const pageActiveLabel = document.getElementById('page-active-label');
 
-    // Glitch/scramble the overlay name into the new text on card change
-    let scrambleRaf: number | null = null;
+    // Glitch/scramble a name element into new text. Each element keeps its own
+    // animation handle, and only textContent changes — the glitch is fully
+    // isolated and can never resize or move the card or anything around it.
     const scrambleTo = (el: HTMLElement, text: string) => {
-      if (scrambleRaf) cancelAnimationFrame(scrambleRaf);
+      const prev = (el as any)._scrRaf;
+      if (prev) cancelAnimationFrame(prev);
       const glyphs = '!<>-_\\/[]{}—=+*^?#';
       const totalFrames = Math.min(Math.max(text.length * 1.5, 18), 40);
       let frame = 0;
@@ -1477,10 +1518,10 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
           .join('');
         frame++;
         if (frame <= totalFrames) {
-          scrambleRaf = requestAnimationFrame(step);
+          (el as any)._scrRaf = requestAnimationFrame(step);
         } else {
           el.textContent = text;
-          scrambleRaf = null;
+          (el as any)._scrRaf = null;
         }
       };
       step();
@@ -1514,6 +1555,10 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
     let currentIdx = 0;
     let isOpen = false;
     let autoplayInterval: number | null = null;
+
+    // Randomise the scrub order on every load (cards keep their data-index,
+    // so activation and highlighting still map to the right image)
+    shuffleChildren(deck);
 
     const getCardName = (url: string): string => {
       const filename = url.substring(url.lastIndexOf('/') + 1);
@@ -1555,9 +1600,9 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
     };
 
     const updateScrubActiveState = () => {
-      const buttons = Array.from(deck.querySelectorAll('.deck-card-item'));
-      buttons.forEach((btn, idx) => {
-        btn.classList.toggle('is-active', idx === currentIdx);
+      // Match by data-index (not DOM position) — the scrub order is shuffled
+      deck.querySelectorAll('.deck-card-item').forEach(btn => {
+        btn.classList.toggle('is-active', parseInt(btn.getAttribute('data-index') || '-1', 10) === currentIdx);
       });
     };
 
@@ -1598,6 +1643,7 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
 
       if (pageActiveImg) pageActiveImg.src = activeUrl;
       if (pageOverlayName) scrambleTo(pageOverlayName, activeName);
+      if (pageActiveLabel) scrambleTo(pageActiveLabel, activeName);
       if (pagePagination) {
         pagePagination.textContent = `${currentIdx + 1} / ${images.length}`;
       }
@@ -1709,23 +1755,6 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
         shine.style.background = 'linear-gradient(105deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 40%, rgba(255,255,255,0) 100%)';
       }
     });
-
-    // Scroll shrinking title trigger on parent project-detail article container
-    if (detailEl) {
-      const handleScroll = () => {
-        if (window.scrollY > 20) {
-          detailEl.classList.add('is-scrolled');
-        } else {
-          detailEl.classList.remove('is-scrolled');
-        }
-      };
-      window.addEventListener('scroll', handleScroll, { passive: true });
-      handleScroll();
-
-      document.addEventListener('astro:before-preparation', () => {
-        window.removeEventListener('scroll', handleScroll);
-      }, { once: true });
-    }
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowRight') {
