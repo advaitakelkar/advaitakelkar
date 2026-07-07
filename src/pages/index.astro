@@ -273,6 +273,16 @@ function getWords(name: string): string[] {
 
   if (track) {
     const reals = Array.from(track.querySelectorAll('.home-slider__slide'));
+
+    // Shuffle the slides so every visit opens on a different project order
+    for (let i = reals.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [reals[i], reals[j]] = [reals[j], reals[i]];
+    }
+    reals.forEach(s => track.appendChild(s));
+    // The originally-first slide had loading=eager; make the new first one load instantly too
+    reals[0]?.querySelector('img')?.setAttribute('loading', 'eager');
+
     const n = reals.length;
 
     if (n > 1) {

@@ -55,6 +55,17 @@ const cardPageSlugs = [
   'human-pods'
 ];
 const isCardPage = cardPageSlugs.includes(project.id);
+
+// Derive a display name from an image filename (same rules as the client script)
+const cardNameFromUrl = (url: string): string => {
+  const filename = url.substring(url.lastIndexOf('/') + 1);
+  const ext = filename.substring(filename.lastIndexOf('.'));
+  let name = filename.slice(0, filename.length - ext.length);
+  name = name.replace(/^ADVT_[A-Z_]+_/, '').replace(/^ADVT_SP_\s*/, '').trim();
+  name = name.replace(/\s+\d+\s*$/, '').replace(/\s*\d+$/, '').trim();
+  return name || data.name;
+};
+const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
 ---
 
 <PageLayout
@@ -118,8 +129,16 @@ const isCardPage = cardPageSlugs.includes(project.id);
                       return name;
                     })()}
                   </div>
-                  <div class="project-detail__pagination" id="page-pagination">
-                    1 / {allImages.length}
+                  <div class="project-detail__pagination-wrap">
+                    <div class="project-detail__pagination" id="page-pagination">
+                      1 / {allImages.length}
+                    </div>
+                    <div class="autoplay-timer-ring autoplay-timer-ring--mini" aria-hidden="true">
+                      <svg width="14" height="14" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" class="timer-ring-bg" />
+                        <circle cx="12" cy="12" r="10" class="timer-ring-progress" id="page-timer-progress-mini" />
+                      </svg>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -134,8 +153,11 @@ const isCardPage = cardPageSlugs.includes(project.id);
                     <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
                   </button>
                   <img class="project-detail__active-img" id="page-active-img" src={allImages[0]} alt={data.name} />
-                  
-                  <!-- Autoplay Timer Ring in Top-Right Corner -->
+
+                  <!-- Card name overlaid on the image (desktop only, glitches on change) -->
+                  <h2 class="project-card__overlay-name" id="page-overlay-name">{firstCardName}</h2>
+
+                  <!-- Autoplay Timer Ring (top-left on desktop) -->
                   <div class="autoplay-timer-ring">
                     <svg width="24" height="24" viewBox="0 0 24 24">
                       <circle cx="12" cy="12" r="10" class="timer-ring-bg" />
@@ -588,26 +610,24 @@ const isCardPage = cardPageSlugs.includes(project.id);
     color: var(--_tokens---color--fg);
   }
 
-  /* ── Sticky Dashboard Wrapper (Card Pages on Mobile) ── */
+  /* ── Fixed Dashboard Wrapper (Card Pages on Mobile) — always on screen, never scrolls ── */
   @media (max-width: 768px) {
     .project-dashboard-wrap {
-      position: sticky;
+      position: fixed;
       top: 0;
+      left: 44px; /* clears the INDEX rail */
+      right: 0;
       background-color: var(--_tokens---color--bg);
       z-index: 50;
       border-bottom: 1px solid var(--_tokens---color--line-soft);
-      padding-top: calc(12px + env(safe-area-inset-top)) !important;
-      padding-bottom: 8px !important;
+      padding: calc(12px + env(safe-area-inset-top)) 12px 8px !important; /* 12px matches page-main mobile padding */
       box-sizing: border-box;
-      transition: padding-top 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-                  padding-bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-                  border-color 0.3s ease;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
     }
 
-    .project-detail.is-scrolled .project-dashboard-wrap {
-      padding-top: calc(8px + env(safe-area-inset-top)) !important;
-      padding-bottom: 6px !important;
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+    /* Spacer: pushes the card deck below the fixed dashboard (height set by JS) */
+    .project-detail[data-is-card="true"] {
+      padding-top: calc(var(--dash-h, 60vh) + 8px);
     }
   }
 
@@ -620,13 +640,16 @@ const isCardPage = cardPageSlugs.includes(project.id);
     }
   }
 
-  .project-detail.is-scrolled .project-name-title {
-    font-size: var(--_tokens---type--normal) !important;
-  }
+  /* Title/text shrink on scroll — desktop only; the mobile dashboard is fixed at constant height */
+  @media (min-width: 1024px) {
+    .project-detail.is-scrolled .project-name-title {
+      font-size: var(--_tokens---type--normal) !important;
+    }
 
-  .project-detail.is-scrolled .project-card-info {
-    padding: 4px 0 !important;
-    gap: 8px !important;
+    .project-detail.is-scrolled .project-card-info {
+      padding: 4px 0 !important;
+      gap: 8px !important;
+    }
   }
 
   /* ── Right-Column Active Slider ── */
@@ -720,6 +743,40 @@ const isCardPage = cardPageSlugs.includes(project.id);
     pointer-events: none;
   }
 
+  /* Desktop: ring sits on the LEFT of the card image */
+  @media (min-width: 1024px) {
+    .project-slider-wrapper .autoplay-timer-ring {
+      right: auto;
+      left: 16px;
+    }
+  }
+
+  /* ── Card name overlaid on the active card image (desktop only) ── */
+  .project-card__overlay-name {
+    position: absolute;
+    left: 20px;
+    bottom: 16px;
+    max-width: 70%;
+    margin: 0;
+    font-size: var(--_tokens---type--medium);
+    font-weight: 600;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: #ffffff;
+    text-align: left;
+    overflow-wrap: break-word; /* multiline: long names wrap */
+    z-index: 9;
+    pointer-events: none;
+    text-shadow: 0 2px 24px rgba(0, 0, 0, 0.55);
+    display: none;
+  }
+
+  @media (min-width: 1024px) {
+    .project-card__overlay-name {
+      display: block;
+    }
+  }
+
   .timer-ring-bg {
     fill: none;
     stroke: rgba(255, 255, 255, 0.15);
@@ -748,6 +805,7 @@ const isCardPage = cardPageSlugs.includes(project.id);
     display: flex;
     justify-content: space-between;
     align-items: baseline;
+    gap: 10px;
     width: 100%;
     margin-top: 12px;
     padding-top: 10px;
@@ -757,6 +815,8 @@ const isCardPage = cardPageSlugs.includes(project.id);
 
   .project-card-name-pagination-row .project-detail__active-label {
     margin-top: 0;
+    flex: 1 1 auto;
+    min-width: 0; /* long card names truncate instead of colliding with the counter */
     font-size: clamp(0.95rem, 1.25vw, 1.15rem);
     font-weight: 600;
     color: var(--_tokens---color--fg);
@@ -764,6 +824,30 @@ const isCardPage = cardPageSlugs.includes(project.id);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  .project-detail__pagination-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+  }
+
+  /* Small timer ring beside the pagination counter (mobile only) */
+  .autoplay-timer-ring--mini {
+    position: static;
+    width: 14px;
+    height: 14px;
+    display: none;
+    pointer-events: none;
+  }
+
+  .autoplay-timer-ring--mini .timer-ring-bg {
+    stroke: color-mix(in srgb, var(--_tokens---color--fg) 20%, transparent);
+  }
+
+  .autoplay-timer-ring--mini .timer-ring-progress {
+    stroke: var(--_tokens---color--fg);
   }
 
   .project-card-name-pagination-row .project-detail__pagination {
@@ -901,14 +985,25 @@ const isCardPage = cardPageSlugs.includes(project.id);
 
   .deck-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr) !important; /* Forces 3 columns everywhere */
+    grid-template-columns: repeat(3, 1fr) !important; /* 3 columns on mobile/tablet */
     gap: 16px;
     width: 100%;
   }
 
+  /* Desktop: dense micro-scrub — flexible columns, ~9-12 thumbs per row */
   @media (min-width: 1024px) {
     .deck-grid {
-      gap: 20px;
+      grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)) !important;
+      gap: 6px;
+    }
+
+    /* Thumbs are too small for text labels; names live on the big card + name row */
+    .deck-card-label {
+      display: none;
+    }
+
+    .deck-card-inner {
+      border-radius: 4px;
     }
   }
 
@@ -1291,17 +1386,31 @@ const isCardPage = cardPageSlugs.includes(project.id);
   /* ── Compact responsive styles for Card Pages on mobile ── */
   @media (max-width: 768px) {
     .project-content-grid--card {
+      grid-template-columns: 1fr 1fr !important; /* card always takes half the screen */
       gap: 12px !important;
+      align-items: stretch !important;
+    }
+    .project-col-left {
+      display: flex;
     }
     .project-card-info {
       padding: 0 !important;
       gap: 4px !important;
+      height: auto;
+      justify-content: space-between; /* text at top, name+counter row at bottom (level with card) */
     }
     .project-detail__active-wrap {
-      max-height: 22vh !important;
-      width: auto !important;
+      max-height: none !important;
+      width: 100% !important;
       aspect-ratio: 2/3 !important;
-      margin: 0 auto;
+      margin: 0;
+    }
+    /* Timer ring moves from the card image to beside the pagination counter */
+    .project-slider-wrapper .autoplay-timer-ring {
+      display: none;
+    }
+    .autoplay-timer-ring--mini {
+      display: block;
     }
     .project-card__desc {
       max-height: 12vh;
@@ -1379,16 +1488,61 @@ const isCardPage = cardPageSlugs.includes(project.id);
     const cardOverlay = document.getElementById('lightbox-card-label');
 
     const pageActiveImg = document.getElementById('page-active-img') as HTMLImageElement | null;
+    const pageOverlayName = document.getElementById('page-overlay-name');
     const pageActiveLabel = document.getElementById('page-active-label');
+
+    // Glitch/scramble the overlay name into the new text on card change
+    let scrambleRaf: number | null = null;
+    const scrambleTo = (el: HTMLElement, text: string) => {
+      if (scrambleRaf) cancelAnimationFrame(scrambleRaf);
+      const glyphs = '!<>-_\\/[]{}—=+*^?#';
+      const totalFrames = Math.min(Math.max(text.length * 1.5, 18), 40);
+      let frame = 0;
+      const step = () => {
+        const progress = frame / totalFrames;
+        el.textContent = text
+          .split('')
+          .map((ch, i) => {
+            if (ch === ' ') return ' ';
+            if (i < progress * text.length) return ch;
+            return glyphs[Math.floor(Math.random() * glyphs.length)];
+          })
+          .join('');
+        frame++;
+        if (frame <= totalFrames) {
+          scrambleRaf = requestAnimationFrame(step);
+        } else {
+          el.textContent = text;
+          scrambleRaf = null;
+        }
+      };
+      step();
+    };
     const pagePagination = document.getElementById('page-pagination');
     const pagePrev = document.getElementById('page-prev');
     const pageNext = document.getElementById('page-next');
     const pageActiveWrap = document.getElementById('page-active-wrap');
 
-    const timerProgress = document.getElementById('page-timer-progress');
+    const timerRings = ['page-timer-progress', 'page-timer-progress-mini']
+      .map(id => document.getElementById(id))
+      .filter((el): el is HTMLElement => el !== null);
     const detailEl = document.querySelector('.project-detail');
 
     if (!deck || !lightbox || !lightboxImg || !cardContainer) return;
+
+    // Keep the fixed mobile dashboard's height mirrored into --dash-h so the
+    // card deck starts below it (the dashboard is out of the page flow).
+    const dashboard = document.getElementById('project-dashboard');
+    if (dashboard && detailEl) {
+      const setDashHeight = () => {
+        (detailEl as HTMLElement).style.setProperty('--dash-h', `${dashboard.offsetHeight}px`);
+      };
+      setDashHeight();
+      if ('ResizeObserver' in window) {
+        new ResizeObserver(setDashHeight).observe(dashboard);
+      }
+      window.addEventListener('resize', setDashHeight, { passive: true });
+    }
 
     const images = JSON.parse(deck.getAttribute('data-images') || '[]');
     const projectName = document.querySelector('.project-detail')?.getAttribute('data-project-name') || '';
@@ -1417,12 +1571,12 @@ const isCardPage = cardPageSlugs.includes(project.id);
     };
 
     const resetTimerRing = () => {
-      // Page slider progress ring
-      if (timerProgress) {
-        timerProgress.classList.remove('is-animating');
-        void timerProgress.offsetWidth;
-        timerProgress.classList.add('is-animating');
-      }
+      // Page slider progress rings (on-image + mini beside pagination)
+      timerRings.forEach(ring => {
+        ring.classList.remove('is-animating');
+        void ring.offsetWidth;
+        ring.classList.add('is-animating');
+      });
 
       // Lightbox progress ring
       const lightboxProgress = document.getElementById('lightbox-timer-progress');
@@ -1478,6 +1632,7 @@ const isCardPage = cardPageSlugs.includes(project.id);
       }
 
       if (pageActiveImg) pageActiveImg.src = activeUrl;
+      if (pageOverlayName) scrambleTo(pageOverlayName, activeName);
       if (pageActiveLabel) pageActiveLabel.textContent = activeName;
       if (pagePagination) {
         pagePagination.textContent = `${currentIdx + 1} / ${images.length}`;
@@ -1514,9 +1669,7 @@ const isCardPage = cardPageSlugs.includes(project.id);
         clearInterval(autoplayInterval);
         autoplayInterval = null;
       }
-      if (timerProgress) {
-        timerProgress.classList.remove('is-animating');
-      }
+      timerRings.forEach(ring => ring.classList.remove('is-animating'));
       const lightboxProgress = document.getElementById('lightbox-timer-progress');
       if (lightboxProgress) {
         lightboxProgress.classList.remove('is-animating');
@@ -1930,6 +2083,9 @@ const isCardPage = cardPageSlugs.includes(project.id);
   }
 
   function initHeadingScrollTop() {
+    // Card pages: header is always on screen, so tap-to-scroll-top is pointless
+    const article = document.querySelector('.project-detail');
+    if (article?.getAttribute('data-is-card') === 'true') return;
     const h = document.getElementById('project-top-header');
     if (h && !(h as any)._topWired) {
       (h as any)._topWired = true;

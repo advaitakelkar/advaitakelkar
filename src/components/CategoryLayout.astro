@@ -516,6 +516,20 @@ const editable = Boolean(categoryId && intro && intro.length);
   </style>
 
   <script>
+    // Shuffle every project card list so the order differs on each load
+    function shuffleCardLists() {
+      document.querySelectorAll('.cat-card-list').forEach(list => {
+        const items = Array.from(list.children) as HTMLElement[];
+        for (let i = items.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          const temp = items[i];
+          items[i] = items[j];
+          items[j] = temp;
+        }
+        items.forEach(el => list.appendChild(el));
+      });
+    }
+
     function initCategorySliders() {
       const slider = document.getElementById('project-slider');
       if (!slider) return;
@@ -615,12 +629,14 @@ const editable = Boolean(categoryId && intro && intro.length);
       h.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
     }
 
+    shuffleCardLists();
     initCategorySliders();
     initHoverReveal();
     initCategoryTabs();
     initIntroReadMore();
     initHeadingScrollTop();
     document.addEventListener('astro:after-swap', () => {
+      shuffleCardLists();
       initCategorySliders();
       initHoverReveal();
       initCategoryTabs();
