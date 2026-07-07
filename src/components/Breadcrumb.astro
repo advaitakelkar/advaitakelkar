@@ -1,0 +1,628 @@
+---
+import { getCollection } from 'astro:content';
+
+export interface Props {
+  currentPath?: string;
+}
+
+const { currentPath = '/' } = Astro.props;
+
+const allProjects = await getCollection('projects');
+const allCats     = await getCollection('categories');
+
+// Categories, alphabetised by their own display name (Academic, ARCHV,
+// Freelancer, Work). Labels come straight from the content collection so the
+// breadcrumb can never drift from the real category set.
+const categories = [...allCats].sort((a, b) =>
+  a.data.displayName.localeCompare(b.data.displayName)
+);
+
+// Desktop project list (alphabetical)
+const projects = [...allProjects].sort((a, b) => a.data.name.localeCompare(b.data.name));
+
+// Mobile list: featured (by numbr) first, then the rest alphabetically
+const featuredProjects = [...allProjects]
+  .filter(p => p.data.featured)
+  .sort((a, b) => (a.data.numbr ?? 999) - (b.data.numbr ?? 999));
+const featuredIds = new Set(featuredProjects.map(p => p.id));
+const otherProjects = [...allProjects]
+  .filter(p => !featuredIds.has(p.id))
+  .sort((a, b) => a.data.name.localeCompare(b.data.name));
+const mobileProjects = [...featuredProjects, ...otherProjects];
+
+const normalizedPath  = currentPath.replace(/\/$/, '') || '/';
+const isHome          = normalizedPath === '/';
+const isAbout         = normalizedPath === '/about';
+const isProjectsIndex = normalizedPath === '/projects';
+const isProjectPage   = normalizedPath.startsWith('/projects/') && !isProjectsIndex;
+
+let currentProjectId   = '';
+let currentProjectName = '';
+let prevProjectUrl     = '';
+let nextProjectUrl     = '';
+
+// Simple active rule: a project is highlighted ONLY when you're on that
+// project's page. On every other page no project is marked — the current
+// page pill (Home / About / Projects / Category) is the single highlight.
+const activeProject = isProjectPage
+  ? projects.find(p => p.id === normalizedPath.split('/').filter(Boolean)[1])
+  : null;
+
+if (activeProject) {
+  currentProjectId   = activeProject.id;
+  currentProjectName = activeProject.data.name;
+  const idx = projects.findIndex(p => p.id === currentProjectId);
+  // Prev/next arrows only make sense on an actual project page — not on
+  // Home / About / Projects / category pages, where there's no project context.
+  if (idx !== -1 && isProjectPage) {
+    prevProjectUrl = `/projects/${projects[(idx - 1 + projects.length) % projects.length].id}`;
+    nextProjectUrl = `/projects/${projects[(idx + 1) % projects.length].id}`;
+  }
+}
+---
+
+<nav class="breadcrumb" aria-label="Secondary navigation">
+
+  <!-- Left pills: Home / About / Projects -->
+  <div class="breadcrumb__list">
+    {/* Minimal geometric icon family (shown when labels collapse on small
+        screens): Home = house outline, About = square, Projects = circle,
+        Category = triangle. One shape each, same stroke, no detail. */}
+    <a href="/" class:list={["breadcrumb__link", isHome && "is-active"]}>
+      <svg class="crumb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">
+        <path d="M4 10.5 12 4l8 6.5V20H4Z"></path>
+      </svg>
+      <span class="crumb-full">Home</span>
+    </a>
+    <span class="breadcrumb__sep" aria-hidden="true">/</span>
+    <a href="/about" class:list={["breadcrumb__link", isAbout && "is-active"]}>
+      <svg class="crumb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">
+        <rect x="5" y="5" width="14" height="14"></rect>
+      </svg>
+      <span class="crumb-full">About</span>
+    </a>
+    <span class="breadcrumb__sep" aria-hidden="true">/</span>
+    <a href="/projects" class:list={["breadcrumb__link", isProjectsIndex && "is-active"]}>
+      <svg class="crumb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">
+        <circle cx="12" cy="12" r="8"></circle>
+      </svg>
+      <span class="crumb-full">Projects</span>
+    </a>
+  </div>
+
+  <!-- Right: prev / dropdown / next -->
+  <div class:list={["breadcrumb__project-nav", isProjectPage && "is-active"]}>
+    {prevProjectUrl && (
+      <a href={prevProjectUrl} class="breadcrumb__arrow breadcrumb__arrow--prev" aria-label="Previous project">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </a>
+    )}
+
+    <div class="breadcrumb__custom-dropdown" id="breadcrumb-custom-dropdown">
+      <button class="breadcrumb__dropdown-trigger" id="breadcrumb-dropdown-trigger" type="button" aria-haspopup="true" aria-expanded="false">
+        <span id="breadcrumb-trigger-label">
+          {isProjectPage && currentProjectName ? currentProjectName : 'Pages'}
+        </span>
+        <svg class="breadcrumb__trigger-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+
+      <div class="breadcrumb__dropdown-panel" id="breadcrumb-dropdown-panel">
+
+        <!-- One flat list on EVERY breakpoint, fixed order:
+             Home · About · Projects | categories | all projects -->
+        <div class="breadcrumb__pages-list" id="breadcrumb-pages-list">
+          <a href="/" class:list={["breadcrumb__list-item", isHome && "is-active"]}>
+            <span>Home</span>
+            <svg class="breadcrumb__arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"/><polyline points="10 6 18 6 18 14"/></svg>
+          </a>
+          <a href="/about" class:list={["breadcrumb__list-item", isAbout && "is-active"]}>
+            <span>About</span>
+            <svg class="breadcrumb__arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"/><polyline points="10 6 18 6 18 14"/></svg>
+          </a>
+          <a href="/projects" class:list={["breadcrumb__list-item", isProjectsIndex && "is-active"]}>
+            <span>Projects</span>
+            <svg class="breadcrumb__arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"/><polyline points="10 6 18 6 18 14"/></svg>
+          </a>
+
+          <div class="breadcrumb__divider" aria-hidden="true"></div>
+
+          {categories.map(c => (
+            <a href={`/${c.id}`} class:list={["breadcrumb__list-item", "breadcrumb__list-item--cat", normalizedPath === `/${c.id}` && "is-active"]}>
+              <span>{c.data.displayName}</span>
+              <svg class="breadcrumb__arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"/><polyline points="10 6 18 6 18 14"/></svg>
+            </a>
+          ))}
+
+          <div class="breadcrumb__divider" aria-hidden="true"></div>
+
+          {mobileProjects.map(p => (
+            <a
+              href={`/projects/${p.id}`}
+              class:list={["breadcrumb__list-item", currentProjectId === p.id && "is-active"]}
+            >
+              <span class="breadcrumb__proj-name">{p.data.name}</span>
+              <svg class="breadcrumb__arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"/><polyline points="10 6 18 6 18 14"/></svg>
+            </a>
+          ))}
+        </div>
+
+      </div>
+    </div>
+
+    {nextProjectUrl && (
+      <a href={nextProjectUrl} class="breadcrumb__arrow breadcrumb__arrow--next" aria-label="Next project">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </a>
+    )}
+  </div>
+
+  <div class="breadcrumb__backdrop" id="breadcrumb-backdrop"></div>
+</nav>
+
+<style>
+  /* ── Shell ──────────────────────────────────────────────────── */
+  .breadcrumb {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 7px;
+    position: relative;
+    z-index: 500;
+  }
+
+  .breadcrumb__list {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 7px;
+  }
+
+  .breadcrumb__sep { display: none; }
+
+  /* ── Left nav pills ─────────────────────────────────────────── */
+  .breadcrumb__link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 8px; /* tight symmetric padding for icon-only state */
+    border-radius: var(--_tokens---radius--pill);
+    border: 1px solid var(--_tokens---color--line-soft);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    color: var(--_tokens---color--muted);
+    text-decoration: none;
+    font-family: var(--_tokens---font--mono);
+    font-size: var(--_tokens---type--micro);
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    opacity: 0.8;
+    transition: background-color 0.15s, color 0.15s, border-color 0.15s, opacity 0.15s, padding 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .breadcrumb__link:hover,
+  .breadcrumb__link:focus-visible {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
+    opacity: 1;
+    outline: none;
+    padding-left: 10px;
+    padding-right: 14px;
+  }
+
+  .breadcrumb__link.is-active {
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 14%, transparent);
+    color: var(--_tokens---color--fg);
+    border-color: color-mix(in srgb, var(--_tokens---color--fg) 30%, transparent);
+    opacity: 1;
+    font-weight: 500;
+    padding-left: 10px;
+    padding-right: 14px;
+  }
+
+  /* Icon is always visible and static on the left */
+  .crumb-icon {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    opacity: 0.55;
+    flex-shrink: 0;
+    vertical-align: middle;
+    transition: opacity 0.2s ease;
+  }
+
+  .breadcrumb__link.is-active .crumb-icon,
+  .breadcrumb__link:hover .crumb-icon {
+    opacity: 1;
+  }
+
+  /* Text grows to the right and shrinks back to the left */
+  .crumb-full {
+    display: inline-block;
+    max-width: 0;
+    opacity: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    margin-left: 0;
+    transition: max-width 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                opacity 0.2s ease,
+                margin-left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .breadcrumb__link.is-active .crumb-full,
+  .breadcrumb__link:hover .crumb-full {
+    max-width: 80px;
+    opacity: 1;
+    margin-left: 6px;
+  }
+
+  /* ── Dropdown trigger ───────────────────────────────────────── */
+  .breadcrumb__project-nav {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 500;
+  }
+
+  .breadcrumb__custom-dropdown { position: relative; }
+
+  .breadcrumb__dropdown-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: var(--_tokens---radius--pill);
+    border: 1px solid var(--_tokens---color--line-soft);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    color: var(--_tokens---color--muted);
+    font-family: var(--_tokens---font--mono);
+    font-size: var(--_tokens---type--micro);
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    cursor: pointer;
+    outline: none;
+    opacity: 0.55;
+    transition: background-color 0.15s, color 0.15s, border-color 0.15s, opacity 0.15s;
+    max-width: 140px; /* prevent long project names from breaking layout */
+  }
+
+  #breadcrumb-trigger-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-block;
+    max-width: 100%;
+  }
+
+  @media (max-width: 767px) {
+    .breadcrumb__dropdown-trigger {
+      max-width: 120px;
+    }
+  }
+
+  .breadcrumb__dropdown-trigger:hover,
+  .breadcrumb__dropdown-trigger:focus-visible,
+  .breadcrumb__dropdown-trigger[aria-expanded="true"] {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
+    opacity: 1;
+    outline: none;
+  }
+
+  /* When on a project page, give the trigger a stronger border to signal it's the "active" crumb */
+  .breadcrumb__project-nav.is-active .breadcrumb__dropdown-trigger {
+    color: var(--_tokens---color--fg);
+    border-color: var(--_tokens---color--fg);
+    opacity: 0.9;
+  }
+  .breadcrumb__project-nav.is-active .breadcrumb__dropdown-trigger:hover,
+  .breadcrumb__project-nav.is-active .breadcrumb__dropdown-trigger[aria-expanded="true"] {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+  }
+
+  .breadcrumb__trigger-chevron {
+    width: 10px; height: 10px;
+    flex-shrink: 0;
+    opacity: 0.6;
+    transition: transform 0.2s ease, opacity 0.2s;
+  }
+  .breadcrumb__dropdown-trigger[aria-expanded="true"] .breadcrumb__trigger-chevron,
+  .breadcrumb__dropdown-trigger:hover .breadcrumb__trigger-chevron {
+    opacity: 1;
+  }
+  .breadcrumb__dropdown-trigger[aria-expanded="true"] .breadcrumb__trigger-chevron {
+    transform: rotate(180deg);
+  }
+
+  /* Prev / Next project arrows */
+  .breadcrumb__arrow {
+    display: flex; align-items: center; justify-content: center;
+    width: 1.8em; height: 1.8em;
+    border-radius: 50%;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    color: var(--_tokens---color--muted);
+    transition: background-color 0.15s, color 0.15s;
+    flex-shrink: 0;
+    text-decoration: none;
+  }
+  .breadcrumb__arrow:hover {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+  }
+  .breadcrumb__arrow svg { width: 1em; height: 1em; }
+
+  @media (max-width: 640px) {
+    .breadcrumb__arrow--prev,
+    .breadcrumb__arrow--next { display: none; }
+  }
+
+  /* ── Dropdown panel — right-aligned on every breakpoint ─────── */
+  .breadcrumb__dropdown-panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: auto;
+    right: 0;
+    z-index: 500;
+    display: none;
+    width: 240px;
+  }
+
+  .breadcrumb__dropdown-panel.is-open { display: block; }
+
+  /* Mobile: open upward (breadcrumb docked at bottom) */
+  @media (max-width: 767px) {
+    .breadcrumb__dropdown-panel {
+      top: auto;
+      bottom: calc(100% + 6px);
+      width: min(260px, calc(100vw - 64px));
+    }
+  }
+
+  /* ── Pages list — ONE flat list on every breakpoint ─────────── */
+  .breadcrumb__pages-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 8px;
+    background-color: var(--_tokens---color--bg-glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
+    border-radius: 8px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+    max-height: calc(100dvh - 100px);
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .breadcrumb__pages-list::-webkit-scrollbar { display: none; }
+
+  @media (max-width: 767px) {
+    .breadcrumb__pages-list {
+      max-height: calc(80dvh - 60px);
+      /* The bar docks at the bottom and the panel opens upward, so flip the
+         list: Home/About/Projects land nearest the thumb, projects extend
+         upward. The scroll also starts at that end automatically. */
+      flex-direction: column-reverse;
+    }
+  }
+
+  .breadcrumb__divider {
+    height: 1px;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
+    margin: 4px 2px;
+    flex-shrink: 0;
+  }
+
+  /* ── List item style ────────────────────────────────────────── */
+  .breadcrumb__list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 5px 10px;
+    border-radius: var(--_tokens---radius--pill);
+    border: 1px solid transparent;
+    background-color: transparent;
+    color: var(--_tokens---color--muted);
+    font-family: var(--_tokens---font--mono);
+    font-size: var(--_tokens---type--micro);
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+    flex-shrink: 0;
+  }
+
+  /* Full invert on hover / focus */
+  .breadcrumb__list-item:hover,
+  .breadcrumb__list-item:focus-visible {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
+    outline: none;
+  }
+
+  /* Active item (the page you are on) — muted invert */
+  .breadcrumb__list-item.is-active {
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 14%, transparent);
+    color: var(--_tokens---color--fg);
+    border-color: color-mix(in srgb, var(--_tokens---color--fg) 28%, transparent);
+    font-weight: 500;
+  }
+
+  /* Category items slightly muted to distinguish from page links */
+  .breadcrumb__list-item--cat { opacity: 0.85; }
+  .breadcrumb__list-item--cat:hover { opacity: 1; }
+
+  .breadcrumb__proj-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+    flex: 1;
+  }
+
+  .breadcrumb__arrow-icon {
+    width: 8px; height: 8px;
+    flex-shrink: 0;
+    opacity: 0.5;
+    transition: opacity 0.15s;
+  }
+  .breadcrumb__list-item:hover .breadcrumb__arrow-icon,
+  .breadcrumb__list-item:focus-visible .breadcrumb__arrow-icon { opacity: 1; }
+
+  /* ── Backdrop ───────────────────────────────────────────────── */
+  .breadcrumb__backdrop {
+    position: fixed; inset: 0;
+    background-color: rgba(0, 0, 0, 0.2);
+    z-index: 450;
+    display: none;
+    pointer-events: auto;
+  }
+  .breadcrumb__backdrop.is-open { display: block; }
+
+  /* Pills signal keyboard focus by inverting (bg↔fg) in the :focus-visible
+     rules above; the prev/next arrows fall back to the global focus ring. */
+</style>
+
+<script>
+  function setupDropdown() {
+    const trigger  = document.getElementById('breadcrumb-dropdown-trigger') as HTMLButtonElement | null;
+    const panel    = document.getElementById('breadcrumb-dropdown-panel');
+    const dropdown = document.getElementById('breadcrumb-custom-dropdown');
+    if (!trigger || !panel || !dropdown) return;
+
+    // ── Open / close ───────────────────────────────────────────
+    function openDropdown() {
+      panel.classList.add('is-open');
+      trigger.setAttribute('aria-expanded', 'true');
+      document.getElementById('breadcrumb-backdrop')?.classList.add('is-open');
+      // Lock page scroll — must close the dropdown before scrolling the page behind
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+      // Land on the current page: centre the highlighted item; on Home/About/
+      // Projects the list simply rests at the top — they're the first rows.
+      // getBoundingClientRect, not offsetTop — the panel is positioned.
+      const list = document.getElementById('breadcrumb-pages-list');
+      if (list) requestAnimationFrame(() => {
+        const active = list.querySelector('.breadcrumb__list-item.is-active') as HTMLElement | null;
+        if (active) {
+          const delta = active.getBoundingClientRect().top - list.getBoundingClientRect().top;
+          list.scrollTop += delta - (list.clientHeight - active.offsetHeight) / 2;
+        } else {
+          list.scrollTop = 0;
+        }
+      });
+    }
+
+    function closeDropdown() {
+      panel.classList.remove('is-open');
+      trigger.setAttribute('aria-expanded', 'false');
+      document.getElementById('breadcrumb-backdrop')?.classList.remove('is-open');
+      // Restore page scroll
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+    }
+    (window as any).closeBreadcrumbDropdown = closeDropdown;
+
+    trigger.addEventListener('click', () =>
+      panel.classList.contains('is-open') ? closeDropdown() : openDropdown()
+    );
+
+    document.getElementById('breadcrumb-backdrop')?.addEventListener('click', closeDropdown);
+    document.addEventListener('click', e => {
+      if (panel.classList.contains('is-open') && !dropdown.contains(e.target as Node)) closeDropdown();
+    });
+
+    // ── Keyboard navigation — one flat list on every breakpoint ─
+    function getFocusableItems(): HTMLElement[] {
+      return Array.from(dropdown.querySelectorAll('.breadcrumb__pages-list .breadcrumb__list-item')) as HTMLElement[];
+    }
+
+    dropdown.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (!panel.classList.contains('is-open')) return;
+
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeDropdown();
+        trigger.focus();
+        return;
+      }
+
+      if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+      e.preventDefault();
+
+      const items  = getFocusableItems();
+      const active = document.activeElement as HTMLElement;
+      const idx    = items.indexOf(active);
+
+      if (e.key === 'ArrowDown') {
+        (items[idx + 1] ?? items[0])?.focus();
+      } else {
+        (items[idx - 1] ?? items[items.length - 1])?.focus();
+      }
+    });
+
+    // Open on ArrowDown / Enter / Space while trigger is focused
+    trigger.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (['ArrowDown','Enter',' '].includes(e.key) && !panel.classList.contains('is-open')) {
+        e.preventDefault();
+        openDropdown();
+        requestAnimationFrame(() => getFocusableItems()[0]?.focus());
+      }
+    });
+
+    // (Removed: "last visited project" highlighting via localStorage. It made
+    // a second item light up alongside the current page — the only highlight
+    // now is the page you are actually on, rendered server-side.)
+
+    // ── Global arrow-key page navigation ─────────────────────
+    if (!(window as any).hasKbGlobalNav) {
+      (window as any).hasKbGlobalNav = true;
+      window.addEventListener('keydown', (e: KeyboardEvent) => {
+        const el = document.activeElement as HTMLElement | null;
+        if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
+        if (panel?.classList.contains('is-open')) return;
+        if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+
+        const p = window.location.pathname.replace(/\/$/, '') || '/';
+        if (p.startsWith('/projects/') && p !== '/projects') {
+          const arrow = e.key === 'ArrowRight'
+            ? document.querySelector('.breadcrumb__arrow--next') as HTMLAnchorElement | null
+            : document.querySelector('.breadcrumb__arrow--prev') as HTMLAnchorElement | null;
+          if (arrow) { e.preventDefault(); window.location.href = arrow.href; }
+        } else {
+          // Left/Right cycles Home → About → Projects.
+          // Category pages count as the stop after Projects.
+          const pages = ['/', '/about', '/projects'];
+          const isCat = pages.indexOf(p) === -1; // a category page → after Projects
+          const ci = isCat ? pages.length : pages.indexOf(p);
+
+          if (e.key === 'ArrowRight') {
+            if (ci < pages.length - 1) { e.preventDefault(); window.location.href = pages[ci + 1]; }
+          } else if (e.key === 'ArrowLeft') {
+            if (ci > 0 && ci <= pages.length - 1) { e.preventDefault(); window.location.href = pages[ci - 1]; }
+            else if (ci === pages.length) { e.preventDefault(); window.location.href = '/projects'; } // Category page → back to Projects
+          }
+        }
+      });
+    }
+  }
+
+  setupDropdown();
+  document.addEventListener('astro:after-swap', () => {
+    (window as any).hasKbGlobalNav = false;
+    setupDropdown();
+  });
+</script>

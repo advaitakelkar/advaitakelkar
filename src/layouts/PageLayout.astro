@@ -1,0 +1,108 @@
+---
+import Base from './Base.astro';
+import SideNav from '../components/SideNav.astro';
+import Breadcrumb from '../components/Breadcrumb.astro';
+import WayfindingNav from '../components/WayfindingNav.astro';
+import Footer from '../components/Footer.astro';
+import SiteLock from '../components/SiteLock.astro';
+import EditMode from '../components/EditMode.astro';
+
+export interface Props {
+  title: string;
+  description?: string;
+  ogImage?: string;
+  crumbs?: Array<{ label: string; href?: string }>;
+  label?: string;
+  sections?: Array<{ id: string; label: string }>;
+  showFooter?: boolean;
+  categoryId?: string;
+}
+
+const { title, description, ogImage, crumbs = [], label, sections, showFooter = true, categoryId } = Astro.props;
+const currentPath = Astro.url.pathname;
+---
+
+<Base title={title} description={description} ogImage={ogImage}>
+  <div class="page-wrap">
+    <SideNav currentPath={currentPath} />
+
+    <main class:list={["page-main", sections && "page-main--has-wayfinding"]}>
+      <div class="page-breadcrumb">
+        <Breadcrumb currentPath={currentPath} />
+      </div>
+      <slot />
+      {showFooter && <Footer categoryId={categoryId} />}
+      {sections && <WayfindingNav sections={sections} />}
+    </main>
+  </div>
+  <SiteLock />
+  <EditMode />
+</Base>
+
+<style>
+  .page-wrap {
+    display: flex;
+    min-height: 100dvh;
+    position: relative;
+    z-index: 1;
+  }
+
+  .page-main {
+    flex: 1;
+    min-width: 0; /* allow flex child to shrink; prevents slider min-content from blowing out page width */
+    margin-left: 44px; /* Offset adjusted for 44px wide sidebar */
+    padding: 0;
+    padding-inline: var(--_tokens---space--small);
+    transition: padding 0.3s ease;
+  }
+
+  @media (min-width: 768px) and (max-width: 1199px) {
+    .page-main--has-wayfinding {
+      padding-right: 2rem;
+    }
+  }
+
+  @media (min-width: 1200px) {
+    .page-main {
+      padding-inline: clamp(6rem, 12vw, 16rem);
+    }
+  }
+
+  /* Fixed global breadcrumb bar */
+  .page-breadcrumb {
+    position: fixed;
+    top: 0;
+    left: 44px;
+    right: 0;
+    z-index: 100;
+    background-color: var(--_tokens---color--bg);
+    padding-inline: 16px;
+    padding-block: 14px 12px;
+    transition: background-color 0.3s ease;
+  }
+ 
+  /* Padding for really big screens (above laptop screens, >= 1200px) */
+  @media (min-width: 1200px) {
+    .page-breadcrumb {
+      padding-inline: 16px;
+      padding-top: 14px;
+    }
+  }
+ 
+  /* Mobile Portrait docking on bottom */
+  @media (max-width: 767px) and (orientation: portrait) {
+    .page-breadcrumb {
+      position: fixed !important;
+      bottom: 0 !important;
+      top: auto !important;
+      left: 44px !important;
+      right: 0 !important;
+      padding-inline: 12px !important;
+      padding-block: 12px !important;
+      background-color: var(--_tokens---color--bg) !important;
+      border-top: 1px solid var(--_tokens---color--line-soft) !important; /* matches the page-heading hairline */
+      box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+      z-index: 150 !important;
+    }
+  }
+</style>

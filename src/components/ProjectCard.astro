@@ -1,0 +1,415 @@
+---
+// Reusable project card — matches the projects-page card. Set showDescription
+// to false (e.g. on the category tabs) to drop the intro + description column.
+export interface Props {
+  project: any;
+  tagMap: Record<string, string>;
+  catMap?: Record<string, string>;
+  showDescription?: boolean;
+}
+const { project: p, tagMap, catMap = {}, showDescription = true } = Astro.props;
+import { realText } from '../lib/content';
+
+// Placeholder copy from the initial import never renders on cards
+const intro = realText(p.data.smallIntro);
+const desc = realText(p.data.description);
+
+const tagsArr = (p.data.tags ?? []).map((t: any) => tagMap[t.id] || t.id);
+
+// Bottom fact line — same voice as the home slider card:
+// "2024, Mumbai IN, tag" (values only; the page IS the category, so no
+// category label here)
+const factsLine = [p.data.year, p.data.location, tagsArr[0]].filter(Boolean).join(', ');
+
+const allImgs: string[] = [];
+if (p.data.coverImage) allImgs.push(p.data.coverImage);
+if (p.data.multiImage) allImgs.push(...(p.data.multiImage as string[]));
+---
+
+<a href={`/projects/${p.id}`} class:list={["pcard", !showDescription && "pcard--no-desc"]} data-name={p.data.name}>
+  <div class="pcard__header">
+    <h2 class="pcard__name">{p.data.name}</h2>
+    <svg class="link-arrow pcard__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+  </div>
+
+  <div class="pcard__columns">
+    {showDescription && (intro || desc) && (
+      <div class="pcard__desc-col">
+        {intro && <p class="pcard__intro">{intro}</p>}
+        {desc && (
+          <p class="pcard__desc">
+            {desc.replace(/<[^>]*>/g, '').substring(0, 120) + (desc.replace(/<[^>]*>/g, '').length > 120 ? '...' : '')}
+          </p>
+        )}
+      </div>
+    )}
+    <div class="pcard__image-col">
+      <div class:list={["pcard__thumbs", allImgs.length < 5 && "is-few"]}>
+        {allImgs.map((src, idx) => (
+          <span class="pcard__thumb"><img src={src} alt={`${p.data.name} ${idx + 1}`} loading="lazy" /></span>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  <div class="pcard__meta">
+    <span class="pcard__meta-left pcard__meta-val">{factsLine}</span>
+  </div>
+</a>
+
+<style>
+  .pcard {
+    display: block;
+    text-decoration: none;
+    color: var(--_tokens---color--fg);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 2.5%, var(--_tokens---color--bg));
+    box-shadow: 0 8px 24px -10px color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .pcard__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 0;
+  }
+
+  .pcard__name {
+    font-size: clamp(1.9rem, 1.3rem + 2.8vw, 3.2rem);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    line-height: 1.05;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Just an arrow (rotates on hover via the global link-arrow script) */
+  .pcard__arrow {
+    width: 1em;
+    height: 1em;
+    flex-shrink: 0;
+    color: var(--_tokens---color--fg);
+  }
+
+  .pcard__columns {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    min-height: 100px;
+  }
+
+  .pcard__desc-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px 0;
+    box-sizing: border-box;
+  }
+  .pcard__intro {
+    font-size: var(--_tokens---type--small);
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--_tokens---color--muted);
+    margin: 0;
+    max-width: 62ch;
+  }
+  .pcard__desc {
+    font-size: var(--_tokens---type--micro);
+    line-height: 1.55;
+    color: var(--_tokens---color--muted);
+    margin: 0;
+    max-width: 62ch;
+    opacity: 0.85;
+  }
+
+  /* No-description cards keep the images on the right, empty space on the left */
+  .pcard--no-desc .pcard__columns::before {
+    content: "";
+    flex: 1;
+  }
+
+  .pcard__image-col {
+    width: 40%;
+    flex-shrink: 0;
+    overflow: hidden;
+    display: flex;
+    align-items: stretch;
+  }
+
+  .pcard__thumbs {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    overflow-x: auto;
+    overflow-y: hidden;
+    width: 100%;
+    height: 100%;
+    gap: 2px;
+    scrollbar-width: none;
+  }
+  .pcard__thumbs::-webkit-scrollbar { display: none; }
+  .pcard__thumbs.is-few { justify-content: flex-end; }
+
+  .pcard__thumb {
+    flex: 0 0 calc((100% - 8px) / 5);
+    aspect-ratio: 1;
+    max-height: 100%;
+    overflow: hidden;
+    display: block;
+  }
+  .pcard__thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  /* No placeholder art: projects without images leave the space empty */
+
+  .pcard__meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 0 10px;
+    font-size: var(--_tokens---type--ultrathin);
+    color: var(--_tokens---color--muted);
+  }
+  .pcard__meta-left { min-width: 0; overflow-wrap: anywhere; }
+  .pcard__meta-val { color: var(--_tokens---color--muted); font-weight: 400; }
+  .pcard__meta-k { color: var(--_tokens---color--muted); }
+  .pcard__meta-right { flex-shrink: 0; white-space: nowrap; }
+
+  @media (max-width: 768px) {
+    .pcard__header { padding: 10px 0; }
+    .pcard__name { white-space: normal; }
+    .pcard__desc-col { display: none; }
+    .pcard--no-desc .pcard__columns::before { display: none; }
+    .pcard__columns { flex-direction: column; min-height: auto; }
+    .pcard__image-col { width: 100%; height: auto; }
+    .pcard__thumbs { padding: 0; box-sizing: border-box; }
+    .pcard__thumbs.is-few { justify-content: flex-start; } /* always left-aligned on mobile */
+    .pcard__thumb { flex: 0 0 calc((100% - 8px) / 5); }
+    /* Fact line below the scrub — same voice as the home slider card */
+    .pcard__meta {
+      font-size: var(--_tokens---type--micro);
+      padding: 8px 0 12px;
+    }
+  }
+  .pcard__thumb { cursor: pointer; }
+  .pcard__thumb img { transition: filter 0.15s ease, opacity 0.15s ease; }
+  /* While scrubbing: active thumb in colour, the rest grayscale */
+  .pcard.is-previewing .pcard__thumb img { filter: grayscale(1); opacity: 0.5; }
+  .pcard.is-previewing .pcard__thumb.is-active img { filter: none; opacity: 1; }
+
+  @media (max-width: 768px) {
+    /* Lift the strip above the mobile glass and scrub (no native scroll) */
+    .pcard.is-previewing .pcard__thumbs {
+      position: relative;
+      z-index: 96;
+      /* pan-x: strip stays scrollable while the lightbox is open; dragging
+         still scrubs as thumbs pass under the finger */
+      touch-action: pan-x;
+    }
+  }
+</style>
+
+<script>
+  // Scrub preview for category project cards — mirrors the projects page.
+  // Desktop: a frosted preview fills the LEFT of the screen; hover/drag the
+  // thumbnails to scrub. Mobile: a frosted lightbox where the image sits ABOVE
+  // or BELOW the strip (whichever has room); the strip stays sharp and scrubs.
+  function initPcardScrub() {
+    const strips = Array.from(document.querySelectorAll<HTMLElement>('.pcard__thumbs'));
+    if (!strips.length) return;
+    const isHover = window.matchMedia('(hover: hover)').matches;
+
+    // Overlays must live inside .page-wrap (a z-index:1 stacking context) so the
+    // nav/breadcrumb stay above them and the lifted mobile strip can sit on top.
+    const host = (document.querySelector('.page-wrap') as HTMLElement) || document.body;
+    const imgsOf = (strip: HTMLElement) => Array.from(strip.querySelectorAll('img')) as HTMLImageElement[];
+    const imgAtX = (imgs: HTMLImageElement[], x: number) => {
+      for (const im of imgs) { const r = im.getBoundingClientRect(); if (x >= r.left && x <= r.right) return im; }
+      return imgs[imgs.length - 1];
+    };
+    const mark = (imgs: HTMLImageElement[], active: HTMLImageElement | null) =>
+      imgs.forEach(im => im.closest('.pcard__thumb')?.classList.toggle('is-active', im === active));
+
+    if (isHover) {
+      // ── Desktop: left-side frosted preview ──
+      let pv = document.getElementById('pcard-preview');
+      if (!pv) {
+        pv = document.createElement('div');
+        pv.id = 'pcard-preview';
+        Object.assign(pv.style, {
+          position: 'fixed', left: '44px', top: '0', bottom: '0', width: '56vw', zIndex: '95',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px', boxSizing: 'border-box',
+          backgroundColor: 'var(--_tokens---color--bg-glass)',
+          backdropFilter: 'blur(20px)', webkitBackdropFilter: 'blur(20px)',
+          opacity: '0', pointerEvents: 'none', transition: 'opacity 0.18s ease',
+        } as Partial<CSSStyleDeclaration>);
+        const im = document.createElement('img');
+        Object.assign(im.style, { maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', display: 'block' } as Partial<CSSStyleDeclaration>);
+        pv.appendChild(im);
+        host.appendChild(pv);
+      }
+      const pvImg = pv.querySelector('img') as HTMLImageElement;
+
+      strips.forEach((strip) => {
+        if ((strip as any)._pc) return; (strip as any)._pc = true;
+        const imgs = imgsOf(strip); if (!imgs.length) return;
+        const card = strip.closest('.pcard');
+        strip.addEventListener('pointerenter', () => { pvImg.src = imgs[0].src; pv!.style.opacity = '1'; card?.classList.add('is-previewing'); mark(imgs, imgs[0]); });
+        strip.addEventListener('pointermove', (e) => { const t = imgAtX(imgs, (e as PointerEvent).clientX); pvImg.src = t.src; mark(imgs, t); });
+        strip.addEventListener('pointerleave', () => { pv!.style.opacity = '0'; card?.classList.remove('is-previewing'); mark(imgs, null); });
+      });
+    } else {
+      // ── Mobile: lightbox anchored above/below the strip ──
+      let lb = document.getElementById('pcard-lb');
+      if (!lb) {
+        lb = document.createElement('div');
+        lb.id = 'pcard-lb';
+        Object.assign(lb.style, {
+          position: 'fixed', left: '44px', top: '0', right: '0', bottom: '0', zIndex: '95', display: 'none',
+          backgroundColor: 'var(--_tokens---color--bg-glass)',
+          backdropFilter: 'blur(20px)', webkitBackdropFilter: 'blur(20px)',
+        } as Partial<CSSStyleDeclaration>);
+        const area = document.createElement('div');
+        area.className = 'pcard-lb-area';
+        Object.assign(area.style, { position: 'absolute', left: '0', right: '0', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', boxSizing: 'border-box', pointerEvents: 'none' } as Partial<CSSStyleDeclaration>);
+        const im = document.createElement('img');
+        Object.assign(im.style, { maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block' } as Partial<CSSStyleDeclaration>);
+        area.appendChild(im);
+
+        // Bar container (contains Go to project link and Close button)
+        const bar = document.createElement('div');
+        bar.id = 'pcard-lb-bar';
+        bar.className = 'pcard-lb-bar';
+        Object.assign(bar.style, {
+          position: 'absolute', left: '0', right: '0', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', boxSizing: 'border-box', pointerEvents: 'none'
+        } as Partial<CSSStyleDeclaration>);
+
+        const link = document.createElement('a');
+        link.id = 'pcard-lb-link';
+        link.className = 'pcard-lb-link';
+        link.innerHTML = '<span>Go to project</span><svg viewBox="0 0 24 24" style="width: 0.9em; height: 0.9em; flex-shrink: 0; margin-left: 6px;" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"/><polyline points="10 6 18 6 18 14"/></svg>';
+        Object.assign(link.style, {
+          display: 'inline-flex', alignItems: 'center', color: 'var(--_tokens---color--fg)', textDecoration: 'none', fontFamily: 'var(--_tokens---font--mono)', fontSize: 'var(--_tokens---type--micro)', fontWeight: '500', letterSpacing: '0.05em', pointerEvents: 'auto', outline: 'none'
+        } as Partial<CSSStyleDeclaration>);
+
+        const close = document.createElement('button');
+        close.className = 'pcard-lb-close';
+        close.setAttribute('aria-label', 'Close');
+        close.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+        Object.assign(close.style, { display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', color: 'var(--_tokens---color--fg)', cursor: 'pointer', pointerEvents: 'auto', width: '40px', height: '40px', padding: '0', margin: '0' } as Partial<CSSStyleDeclaration>);
+
+        bar.appendChild(link);
+        bar.appendChild(close);
+        
+        // Title container
+        const title = document.createElement('h2');
+        title.id = 'pcard-lb-title';
+        title.className = 'pcard-lb-title';
+        Object.assign(title.style, {
+          position: 'absolute', left: '0', right: '0', display: 'flex', justifyContent: 'flex-start', textAlign: 'left', padding: '16px 16px', margin: '0', boxSizing: 'border-box', fontWeight: '600', color: 'var(--_tokens---color--fg)', pointerEvents: 'none', fontFamily: 'var(--_tokens---font--sans)', lineHeight: '1.25'
+        } as Partial<CSSStyleDeclaration>);
+
+        lb.appendChild(area); lb.appendChild(bar); lb.appendChild(title);
+        host.appendChild(lb);
+      }
+      const lbEl = lb as HTMLElement;
+      const area = lbEl.querySelector('.pcard-lb-area') as HTMLElement;
+      const lbImg = area.querySelector('img') as HTMLImageElement;
+      const lbBar = lbEl.querySelector('#pcard-lb-bar') as HTMLElement;
+      const lbLink = lbEl.querySelector('#pcard-lb-link') as HTMLAnchorElement;
+      const lbTitle = lbEl.querySelector('#pcard-lb-title') as HTMLElement | null;
+      let activeStrip: HTMLElement | null = null;
+
+      const position = (strip: HTMLElement) => {
+        const r = strip.getBoundingClientRect();
+        const vh = window.innerHeight;
+        if (vh - r.bottom >= r.top) { // image below the strip
+          area.style.top = (r.bottom + 44) + 'px'; area.style.bottom = '84px';
+          lbBar.style.top = r.bottom + 'px'; lbBar.style.bottom = 'auto';
+
+          // Title is on TOP (above the strip)
+          if (lbTitle) {
+            lbTitle.style.top = '0px';
+            lbTitle.style.bottom = (vh - r.top) + 'px';
+            lbTitle.style.paddingTop = '20px';
+            lbTitle.style.paddingBottom = '12px';
+            lbTitle.style.alignItems = 'flex-end';
+            const availableHeight = r.top - 20 - 12;
+            const fontSizePx = Math.max(18, Math.min(36, availableHeight * 0.12));
+            lbTitle.style.fontSize = `${fontSizePx}px`;
+          }
+        } else { // image above the strip
+          area.style.top = '0px'; area.style.bottom = (vh - r.top + 44) + 'px';
+          lbBar.style.top = (r.top - 44) + 'px'; lbBar.style.bottom = 'auto';
+
+          // Title is on BOTTOM (below the strip)
+          if (lbTitle) {
+            lbTitle.style.top = r.bottom + 'px';
+            lbTitle.style.bottom = '0px';
+            lbTitle.style.paddingTop = '12px';
+            lbTitle.style.paddingBottom = '84px';
+            lbTitle.style.alignItems = 'flex-start';
+            const availableHeight = (vh - r.bottom) - 84 - 12;
+            const fontSizePx = Math.max(18, Math.min(36, availableHeight * 0.12));
+            lbTitle.style.fontSize = `${fontSizePx}px`;
+          }
+        }
+      };
+      const open = (strip: HTMLElement, im: HTMLImageElement) => {
+        activeStrip = strip;
+        const card = strip.closest('.pcard') as HTMLElement;
+        if (lbTitle) lbTitle.textContent = card?.dataset.name || '';
+        const href = card?.getAttribute('href');
+        if (lbLink && href) lbLink.href = href;
+        position(strip);
+        lbImg.src = im.src;
+        card?.classList.add('is-previewing');
+        lbEl.style.display = 'block';
+        document.documentElement.style.overflow = 'hidden'; document.body.style.overflow = 'hidden';
+      };
+      const close = () => {
+        lbEl.style.display = 'none';
+        document.documentElement.style.overflow = ''; document.body.style.overflow = '';
+        activeStrip?.closest('.pcard')?.classList.remove('is-previewing');
+        activeStrip = null;
+      };
+
+      if (!(lbEl as any)._bound) {
+        (lbEl as any)._bound = true;
+        lbEl.addEventListener('click', close);
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+        window.addEventListener('resize', () => {
+          if (activeStrip && lbEl.style.display === 'block') position(activeStrip);
+        });
+      }
+
+      strips.forEach((strip) => {
+        if ((strip as any)._pc) return; (strip as any)._pc = true;
+        const imgs = imgsOf(strip); if (!imgs.length) return;
+        imgs.forEach((im) => {
+          im.closest('.pcard__thumb')?.addEventListener('click', (e) => {
+            e.preventDefault(); e.stopPropagation();
+            mark(imgs, im); open(strip, im);
+          });
+        });
+        strip.addEventListener('pointermove', (e) => {
+          if (lbEl.style.display !== 'block' || activeStrip !== strip) return;
+          const t = imgAtX(imgs, (e as PointerEvent).clientX); lbImg.src = t.src; mark(imgs, t);
+        });
+      });
+    }
+  }
+
+  initPcardScrub();
+  document.addEventListener('astro:after-swap', initPcardScrub);
+</script>

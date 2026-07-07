@@ -1,0 +1,1806 @@
+---
+import { getEntry } from 'astro:content';
+import PageLayout from '../layouts/PageLayout.astro';
+import Footer from '../components/Footer.astro';
+import { publicFileExists } from '../lib/content';
+
+// PDF links only render once the files actually exist in public/
+const hasPortfolio = publicFileExists('/advaita-kelkar-portfolio.pdf');
+const hasCv = publicFileExists('/advaita-kelkar-resume.pdf');
+
+// Editable about-page prose (inline edit mode writes src/content/pages/about.yaml).
+const about = await getEntry('pages', 'about');
+const aboutRole = about?.data.role ?? 'Architectural Designer + Researcher';
+const aboutDegree = about?.data.degree ?? 'Master of Architecture · SCAD ‘27 · Mumbai';
+const aboutBioLead = about?.data.bioLead ?? '';
+const aboutBioMore = about?.data.bioMore ?? [];
+const aboutCareerTagline = about?.data.careerTagline ?? 'Dissolving roles and evolutions: Professional journey from Mumbai teams to SCAD fabrication, always fusing leadership with innovation.';
+
+// Structured career experience data
+const experience = [
+  {
+    title: "Fabrication Monitor",
+    role: "On Campus Employment",
+    company: "SCAD Foundation Studies",
+    dates: "Nov 2024 - Present",
+    location: "Savannah, United States",
+    desc: "Fabrication Monitor | SCAD Foundation Studies: Responsible for maintaining studio facilities, tools, and equipment while ensuring adherence to safe work practices. Tasks included designing and fabricating jigs, shop fixtures, signage, display fixtures, and light-duty repairs, as well as painting and shop upkeep. (Part Time)"
+  },
+  {
+    title: "ARCHV",
+    role: "Founder",
+    company: "ARCHV Collective",
+    dates: "Nov 2024 - Present",
+    location: "Savannah, United States",
+    desc: "Founder at ARCHV: Established an inclusive collective focused on collaborative learning and creation, prioritizing passion over constraints of money and time. Facilitated transdisciplinary projects with diverse participation, driven by collective effort and a shared love for design and innovation. (Part Time)"
+  },
+  {
+    title: "F'KD Workshop",
+    role: "Project Architect",
+    company: "Faizan Khatri Design Workshop",
+    dates: "2021 - 2023",
+    location: "Mumbai, India",
+    desc: "Project Architect at Faizan Khatri Design Workshop: Gained hands-on experience in establishing a new studio, building and leading teams, and mentoring junior professionals. Led architectural and interior design, visualization, rendering, and project management for hospitality, public spaces, and residential projects. Also contributed to crafting project proposals and coordinating multiple projects seamlessly. (Full Time)"
+  },
+  {
+    title: "Studio 823",
+    role: "Architect",
+    company: "Studio Eight Twentythree",
+    dates: "2018 - 2021",
+    location: "Mumbai, India",
+    desc: "Architect at Studio Eight Twentythree: Began as an intern during my final year of architecture studies and transitioned into a full-time role post-graduation. Contributed to diverse projects across hospitality, commercial spaces, architectural research, and residential interior design. Mentored by Samir Raut and Faizan Khatri, I honed my skills in a dynamic, enriching environment that laid the foundation for my professional growth. (Full Time)"
+  }
+];
+
+// Structured exhibitions data
+const exhibitions = [
+  {
+    title: "Indian Art Fair",
+    role: "Public Art Exhibition",
+    company: "Nayan Mote Studio",
+    dates: "Nov 2024",
+    location: "Mumbai, India",
+    desc: "Public Art Exhibition by Nayan Mote Studio, showcasing the CARLO and Urban Dichotomy artwork collections."
+  },
+  {
+    title: "Raw Collaborative",
+    role: "Public Art Exhibition",
+    company: "ARCHV Collective",
+    dates: "Nov 2021",
+    location: "Mumbai, India",
+    desc: "Public Art Exhibition by ARCHV, featuring a diverse collection of collaborative works."
+  },
+  {
+    title: "Celebrate Bandra",
+    role: "Public Art Exhibition",
+    company: "ARCHV Collective",
+    dates: "2019",
+    location: "Mumbai, India",
+    desc: "Public Art Exhibition by ARCHV, featuring a diverse collection of collaborative works."
+  },
+  {
+    title: "Traces and Territory",
+    role: "Public Art Exhibition",
+    company: "ARCHV Collective",
+    dates: "2019",
+    location: "Ahmedabad, India",
+    desc: "Public Art Exhibition by ARCHV, featuring a diverse collection of collaborative works."
+  }
+];
+
+// Structured timeline data
+const timeline = [
+  {
+    title: "(SCAD) Savannah College of Art & Design",
+    role: "Master of Architecture (NAAB-accredited)",
+    company: "Savannah College of Art & Design",
+    dates: "2024 - 2027",
+    location: "Savannah, United States",
+    desc: "Mastering parametric tools (Grasshopper, Midjourney, Unreal) and AI; thesis on cultural fusions – refining skills while balancing intensity with personal growth."
+  },
+  {
+    title: "ARCHV",
+    role: "Co-Founder, Architecture Collective",
+    company: "ARCHV, Online",
+    dates: "2018 - 2024",
+    location: "Online",
+    desc: "Inclusive collective prioritizing passion; led transdisciplinary projects driven by shared design love – dissolving constraints into collaborative innovation."
+  },
+  {
+    title: "F'KD Workshop, Mumbai",
+    role: "Project Architect",
+    company: "Faizan Khatri Design Workshop",
+    dates: "2021 - 2023",
+    location: "Mumbai, India",
+    desc: "Built studio, led teams, mentored juniors; managed architecture, interiors, visualization, and proposals for hospitality, public, and residential – blending execution with research."
+  },
+  {
+    title: "Raw Collaborative Exhibition",
+    role: "On ground Exhibition",
+    company: "ARCHV Collective",
+    dates: "2021",
+    location: "Mumbai, India",
+    desc: "Public Art by ARCHV – diverse works fusing transdisciplinary play and creativity."
+  },
+  {
+    title: "Virtual Gods",
+    role: "Co-Founded ARCHV Collective",
+    company: "ARCHV Collective",
+    dates: "2020",
+    location: "Online",
+    desc: "Virtual platform for innovative collaborations; hosted India's first online group art exhibit (still live) – connecting global creators via design and tech experiments."
+  },
+  {
+    title: "Celebrate Bandra Exhibition",
+    role: "Public Art by ARCHV collective",
+    company: "ARCHV Collective",
+    dates: "2019",
+    location: "Mumbai, India",
+    desc: "Public Art by ARCHV collective – urban joy through collaborative art, dissolving community with personal expression."
+  },
+  {
+    title: "Dhal Ni Pol",
+    role: "Public Art by ARCHV collective",
+    company: "ARCHV Collective",
+    dates: "2019",
+    location: "Ahmedabad, India",
+    desc: "Public Art by ARCHV collective – urban joy through collaborative art, dissolving community with personal expression."
+  },
+  {
+    title: "Studio 823",
+    role: "Architect, Full-Time",
+    company: "Studio Eight Twentythree",
+    dates: "2018 - 2021",
+    location: "Mumbai, India",
+    desc: "Started as intern in final BArch year; contributed to hospitality, commercial, research, and residential interiors under mentorship – fusing dynamic environments with professional growth."
+  },
+  {
+    title: "Pragrup",
+    role: "Bangalore Intern",
+    company: "Pragrup",
+    dates: "Jan 2016 - Jun 2016",
+    location: "Bangalore, India",
+    desc: "Hands-on full-scale builds; teamwork on wood houses, competitions, commercial spaces, and experimental graphics – transforming learning into real-world impact."
+  },
+  {
+    title: "Hiray College of Architecture",
+    role: "Bachelor of Architecture",
+    company: "Hiray College of Architecture",
+    dates: "2012 - 2019",
+    location: "Mumbai, India",
+    desc: "Built core principles through hands-on projects; dissolved theory into practical exploration, laying foundations for innovation."
+  }
+];
+
+// Timeline grouped BY YEAR (an entry files under its start year), newest
+// first — each year renders as one accordion card listing that year's
+// events. Add entries above in any order; they self-organise.
+const startYear = (d: string) => (d.match(/\d{4}/) ?? ['0'])[0];
+const timelineByYear: Record<string, typeof timeline> = {};
+timeline.forEach(t => {
+  const y = startYear(t.dates);
+  (timelineByYear[y] ??= []).push(t);
+});
+const timelineYears = Object.keys(timelineByYear)
+  .sort((a, b) => Number(b) - Number(a))
+  .map(y => ({ year: y, events: timelineByYear[y] }));
+
+// The early years read better as one chapter: everything up to 2018 is
+// folded into a single bottom card ("2012 – 2018"), events newest-first.
+const EARLY_CUTOFF = 2018;
+const timelineGroups = timelineYears.filter(g => Number(g.year) > EARLY_CUTOFF);
+const early = timelineYears.filter(g => Number(g.year) <= EARLY_CUTOFF);
+if (early.length) {
+  const ys = early.map(g => Number(g.year));
+  timelineGroups.push({
+    year: `${Math.min(...ys)} – ${Math.max(...ys)}`,
+    events: early.flatMap(g => g.events),
+  });
+}
+
+// Structured skillset categories
+const skillsets = [
+  {
+    category: "Languages",
+    skills: [
+      { name: "Hindi", level: "(Native)" },
+      { name: "English", level: "(Fluent)" },
+      { name: "Marathi", level: "(Native)" }
+    ]
+  },
+  {
+    category: "Software",
+    skills: [
+      { name: "Rhinoceros 3D", level: "(Intermediate)" },
+      { name: "SketchUp", level: "(Expert)" },
+      { name: "AutoCAD", level: "(Expert)" },
+      { name: "Revit", level: "(Expert)" },
+      { name: "Lumion", level: "(Expert)" },
+      { name: "V-Ray", level: "(Intermediate)" },
+      { name: "Enscape", level: "(Expert)" },
+      { name: "Unreal Engine", level: "(Basic)" },
+      { name: "Midjourney AI", level: "(Expert)" },
+      { name: "Adobe Illustrator", level: "(Expert)" },
+      { name: "Photoshop", level: "(Intermediate)" },
+      { name: "InDesign", level: "(Expert)" },
+      { name: "Canva", level: "(Expert)" },
+      { name: "Webflow", level: "(Expert)" },
+      { name: "Figma", level: "(Expert)" },
+      { name: "Framer", level: "(Basic)" },
+      { name: "Grasshopper", level: "(Basic)" },
+      { name: "Microsoft Office", level: "(Expert)" },
+      { name: "Notion", level: "(Expert)" },
+      { name: "Miro", level: "(Expert)" }
+    ]
+  }
+];
+---
+
+<PageLayout
+  title="About"
+  label="About"
+  crumbs={[
+    { label: 'Home', href: '/' },
+    { label: 'About' }
+  ]}
+  showFooter={false}
+>
+  <article class="about-page">
+    
+    <!-- Continuous scroll page — no section snapping -->
+    <section class="about-section-snap about-section--intro">
+
+      <!-- Full-width name header: text left, photo right (top-aligned) -->
+      <header class="profile-header">
+        <div class="profile-header__text">
+          <h1 class="profile-name" data-scramble>Advaita Kelkar</h1>
+          <p class="profile-role" data-scramble data-edit="pages/about/role">{aboutRole}</p>
+          <p class="profile-degree" data-edit="pages/about/degree">{aboutDegree}</p>
+        </div>
+        <div class="profile-photo-circle" aria-hidden="true"></div>
+      </header>
+
+      <!-- Equal two-column grid: left = photo+bio, right = education -->
+      <div class="about-top-grid">
+
+        <!-- LEFT COLUMN: bio text + read more -->
+        <div class="about-top-left">
+          <div class="about-bio__text" id="bio-text-container">
+            <p data-edit="pages/about/bioLead" data-edit-html set:html={aboutBioLead} />
+
+            <div class="bio-collapsed-content" id="bio-collapsed-content" style="display: none;">
+              {aboutBioMore.map((para, i) => (
+                <p data-edit={`pages/about/bioMore.${i}`}>{para}</p>
+              ))}
+            </div>
+
+            <div class="bio-buttons-row">
+              <button class="bio-read-more-btn" id="bio-read-more-btn" type="button">
+                <span>Read More</span>
+                <svg class="link-arrow bio-read-more-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+                  <line x1="6" y1="18" x2="18" y2="6"></line>
+                  <polyline points="10 6 18 6 18 14"></polyline>
+                </svg>
+              </button>
+
+              {hasCv && (
+                <a href="/advaita-kelkar-resume.pdf" class="about-link-row" target="_blank" rel="noopener">
+                  <span class="about-link-row__text">Resume</span>
+                  <span class="about-link-row__arrow" aria-hidden="true">
+                    <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+                      <line x1="6" y1="18" x2="18" y2="6"></line>
+                      <polyline points="10 6 18 6 18 14"></polyline>
+                    </svg>
+                  </span>
+                </a>
+              )}
+
+              {hasPortfolio && (
+                <a href="/advaita-kelkar-portfolio.pdf" class="about-link-row" target="_blank" rel="noopener">
+                  <span class="about-link-row__text">Portfolio</span>
+                  <span class="about-link-row__arrow" aria-hidden="true">
+                    <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+                      <line x1="6" y1="18" x2="18" y2="6"></line>
+                      <polyline points="10 6 18 6 18 14"></polyline>
+                    </svg>
+                  </span>
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN: education pills (top is intentionally open) -->
+        <div class="about-top-right">
+          <div class="about-education__list">
+            <!-- Education pill 1: SCAD -->
+            <div class="education-pill" data-pill="edu-scad">
+              <button class="education-pill__trigger" aria-expanded="false" aria-controls="edu-scad-content" type="button">
+                <span class="education-pill__name">
+                  Master of Architecture
+                  <span class="active-status-text">ACTIVE</span>
+                </span>
+                <div class="education-pill__trigger-right">
+                  <span class="education-pill__years">2024 – 2027</span>
+                  <svg class="edu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">
+                    <line x1="6" y1="18" x2="18" y2="6"></line>
+                    <polyline points="10 6 18 6 18 14"></polyline>
+                  </svg>
+                </div>
+              </button>
+              <div class="education-pill__content" id="edu-scad-content">
+                <div class="education-pill__content-inner">
+                  <p class="education-pill__degree">
+                    MArch, Architecture - <a href="https://www.scad.edu/academics/programs/architecture/degrees/march" class="education-inline-link" data-no-scramble target="_blank" rel="noopener">Savannah College of Art and Design</a>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Education pill 2: University of Mumbai -->
+            <div class="education-pill" data-pill="edu-mumbai">
+              <button class="education-pill__trigger" aria-expanded="false" aria-controls="edu-mumbai-content" type="button">
+                <span class="education-pill__name">Bachelor of Architecture</span>
+                <div class="education-pill__trigger-right">
+                  <span class="education-pill__years">2012 – 2019</span>
+                  <svg class="edu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">
+                    <line x1="6" y1="18" x2="18" y2="6"></line>
+                    <polyline points="10 6 18 6 18 14"></polyline>
+                  </svg>
+                </div>
+              </button>
+              <div class="education-pill__content" id="edu-mumbai-content">
+                <div class="education-pill__content-inner">
+                  <p class="education-pill__degree">
+                    BArch, Architecture - <a href="https://hiray.edu.in/home" class="education-inline-link" data-no-scramble target="_blank" rel="noopener">DBHCOA</a>, University of Mumbai
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <a href="https://linkedin.com/in/advaitakelkar" class="education-more-link" target="_blank" rel="noopener">
+              <span>+ LinkedIn / full resume</span>
+              <svg class="link-arrow bio-read-more-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+                <line x1="6" y1="18" x2="18" y2="6"></line>
+                <polyline points="10 6 18 6 18 14"></polyline>
+              </svg>
+            </a>
+          </div>
+        </div>
+
+      </div>
+
+
+      <!-- Career Tabs + Card Deck -->
+      <div class="about-career-container" id="panel-career-section">
+        <!-- Tabs (Sticky 100% width, equally spaced) -->
+        <div class="about-tabs-container" role="tablist" aria-label="Career sections">
+          <button class="about-tab-btn is-active" role="tab" aria-selected="true" aria-controls="panel-about" data-tab="about">
+            <span>
+              <span class="tab-label-full">Work EXP</span>
+              <span class="tab-label-short">EXP</span>
+            </span>
+            <svg class="pill-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+          </button>
+          <button class="about-tab-btn" role="tab" aria-selected="false" aria-controls="panel-exhibitions" data-tab="exhibitions">
+            <span>
+              <span class="tab-label-full">Exhibitions</span>
+              <span class="tab-label-short">EXHIB</span>
+            </span>
+            <svg class="pill-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+          </button>
+          <button class="about-tab-btn" role="tab" aria-selected="false" aria-controls="panel-timeline" data-tab="timeline">
+            <span>
+              <span class="tab-label-full">Timeline</span>
+              <span class="tab-label-short">TL</span>
+            </span>
+            <svg class="pill-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+          </button>
+        </div>
+
+        <p class="about-career__tagline text-muted" data-edit="pages/about/careerTagline">{aboutCareerTagline}</p>
+
+        <div class="about-tab-content">
+          <!-- Panel 1: About (Experience) -->
+          <div class="about-tab-panel is-active" id="panel-about" role="tabpanel" aria-labelledby="tab-about">
+            {experience.map((item, idx) => (
+              <div class="about-card" style={`--card-index: ${idx};`}>
+                <div class="about-card__header">
+                  <h3 class="about-card__title">
+                    {item.title}
+                    {item.title === "Fabrication Monitor" && (
+                      <span class="active-status-text">ACTIVE</span>
+                    )}
+                  </h3>
+                  <div class="about-card__header-right">
+                    <span class="about-card__dates">{item.dates}</span>
+                    <svg class="about-card__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">
+                      <line x1="6" y1="18" x2="18" y2="6"></line>
+                      <polyline points="10 6 18 6 18 14"></polyline>
+                    </svg>
+                  </div>
+                </div>
+                <div class="about-card__body">
+                  <div class="about-card__body-inner">
+                    <p class="about-card__meta text-muted">{item.company} · {item.role} · {item.location}</p>
+                    {item.desc && <p class="about-card__desc text-muted">{item.desc}</p>}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <!-- Panel 2: Exhibitions -->
+          <div class="about-tab-panel" id="panel-exhibitions" role="tabpanel" aria-labelledby="tab-exhibitions" style="display: none;">
+            {exhibitions.map((item, idx) => (
+              <div class="about-card" style={`--card-index: ${idx};`}>
+                <div class="about-card__header">
+                  <h3 class="about-card__title">{item.title}</h3>
+                  <div class="about-card__header-right">
+                    <span class="about-card__dates">{item.dates}</span>
+                    <svg class="about-card__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">
+                      <line x1="6" y1="18" x2="18" y2="6"></line>
+                      <polyline points="10 6 18 6 18 14"></polyline>
+                    </svg>
+                  </div>
+                </div>
+                <div class="about-card__body">
+                  <div class="about-card__body-inner">
+                    <p class="about-card__meta text-muted">{item.company} · {item.role} · {item.location}</p>
+                    {item.desc && <p class="about-card__desc text-muted">{item.desc}</p>}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <!-- Panel 3: Timeline — one card per YEAR; open it to see the
+               events that started that year -->
+          <div class="about-tab-panel" id="panel-timeline" role="tabpanel" aria-labelledby="tab-timeline" style="display: none;">
+            {timelineGroups.map((g, idx) => (
+              <div class="about-card" style={`--card-index: ${idx};`}>
+                <div class="about-card__header">
+                  <h3 class="about-card__title">{g.year}</h3>
+                  <div class="about-card__header-right">
+                    <span class="about-card__dates">{g.events.length} {g.events.length === 1 ? 'entry' : 'entries'}</span>
+                    <svg class="about-card__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">
+                      <line x1="6" y1="18" x2="18" y2="6"></line>
+                      <polyline points="10 6 18 6 18 14"></polyline>
+                    </svg>
+                  </div>
+                </div>
+                <div class="about-card__body">
+                  <div class="about-card__body-inner">
+                    {g.events.map(item => (
+                      <div class="timeline-event">
+                        <p class="timeline-event__title">{item.title} <span class="timeline-event__dates">{item.dates}</span></p>
+                        <p class="about-card__meta text-muted">{item.company} · {item.role} · {item.location}</p>
+                        {item.desc && <p class="about-card__desc text-muted">{item.desc}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <!-- Skillset (in same snap as career tabs) -->
+      <div class="skillset-header-row">
+        <h1 class="skillset-title">Skillset</h1>
+        <input
+          type="search"
+          id="skill-search"
+          class="skillset-search-input"
+          placeholder="Search"
+          autocomplete="off"
+          aria-label="Search skillset"
+        />
+      </div>
+      
+
+      <div class="skillset-grid skillset-grid--two">
+        <!-- Languages: show title -->
+        <div class="skillset-card" data-keywords={`${skillsets[0].category} ${skillsets[0].skills.map(s => s.name).join(' ')}`.toLowerCase()}>
+          <h3 class="skillset-card__title">{skillsets[0].category}</h3>
+          <div class="skill-pills">
+            {skillsets[0].skills.map((skill) => (
+              <a
+                href={`/projects?search=${encodeURIComponent(skill.name)}`}
+                class="proj-bubble skill-pill"
+                title={`Click to view projects using ${skill.name}`}
+              >
+                <span class="proj-bubble__name" data-short={skill.name} data-full={skill.name}>{skill.name}</span>
+                <span class="proj-bubble__tag">{skill.level}</span>
+                <svg class="link-arrow proj-bubble__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+                  <line x1="6" y1="18" x2="18" y2="6"></line>
+                  <polyline points="10 6 18 6 18 14"></polyline>
+                </svg>
+              </a>
+            ))}
+          </div>
+        </div>
+        <!-- Softwares: title + pills -->
+        <div class="skillset-card" data-keywords={`${skillsets[1].category} ${skillsets[1].skills.map(s => s.name).join(' ')}`.toLowerCase()}>
+          <h3 class="skillset-card__title">{skillsets[1].category}</h3>
+          <div class="skill-pills">
+            {skillsets[1].skills.map((skill) => (
+              <a
+                href={`/projects?search=${encodeURIComponent(skill.name)}`}
+                class="proj-bubble skill-pill"
+                title={`Click to view projects using ${skill.name}`}
+              >
+                <span class="proj-bubble__name" data-short={skill.name} data-full={skill.name}>{skill.name}</span>
+                <span class="proj-bubble__tag">{skill.level}</span>
+                <svg class="link-arrow proj-bubble__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+                  <line x1="6" y1="18" x2="18" y2="6"></line>
+                  <polyline points="10 6 18 6 18 14"></polyline>
+                </svg>
+              </a>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <!-- Project Quick Search & Footer -->
+      <div class="skillset-footer-wrap" style="padding-top: clamp(2rem, 6vh, 4rem); padding-bottom: 80px; width: 100%;">
+        <Footer isEmbedded={true} />
+      </div>
+
+    </section>
+  </article>
+</PageLayout>
+
+<style>
+  /* Snapping layout — scroll-snap removed; about page scrolls freely */
+  :global(html) {
+    scroll-behavior: smooth;
+    scroll-padding-top: 64px;
+  }
+
+  /* On mobile portrait the breadcrumb docks to the bottom */
+  @media (max-width: 767px) and (orientation: portrait) {
+    :global(html) {
+      scroll-padding-top: 12px;
+      scroll-padding-bottom: 76px;
+    }
+  }
+
+  .about-page {
+    position: relative;
+    width: 100%;
+  }
+
+  .about-section-snap {
+    height: auto;
+    min-height: 100dvh;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    transition: padding 0.3s ease;
+    overflow: visible;
+  }
+
+  .about-section--intro {
+    justify-content: flex-start;
+    padding-top: calc(clamp(2rem, 5vh, 3rem) + 48px);
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  /* ══ Equal two-column top grid ══════════════════════════════ */
+  .about-top-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    align-items: stretch;
+    margin-bottom: 32px;
+    width: 100%;
+  }
+
+  .about-top-left {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0;
+  }
+
+  .about-top-right {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    min-width: 0;
+  }
+
+  /* ══ Full-width profile header: name left, photo right top-aligned ══ */
+  .profile-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 24px;
+    width: 100%;
+  }
+
+  .profile-header__text {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  .profile-photo-circle {
+    width: clamp(64px, 8vw, 100px);
+    height: clamp(64px, 8vw, 100px);
+    border-radius: 50%;
+    background-image: url('/images/admin/profile.jpg');
+    background-size: cover;
+    background-position: center top;
+    background-repeat: no-repeat;
+    flex-shrink: 0;
+    /* top edge aligns with name baseline via align-items: flex-start on parent */
+  }
+
+  /* ══ Circular profile photo (right col, top — beside name) ══ */
+  .profile-photo-large {
+    width: clamp(72px, 9vw, 108px);
+    height: clamp(72px, 9vw, 108px);
+    border-radius: 50%;
+    background-image: url('/images/admin/profile.jpg');
+    background-size: cover;
+    background-position: center top;
+    background-repeat: no-repeat;
+    flex-shrink: 0;
+    margin-bottom: 20px;
+  }
+
+  /* Name — medium on desktop (one size below H1); family small on mobile */
+  .profile-name {
+    font-size: var(--_tokens---type--medium);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    color: var(--_tokens---color--fg);
+    margin: 0;
+  }
+
+  @media (max-width: 768px) {
+    .profile-name {
+      font-size: var(--_tokens---type--small);
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      line-height: 1.2;
+    }
+  }
+
+  .profile-role {
+    font-size: var(--_tokens---type--micro);
+    font-weight: 400;
+    color: var(--_tokens---color--fg);
+    margin: 0;
+  }
+
+  .profile-degree {
+    font-size: var(--_tokens---type--micro);
+    font-weight: 300;
+    color: var(--_tokens---color--muted);
+    margin: 0;
+  }
+
+  .profile-contact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-bottom: 6px;
+  }
+
+  .profile-contact__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: var(--_tokens---type--micro);
+    color: var(--_tokens---color--fg);
+    text-decoration: none;
+    border: 1px solid var(--_tokens---color--line-soft);
+    border-radius: var(--_tokens---radius--pill);
+    padding: 5px 12px;
+    transition: background-color 0.2s, border-color 0.2s;
+  }
+
+  .profile-contact__link:hover {
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    border-color: color-mix(in srgb, var(--_tokens---color--fg) 26%, transparent);
+  }
+
+  .profile-contact__arrow {
+    width: 0.8em;
+    height: 0.8em;
+    flex-shrink: 0;
+    display: inline-block;
+    transition: transform 0.25s ease;
+  }
+
+  .profile-contact__link:hover .profile-contact__arrow {
+    transform: translate(1px, -1px);
+  }
+
+  @media (max-width: 640px) {
+    .profile-meta {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 14px;
+    }
+    .profile-contact { padding-bottom: 0; }
+  }
+
+  .about-career-container {
+    width: 100%;
+    margin-top: 0;
+    position: relative;
+  }
+
+
+  /* Footer / Discover is now inline — no separate section */
+
+
+
+  .about-intro {
+    margin-bottom: 32px;
+  }
+
+  .about-intro__desc {
+    font-size: var(--_tokens---type--small);
+    line-height: 1.7;
+    color: var(--_tokens---color--fg);
+    max-width: 84ch;
+    margin: 0;
+  }
+
+  /* ── Bio text (left column) ── */
+  .about-bio__text {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .about-bio__text p {
+    font-size: var(--_tokens---type--micro);
+    line-height: 1.65;
+    color: var(--_tokens---color--muted);
+    margin: 0 0 12px 0;
+  }
+
+  .about-bio__text p:last-of-type { margin-bottom: 0; }
+
+  @media (max-width: 768px) {
+    .about-top-grid {
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+    .profile-photo-large {
+      width: 80px;
+      height: 80px;
+    }
+  }
+
+  .about-link-row__text {
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+    letter-spacing: inherit;
+  }
+
+  .about-link-row__arrow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 0.8em;
+    height: 0.8em;
+    flex-shrink: 0;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+    opacity: 0.55;
+  }
+
+  .link-arrow {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Career Tabs Pill Menu — wraps to two rows, sized to content like link rows */
+  .about-tabs-container {
+    display: flex;
+    flex-direction: row;
+    gap: 6px;
+    flex-wrap: nowrap;
+    width: 100%;
+    margin-block: 0 16px;
+    padding-bottom: 12px;
+    position: sticky;
+    top: 44px;
+    z-index: 10;
+    background-color: var(--_tokens---color--bg);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+  }
+
+  .about-tabs-container::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+  }
+
+  .tab-label-short {
+    display: none;
+  }
+
+  .about-tab-btn {
+    flex: 0 0 auto;           /* shrink-to-content width */
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    font-size: var(--_tokens---type--medium);
+    font-family: inherit;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    border: 1px solid var(--_tokens---color--line-soft);
+    color: var(--_tokens---color--muted);
+    padding: 14px 22px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    border-radius: var(--_tokens---radius--pill);
+    white-space: nowrap;
+  }
+
+  .about-tab-btn .pill-arrow {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    opacity: 0.55;
+    transition: opacity 0.2s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .about-tab-btn:hover {
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
+    color: var(--_tokens---color--fg);
+    border-color: color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
+  }
+
+  .about-tab-btn:hover .pill-arrow {
+    opacity: 1;
+    transform: translate(2px, -2px);
+  }
+
+  .about-tab-btn.is-active {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
+  }
+
+  .about-tab-btn.is-active .pill-arrow {
+    opacity: 0.7;
+  }
+
+  .about-career__tagline {
+    font-size: var(--_tokens---type--micro);
+    line-height: 1.5;
+    text-align: left;
+    max-width: 80ch;
+    margin-inline: 0 auto;
+    margin-bottom: 32px;
+    flex-shrink: 0;
+  }
+
+  .about-tab-content {
+    width: 100%;
+    position: relative;
+  }
+
+  /* Tab Panel Transitions */
+  .about-tab-panel {
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .about-tab-panel.is-active {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ── Accordion cards (experience / exhibitions / timeline) ── */
+  .about-card {
+    width: 100%;
+    box-sizing: border-box;
+    border-top: 1px solid var(--_tokens---color--line-soft);
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+  }
+
+  .about-card:last-child {
+    border-bottom: 1px solid var(--_tokens---color--line-soft);
+  }
+
+  /* Always-visible header row */
+  .about-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 0;
+    width: 100%;
+    user-select: none;
+  }
+
+  .about-card__title {
+    font-size: var(--_tokens---type--small);
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: -0.015em;
+    margin: 0;
+    color: var(--_tokens---color--fg);
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Timeline: slightly smaller, muted weight */
+  /* Timeline: events listed inside a year card */
+  .timeline-event {
+    padding-block: 10px;
+  }
+  .timeline-event:first-child { padding-top: 0; }
+  .timeline-event + .timeline-event {
+    border-top: 1px solid var(--_tokens---color--line-soft);
+  }
+  .timeline-event__title {
+    font-size: var(--_tokens---type--micro);
+    font-weight: 500;
+    color: var(--_tokens---color--fg);
+    margin: 0 0 4px;
+  }
+  .timeline-event__dates {
+    font-weight: 300;
+    color: var(--_tokens---color--muted);
+    margin-left: 6px;
+  }
+
+  .about-card__header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  .about-card__dates {
+    font-size: var(--_tokens---type--micro);
+    font-weight: 300;
+    color: var(--_tokens---color--muted);
+    white-space: nowrap;
+  }
+
+  .about-card__chevron {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    color: var(--_tokens---color--muted);
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s ease;
+  }
+
+  .about-card.is-open .about-card__chevron {
+    transform: rotate(90deg);
+    color: var(--_tokens---color--fg);
+  }
+
+  /* Collapsible body — grid trick for smooth height animation */
+  .about-card__body {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: hidden;
+  }
+
+  .about-card.is-open .about-card__body {
+    grid-template-rows: 1fr;
+  }
+
+  .about-card__body-inner {
+    min-height: 0;
+    overflow: hidden;
+    padding-bottom: 0;
+    transition: padding-bottom 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .about-card.is-open .about-card__body-inner {
+    padding-bottom: 18px;
+  }
+
+  .about-card__meta {
+    font-size: var(--_tokens---type--micro);
+    font-weight: 300;
+    line-height: 1.5;
+    margin: 0 0 8px;
+    color: var(--_tokens---color--muted);
+  }
+
+  .about-card__desc {
+    font-size: var(--_tokens---type--micro);
+    line-height: 1.65;
+    max-width: 80ch;
+    margin: 0;
+    color: var(--_tokens---color--muted);
+  }
+
+  /* Skillset Section */
+  .about-skillset {
+    width: 100%;
+  }
+
+  /* Spacer between career tabs and skillset within section 2 */
+  .about-career-container + .skillset-header-row {
+    margin-top: clamp(2rem, 5vh, 4rem);
+  }
+
+  /* Inline skillset title and search bar */
+  .skillset-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 16px;
+    width: 100%;
+  }
+
+  .skillset-title {
+    font-size: var(--_tokens---type--small);
+    font-weight: 600;
+    color: var(--_tokens---color--fg);
+    letter-spacing: 0.01em;
+    margin: 0;
+  }
+
+  .skillset-subtitle {
+    font-size: var(--_tokens---type--small);
+    font-weight: 300;
+    line-height: 1.6;
+    max-width: 76ch;
+    margin: 0 0 32px 0;
+  }
+
+  .skillset-search-input {
+    width: clamp(200px, 30vw, 360px);
+    height: 40px;
+    padding: 0 16px;
+    font-size: var(--_tokens---type--micro);
+    font-weight: 300;
+    font-family: inherit;
+    background: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    border: none;
+    color: var(--_tokens---color--fg);
+    border-radius: var(--_tokens---radius--pill);
+    outline: none;
+    transition: background-color 0.2s;
+  }
+
+  .skillset-search-input::placeholder {
+    color: var(--_tokens---color--muted);
+  }
+
+  .skillset-search-input:focus {
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
+  }
+
+  /* Skillset: stacked rows, Languages then Softwares one below the other */
+  .skillset-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  .skillset-grid--two {
+    flex-direction: column;
+  }
+
+  .skillset-card {
+    background-color: transparent;
+    border: none;
+    padding: 0;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+
+  .skillset-card.is-hidden {
+    opacity: 0.15;
+    transform: scale(0.98);
+  }
+
+  .skillset-card__title {
+    font-size: var(--_tokens---type--micro);
+    font-weight: 300;
+    text-transform: none;
+    letter-spacing: 0.08em;
+    color: var(--_tokens---color--fg);
+    margin: 0 0 12px 0;
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  /* Compact pill cloud — same look as the footer's Project Quick Search
+     bubbles: pills at their natural width, flowing and wrapping in rows */
+  .skill-pills {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+
+  .skill-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: var(--_tokens---type--ultrathin);
+    font-weight: 300;
+    color: var(--_tokens---color--muted);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    border: 1px solid var(--_tokens---color--line-soft);
+    border-radius: var(--_tokens---radius--pill);
+    padding: 6px 12px;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    overflow: hidden;
+    box-sizing: border-box;
+    flex: 0 0 auto;
+    transition: background-color 0.2s, color 0.2s, transform 0.15s, box-shadow 0.2s, border-color 0.2s, width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+
+  .proj-bubble__name {
+    color: inherit;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .proj-bubble__tag {
+    font-family: var(--_tokens---font--mono);
+    line-height: 1;
+    color: inherit;
+    opacity: 0;
+    max-width: 0;
+    margin-left: -7px;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: max-width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                opacity 0.28s ease,
+                margin-left 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .skill-pill:hover .proj-bubble__tag {
+    max-width: 160px;
+    opacity: 0.6;
+    margin-left: 0;
+  }
+
+  .proj-bubble__arrow {
+    width: 0.8em;
+    height: 0.8em;
+    flex-shrink: 0;
+    opacity: 0.55;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+
+  .skill-pill:hover {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
+    transform: translateY(-1px);
+  }
+
+  .skill-pill:hover .proj-bubble__arrow {
+    opacity: 1;
+  }
+
+  .skill-pill.is-highlighted {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--_tokens---color--fg) 40%, transparent);
+  }
+
+
+
+  @media (max-width: 600px) {
+    .skillset-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* ── Desktop: the name stays fixed while scrolling (below the top
+     breadcrumb bar); underneath it the photo sits LEFT with the role +
+     degree stacked on the RIGHT — same row as mobile ── */
+  @media (min-width: 769px) {
+    .profile-name {
+      position: fixed;
+      top: 0;     /* runs up BEHIND the breadcrumb bar — no see-through slit */
+      left: 44px; /* clear the side INDEX bar */
+      right: 0;
+      z-index: 90;
+      background-color: var(--_tokens---color--bg);
+      border-bottom: 1px solid var(--_tokens---color--line-soft);
+      margin: 0;
+      padding: 76px var(--_tokens---space--small) 12px; /* 64px breadcrumb + 12px */
+      box-sizing: border-box;
+      cursor: pointer;
+    }
+    .about-section--intro {
+      padding-top: calc(104px + var(--_tokens---type--medium) * 1.2);
+    }
+    .profile-header {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 14px;
+      margin: 0 0 24px 0;
+    }
+    .profile-header__text {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-width: 0;
+    }
+    .profile-photo-circle {
+      order: -1; /* photo first — left of the text */
+      margin: 0;
+      width: 72px;
+      height: 72px;
+      flex-shrink: 0;
+    }
+  }
+  @media (min-width: 1200px) {
+    .profile-name {
+      padding-inline: clamp(6rem, 12vw, 16rem); /* align with page content */
+    }
+  }
+
+  @media (max-width: 768px) {
+    .about-section-snap {
+      height: auto;
+      min-height: 100dvh;
+      overflow: visible;
+      padding-block: 24px; /* = home mobile section padding */
+    }
+    /* One row: photo LEFT, role + degree stacked on the RIGHT */
+    .profile-header {
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      gap: 14px !important;
+      width: 100% !important;
+      padding: 0 !important;
+      margin: 0 0 24px 0 !important;
+      background-color: transparent !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      border-bottom: none !important;
+    }
+    .profile-header__text {
+      display: flex !important;
+      flex-direction: column !important;
+      flex: 1 !important;
+      min-width: 0 !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+    .profile-photo-circle {
+      display: block !important;
+      order: -1 !important; /* photo first — left of the text */
+      margin: 0 !important;
+      width: 72px !important;
+      height: 72px !important;
+      flex-shrink: 0 !important;
+    }
+    /* PAGE HEADING — fixed bar, full length (side bar → right edge),
+       glass blur, muted full-width border. Identical on every page. */
+    .profile-name {
+      position: fixed !important;
+      top: 0 !important;
+      left: 44px !important; /* clear the side INDEX bar */
+      right: 0 !important;
+      z-index: 110 !important;
+      background-color: var(--_tokens---color--bg) !important; /* opaque — no glass */
+      border-bottom: 1px solid var(--_tokens---color--line-soft) !important;
+      padding: 16px 12px 14px 12px !important;
+      margin: 0 !important;
+      box-sizing: border-box !important;
+      display: block !important;
+      font-size: var(--_tokens---type--small) !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.01em !important;
+      line-height: 1.2 !important;
+      text-transform: none !important;
+      color: var(--_tokens---color--fg) !important;
+    }
+    /* Content (role, degree, PHOTO) starts below the fixed heading —
+       the image can never be cut by the bar (bar ≈52px + 16px gap) */
+    .about-section--intro {
+      padding-top: 68px;
+    }
+    .about-section-snap:last-child {
+      padding-bottom: 80px;
+    }
+    .about-section--skillset {
+      overflow-y: visible;
+      padding-top: 20px; /* override the 64px from the rule above */
+    }
+    .about-tabs-container {
+      position: sticky;
+      top: 52px; /* park below the fixed page heading, never under it */
+      z-index: 105;
+      background-color: var(--_tokens---color--bg);
+    }
+    .about-card {
+      position: relative;
+      top: auto;
+      box-shadow: none;
+    }
+  }
+
+  /* As viewport shrinks — pills stay on one line, content-width only */
+  @media (max-width: 640px) {
+    .about-tabs-container {
+      gap: 8px;
+      flex-wrap: nowrap;
+    }
+    .about-tab-btn {
+      padding: 10px 18px;
+      font-size: var(--_tokens---type--small);
+    }
+    .tab-label-full {
+      display: none;
+    }
+    .tab-label-short {
+      display: inline;
+    }
+    .skillset-grid {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    .about-career-container + .skillset-header-row {
+      margin-top: 1.5rem;
+    }
+    .skillset-header-row {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 8px;
+    }
+    .skillset-search-input {
+      width: 130px;
+    }
+    .skillset-subtitle {
+      margin-bottom: 12px;
+    }
+    .skillset-card__title {
+      margin-bottom: 8px;
+    }
+    .active-status-text {
+      display: none !important;
+    }
+  }
+
+  .education-more-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: var(--_tokens---type--ultrathin);
+    font-weight: 300;
+    color: var(--_tokens---color--muted);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    border: 1px solid var(--_tokens---color--line-soft);
+    border-radius: var(--_tokens---radius--pill);
+    padding: 6px 12px;
+    text-decoration: none;
+    cursor: pointer;
+    align-self: flex-start;
+    margin-top: 16px;
+    transition: background-color 0.2s, color 0.2s, transform 0.15s, box-shadow 0.2s;
+  }
+
+  .bio-highlight-name {
+    font-size: var(--_tokens---type--small);
+    font-weight: 700;
+    color: var(--_tokens---color--fg);
+    display: inline-block;
+  }
+
+  .bio-buttons-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+    align-self: flex-start;
+  }
+
+  .bio-read-more-btn,
+  .about-link-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: var(--_tokens---type--ultrathin);
+    font-weight: 300;
+    color: var(--_tokens---color--muted);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    border: 1px solid var(--_tokens---color--line-soft);
+    border-radius: var(--_tokens---radius--pill);
+    padding: 6px 12px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s, transform 0.15s, box-shadow 0.2s;
+  }
+
+  .bio-read-more-btn:hover,
+  .about-link-row:hover,
+  .education-more-link:hover {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    transform: translateY(-1px);
+  }
+
+  .bio-read-more-arrow {
+    width: 0.8em;
+    height: 0.8em;
+    flex-shrink: 0;
+    opacity: 0.55;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+
+  .bio-read-more-btn:hover .bio-read-more-arrow,
+  .about-link-row:hover .about-link-row__arrow,
+  .education-more-link:hover .bio-read-more-arrow {
+    opacity: 1;
+  }
+
+  /* Card read more (career cards) — keep pill style */
+  .card-read-more-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    border: 1px solid var(--_tokens---color--line-soft);
+    color: var(--_tokens---color--muted);
+    font-family: var(--_tokens---font--mono);
+    font-size: var(--_tokens---type--micro);
+    font-weight: 400;
+    cursor: pointer;
+    padding: 6px 14px;
+    border-radius: var(--_tokens---radius--pill);
+    transition: background-color 0.2s, color 0.2s, transform 0.15s;
+    align-self: flex-start;
+    margin-top: 12px;
+  }
+
+  .card-read-more-btn:hover {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    transform: translateY(-1px);
+  }
+
+  /* ── Education pills (accordion) ── */
+  .about-education__list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .education-inline-link {
+    color: var(--_tokens---color--fg);
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, var(--_tokens---color--fg) 30%, transparent);
+    text-underline-offset: 3px;
+    transition: text-decoration-color 0.2s ease, opacity 0.2s ease;
+  }
+  
+  .education-inline-link:hover {
+    text-decoration-color: var(--_tokens---color--fg);
+    opacity: 0.85;
+  }
+
+  /* ── Education accordion (same pattern as career cards) ── */
+  .education-pill {
+    border-top: 1px solid var(--_tokens---color--line-soft);
+  }
+
+  .education-pill:last-of-type {
+    border-bottom: 1px solid var(--_tokens---color--line-soft);
+  }
+
+  .education-pill__trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 18px 0;
+    cursor: pointer;
+    text-align: left;
+    gap: 16px;
+  }
+
+  .active-status-text {
+    display: inline-block;
+    font-size: 8px;
+    letter-spacing: 0.08em;
+    color: var(--_tokens---color--fg);
+    opacity: 0.45;
+    font-weight: 500;
+    vertical-align: super;
+    margin-left: 6px;
+    line-height: 1;
+  }
+
+  .education-pill__name {
+    font-size: var(--_tokens---type--small);
+    font-weight: 500;
+    color: var(--_tokens---color--fg);
+    line-height: 1.2;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .education-pill__trigger-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  .education-pill__years {
+    font-size: var(--_tokens---type--micro);
+    font-weight: 300;
+    color: var(--_tokens---color--muted);
+    white-space: nowrap;
+  }
+
+  .edu-arrow {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    color: var(--_tokens---color--muted);
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s ease;
+  }
+
+  .education-pill.is-open .edu-arrow {
+    transform: rotate(90deg);
+    color: var(--_tokens---color--fg);
+  }
+
+  /* Collapsible content — grid trick */
+  .education-pill__content {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: hidden;
+  }
+
+  .education-pill.is-open .education-pill__content {
+    grid-template-rows: 1fr;
+  }
+
+  .education-pill__content-inner {
+    min-height: 0;
+    overflow: hidden;
+    padding-bottom: 0;
+    transition: padding-bottom 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .education-pill.is-open .education-pill__content-inner {
+    padding-bottom: 16px;
+  }
+
+  .education-pill__degree {
+    font-size: var(--_tokens---type--micro);
+    font-weight: 300;
+    color: var(--_tokens---color--muted);
+    margin: 0;
+  }
+
+</style>
+
+<script>
+  // --- Career Cards: click opens/closes ---
+  document.querySelectorAll('.about-card').forEach((card) => {
+    const el = card as HTMLElement;
+    el.addEventListener('click', (e) => {
+      // Prevent toggling if clicking a link or button inside the card
+      if ((e.target as HTMLElement).closest('a, button')) return;
+      el.classList.toggle('is-open');
+    });
+  });
+
+  // --- Education Pills: click opens/closes ---
+  document.querySelectorAll('.education-pill__trigger').forEach((trigger) => {
+    trigger.addEventListener('click', () => {
+      const btn = trigger as HTMLButtonElement;
+      const pill = btn.closest('.education-pill') as HTMLElement | null;
+      if (pill) pill.classList.toggle('is-open');
+      const isExpanded = btn.getAttribute('aria-expanded') === 'true';
+      btn.setAttribute('aria-expanded', String(!isExpanded));
+    });
+  });
+
+  // --- Biography Read More Toggle ---
+  const readMoreBtn = document.getElementById('bio-read-more-btn');
+  const collapsedContent = document.getElementById('bio-collapsed-content');
+  
+  const toggleBio = () => {
+    if (collapsedContent && readMoreBtn) {
+      const isHidden = collapsedContent.style.display === 'none';
+      collapsedContent.style.display = isHidden ? 'block' : 'none';
+      const span = readMoreBtn.querySelector('span');
+      if (span) span.textContent = isHidden ? 'Read Less' : 'Read More';
+    }
+  };
+
+  readMoreBtn?.addEventListener('click', toggleBio);
+  collapsedContent?.addEventListener('click', toggleBio);
+
+  // --- Tab Switching ---
+  const tabs = document.querySelectorAll('.about-tab-btn');
+  const panels = document.querySelectorAll('.about-tab-panel');
+  const careerSection = document.getElementById('panel-career-section');
+
+  tabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      const target = (tab as HTMLElement).dataset.tab;
+      
+      tabs.forEach((t) => {
+        const isMatched = t === tab;
+        t.classList.toggle('is-active', isMatched);
+        t.setAttribute('aria-selected', String(isMatched));
+      });
+
+      panels.forEach((p) => {
+        const isMatched = p.id === `panel-${target}`;
+        const panelEl = p as HTMLElement;
+        if (isMatched) {
+          panelEl.style.display = 'flex';
+          panelEl.offsetHeight; // Reflow
+          panelEl.classList.add('is-active');
+        } else {
+          panelEl.classList.remove('is-active');
+          panelEl.style.display = 'none';
+        }
+      });
+
+      // Reset scroll position of career section to start from top
+      if (careerSection) {
+        if (window.innerWidth <= 768) {
+          const y = careerSection.getBoundingClientRect().top + window.pageYOffset - 48;
+          window.scrollTo({ top: y, behavior: 'smooth' });
+        } else {
+          careerSection.scrollTop = 0;
+        }
+      }
+    });
+  });
+
+  // --- Skillset Live Search ---
+  const skillSearch = document.getElementById('skill-search') as HTMLInputElement;
+  const skillCards = document.querySelectorAll('.skillset-card');
+
+  skillSearch?.addEventListener('input', () => {
+    const q = skillSearch.value.trim().toLowerCase();
+    
+    skillCards.forEach((card) => {
+      const keywords = (card as HTMLElement).dataset.keywords ?? '';
+      const isMatch = !q || keywords.includes(q);
+      
+      card.classList.toggle('is-hidden', !isMatch);
+      
+      // Highlight matching pills
+      card.querySelectorAll('.skill-pill').forEach((pill) => {
+        const text = pill.textContent?.toLowerCase() ?? '';
+        pill.classList.toggle('is-highlighted', q && text.includes(q));
+      });
+    });
+  });
+
+  // (Removed: the JS "dynamic stack" pill row-builder that measured and
+  // force-set pill widths — it was stretching every pill into a full-width
+  // bar. The pills now flow naturally via flex-wrap, like the footer.)
+
+  // --- Active Status Scramble Loop ---
+  let activeStatusIntervals: number[] = [];
+  let activeStatusFrames: number[] = [];
+
+  function initActiveStatus() {
+    activeStatusIntervals.forEach(clearTimeout);
+    activeStatusFrames.forEach(cancelAnimationFrame);
+    activeStatusIntervals = [];
+    activeStatusFrames = [];
+
+    const activeElements = document.querySelectorAll('.active-status-text');
+    if (!activeElements.length) return;
+
+    const GLYPHS = '01XYZ%$#@?*+=#-_[]{}<>/';
+    const targetText = 'ACTIVE';
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    activeElements.forEach((el, idx) => {
+      const activeEl = el as HTMLElement;
+
+      // Disable the looping scramble on mobile, or when the OS asks for reduced motion
+      if (reduceMotion || window.innerWidth <= 640) {
+        activeEl.textContent = 'ACTIVE';
+        return;
+      }
+      
+      function scramble() {
+        let frame = 0;
+        const length = targetText.length;
+        const queue: Array<{ from: string; to: string; start: number; end: number; char?: string }> = [];
+        
+        for (let i = 0; i < length; i++) {
+          const start = Math.floor(Math.random() * 8);
+          const end = start + Math.floor(Math.random() * 12) + 4;
+          queue.push({ from: '', to: targetText[i], start, end });
+        }
+        
+        function tick() {
+          let output = '';
+          let complete = 0;
+          
+          for (let i = 0; i < length; i++) {
+            let { to, start, end, char } = queue[i];
+            if (frame >= end) {
+              complete++;
+              output += to;
+            } else if (frame >= start) {
+              if (!char || Math.random() < 0.28) {
+                char = GLYPHS[Math.floor(Math.random() * GLYPHS.length)];
+                queue[i].char = char;
+              }
+              output += char;
+            } else {
+              output += ' ';
+            }
+          }
+          
+          activeEl.textContent = output;
+          
+          if (complete === length) {
+            activeEl.textContent = targetText;
+            activeStatusIntervals[idx] = window.setTimeout(scramble, 2000);
+          } else {
+            frame++;
+            activeStatusFrames[idx] = requestAnimationFrame(tick);
+          }
+        }
+        
+        tick();
+      }
+      
+      scramble();
+    });
+  }
+
+  function setupScrollToTop() {
+    const nameHeader = document.querySelector('.profile-name');
+    nameHeader?.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+  setupScrollToTop();
+
+  document.addEventListener('astro:after-swap', () => {
+      initActiveStatus();
+    setupScrollToTop();
+  });
+</script>

@@ -1,0 +1,1546 @@
+---
+import { getCollection, getEntry } from 'astro:content';
+import PageLayout from '../layouts/PageLayout.astro';
+import Footer from '../components/Footer.astro';
+import { realText, publicFileExists } from '../lib/content';
+
+// PDF links only render once the files actually exist in public/
+const hasPortfolio = publicFileExists('/advaita-kelkar-portfolio.pdf');
+const hasCv = publicFileExists('/advaita-kelkar-resume.pdf');
+
+// ── Data ──────────────────────────────────────────────────────
+const allProjects = await getCollection('projects');
+
+// Editable home copy (inline edit mode writes src/content/pages/home.yaml).
+const home = await getEntry('pages', 'home');
+const homeTagline = home?.data.tagline ?? 'Architectural Designer';
+const homeIntro = home?.data.intro ?? [];
+
+// Featured slider (featured:true, sorted by numbr)
+const featured = allProjects
+  .filter(p => p.data.featured && p.data.coverImage)
+  .sort((a, b) => (a.data.numbr ?? 999) - (b.data.numbr ?? 999));
+
+// Resolve a category relationship → its display name
+const categories = await getCollection('categories');
+const catName = (id) => categories.find(c => c.id === id)?.data.displayName ?? id;
+
+// Tag relationships → names
+const allTags = await getCollection('tags');
+const tagMap = Object.fromEntries(allTags.map(t => [t.id, t.data.name]));
+
+// Studio tags get a pill in the bottom-left; everything else is a normal tag
+const STUDIO = { 'studio-823': 'Studio 823', 'faizan-khatri': 'FKD Workshop' };
+
+function getWords(name: string): string[] {
+  return name.trim().split(/\s+/).filter(Boolean);
+}
+---
+
+<PageLayout
+  title="Home"
+  crumbs={[{ label: 'Home' }]}
+  showFooter={false}
+>
+
+  <!-- ══ Section 1: Hero (About Me intro + Featured slider) ════════ -->
+  <section class="home-section home-section--hero" id="home-hero-section">
+    <div class="home-intro home-intro--animated">
+      <div class="home-intro__header">
+        <h1 class="home-intro__label" id="tagline-main" data-scramble data-edit="pages/home/tagline">{homeTagline}</h1>
+      </div>
+
+      <!-- Small About Me — flexible, responsive 3-column structure.
+           Mobile: both bio columns start hidden; the "Bio" pill in the
+           contact column reveals them. Desktop: all three always visible. -->
+      <div class="home-intro__body" id="home-intro-body">
+        <div class="home-intro__column home-intro__column--bio">
+          <p class="home-intro__desc" data-edit="pages/home/intro.0">
+            {homeIntro[0] ?? 'Hey, I’m Adi — Advaita Kelkar — an architectural designer from Mumbai, currently at SCAD in Savannah, USA. I work across architecture, interiors, urban design and everything in between — computation, sculpture, graphic design, product. Not isolated projects, but interconnected expressions of one way of seeing the world. Always curious, always making. Glad you’re here!'}
+          </p>
+        </div>
+        <div class="home-intro__column home-intro__column--bio">
+          <p class="home-intro__desc" data-edit="pages/home/intro.1">
+            {homeIntro[1] ?? 'I’m an architect at heart — I think in systems, in how many parts come together to form a coherent whole. Every discipline I work across — designing, ideating, prototyping, making, documenting — is just a different medium for the same architectural way of thinking. Like my work, this archive doesn’t compartmentalise: it invites fluid navigation, tracing the threads of form, material and concept as they recur and evolve from one project to the next.'}
+          </p>
+        </div>
+        <div class="home-intro__column">
+          <button class="intro-bio-btn" id="intro-bio-btn" type="button" aria-expanded="false">
+            <span>Bio</span>
+            <svg class="link-arrow intro-bio-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">
+              <line x1="6" y1="18" x2="18" y2="6"></line>
+              <polyline points="10 6 18 6 18 14"></polyline>
+            </svg>
+          </button>
+          <p class="home-intro__desc">
+            This is the living archive of my design work — an ecosystem bringing together everything I design, draw, research and make.
+          </p>
+          <p class="home-intro__desc home-intro__desc--follow">
+            Reach me at <span class="intro-email-row"><a href="mailto:advaitakelkar@gmail.com" class="intro-inline-link">advaitakelkar@gmail.com</a><button class="intro-copy-email" id="intro-copy-email" title="Copy email" aria-label="Copy email address"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="intro-copy-icon"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="intro-check-icon"><polyline points="20 6 9 17 4 12"></polyline></svg></button></span>
+          </p>
+          <p class="home-intro__desc home-intro__desc--follow">
+            <a href="https://linkedin.com/in/advaitakelkar" target="_blank" rel="noopener" class="intro-inline-link">LinkedIn<svg class="link-arrow intro-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg></a>, <a href="https://instagram.com/advaitakelkar" target="_blank" rel="noopener" class="intro-inline-link">Instagram<svg class="link-arrow intro-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg></a>, <a href="https://github.com/advaitakelkar" target="_blank" rel="noopener" class="intro-inline-link">GitHub<svg class="link-arrow intro-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg></a>, <a href="https://instagram.com/3xpmnts" target="_blank" rel="noopener" class="intro-inline-link">3xpmnts<svg class="link-arrow intro-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg></a>, <a href="https://instagram.com/archv.in" target="_blank" rel="noopener" class="intro-inline-link">ARCHV<svg class="link-arrow intro-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg></a>.
+          </p>
+          {(hasCv || hasPortfolio) && (
+            <p class="home-intro__desc home-intro__desc--follow">
+              Download my {hasCv && <a href="/advaita-kelkar-resume.pdf" target="_blank" rel="noopener" class="intro-inline-link">Resume<svg class="link-arrow intro-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg></a>}{hasCv && hasPortfolio && ' or '}{hasPortfolio && <a href="/advaita-kelkar-portfolio.pdf" target="_blank" rel="noopener" class="intro-inline-link">Portfolio<svg class="link-arrow intro-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg></a>}.
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+
+    <!-- Featured Slider -->
+    {featured.length > 0 && (
+      <div class="home-slider" aria-label="Featured projects">
+        <div class="home-slider__track" id="slider-track">
+          {featured.map((p, i) => {
+            const tagIds = (p.data.tags ?? []).map((t) => t.id);
+            const studio = tagIds.find((id) => STUDIO[id]);
+            const otherTags = tagIds.filter((id) => !STUDIO[id]);
+            return (
+              <a
+                href={`/projects/${p.id}`}
+                class="home-slider__slide"
+                data-index={i}
+                aria-label={p.data.name}
+              >
+                {/* Mobile: project name above the photo */}
+                <div class="home-slider__mobile-head" aria-hidden="true">
+                  <span class="home-slider__name-mobile">{p.data.name}</span>
+                </div>
+                {/* image + captions scoped together so captions position relative to this area */}
+                <div class="home-slider__image-area">
+                  <div class="home-slider__image-wrap">
+                    <img src={p.data.coverImage} alt={p.data.name} loading={i === 0 ? 'eager' : 'lazy'} />
+                  </div>
+                  {/* Mobile: arrow + timer ring floats over the photo's top-right corner */}
+                  <span class="home-slider__arrow-mobile" aria-hidden="true">
+                    <svg class="home-slider__ring" viewBox="0 0 100 100" aria-hidden="true">
+                      <circle class="home-slider__ring-track" cx="50" cy="50" r="46"></circle>
+                      <circle class="home-slider__ring-fill" cx="50" cy="50" r="46"></circle>
+                    </svg>
+                    <svg class="home-slider__name-arrow link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">
+                      <line x1="6" y1="18" x2="18" y2="6"></line>
+                      <polyline points="10 6 18 6 18 14"></polyline>
+                    </svg>
+                  </span>
+                  {[false, true].map((ko) => (
+                    <div class:list={["home-slider__caption", ko && "home-slider__caption--knockout"]} aria-hidden={ko ? 'true' : undefined}>
+                      <div class="home-slider__top">
+                        <div class="home-slider__head">
+                          {(() => {
+                            const words = getWords(p.data.name);
+                            return (
+                              <span class="home-slider__name">
+                                {words.map((w, idx) => (
+                                  <span class={`home-slider__name-line home-slider__name-line--${idx}`}>
+                                    {idx > 0 && <span class="desktop-space"> </span>}
+                                    {w}
+                                  </span>
+                                ))}
+                              </span>
+                            );
+                          })()}
+                          <ul class="home-slider__facts">
+                            {p.data.year && <li><span class="home-slider__fact-k">Year</span> — <span class="home-slider__fact-v">{p.data.year}</span></li>}
+                            {p.data.location && <li><span class="home-slider__fact-k">Location</span> — <span class="home-slider__fact-v">{p.data.location}</span></li>}
+                            {p.data.category && <li><span class="home-slider__fact-k">Category</span> — <span class="home-slider__fact-v">{catName(p.data.category.id)}</span></li>}
+                            {otherTags.map((id) => <li><span class="home-slider__fact-k">Tag</span> — <span class="home-slider__fact-v home-slider__fact-v--tag">{tagMap[id] || id}</span></li>)}
+                          </ul>
+                        </div>
+                        <div class="home-slider__about">
+                          {realText(p.data.smallIntro) && <p class="home-slider__intro">{p.data.smallIntro}</p>}
+                          {realText(p.data.description) && <div class="home-slider__desc" set:html={p.data.description} />}
+                        </div>
+                      </div>
+                      <div class="home-slider__bottom">
+                        {studio && <span class="home-slider__studio">{STUDIO[studio]}</span>}
+                        <span class="home-slider__arrow" aria-hidden="true">
+                          <svg class="home-slider__ring" viewBox="0 0 100 100" aria-hidden="true">
+                            <circle class="home-slider__ring-track" cx="50" cy="50" r="46"></circle>
+                            <circle class="home-slider__ring-fill" cx="50" cy="50" r="46"></circle>
+                          </svg>
+                          <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+                            <line x1="6" y1="18" x2="18" y2="6"></line>
+                            <polyline points="10 6 18 6 18 14"></polyline>
+                          </svg>
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {/* Mobile: one row under the photo —
+                    left: year, location, tag (values only)
+                    right: Category — <name>, tappable, opens the category page */}
+                <div class="home-slider__mobile-bottom" aria-hidden="true">
+                  <span class="home-slider__mobile-facts">
+                    {[p.data.year, p.data.location, ...otherTags.map((id) => tagMap[id] || id)].filter(Boolean).join(', ')}
+                  </span>
+                  {p.data.category && (
+                    <span class="home-slider__mobile-cat"><span class="home-slider__fact-k">Category — </span><span class="home-slider__cat-link" data-href={`/${p.data.category.id}`}>{catName(p.data.category.id)}</span></span>
+                  )}
+                </div>
+              </a>
+            );
+          })}
+        </div>
+        {/* Pagination dots — at the very bottom, below image and all text */}
+        <div class="home-slider__dots" role="tablist" aria-label="Slide navigation">
+          {featured.map((_, i) => (
+            <button
+              class={`home-slider__dot${i === 0 ? ' is-active' : ''}`}
+              role="tab"
+              aria-selected={i === 0 ? 'true' : 'false'}
+              aria-label={`Slide ${i + 1}`}
+              data-dot={i}
+            />
+          ))}
+        </div>
+      </div>
+    )}
+  </section>
+
+  <!-- ══ Section 2: Page Navigation (top) + Quick Search (below) ═══ -->
+  <section class="home-section home-section--search" id="home-search-section" aria-label="Page navigation and project quick search">
+    <!-- Page Navigation: links to About Me, Portfolio and Projects -->
+    <nav class="home-nav" aria-label="Primary pages">
+      <a href="/about" class="home-nav-row">
+        <span class="home-nav-row__text" data-scramble>About</span>
+        <span class="home-nav-row__arrow" aria-hidden="true">
+          <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+            <line x1="6" y1="18" x2="18" y2="6"></line>
+            <polyline points="10 6 18 6 18 14"></polyline>
+          </svg>
+        </span>
+      </a>
+      {hasPortfolio && (
+        <a href="/advaita-kelkar-portfolio.pdf" class="home-nav-row" target="_blank" rel="noopener">
+          <span class="home-nav-row__text" data-scramble>Portfolio</span>
+          <span class="home-nav-row__arrow" aria-hidden="true">
+            <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+              <line x1="6" y1="18" x2="18" y2="6"></line>
+              <polyline points="10 6 18 6 18 14"></polyline>
+            </svg>
+          </span>
+        </a>
+      )}
+      <a href="/projects" class="home-nav-row">
+        <span class="home-nav-row__text" data-scramble>Projects</span>
+        <span class="home-nav-row__arrow" aria-hidden="true">
+          <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+            <line x1="6" y1="18" x2="18" y2="6"></line>
+            <polyline points="10 6 18 6 18 14"></polyline>
+          </svg>
+        </span>
+      </a>
+    </nav>
+
+    <!-- Quick Search footer element -->
+    <Footer isEmbedded={true} />
+  </section>
+
+</PageLayout>
+
+<!-- ══ DATA + JS ══════════════════════════════════════════════ -->
+<script>
+  // ── Slider (seamless infinite loop) ─────────────────────────
+  const track = document.getElementById('slider-track');
+  const dots  = Array.from(document.querySelectorAll('.home-slider__dot'));
+
+  // Scramble both name copies (base + colour-flip) in sync — on slide-in & hover
+  const SCRAMBLE_CHARS = '!<>-_\\/[]{}=+*^?#$%&@012';
+  function scrambleName(slide) {
+    const els = slide.querySelectorAll('.home-slider__name, .home-slider__name-mobile');
+    if (!els.length) return;
+    const text = els[0].dataset.text || els[0].textContent || '';
+    els.forEach(e => { e.dataset.text = text; });
+    const settle = Array.from(text, () => 6 + Math.floor(Math.random() * 9));
+    const maxF = settle.length ? Math.max(...settle) : 0;
+    let frame = 0;
+    clearInterval(slide._scr);
+    slide._scr = setInterval(() => {
+      let out = '';
+      for (let i = 0; i < text.length; i++) {
+        out += text[i] === ' ' ? ' '
+          : (frame >= settle[i] ? text[i]
+             : SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)]);
+      }
+      els.forEach(e => { e.textContent = out; });
+      if (frame++ >= maxF) { clearInterval(slide._scr); els.forEach(e => { e.textContent = text; }); }
+    }, 35);
+  }
+
+  if (track) {
+    const reals = Array.from(track.querySelectorAll('.home-slider__slide'));
+    const n = reals.length;
+
+    if (n > 1) {
+      // Clone last→prepend and first→append so an image always peeks on both
+      // sides and the strip reads as one continuous loop.
+      const firstClone = reals[0].cloneNode(true);
+      const lastClone  = reals[n - 1].cloneNode(true);
+      [firstClone, lastClone].forEach(c => {
+        c.classList.add('is-clone');
+        c.setAttribute('aria-hidden', 'true');
+        c.setAttribute('tabindex', '-1');
+        c.removeAttribute('href');
+      });
+      track.insertBefore(lastClone, reals[0]); // clone of last, before the start
+      track.appendChild(firstClone);           // clone of first, after the end
+
+      // DOM order is now: [lastClone, real0..realN-1, firstClone]
+      const realAt = i => track.querySelectorAll('.home-slider__slide')[i + 1];
+
+      let current = 0;
+      let timer;
+      let jumping = false;
+
+      // Scroll ONLY the track horizontally. scrollIntoView also scrolls the
+      // page vertically, which yanked the viewport back to the slider on
+      // every auto-advance while scrolling away (worst on mobile, no hover
+      // to pause the timer) — the page felt stuck on the slider.
+      const center = (el, smooth = true) => {
+        const left = el.offsetLeft - (track.clientWidth - el.offsetWidth) / 2;
+        track.scrollTo({ left, behavior: smooth ? 'smooth' : 'auto' });
+      };
+
+      function updateDots(i) {
+        dots.forEach((d, k) => {
+          d.classList.toggle('is-active', k === i);
+          d.setAttribute('aria-selected', String(k === i));
+        });
+      }
+
+      // Mark the centred slide active (reveals its text) + scramble its name
+      let activeSlide = null;
+      function activate(slide) {
+        if (!slide || activeSlide === slide) return;
+        if (activeSlide) activeSlide.classList.remove('is-active');
+        activeSlide = slide;
+        slide.classList.add('is-active');
+        scrambleName(slide);
+      }
+
+      // Scramble the name when hovering any slide
+      track.querySelectorAll('.home-slider__slide').forEach(s =>
+        s.addEventListener('mouseenter', () => scrambleName(s)));
+
+      function goTo(i, smooth = true) {
+        current = (i + n) % n;
+        center(realAt(current), smooth);
+        updateDots(current);
+        activate(realAt(current));
+      }
+
+      function advance() {
+        if (current + 1 >= n) {
+          // Slide forward onto the appended clone of slide 0, then snap the
+          // scroll position back to the real slide 0 with no animation.
+          jumping = true;
+          center(firstClone, true);
+          updateDots(0);
+          current = 0;
+          setTimeout(() => { center(realAt(0), false); activate(realAt(0)); jumping = false; }, 700);
+        } else {
+          goTo(current + 1, true);
+        }
+      }
+
+      function restartRing() {
+        if (!activeSlide) return;
+        activeSlide.querySelectorAll('.home-slider__ring-fill').forEach(r => {
+          r.style.animation = 'none';
+          void r.offsetWidth;      // reflow → restart the fill from empty
+          r.style.animation = '';
+        });
+      }
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      // The slider never rests: it always auto-advances so the page has
+      // constant motion. Interactions only pause it for their own duration
+      // (mid-swipe / mid-drag) and it resumes immediately after. Clicking
+      // a slide navigates to the project. Only "reduce motion" disables it.
+      function startAuto() {
+        if (reduceMotion) return;
+        clearInterval(timer);     // never stack a second timer
+        restartRing();
+        timer = setInterval(advance, 3000);
+      }
+      function stopAuto()  { clearInterval(timer); }
+
+      // Start centered on the real first slide (last/next slides peek at edges).
+      requestAnimationFrame(() => { center(realAt(0), false); activate(realAt(0)); });
+      startAuto();
+
+      dots.forEach((d, i) => d.addEventListener('click', () => {
+        if (jumping) return;
+        stopAuto(); goTo(i); startAuto();
+      }));
+      // Touch: hold the timer only while a finger is on the slider so an
+      // in-progress swipe never gets yanked; it restarts on release.
+      track.addEventListener('touchstart', stopAuto, { passive: true });
+      track.addEventListener('touchend', startAuto, { passive: true });
+
+      // Pause whenever the slider is mostly off-screen; resume when it's
+      // back. No point animating a carousel nobody can see.
+      new IntersectionObserver(([entry]) => {
+        if (entry.isIntersecting) startAuto(); else stopAuto();
+      }, { threshold: 0.3 }).observe(track);
+
+      // ── Manual swipe sync ────────────────────────────────────
+      // Scroll-snap moves the strip without telling us, so hand-swiped
+      // slides never got is-active — name and facts stayed hidden (only
+      // the arrow showed). Watch the scroll; when it settles, activate
+      // whichever slide is centred: name scrambles in, facts reveal,
+      // dots update — identical to the auto-advance reveal.
+      let settleTimer;
+      // Category line in the mobile facts → its category page. The slide
+      // itself is already an <a>, so a nested link is invalid HTML —
+      // delegate the click and navigate manually (covers the clones too).
+      track.addEventListener('click', (e) => {
+        const cat = e.target.closest('.home-slider__cat-link');
+        if (cat && cat.dataset.href) {
+          e.preventDefault();
+          e.stopPropagation();
+          window.location.href = cat.dataset.href;
+        }
+      });
+
+      track.addEventListener('scroll', () => {
+        scheduleFit(); // update clip-path in real-time as user swipes/scrolls
+        if (jumping) return;
+        clearTimeout(settleTimer);
+        settleTimer = setTimeout(() => {
+          const slides = Array.from(track.querySelectorAll('.home-slider__slide'));
+          const tc = track.getBoundingClientRect();
+          const cx = tc.left + tc.width / 2;
+          let bi = -1, bd = Infinity;
+          slides.forEach((s, i) => {
+            const r = s.getBoundingClientRect();
+            const d = Math.abs(r.left + r.width / 2 - cx);
+            if (d < bd) { bd = d; bi = i; }
+          });
+          if (bi === -1) return;
+          const realIdx = (bi - 1 + n) % n; // DOM: [lastClone, real0..realN-1, firstClone]
+          if (slides[bi].classList.contains('is-clone')) {
+            // Swiped onto an edge clone — snap invisibly to its real twin
+            jumping = true;
+            current = realIdx;
+            center(realAt(realIdx), false);
+            updateDots(realIdx);
+            activate(realAt(realIdx));
+            setTimeout(() => { jumping = false; }, 60);
+          } else if (realIdx !== current || activeSlide !== slides[bi]) {
+            current = realIdx;
+            updateDots(realIdx);
+            activate(slides[bi]);
+          }
+          startAuto(); // swipe settled — the loop resumes from this slide
+        }, 90);
+      }, { passive: true });
+    }
+  }
+
+  // ── Invert the name/arrow only where they overlap the photo ──
+  // Clip the background-colour copy to the actual rendered image rect
+  // (object-fit: contain leaves bars, so measure the real pixels).
+  function fitKnockouts() {
+    document.querySelectorAll('.home-slider__slide').forEach(slide => {
+      const cap = slide.querySelector('.home-slider__caption--knockout');
+      const wrap = slide.querySelector('.home-slider__image-wrap');
+      const img = wrap && wrap.querySelector('img');
+      if (!cap || !img || !img.naturalWidth) return;
+      const wb = wrap.getBoundingClientRect();
+      const cover = getComputedStyle(img).objectFit === 'cover';
+      const s = cover
+        ? Math.max(wb.width / img.naturalWidth, wb.height / img.naturalHeight)
+        : Math.min(wb.width / img.naturalWidth, wb.height / img.naturalHeight);
+      const pw = img.naturalWidth * s, ph = img.naturalHeight * s;
+      const pLeft = wb.left + (wb.width - pw) / 2;
+      const pTop  = wb.top + (wb.height - ph) / 2;
+      const cb = cap.getBoundingClientRect();
+      const top    = Math.max(0, pTop - cb.top);
+      const left   = Math.max(0, pLeft - cb.left);
+      const right  = Math.max(0, cb.right - (pLeft + pw));
+      const bottom = Math.max(0, cb.bottom - (pTop + ph));
+      cap.style.clipPath = `inset(${top}px ${right}px ${bottom}px ${left}px)`;
+    });
+  }
+  function scheduleFit() { requestAnimationFrame(fitKnockouts); }
+  window.addEventListener('load', scheduleFit);
+  window.addEventListener('resize', scheduleFit);
+  document.querySelectorAll('.home-slider__image-wrap img').forEach(img => {
+    if (!img.complete) img.addEventListener('load', scheduleFit);
+  });
+  scheduleFit();
+
+  // ── Scramble Tagline on load ───────────────────────────────
+  function triggerTaglineScramble() {
+    const tagline = document.getElementById('tagline-main');
+    if (tagline) {
+      setTimeout(() => {
+        tagline.dispatchEvent(new Event('mouseover', { bubbles: true }));
+      }, 150);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', triggerTaglineScramble);
+  } else {
+    triggerTaglineScramble();
+  }
+  document.addEventListener('astro:after-swap', triggerTaglineScramble);
+
+  // ── Email Copy Button ──────────────────────────────────────
+  function setupEmailCopy() {
+    const btn = document.getElementById('intro-copy-email');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      navigator.clipboard.writeText('advaitakelkar@gmail.com').then(() => {
+        btn.classList.add('is-copied');
+        setTimeout(() => btn.classList.remove('is-copied'), 2000);
+      });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupEmailCopy);
+  } else {
+    setupEmailCopy();
+  }
+  document.addEventListener('astro:after-swap', setupEmailCopy);
+
+  // ── Bio pill (mobile): reveals the two hidden bio columns ──
+  function setupIntroToggle() {
+    const bioBtn = document.getElementById('intro-bio-btn');
+    const body = document.getElementById('home-intro-body');
+    bioBtn?.addEventListener('click', () => {
+      if (!body) return;
+      const expanded = body.classList.toggle('is-expanded');
+      bioBtn.setAttribute('aria-expanded', String(expanded));
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupIntroToggle);
+  } else {
+    setupIntroToggle();
+  }
+  document.addEventListener('astro:after-swap', setupIntroToggle);
+
+  // ── Scroll to Top on Home Tagline Header Tap ────────────────
+  function setupHomeHeaderScroll() {
+    const homeHeader = document.querySelector('.home-intro__header');
+    homeHeader?.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupHomeHeaderScroll);
+  } else {
+    setupHomeHeaderScroll();
+  }
+  document.addEventListener('astro:after-swap', setupHomeHeaderScroll);
+</script>
+
+<style>
+  /* ══ Global Snapping Scope ══════════════════════════════════ */
+  :global(html) {
+    scroll-snap-type: none !important;
+    scroll-behavior: smooth;
+  }
+
+  /* ══ Snapped Layout Sections ════════════════════════════════ */
+  .home-section {
+    height: auto;
+    min-height: 0; /* continuous scroll — no full-screen sections */
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    transition: padding 0.3s ease;
+    overflow: visible;
+  }
+
+  /* The hero (intro + card + dots) is exactly ONE screen tall on every
+     breakpoint — About/Projects rows reveal on scroll */
+  .home-section--hero {
+    justify-content: flex-start;
+    gap: 20px;
+    height: 100dvh;
+    min-height: 0;
+    padding-top: calc(clamp(2rem, 5vh, 3rem) + 48px); /* 48px for fixed breadcrumb */
+    padding-bottom: clamp(2rem, 5vh, 3rem);
+    overflow: hidden; /* clip slider to section */
+  }
+
+  .home-section--search {
+    justify-content: flex-start;
+    /* spacer after the pagination — About/Projects get breathing room
+       below the one-screen hero */
+    padding-top: clamp(3rem, 8vh, 5rem);
+    overflow-y: visible;
+    position: relative;
+  }
+
+  /* ══ 1. Intro (small About Me — 3 flexible columns) ═════════ */
+  .home-intro {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin-bottom: 8px;
+  }
+
+  /* Entrance Animation for Tagline and Intro section */
+  /* No container animation: a transformed ancestor would hijack the
+     fixed page heading. The three columns keep their own fade-ins. */
+  .home-intro--animated {
+    opacity: 1;
+    transform: none;
+  }
+
+  @keyframes slideInFromTop {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .home-intro__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    width: 100%;
+    margin-bottom: 8px;
+  }
+
+  .home-intro__label {
+    font-size: var(--_tokens---type--small);
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    text-transform: none;
+    color: var(--_tokens---color--fg);
+    margin: 0;
+  }
+
+  .home-intro__body {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 32px;
+    width: 100%;
+  }
+
+  .home-intro__column {
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    transform: translateY(15px);
+    animation: fadeUpIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .home-intro__column:nth-child(1) { animation-delay: 0.2s; }
+  .home-intro__column:nth-child(2) { animation-delay: 0.4s; }
+  .home-intro__column:nth-child(3) { animation-delay: 0.6s; }
+
+  @keyframes fadeUpIn {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .home-intro__desc {
+    font-size: var(--_tokens---type--micro);
+    line-height: 1.55;
+    color: var(--_tokens---color--muted);
+    margin: 0;
+  }
+
+  /* Follow-on lines in a column read as one compact block — no gap
+     between the paragraphs (all breakpoints) */
+  .home-intro__desc--follow {
+    margin-top: 0;
+  }
+
+  /* Inline contact links that flow within the paragraph text */
+  .intro-inline-link {
+    color: var(--_tokens---color--fg);
+    text-decoration: none;
+    white-space: nowrap; /* keep label + arrow together */
+    border-bottom: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 30%, transparent);
+    transition: border-color 0.2s ease, color 0.2s ease;
+  }
+
+  .intro-inline-link:hover {
+    border-bottom-color: var(--_tokens---color--fg);
+  }
+
+  .intro-inline-link .intro-arrow {
+    width: 0.78em;
+    height: 0.78em;
+    margin-left: 1px;
+    vertical-align: -0.05em;
+    transition: transform 0.25s ease;
+  }
+
+  .intro-inline-link:hover .intro-arrow {
+    transform: translate(1px, -1px);
+  }
+
+  /* Inline email + copy button */
+  .intro-email-row {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 3px;
+    white-space: nowrap;
+  }
+
+  .intro-copy-email {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    padding: 0 2px;
+    cursor: pointer;
+    color: var(--_tokens---color--muted);
+    transition: color 0.2s ease, transform 0.15s ease;
+    vertical-align: middle;
+    position: relative;
+    top: -0.05em;
+  }
+
+  .intro-copy-email:hover {
+    color: var(--_tokens---color--fg);
+  }
+
+  .intro-copy-icon,
+  .intro-check-icon {
+    width: 0.8em;
+    height: 0.8em;
+    display: block;
+  }
+
+  .intro-check-icon {
+    display: none;
+    color: var(--_tokens---color--fg);
+  }
+
+  .intro-copy-email.is-copied .intro-copy-icon { display: none; }
+  .intro-copy-email.is-copied .intro-check-icon { display: block; }
+
+  /* ══ 2. Slider ══════════════════════════════════════════════ */
+  .home-slider {
+    width: 100%;
+    flex: 1 1 auto; /* fill the rest of the one-screen hero */
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    margin-top: 0;
+  }
+
+  .home-slider__track {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    /* horizontal swipes stay inside the track — never chain into the
+       browser's back/forward gesture on mobile */
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    gap: 32px;
+    flex: 1 1 auto; /* the photo absorbs the leftover hero height */
+    min-height: 0;
+    align-items: stretch; /* slides take the full track height */
+    position: relative;
+    padding-top: 4px;
+  }
+
+  .home-slider__track::-webkit-scrollbar { display: none; }
+
+  /* Centring buffer hack using pseudo-elements */
+  .home-slider__track::before,
+  .home-slider__track::after {
+    content: '';
+    flex: 0 0 0; /* full-width slides need no centring buffer */
+  }
+
+  .home-slider__slide {
+    --img-w: 66%; /* image width as a share of the content; gutters hold name + arrow */
+    position: relative;
+    flex: 0 0 100%; /* bound to the content width (same margins as About) */
+    height: 100%;   /* fill the track so the photo can flex */
+    scroll-snap-align: center;
+    scroll-snap-stop: always;
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    color: var(--_tokens---color--fg);
+  }
+
+  /* wraps image-wrap + both captions so absolute captions scope to this area */
+  .home-slider__image-area {
+    position: relative;
+    width: 100%;
+    flex: 1 1 auto;  /* takes whatever height the text rows leave over */
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .home-slider__image-wrap {
+    width: var(--img-w);   /* fixed width, centred in the full-width slide */
+    align-self: center;    /* don't stretch — keep it centred */
+    height: 100%;          /* photo absorbs the flexible height */
+    min-height: 0;
+    overflow: hidden;
+    border-radius: 8px;
+    background: transparent;
+  }
+
+  .home-slider__image-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;   /* keep aspect — no crop, no stretch */
+    display: block;
+    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .home-slider__slide:hover img {
+    transform: scale(1.02);
+  }
+
+
+  /* Caption spans the slide = the content width, so the name sits at the same
+     left margin as About and the arrow at the same right margin. */
+  .home-slider__caption {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    /* top, right, bottom, left — extra right+bottom room so the arrow's ring
+       never gets clipped; left stays 0 so the name keeps the About margin */
+    padding: clamp(8px, 1.4vw, 22px) clamp(22px, 2.6vw, 40px) clamp(22px, 2.6vw, 40px) 0;
+    color: var(--_tokens---color--fg);
+    pointer-events: none;  /* clicks pass to the slide link */
+  }
+
+  .home-slider__name {
+    align-self: flex-start; /* top-left, at the content margin */
+    font-size: var(--_tokens---type--display); /* Oversized heading */
+    font-weight: 500;
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    min-width: 0;           /* allow it to shrink/wrap beside the facts */
+    overflow-wrap: anywhere;
+  }
+
+  /* name + supporting text grouped at the top, arrow stays at the bottom */
+  .home-slider__top {
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(8px, 1vw, 16px);
+    min-width: 0;
+  }
+
+  .home-slider__about {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: min(440px, 52%); /* text stays a readable column, mostly in the gutter */
+  }
+
+  .home-slider__intro {
+    font-size: var(--_tokens---type--small);
+    font-weight: 500;
+    line-height: 1.2;
+  }
+
+  .home-slider__desc {
+    font-size: var(--_tokens---type--micro);
+    line-height: 1.35;
+    opacity: 0.88;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .home-slider__desc :global(p) { margin: 0; }
+
+  /* name left, facts block right */
+  .home-slider__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: clamp(16px, 3vw, 48px);
+  }
+
+  /* one unified block: year / location / category / tags — all micro, same gap */
+  .home-slider__facts {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    text-align: right;
+    white-space: nowrap;
+    font-size: var(--_tokens---type--micro);
+    line-height: 1.3;
+  }
+
+  .home-slider__fact-v { font-weight: 600; }
+
+  /* bottom row: studio pill (left) + arrow (right) */
+  .home-slider__bottom {
+    display: flex;
+    align-items: flex-end;
+    gap: 16px;
+  }
+
+  .home-slider__studio {
+    align-self: flex-end;
+    border: 1px solid currentColor;
+    border-radius: var(--_tokens---radius--pill);
+    padding: 5px 16px;
+    font-size: var(--_tokens---type--micro);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+
+  /* Mobile-only pieces — hidden on desktop */
+  .home-slider__mobile-head {
+    display: none;
+  }
+  .home-slider__mobile-bottom {
+    display: none;
+  }
+  /* Mobile arrow + ring — hidden on desktop (the caption arrow serves
+     there); on mobile it floats over the photo's top-right corner */
+  .home-slider__arrow-mobile {
+    display: none;
+    position: relative;   /* the ring centres on the arrow */
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: var(--_tokens---type--medium);
+  }
+
+  .home-slider__name-arrow {
+    flex-shrink: 0;
+    width: 1em;
+    height: 1em;
+    font-size: var(--_tokens---type--medium);
+    align-self: center;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* No auto-advance under reduced motion — no ring to count it down */
+  @media (prefers-reduced-motion: reduce) {
+    .home-slider__ring { display: none; }
+  }
+  .home-slider__slide:hover .home-slider__name-arrow {
+    transform: translate(2px, -2px);
+  }
+
+  /* ── Desktop reveal order: name → intro → desc → facts → studio ── */
+  .home-slider__facts,
+  .home-slider__intro,
+  .home-slider__desc,
+  .home-slider__studio {
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.55s ease, transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .home-slider__slide.is-active .home-slider__intro  { opacity: 1; transform: none; transition-delay: 0.10s; }
+  .home-slider__slide.is-active .home-slider__desc   { opacity: 1; transform: none; transition-delay: 0.18s; }
+  .home-slider__slide.is-active .home-slider__facts  { opacity: 1; transform: none; transition-delay: 0.26s; }
+  .home-slider__slide.is-active .home-slider__studio { opacity: 1; transform: none; transition-delay: 0.34s; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .home-slider__facts, .home-slider__intro, .home-slider__desc,
+    .home-slider__studio, .home-slider__mobile-head, .home-slider__mobile-bottom,
+    .home-slider__arrow-mobile {
+      opacity: 1 !important; transform: none !important; transition: none !important;
+    }
+  }
+
+  /* Background-colour copy, layered on top and clipped (in JS) to exactly the
+     rendered photo — so the part of the name/arrow over the image inverts. */
+  .home-slider__caption--knockout {
+    color: var(--_tokens---color--bg);
+    pointer-events: none;
+    clip-path: inset(0 100% 0 0); /* hidden until JS measures the photo */
+    /* fatten the inverted copy so it fully covers the base text's anti-aliased
+       rim — a clean solid invert with no foreground outline */
+    -webkit-text-stroke: 0.7px var(--_tokens---color--bg);
+    text-stroke: 0.7px var(--_tokens---color--bg);
+  }
+
+  .home-slider__caption--knockout .link-arrow {
+    stroke-width: 3.4; /* match the text: cover the base arrow's rim too */
+  }
+
+  /* Desktop arrow: the circle matches the H1 project name's height.
+     The container is a real box the size of the ring, so it always has
+     room and never gets clipped. */
+  .home-slider__arrow {
+    align-self: flex-end; /* bottom of the row */
+    margin-left: auto;    /* always pinned to the right */
+    position: relative;   /* the countdown ring centres on the arrow */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: var(--_tokens---type--big); /* ring scales with the name */
+    width: 1.15em;
+    height: 1.15em;
+    transition: transform 0.3s ease;
+  }
+  .home-slider__arrow .home-slider__ring {
+    width: 1.05em;
+    height: 1.05em;
+  }
+
+  /* Countdown ring around the arrow — fills over the auto-advance time (3s) */
+  .home-slider__ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 2.1em;   /* relative to the arrow — sits clearly around it */
+    height: 2.1em;
+    transform: translate(-50%, -50%) rotate(-90deg); /* start the fill at 12 o'clock */
+    overflow: visible;
+    pointer-events: none;
+  }
+  .home-slider__ring circle { fill: none; stroke-width: 3; } /* thin */
+  .home-slider__ring-track { stroke: currentColor; opacity: 0.4; } /* clearly visible */
+  .home-slider__ring-fill {
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-dasharray: 289.03;   /* 2·π·46 */
+    stroke-dashoffset: 289.03;  /* empty */
+  }
+  .home-slider__slide.is-active .home-slider__ring-fill {
+    animation: home-ring 3s linear forwards;
+  }
+  @keyframes home-ring {
+    from { stroke-dashoffset: 289.03; }
+    to   { stroke-dashoffset: 0; }
+  }
+
+  .home-slider__arrow .link-arrow {
+    width: 0.5em;
+    height: 0.5em;
+  }
+
+  .home-slider__slide:hover .home-slider__arrow {
+    transform: translate(2px, -2px);
+  }
+
+  .link-arrow {
+    width: 1em;
+    height: 1em;
+    vertical-align: middle;
+    display: inline-block;
+  }
+
+  .home-slider__dots {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 24px 0 0; /* sits below the slides — breathing room above */
+  }
+
+  /* Bio pill — mobile only; same pill language as the About page */
+  .intro-bio-btn {
+    display: none; /* hidden on desktop — all columns already visible */
+    align-items: center;
+    gap: 7px;
+    align-self: flex-start;
+    font-family: inherit;
+    font-size: var(--_tokens---type--ultrathin);
+    font-weight: 300;
+    letter-spacing: 0.05em;
+    color: var(--_tokens---color--muted);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    border: 1px solid var(--_tokens---color--line-soft);
+    border-radius: var(--_tokens---radius--pill);
+    padding: 6px 12px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+  }
+
+  .intro-bio-btn .intro-bio-arrow {
+    width: 0.8em;
+    height: 0.8em;
+    flex-shrink: 0;
+    opacity: 0.55;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+  }
+
+  /* Open state: invert like the active tabs; arrow rotates to point down */
+  .intro-bio-btn[aria-expanded="true"] {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
+  }
+  .intro-bio-btn[aria-expanded="true"] .intro-bio-arrow {
+    transform: rotate(135deg);
+    opacity: 1;
+  }
+
+  .home-slider__dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    border: none;
+    background-color: var(--_tokens---color--muted);
+    cursor: pointer;
+    padding: 0;
+    transition: background-color 0.2s, transform 0.2s;
+  }
+
+  .home-slider__dot.is-active {
+    background-color: var(--_tokens---color--fg);
+    transform: scale(1.3);
+  }
+
+
+
+  /* ══ 4. Page Navigation (links above search) ════════════════ */
+  .home-nav {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin-bottom: 0px;
+  }
+
+  .home-section--search :global(.home-search-footer--embedded) {
+    margin-top: 12px !important;
+  }
+
+  .home-nav-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-decoration: none;
+    color: var(--_tokens---color--fg);
+    border-top: 1px solid var(--_tokens---color--line-soft); /* family hairline */
+    padding-block: 22px;
+    transition: opacity 0.2s ease, padding-left 0.2s ease;
+  }
+
+  .home-nav-row:last-child {
+    border-bottom: 1px solid var(--_tokens---color--line-soft); /* family hairline */
+  }
+
+  .home-nav-row:hover {
+    opacity: 0.75;
+    padding-left: 8px;
+  }
+
+  .home-nav-row__text {
+    font-size: var(--_tokens---type--big);
+    font-weight: 500;
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+  }
+
+  .home-nav-row__arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    color: var(--_tokens---color--muted);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), color 0.3s ease;
+  }
+
+  .home-nav-row__arrow svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .home-nav-row:hover .home-nav-row__arrow {
+    transform: rotate(45deg);
+    color: var(--_tokens---color--fg);
+  }
+
+
+
+  /* ── Desktop: the page heading stays fixed while scrolling, parked
+     just below the fixed breadcrumb bar ── */
+  @media (min-width: 769px) {
+    .home-intro__header {
+      position: fixed;
+      top: 0;     /* runs up BEHIND the breadcrumb bar — no see-through slit */
+      left: 44px; /* clear the side INDEX bar */
+      right: 0;
+      z-index: 90;
+      background-color: var(--_tokens---color--bg);
+      border-bottom: 1px solid var(--_tokens---color--line-soft);
+      margin: 0;
+      padding: 76px var(--_tokens---space--small) 12px; /* 64px breadcrumb + 12px */
+      box-sizing: border-box;
+    }
+    .home-section--hero {
+      padding-top: calc(104px + var(--_tokens---type--small) * 1.2);
+    }
+  }
+  @media (min-width: 1200px) {
+    .home-intro__header {
+      padding-inline: clamp(6rem, 12vw, 16rem); /* align with page content */
+    }
+  }
+
+  /* ══ Responsive ═════════════════════════════════════════════ */
+  @media (max-width: 1199px) {
+    .home-intro__body {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 24px;
+    }
+    .home-slider__slide {
+      flex: 0 0 100%;
+      --img-w: 66%;
+    }
+    .home-slider__track::before,
+    .home-slider__track::after {
+      flex: 0 0 0;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .home-section {
+      height: auto;
+      min-height: 0;
+      overflow: visible;
+      padding-block: 24px;
+    }
+    /* The hero (tagline + intro + card + dots) fills ONE screen — but it's a
+       MINIMUM, not a cap: the intro (all of column 3's links) is always fully
+       visible on load, and on very small screens the photo shrinks first,
+       then the hero grows rather than ever clipping the links. */
+    .home-section--hero {
+      height: auto;
+      min-height: 100dvh;
+      overflow: hidden;
+      gap: 12px;
+      padding-top: 24px; /* tight top padding to save space on mobile */
+      padding-bottom: 0;
+    }
+    /* A transformed ancestor hijacks position:fixed — the intro's entrance
+       animation ends on a persistent transform, which pinned the heading to
+       the section instead of the viewport (the "misaligned top bar"). On
+       mobile the container doesn't animate; the columns still fade in. */
+    .home-intro--animated {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
+
+    /* PAGE HEADING — fixed bar, full length (side bar → right edge),
+       glass blur, muted full-width border. Identical on every page. */
+    .home-intro__header {
+      position: fixed !important;
+      top: 0 !important;
+      left: 44px !important; /* clear the side INDEX bar */
+      right: 0 !important;
+      z-index: 110 !important;
+      background-color: var(--_tokens---color--bg) !important; /* opaque — no glass */
+      border-bottom: 1px solid var(--_tokens---color--line-soft) !important;
+      padding: 16px 12px 14px 12px !important;
+      margin: 0 !important;
+      box-sizing: border-box !important;
+    }
+    /* Content starts below the fixed heading (bar ≈52px + 16px gap) */
+    .home-section--hero {
+      padding-top: 68px;
+    }
+    .home-intro__label {
+      font-size: var(--_tokens---type--small) !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.01em !important;
+      line-height: 1.2 !important;
+      text-transform: none !important;
+      color: var(--_tokens---color--fg) !important;
+    }
+    /* While the Bio is expanded its two paragraphs need room — let the
+       hero grow past one screen instead of crushing the photo */
+    .home-section--hero:has(.home-intro__body.is-expanded) {
+      height: auto;
+      min-height: 100dvh;
+      overflow: visible;
+    }
+    .home-section--search {
+      overflow-y: visible;
+      padding-top: 40px; /* breathing room after the hero's pagination */
+    }
+    .home-intro__body {
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+    /* Mobile: column 3 is ALWAYS fully visible on load — archive line,
+       email, all links, and the Resume/Portfolio downloads. The Bio pill
+       only reveals the two bio-paragraph columns above it. */
+    .intro-bio-btn {
+      display: inline-flex;
+      margin-bottom: 8px;
+    }
+    .home-intro__column--bio {
+      display: none;
+    }
+    .home-intro__body.is-expanded .home-intro__column--bio {
+      display: block;
+    }
+    /* The slider fills whatever height is left under the intro; the photo
+       flexes to absorb it, so the whole card (name, photo, facts, dots)
+       always fits the screen — never overflows it */
+    .home-slider {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      margin-top: 8px;
+      overflow-y: hidden !important;
+    }
+    .home-slider__track {
+      flex: 1 1 auto;
+      min-height: 0;
+      align-items: stretch;
+      padding-top: 0;
+      overflow-y: hidden !important;
+    }
+    .home-slider__slide {
+      flex: 0 0 100%;
+      --img-w: 100%; /* fill the page content area width */
+      padding-inline: 0;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .home-slider__image-area {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      position: relative;
+      padding-top: 0 !important; /* reset padding so absolute caption starts at y = 0 */
+    }
+    .home-slider__image-wrap {
+      width: calc(100% - 32px) !important; /* 16px padding on left/right */
+      align-self: center !important;
+      height: 42dvh;
+      min-height: 42dvh;
+      max-height: 400px;
+      aspect-ratio: auto;
+      margin-top: 0.95em !important; /* create container room above the image wrap */
+    }
+    .home-slider__image-wrap img {
+      object-fit: contain !important;
+      object-position: center !important;
+    }
+    .home-slider__track::before,
+    .home-slider__track::after {
+      flex: 0 0 0;
+    }
+
+    /* Mobile: caption overlays the photo for desktop-like typography and smooth inverts */
+    .home-slider__caption {
+      display: flex !important;
+      position: absolute;
+      inset: 0;
+      flex-direction: column;
+      justify-content: space-between;
+      pointer-events: none;
+      padding: 0 !important;
+    }
+
+    .home-slider__name {
+      display: block !important;
+      position: absolute !important;
+      top: 0 !important; /* start at the top of the container's padded area */
+      left: 0 !important;
+      padding-left: 0 !important;
+      font-size: var(--_tokens---type--big) !important;
+      line-height: 0.95;
+      letter-spacing: -0.02em;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+
+    .home-slider__name-line {
+      display: block !important;
+      position: absolute !important;
+      left: 0 !important;
+      width: 100% !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      font-size: var(--_tokens---type--big) !important;
+      line-height: 0.95;
+      letter-spacing: -0.02em;
+    }
+
+    .home-slider__name-line--0 {
+      top: 0 !important;
+      color: var(--_tokens---color--fg);
+    }
+    .home-slider__name-line--1 {
+      top: 0.95em !important; /* sits on top edge of the image wrap */
+    }
+    .home-slider__name-line--2 {
+      top: 1.90em !important;
+    }
+    .home-slider__name-line--3 {
+      top: 2.85em !important;
+    }
+
+    .desktop-space {
+      display: none !important;
+    }
+
+    .home-slider__about,
+    .home-slider__facts,
+    .home-slider__studio {
+      display: none !important;
+    }
+
+    .home-slider__arrow {
+      display: flex !important;
+      position: absolute !important;
+      top: calc(0.95em - 18px) !important; /* centered on top edge of the image wrap */
+      right: 0 !important; /* align to the right edge of the card */
+      left: auto !important;
+      z-index: 5 !important;
+      font-size: 2.2rem !important; /* much bigger arrow and timer ring */
+      width: 1.15em !important;
+      height: 1.15em !important;
+      margin: 0 !important;
+    }
+
+    /* STRICT on mobile: no hand-swiping the slider — fingers on it only
+       scroll the page vertically; slides move by the auto-advance alone.
+       Taps still open the project. (Programmatic scrollTo is unaffected.) */
+    .home-slider__track {
+      touch-action: pan-y;
+      overscroll-behavior-x: none;
+      overflow-y: hidden !important;
+    }
+
+    /* Hide old mobile-specific head and arrow overlays since we now use the desktop caption overlay */
+    .home-slider__mobile-head {
+      display: none !important;
+    }
+    .home-slider__arrow-mobile {
+      display: none !important;
+    }
+
+    /* One row under the photo: year/location/tag values left, category right */
+    .home-slider__mobile-bottom {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      padding-top: 8px;
+      flex: 0 0 auto;
+      margin-bottom: 24px !important; /* spacer between bottom metadata and pagination dots */
+    }
+    .home-slider__mobile-facts {
+      min-width: 0;
+      overflow-wrap: anywhere;
+      font-size: var(--_tokens---type--micro);
+      line-height: 1.4;
+      color: var(--_tokens---color--fg);
+    }
+    .home-slider__mobile-cat {
+      flex-shrink: 0;
+      font-size: var(--_tokens---type--micro);
+      line-height: 1.4;
+      color: var(--_tokens---color--fg);
+      white-space: nowrap;
+    }
+    .home-slider__mobile-cat .home-slider__fact-k { color: var(--_tokens---color--muted); }
+    /* the category name is tappable — underline signals it */
+    .home-slider__cat-link {
+      text-decoration: underline;
+      text-decoration-color: color-mix(in srgb, var(--_tokens---color--fg) 35%, transparent);
+      text-underline-offset: 3px;
+    }
+
+    /* Dots inside the one-screen budget: small spacer above, a little
+       breathing room below before the screen edge */
+    .home-slider__dots {
+      flex: 0 0 auto;
+      padding-top: 0 !important;
+      padding-bottom: 12px !important; /* spacer below dots */
+    }
+
+    /* Mobile reveal: name → floating ring → bottom row */
+    .home-slider__mobile-head,
+    .home-slider__mobile-bottom {
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.45s ease, transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .home-slider__arrow-mobile {
+      opacity: 0;
+      transition: opacity 0.45s ease;
+    }
+    .home-slider__slide.is-active .home-slider__mobile-head   { opacity: 1; transform: none; transition-delay: 0s; }
+    .home-slider__slide.is-active .home-slider__arrow-mobile  { opacity: 1; transition-delay: 0.08s; }
+    .home-slider__slide.is-active .home-slider__mobile-bottom { opacity: 1; transform: none; transition-delay: 0.12s; }
+  }
+
+  @media (max-width: 600px) {
+    .home-slider__slide {
+      flex: 0 0 100%;
+      --img-w: 100%;
+    }
+    .home-slider__track::before,
+    .home-slider__track::after {
+      flex: 0 0 0;
+    }
+  }
+
+  /* Mobile Portrait Layout Adjustments for bottom breadcrumbs */
+  @media (max-width: 767px) and (orientation: portrait) {
+    :global(.page-main) {
+      padding-bottom: 80px !important;
+    }
+
+    :global(.page-breadcrumb) {
+      top: auto !important;
+      bottom: 0 !important;
+      background-color: var(--_tokens---color--bg) !important;
+    }
+
+    .home-section--search {
+      padding-bottom: 80px !important;
+    }
+
+    /* The bottom-docked breadcrumb bar covers the viewport's last ~80px —
+       shorten the one-screen hero so the dots sit above it, not under it.
+       Still a MINIMUM: the intro links can never be clipped. */
+    .home-section--hero {
+      height: auto;
+      min-height: calc(100dvh - 80px);
+    }
+  }
+</style>
+
+<!-- Global keyframes for the runtime-injected search capsules -->
+<style is:global>
+  @keyframes capsuleIn {
+    from { opacity: 0; transform: translateY(4px) scale(0.96); }
+    to   { opacity: 1; transform: none; }
+  }
+</style>

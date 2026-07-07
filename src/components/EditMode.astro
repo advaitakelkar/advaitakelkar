@@ -1,0 +1,169 @@
+---
+// Inline edit mode — local-dev only. When the SideNav lock control is unlocked
+// with the EDIT password (see SiteLock.astro), every element carrying a
+// data-edit="collection/id/field[.index]" binding becomes editable in place.
+// Edits POST to the dev-only /api/edit route, which rewrites the YAML file.
+// On the deployed (static) site there is no /api/edit and no localhost, so this
+// stays completely inert — the markup just renders normally.
+---
+
+<div class="ak-edit-bar" id="ak-edit-bar" aria-hidden="true">
+  <span class="ak-edit-bar__dot" aria-hidden="true"></span>
+  <span class="ak-edit-bar__label">Edit mode</span>
+  <span class="ak-edit-bar__status" id="ak-edit-status">Click any text to edit · saves on blur</span>
+  <button class="ak-edit-bar__exit" id="ak-edit-exit" type="button">Exit</button>
+</div>
+
+<style is:global>
+  /* Fields visible only while editing (e.g. the project short-name) */
+  [data-edit-only] { display: none; }
+  html[data-edit='on'] [data-edit-only] { display: inline-block; }
+
+  /* Editable affordance */
+  html[data-edit='on'] [data-edit] {
+    outline: 1px dashed color-mix(in srgb, var(--_tokens---color--fg) 35%, transparent);
+    outline-offset: 3px;
+    border-radius: 2px;
+    cursor: text;
+    transition: outline-color 0.15s ease, background-color 0.15s ease;
+  }
+  html[data-edit='on'] [data-edit]:hover {
+    outline-color: var(--_tokens---color--fg);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 4%, transparent);
+  }
+  html[data-edit='on'] [data-edit]:focus {
+    outline: 2px solid var(--_tokens---color--fg);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+  }
+  html[data-edit='on'] [data-edit][data-edit-saving] { outline-color: #c9a227; }
+  html[data-edit='on'] [data-edit][data-edit-saved]  { outline-color: #3a9d6b; }
+  html[data-edit='on'] [data-edit][data-edit-error]  { outline-color: #c0392b; }
+
+  /* Floating toolbar (only shown in edit mode) */
+  .ak-edit-bar {
+    position: fixed;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 400;
+    display: none;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px 8px 16px;
+    background-color: var(--_tokens---color--bg-glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 18%, transparent);
+    border-radius: var(--_tokens---radius--pill);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+    font-size: var(--_tokens---type--micro);
+    color: var(--_tokens---color--fg);
+    max-width: calc(100vw - 80px);
+  }
+  html[data-edit='on'] .ak-edit-bar { display: flex; }
+
+  .ak-edit-bar__dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background-color: #3a9d6b; flex-shrink: 0;
+  }
+  .ak-edit-bar__label { font-weight: 600; white-space: nowrap; }
+  .ak-edit-bar__status {
+    color: var(--_tokens---color--muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .ak-edit-bar__exit {
+    all: unset;
+    cursor: pointer;
+    padding: 5px 12px;
+    border-radius: var(--_tokens---radius--pill);
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    font-size: var(--_tokens---type--ultrathin);
+    font-weight: 500;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+</style>
+
+<script>
+  const isLocal = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+  const root = document.documentElement;
+  const bar = document.getElementById('ak-edit-bar');
+  const statusEl = document.getElementById('ak-edit-status');
+  const exitBtn = document.getElementById('ak-edit-exit');
+
+  function setStatus(text: string) { if (statusEl) statusEl.textContent = text; }
+
+  async function save(el: HTMLElement, path: string, value: string) {
+    el.removeAttribute('data-edit-saved');
+    el.removeAttribute('data-edit-error');
+    el.setAttribute('data-edit-saving', '');
+    setStatus('Saving…');
+    try {
+      const res = await fetch('/api/edit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path, value }),
+      });
+      const data = await res.json().catch(() => ({}));
+      el.removeAttribute('data-edit-saving');
+      if (res.ok && data.ok) {
+        el.setAttribute('data-edit-saved', '');
+        el.dataset.editOrig = value;
+        setStatus('Saved ✓ — push to publish');
+        setTimeout(() => el.removeAttribute('data-edit-saved'), 1200);
+      } else {
+        el.setAttribute('data-edit-error', '');
+        setStatus('Save failed: ' + (data.error || res.status));
+      }
+    } catch (err) {
+      el.removeAttribute('data-edit-saving');
+      el.setAttribute('data-edit-error', '');
+      setStatus('Save failed — is the dev server running?');
+    }
+  }
+
+  function bindField(el: HTMLElement) {
+    if (el.dataset.editBound) return;
+    el.dataset.editBound = '1';
+    const isHtml = el.hasAttribute('data-edit-html');
+    el.setAttribute('contenteditable', isHtml ? 'true' : 'plaintext-only');
+    el.dataset.editOrig = isHtml ? el.innerHTML : (el.textContent ?? '');
+    el.addEventListener('blur', () => {
+      const value = isHtml ? el.innerHTML : (el.textContent ?? '');
+      if (value === el.dataset.editOrig) return;
+      const path = el.getAttribute('data-edit');
+      if (path) save(el, path, value);
+    });
+    // Single-line fields: Enter commits instead of inserting a newline
+    if (!isHtml) {
+      el.addEventListener('keydown', (e: KeyboardEvent) => {
+        if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
+      });
+    }
+  }
+
+  function activate() {
+    if (!isLocal) return;            // editing only works against the local dev server
+    root.dataset.edit = 'on';
+    sessionStorage.setItem('ak-edit-mode', 'on');
+    document.querySelectorAll<HTMLElement>('[data-edit]').forEach(bindField);
+  }
+
+  function deactivate() {
+    root.removeAttribute('data-edit');
+    sessionStorage.removeItem('ak-edit-mode');
+    document.querySelectorAll<HTMLElement>('[data-edit]').forEach((el) => {
+      el.removeAttribute('contenteditable');
+    });
+    setStatus('Click any text to edit · saves on blur');
+  }
+
+  exitBtn?.addEventListener('click', deactivate);
+
+  // SiteLock dispatches this after the correct EDIT password is entered.
+  document.addEventListener('ak:editmode:on', activate);
+
+  // Persist across navigations within a session
+  if (isLocal && sessionStorage.getItem('ak-edit-mode') === 'on') activate();
+</script>

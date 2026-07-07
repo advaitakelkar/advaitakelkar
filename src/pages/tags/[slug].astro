@@ -1,0 +1,26 @@
+---
+import { getCollection } from 'astro:content';
+import ProjectList from '../../components/ProjectList.astro';
+
+export async function getStaticPaths() {
+  const tags = await getCollection('tags');
+  return tags.map(tag => ({
+    params: { slug: tag.id },
+    props: { tag },
+  }));
+}
+
+const { tag } = Astro.props;
+const allProjects = await getCollection('projects');
+const projects = allProjects.filter(p => (p.data.tags ?? []).some(t => t.id === tag.id));
+---
+
+<ProjectList
+  projects={projects}
+  title={tag.data.name}
+  crumbs={[
+    { label: 'Home', href: '/' },
+    { label: 'Projects', href: '/projects' },
+    { label: tag.data.name },
+  ]}
+/>

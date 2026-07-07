@@ -1,0 +1,1362 @@
+---
+import { getCollection } from 'astro:content';
+import { publicFileExists } from '../lib/content';
+
+export interface Props {
+  currentPath?: string;
+}
+const { currentPath = '/' } = Astro.props;
+
+// PDF pills only render once the files actually exist in public/
+const hasPortfolio = publicFileExists('/advaita-kelkar-portfolio.pdf');
+const hasCv = publicFileExists('/advaita-kelkar-resume.pdf');
+
+// Fetch all projects for route mapping
+const allProjects = await getCollection('projects');
+const allCategories = await getCollection('categories');
+
+// Normalize path (ignore trailing slash)
+const normPath = currentPath.replace(/\/$/, '') || '/';
+
+const pathParts = normPath.split('/').filter(Boolean);
+const isProjectPage = pathParts[0] === 'projects' && pathParts.length > 1;
+
+let categoryLink = '';
+let categoryName = '';
+
+if (isProjectPage) {
+  const projectSlug = pathParts[1];
+  const project = allProjects.find(p => p.id === projectSlug);
+  if (project && project.data.category) {
+    const catId = project.data.category.id;
+    const cat = allCategories.find(c => c.id === catId);
+    categoryName = cat?.data.displayName || catId;
+    categoryLink = `/${catId}`;
+  }
+}
+
+// Derive human-readable page name for the label (normal case)
+function pageName(path: string): string {
+  const norm = path.replace(/\/$/, '') || '/';
+  if (norm === '/') return 'Home';
+  const parts = norm.split('/').filter(Boolean);
+  if (parts[0] === 'about') return 'About';
+  if (parts[0] === 'projects') {
+    if (parts.length === 1) return 'Projects';
+    const slug = parts[1];
+    const proj = allProjects.find(p => p.id === slug);
+    if (proj) return proj.data.name; // return actual name (normal case)
+    return parts[1].split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  }
+  // Categories/Tags
+  if (parts[0] === 'work' && parts.length > 1) {
+    const sub = parts[1];
+    if (sub === 'studio-823') return 'Studio 823';
+    if (sub === 'faizan-khatri') return 'FKD Workshop';
+  }
+  return parts[parts.length - 1].split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
+const barLabel = `INDEX / ${pageName(currentPath)}`;
+const wheelProjects = [...allProjects].sort(
+  (a, b) => parseInt(b.data.year ?? '0') - parseInt(a.data.year ?? '0')
+);
+
+// Combined wheel items: top-level pages first, then projects
+type WheelItem = { href: string; name: string; id: string; isPage: boolean };
+const wheelItems: WheelItem[] = [
+  { href: '/',         name: 'Home',     id: '__home__',     isPage: true },
+  { href: '/about',    name: 'About',    id: '__about__',    isPage: true },
+  { href: '/projects', name: 'Projects', id: '__projects__', isPage: true },
+  { href: '/work', name: 'Work', id: '__work__', isPage: true },
+  { href: '/academic', name: 'Academic', id: '__academic__', isPage: true },
+  { href: '/freelancer', name: 'Freelancer', id: '__freelancer__', isPage: true },
+  { href: '/archv', name: 'Archv', id: '__archv__', isPage: true },
+  ...wheelProjects.map(p => ({ href: `/projects/${p.id}`, name: p.data.name, id: p.id, isPage: false })),
+];
+
+// Color schemes — all light variants; dark mode flips bg↔fg via CSS
+// fg doubles as the dark-mode bg for swatch rendering
+const schemes = [
+  { id: 'default', label: 'Void',     bg: '#ffffff', fg: '#111111' },
+  { id: 'sch1',    label: 'Moss',     bg: '#ECE7E2', fg: '#4A7766' },
+  { id: 'sch2',    label: 'Clay',     bg: '#fee7d5', fg: '#4b3935' },
+  { id: 'sch3',    label: 'Dusk',     bg: '#D7E7C3', fg: '#6C5383' },
+  { id: 'sch4',    label: 'Midnight', bg: '#D2B96A', fg: '#0B1A35' },
+  { id: 'sch6',    label: 'Ember',    bg: '#ffe4a1', fg: '#97322D' },
+  { id: 'sch7',    label: 'Nomad',    bg: '#edcdc2', fg: '#0093AF' },
+];
+---
+
+<div class="sn-wrap" id="sn-wrap">
+
+  <!-- ── Narrow INDEX bar ── -->
+  <div class="sn-bar" id="sn-bar" role="button" tabindex="0"
+       aria-expanded="false" aria-controls="sn-panel" aria-label="Toggle navigation">
+
+    <!-- Logo (top) -->
+    <a href="/" class="sn-bar__logo" id="sn-logo" aria-label="Home" title="Home">
+      <div class="sn-bar__mark" id="sn-logo-mark"></div>
+    </a>
+
+    <!-- Color scheme switcher -->
+    <div class="sn-scheme" id="sn-scheme">
+      <button class="sn-scheme__btn" id="sn-scheme-btn"
+              aria-label="Change color scheme" title="Color scheme"
+              aria-haspopup="listbox" aria-expanded="false">
+        <div class="sn-scheme__indicator" id="sn-scheme-indicator"></div>
+      </button>
+      <!-- Dropdown -->
+      <div class="sn-scheme__dropdown" id="sn-scheme-dropdown" role="listbox" aria-label="Color schemes">
+        {schemes.map(s => (
+          <button
+            class="sn-scheme__option"
+            role="option"
+            data-scheme={s.id}
+            title={s.label}
+            aria-label={s.label}
+          >
+            <span class="sn-scheme__swatch" style={`--sw-l:${s.fg};--sw-d:${s.bg};`}></span>
+            <span class="sn-scheme__name">{s.label}</span>
+          </button>
+        ))}
+        <!-- Mode toggle: half-dark / half-light circle -->
+        <hr class="sn-scheme__divider" aria-hidden="true" />
+        <button
+          class="sn-scheme__option"
+          id="sn-mode-btn"
+          title="Toggle dark / light"
+          aria-label="Toggle dark / light mode"
+        >
+          <span class="sn-scheme__swatch sn-mode-swatch"></span>
+          <span class="sn-scheme__name">Mode</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Hamburger (open / close trigger — visual only, bar click is the trigger) -->
+    <div class="sn-bar__hamburger" id="sn-hamburger" aria-hidden="true">
+      <span></span>
+      <span></span>
+    </div>
+
+    <!-- "tap to open" — glitch-typed on a loop, invites the click.
+         The invisible ghost keeps the bar layout steady while it types. -->
+    <span class="sn-bar__open-tag" id="sn-open-tag" aria-hidden="true">
+      <span class="sn-open-tag__ghost">tap to open</span>
+      <span class="sn-open-tag__type" id="sn-open-type"></span>
+    </span>
+
+    <!-- Vertical label (bottom): index / current page -->
+    <span class="sn-bar__label" id="sn-bar-label">
+      <span class="sn-bar__label-index">index</span>
+      <span class="sn-bar__label-page">
+        / {isProjectPage && categoryName ? (
+          <a href={categoryLink} class="sn-bar__category-link">{categoryName}</a>
+        ) : (
+          pageName(currentPath)
+        )}
+      </span>
+    </span>
+
+    <!-- Lock / unlock toggle (bottom corner) — unlocks all project pages at once -->
+    <button class="sn-lock" id="sn-lock-toggle" data-lock-toggle data-unlocked="false" type="button" aria-label="Lock or unlock the project archive" title="Lock / unlock projects">
+      <svg class="sn-lock__icon sn-lock__icon--locked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="5" y="11" width="14" height="9" rx="2"></rect>
+        <path d="M8 11V8a4 4 0 0 1 8 0v3"></path>
+      </svg>
+      <svg class="sn-lock__icon sn-lock__icon--unlocked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="5" y="11" width="14" height="9" rx="2"></rect>
+        <path d="M8 11V8a4 4 0 0 1 7.5-1.9"></path>
+      </svg>
+    </button>
+  </div>
+
+  <!-- ── Slide-in panel ── -->
+  <div class="sn-panel" id="sn-panel" aria-hidden="true">
+
+    <!-- Top Identity Block -->
+    <div class="sn-panel__top">
+      <div class="sn-panel__header">
+        <p class="sn-panel__name" data-scramble>Advaita Kelkar</p>
+        
+        <!-- Click-to-copy email box -->
+        <div class="sn-panel__email" id="sn-email-box" role="button" tabindex="0" aria-label="Copy email address">
+          <span class="sn-panel__email-text">advaitakelkar@gmail.com</span>
+          <span class="sn-panel__copy" aria-hidden="true">
+            <svg class="sn-copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <svg class="sn-check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </span>
+        </div>
+
+        <div class="sn-panel__spacer"></div>
+
+        <p class="sn-panel__bio">Hey! Advaita here — architectural designer from Mumbai, currently at SCAD in Savannah. I work across architecture, interiors, urban design and everything in between. Always curious, always making. Glad you're here!</p>
+      </div>
+    </div>
+
+    <!-- Bottom Area: infinite looping scroll wheel of page items and projects -->
+    <div class="sn-panel__bottom-track">
+      <div class="sn-panel__wheel" id="sn-wheel">
+        <!-- ONE copy in the HTML; the infinite loop needs three, so the
+             script clones two more on first open. Shipping all three copies
+             on every page cost ~150 links + SVGs of dead-weight DOM. -->
+        <div class="sn-wheel__track" id="sn-wheel-track" data-copies="1">
+          {wheelItems.map(item => (
+            <a
+              href={item.href}
+              class:list={[
+                'sn-wheel__item',
+                item.isPage && 'sn-wheel__item--page',
+                (normPath === (item.href.replace(/\/$/, '') || '/')) && 'is-active'
+              ]}
+              data-item-id={item.id}
+            >
+              <span data-scramble>{item.name}</span>
+              <span class="sn-panel__arrow">
+                <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+                  <line x1="6" y1="18" x2="18" y2="6"></line>
+                  <polyline points="10 6 18 6 18 14"></polyline>
+                </svg>
+              </span>
+            </a>
+          ))}
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Backdrop -->
+  <div class="sn-backdrop" id="sn-backdrop" aria-hidden="true"></div>
+</div>
+
+<style>
+  /* ── Wrapper ── */
+  .sn-wrap {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100dvh;
+    z-index: 200;
+    display: flex;
+  }
+
+  /* ── Narrow bar ── */
+  .sn-bar {
+    position: relative;
+    z-index: 201;
+    width: 44px; /* Slimmed to 44px */
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    padding: 24px 0;
+    background-color: var(--_tokens---color--bg-glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-right: 1px solid var(--_tokens---color--line);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background-color 0.3s ease, border-right-color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    user-select: none;
+  }
+
+  .sn-wrap.is-open .sn-bar {
+    border-right-color: transparent;
+    background-color: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* Logo */
+  .sn-bar__logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    text-decoration: none;
+    width: 36px; /* enlarged logo */
+    height: 36px;
+    margin-bottom: 20px;
+  }
+
+  .sn-bar__mark {
+    width: 36px; /* enlarged logo */
+    height: 36px;
+    background-color: var(--_tokens---color--fg);
+    -webkit-mask: url('/ak-logo.svg') center / contain no-repeat;
+    mask: url('/ak-logo.svg') center / contain no-repeat;
+    flex-shrink: 0;
+    transition: background-color 0.3s ease;
+    /* Rotation is driven by scroll velocity in JS; keep only the breathing glow here */
+    animation: glow-logo 4s ease-in-out infinite;
+    will-change: transform;
+  }
+
+  @keyframes glow-logo {
+    0%, 100% {
+      opacity: 0.7;
+      filter: drop-shadow(0 0 1px var(--_tokens---color--fg));
+    }
+    50% {
+      opacity: 1;
+      filter: drop-shadow(0 0 6px var(--_tokens---color--fg));
+    }
+  }
+
+  /* ── Color scheme switcher ── */
+  .sn-scheme {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .sn-scheme__btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none; /* minimal — no border */
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s;
+  }
+
+  .sn-scheme__btn:hover { transform: scale(1.1); }
+
+  /* Solid circle — current scheme fg (darker) with bg border */
+  .sn-scheme__indicator {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--_tokens---color--fg);
+    border: 1.5px solid var(--_tokens---color--bg);
+  }
+
+  /* Dropdown — drops linearly DOWN inside the index bar, icons stacked one below the other */
+  .sn-scheme__dropdown {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 50%;
+    width: auto;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 9px;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-50%) translateY(-6px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 300;
+  }
+
+  .sn-scheme__dropdown.is-open {
+    opacity: 1;
+    pointer-events: all;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .sn-scheme__option {
+    display: flex;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+    border-radius: 50%;
+    transition: transform 0.15s;
+  }
+
+  .sn-scheme__option:hover { transform: scale(1.18); }
+
+  .sn-scheme__option.is-active .sn-scheme__swatch {
+    outline: 1.5px solid var(--_tokens---color--fg);
+    outline-offset: 2px;
+  }
+
+  /* Single-color swatch — shows light bg; dark mode shows dark bg */
+  .sn-scheme__swatch {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--sw-l);
+    border: none;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .sn-scheme__swatch {
+      background: var(--sw-d);
+    }
+  }
+
+  /* Mode toggle divider */
+  .sn-scheme__divider {
+    width: 16px;
+    height: 1px;
+    background: color-mix(in srgb, var(--_tokens---color--fg) 18%, transparent);
+    border: none;
+    margin: 4px 0;
+    flex-shrink: 0;
+  }
+
+  /* Mode toggle swatch — diagonal split showing both halves of current scheme */
+  .sn-mode-swatch {
+    background: linear-gradient(
+      135deg,
+      var(--_tokens---color--fg) 50%,
+      var(--_tokens---color--bg) 50%
+    ) !important;
+    border: none !important;
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--_tokens---color--fg) 25%, transparent) !important;
+    overflow: hidden;
+  }
+
+  /* Hide name — colors only */
+  .sn-scheme__name {
+    display: none;
+  }
+
+  /* ── Hamburger — pinned to exact center of bar ── */
+  .sn-bar__hamburger {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    align-items: center;
+    pointer-events: none;
+  }
+
+  .sn-bar__hamburger span {
+    display: block;
+    width: 18px;
+    height: 1.5px;
+    background-color: var(--_tokens---color--fg);
+    transition: transform 0.3s ease, opacity 0.3s ease, width 0.3s ease;
+    transform-origin: center;
+  }
+
+  /* Animate to X when panel open */
+  .sn-wrap.is-open .sn-bar__hamburger span:nth-child(1) {
+    transform: translateY(3.25px) rotate(45deg);
+  }
+
+  .sn-wrap.is-open .sn-bar__hamburger span:nth-child(2) {
+    transform: translateY(-3.25px) rotate(-45deg);
+  }
+
+  /* ── Vertical label (bottom): index / current page ── */
+  .sn-bar__label {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+    margin-top: auto;
+    pointer-events: none;
+    white-space: nowrap;
+    text-transform: none;
+    letter-spacing: 0.04em;
+    transition: color 0.3s ease;
+  }
+
+  /* "index" — small token, weight 500 distinguishes from "/ page" */
+  .sn-bar__label-index {
+    font-size: var(--_tokens---type--small);
+    font-weight: 500;
+    color: var(--_tokens---color--fg);
+    vertical-align: middle;
+  }
+
+  /* "/ page" — small, regular */
+  .sn-bar__label-page {
+    font-size: var(--_tokens---type--small);
+    font-weight: 400;
+    color: var(--_tokens---color--muted);
+    vertical-align: middle;
+  }
+
+  .sn-bar__category-link {
+    color: inherit;
+    text-decoration: none;
+    pointer-events: auto;
+    transition: color 0.2s ease;
+  }
+  .sn-bar__category-link:hover {
+    color: var(--_tokens---color--fg);
+    text-decoration: underline;
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 3px;
+  }
+
+  /* Blinking "open" tag in the middle of the closed bar */
+  .sn-bar__open-tag {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+    font-size: var(--_tokens---type--ultrathin);
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--_tokens---color--fg);
+    user-select: none;
+    pointer-events: none;
+    margin-top: 24px;
+    margin-bottom: 24px;
+    opacity: 0.85;
+    position: relative;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+  }
+  .sn-open-tag__ghost {
+    visibility: hidden; /* reserves the full text's space */
+  }
+  .sn-open-tag__type {
+    position: absolute;
+    inset: 0;
+  }
+
+  .sn-wrap.is-open .sn-bar__open-tag {
+    opacity: 0.8;
+    visibility: visible;
+    pointer-events: none;
+  }
+
+  @keyframes sn-blink {
+    0%, 100% { opacity: 0.25; }
+    50% { opacity: 1; }
+  }
+
+  /* ── Lock / unlock toggle (bottom of the bar, just under the label) ── */
+  .sn-lock {
+    all: unset;
+    margin-top: 16px;   /* gap below the index / page label */
+    margin-bottom: 10px; /* nudge it up from the very bottom */
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--_tokens---color--fg);
+    cursor: pointer;
+    flex-shrink: 0;
+    opacity: 0.65;
+    transition: opacity 0.2s ease;
+  }
+  .sn-lock:hover,
+  .sn-lock:focus-visible { opacity: 1; outline: none; }
+  .sn-lock__icon { width: 100%; height: 100%; }
+  .sn-lock__icon--unlocked { display: none; }
+  .sn-lock[data-unlocked="true"] { opacity: 1; }
+  .sn-lock[data-unlocked="true"] .sn-lock__icon--locked { display: none; }
+  .sn-lock[data-unlocked="true"] .sn-lock__icon--unlocked { display: block; }
+
+  /* ── Slide-in panel ── */
+  .sn-panel {
+    position: fixed;
+    top: 0;
+    left: 44px; /* Positioned relative to 44px sidebar */
+    width: min(400px, calc(85vw - 44px));
+    height: 100dvh;
+    background-color: var(--_tokens---color--bg-glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 24px 0;
+    overflow: hidden; /* the wheel scrolls internally */
+    transform: translateX(-100%);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 200;
+    pointer-events: none;
+    border-right: 1px solid var(--_tokens---color--line);
+  }
+
+  .sn-panel.is-open {
+    transform: translateX(0);
+    pointer-events: all;
+  }
+
+  /* ── Top block: identity + nav ── */
+  .sn-panel__top { flex-shrink: 0; }
+
+  .sn-panel__header {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 0 16px;
+  }
+
+  /* Name — micro, bold */
+  .sn-panel__name {
+    font-size: var(--_tokens---type--micro);
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: var(--_tokens---color--fg);
+    margin: 0;
+  }
+
+  .sn-panel__spacer {
+    height: 12px;
+    flex-shrink: 0;
+  }
+
+  /* Bio — micro */
+  .sn-panel__bio {
+    font-size: var(--_tokens---type--micro);
+    line-height: 1.55;
+    color: var(--_tokens---color--muted);
+    margin: 0;
+  }
+
+  .sn-panel__link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: var(--_tokens---type--medium);
+    font-weight: 500;
+    line-height: 1.1;
+    color: var(--_tokens---color--fg);
+    text-decoration: none;
+    padding: 6px 0;
+    transition: opacity 0.15s ease, transform 0.2s ease;
+    opacity: 0.65;
+    white-space: nowrap;
+    gap: 12px;
+  }
+
+  /* ── Bottom: infinite project wheel ── */
+  .sn-panel__bottom-track {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    overflow: hidden;
+    padding-bottom: 8px;
+  }
+
+  .sn-panel__wheel {
+    width: 100%;
+    height: clamp(160px, 45dvh, 400px);
+    max-height: 400px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    padding-inline: 16px;
+    /* fade (grey out) items away from the center focus area */
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.1) 8%, #000 25%, #000 75%, rgba(0, 0, 0, 0.1) 92%, transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.1) 8%, #000 25%, #000 75%, rgba(0, 0, 0, 0.1) 92%, transparent 100%);
+    scroll-snap-type: y mandatory;
+  }
+
+  .sn-panel__wheel::-webkit-scrollbar { display: none; }
+
+  .sn-wheel__track {
+    display: flex;
+    flex-direction: column;
+    gap: 8px; /* space between pills */
+    padding-block: 8px;
+  }
+
+  .sn-wheel__item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: var(--_tokens---type--micro);
+    font-weight: 400;
+    line-height: 1.2;
+    color: var(--_tokens---color--muted);
+    text-decoration: none;
+    padding: 6px 16px;
+    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
+    border-radius: var(--_tokens---radius--pill);
+    background-color: transparent;
+    gap: 12px;
+    opacity: 0.8;
+    white-space: nowrap;
+    transition: background-color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+                opacity 0.2s ease;
+    scroll-snap-align: center;
+  }
+
+  .sn-wheel__item:hover {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
+    opacity: 1;
+    transform: translateX(4px);
+  }
+
+  .sn-wheel__item.is-active {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
+    opacity: 1;
+    font-weight: 500;
+  }
+
+  /* Page-level entries (Home / About / Projects) look like unified pills now */
+  .sn-wheel__item--page {
+    font-weight: 500;
+    letter-spacing: 0.01em;
+  }
+
+  /* Email — greyed box with copy icon */
+  .sn-panel__email {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 7%, transparent);
+    border-radius: 8px;
+    padding: 9px 12px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+
+  .sn-panel__email:hover {
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 11%, transparent);
+  }
+
+  .sn-panel__email-text {
+    font-size: var(--_tokens---type--micro);
+    font-weight: 400;
+    color: var(--_tokens---color--fg);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .sn-panel__copy {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    color: var(--_tokens---color--muted);
+    position: relative;
+  }
+
+  .sn-panel__copy svg {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    inset: 0;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .sn-copy-icon { opacity: 1; }
+  .sn-check-icon { opacity: 0; transform: scale(0.6); color: var(--_tokens---color--fg); }
+  .sn-panel__email.is-copied .sn-copy-icon { opacity: 0; }
+  .sn-panel__email.is-copied .sn-check-icon { opacity: 1; transform: scale(1); }
+
+  .sn-panel__arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.35em;
+    height: 1.35em;
+    flex-shrink: 0;
+    opacity: 0.6;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+  }
+
+  .sn-panel__arrow .link-arrow {
+    width: 100%;
+    height: 100%;
+  }
+
+  .sn-wheel__item:hover .sn-panel__arrow {
+    transform: translate(2px, -2px);
+    opacity: 1;
+  }
+
+  /* ── Backdrop ── */
+  .sn-backdrop {
+    position: fixed;
+    inset: 0;
+    left: 44px; /* Positioned relative to 44px sidebar */
+    background-color: transparent;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s ease;
+    z-index: 199;
+  }
+
+  .sn-backdrop.is-open {
+    opacity: 0;
+    pointer-events: all;
+  }
+</style>
+
+<script>
+  // ── State ──────────────────────────────────────────────────
+  let navOpen = false;
+  let schemeOpen = false;
+  let isOpeningNav = false;
+
+  const wrap      = document.getElementById('sn-wrap')!;
+  const bar       = document.getElementById('sn-bar')!;
+  const panel     = document.getElementById('sn-panel')!;
+  const backdrop  = document.getElementById('sn-backdrop')!;
+  const logo      = document.getElementById('sn-logo')!;
+  const logoMark  = document.getElementById('sn-logo-mark')!;
+
+  // ── Scroll Wheel Physics & Audio State ─────────────────────
+  let targetScrollTop = 0;
+  let isAnimating = false;
+  let lastNearestIndex = -1;
+  let isWrapping = false;
+  let audioCtx: AudioContext | null = null;
+
+  function initAudio() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }
+
+  function playTick() {
+    initAudio();
+    if (!audioCtx || audioCtx.state === 'suspended') return;
+    
+    // Mechanical iPod click wheel tick (crisp high-pass white noise burst)
+    const duration = 0.005; // 5ms burst
+    const bufferSize = audioCtx.sampleRate * duration;
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+    
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = buffer;
+    
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 1800; // crisp high pitch
+    filter.Q.value = 4.0;
+    
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration - 0.001);
+    
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(audioCtx.destination);
+    
+    noise.start();
+    noise.stop(audioCtx.currentTime + duration);
+  }
+
+  // ── Logo spin driven by scroll velocity ────────────────────
+  // Spins rapidly while the page is scrolling, then decelerates rapidly once it stops.
+  let logoAngle = 0;
+  let logoAngVel = 0;
+  let lastScrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (!reduceMotion) {
+    window.addEventListener('scroll', () => {
+      const y = window.pageYOffset || document.documentElement.scrollTop || 0;
+      const delta = y - lastScrollY;
+      lastScrollY = y;
+      // Each pixel of scroll feeds angular velocity; clamp so it stays tasteful
+      logoAngVel += delta * 0.5;
+      logoAngVel = Math.max(-45, Math.min(45, logoAngVel));
+    }, { passive: true });
+
+    const spinLogo = () => {
+      logoAngle += logoAngVel;
+      logoAngVel *= 0.80; // rapid deceleration when scrolling stops
+      if (Math.abs(logoAngVel) < 0.01) logoAngVel = 0;
+      if (logoMark) {
+        logoMark.style.transform = `rotate(${logoAngle}deg)`;
+      }
+      requestAnimationFrame(spinLogo);
+    };
+    requestAnimationFrame(spinLogo);
+  }
+  const schemeEl  = document.getElementById('sn-scheme')!;
+  const schemeBtn = document.getElementById('sn-scheme-btn')!;
+  const dropdown  = document.getElementById('sn-scheme-dropdown')!;
+
+  function scrollWheelToActive() {
+    requestAnimationFrame(() => {
+      const wheel      = document.getElementById('sn-wheel') as HTMLElement | null;
+      const wheelTrack = document.getElementById('sn-wheel-track') as HTMLElement | null;
+      if (!wheel || !wheelTrack) return;
+
+      // Find the active item in the MIDDLE copy so infinite wrap has room above and below
+      const allItems = Array.from(wheelTrack.querySelectorAll<HTMLElement>('.sn-wheel__item'));
+      const perCopy  = Math.round(allItems.length / 3);
+      const middle   = allItems.slice(perCopy, perCopy * 2);
+      const target   = middle.find(el => el.classList.contains('is-active')) ?? middle[0];
+
+      // getBoundingClientRect avoids the position:fixed offsetParent problem.
+      // itemTopInWheel = item's current y position within the wheel's visible area.
+      // Adding scrollTop converts it to an absolute position in the scroll container.
+      const itemRect       = target.getBoundingClientRect();
+      const wheelRect      = wheel.getBoundingClientRect();
+      const itemAbsTop     = itemRect.top - wheelRect.top + wheel.scrollTop;
+      const scroll         = Math.max(0, itemAbsTop - (wheel.clientHeight - itemRect.height) / 2);
+
+      wheel.scrollTop  = scroll;
+      targetScrollTop  = scroll;
+      lastNearestIndex = -1;
+    });
+  }
+
+  // ── Scramble Text effect for the Open/Close label ───────────
+  function scrambleText(element: HTMLElement, targetText: string) {
+    const GLYPHS = '01XYZ%$#@?*+=#-_[]{}<>/';
+    const originalText = targetText;
+    let frame = 0;
+    const queue: Array<{ from: string; to: string; start: number; end: number; char?: string }> = [];
+    const currentText = element.textContent || '';
+    const length = Math.max(originalText.length, currentText.length);
+    
+    for (let i = 0; i < length; i++) {
+      const from = currentText[i] || '';
+      const to = originalText[i] || '';
+      const start = Math.floor(Math.random() * 6);
+      const end = start + Math.floor(Math.random() * 8) + 3;
+      queue.push({ from, to, start, end });
+    }
+
+    cancelAnimationFrame((element as any)._scrambleFrameId);
+
+    function tick() {
+      let output = '';
+      let complete = 0;
+
+      for (let i = 0; i < queue.length; i++) {
+        let { from, to, start, end, char } = queue[i];
+        if (frame >= end) {
+          complete++;
+          output += to;
+        } else if (frame >= start) {
+          if (!char || Math.random() < 0.28) {
+            char = GLYPHS[Math.floor(Math.random() * GLYPHS.length)];
+            queue[i].char = char;
+          }
+          output += char;
+        } else {
+          output += from;
+        }
+      }
+
+      element.textContent = output;
+
+      if (complete === queue.length) {
+        element.textContent = originalText;
+      } else {
+        frame++;
+        (element as any)._scrambleFrameId = requestAnimationFrame(tick);
+      }
+    }
+
+    tick();
+  }
+
+  // ── Nav toggle ─────────────────────────────────────────────
+  function openNav() {
+    initAudio(); // Initialize audio context on user interaction
+    isOpeningNav = true;
+    navOpen = true;
+    wrap.classList.add('is-open');
+    bar.setAttribute('aria-expanded', 'true');
+    panel.classList.add('is-open');
+    panel.setAttribute('aria-hidden', 'false');
+    backdrop.classList.add('is-open');
+    
+    const openTag = document.getElementById('sn-open-tag');
+    if (openTag) scrambleText(openTag, 'tap to close');
+
+    scrollWheelToActive();
+    
+    // Tell watermark physics where the panel's right edge will land (paddle target)
+    (window as any).__navPanelTarget = 44 + panel.offsetWidth;
+
+    setTimeout(() => {
+      isOpeningNav = false;
+    }, 450);
+  }
+
+  function closeNav() {
+    navOpen = false;
+    wrap.classList.remove('is-open');
+    bar.setAttribute('aria-expanded', 'false');
+    panel.classList.remove('is-open');
+    panel.setAttribute('aria-hidden', 'true');
+    backdrop.classList.remove('is-open');
+
+    const openTag = document.getElementById('sn-open-tag');
+    if (openTag) scrambleText(openTag, 'tap to open');
+
+    // Retract paddle back to the bare nav bar
+    (window as any).__navPanelTarget = 44;
+  }
+
+  bar.addEventListener('click', (e) => {
+    if ((e.target as HTMLElement).closest('#sn-logo')) return;
+    if ((e.target as HTMLElement).closest('#sn-scheme')) return;
+    if ((e.target as HTMLElement).closest('.sn-bar__category-link')) return;
+    navOpen ? closeNav() : openNav();
+  });
+
+  bar.addEventListener('keydown', (e) => {
+    // Enter toggles here; Space is handled once by the global listener below
+    // (handling it in both places double-toggles and cancels out).
+    if (e.key === 'Enter') { e.preventDefault(); navOpen ? closeNav() : openNav(); }
+    if (e.key === 'Escape') closeNav();
+  });
+
+  logo.addEventListener('click', (e) => e.stopPropagation());
+  backdrop.addEventListener('click', closeNav);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { closeNav(); closeScheme(); }
+  });
+
+  // Global spacebar listener to toggle side navigation index bar
+  if (!(window as any).hasSideNavSpacebarInit) {
+    (window as any).hasSideNavSpacebarInit = true;
+    window.addEventListener('keydown', (e) => {
+      const active = document.activeElement as HTMLElement | null;
+      if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)) {
+        return;
+      }
+      if (e.key === ' ' || e.code === 'Space') {
+        e.preventDefault();
+        navOpen ? closeNav() : openNav();
+      }
+    });
+  }
+
+  // ── Scheme dropdown ────────────────────────────────────────
+  const SCHEMES = ['default','sch1','sch2','sch3','sch4','sch6','sch7'];
+
+  function getCurrentScheme(): string {
+    const match = document.documentElement.className.match(/sch\d+/);
+    return match ? match[0] : 'default';
+  }
+
+  function applyScheme(id: string) {
+    // Remove all sch classes, add new one
+    document.documentElement.classList.remove(...SCHEMES.filter(s => s !== 'default'));
+    if (id !== 'default') document.documentElement.classList.add(id);
+    // Store id directly — 'default' is stored as the string 'default' (not empty string)
+    sessionStorage.setItem('aks', id);
+    updateActiveOption();
+    closeScheme();
+  }
+
+  function updateActiveOption() {
+    const current = getCurrentScheme();
+    dropdown.querySelectorAll<HTMLElement>('.sn-scheme__option').forEach(btn => {
+      btn.classList.toggle('is-active', btn.dataset.scheme === current);
+    });
+  }
+
+  function openScheme() {
+    schemeOpen = true;
+    schemeBtn.setAttribute('aria-expanded', 'true');
+    dropdown.classList.add('is-open');
+    updateActiveOption();
+  }
+
+  function closeScheme() {
+    schemeOpen = false;
+    schemeBtn.setAttribute('aria-expanded', 'false');
+    dropdown.classList.remove('is-open');
+  }
+
+  schemeBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    schemeOpen ? closeScheme() : openScheme();
+  });
+
+  schemeEl.addEventListener('click', (e) => e.stopPropagation());
+
+  dropdown.querySelectorAll<HTMLElement>('.sn-scheme__option').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.scheme ?? 'default';
+      applyScheme(id);
+    });
+  });
+
+  // Close scheme if clicking outside
+  document.addEventListener('click', (e) => {
+    if (schemeOpen && !schemeEl.contains(e.target as Node)) closeScheme();
+  });
+
+  // Scheme already applied by the <head> inline script — just sync the active highlight
+  updateActiveOption();
+
+
+  // ── Dark / light mode toggle ──────────────────────────────
+  const modeBtn = document.getElementById('sn-mode-btn');
+
+  function getEffectiveDark(): boolean {
+    if (document.documentElement.classList.contains('mode-dark')) return true;
+    if (document.documentElement.classList.contains('mode-light')) return false;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+
+  modeBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isDark = getEffectiveDark();
+    document.documentElement.classList.remove('mode-dark', 'mode-light');
+    if (isDark) {
+      // Force light
+      document.documentElement.classList.add('mode-light');
+      sessionStorage.setItem('aks-mode', 'light');
+    } else {
+      // Force dark
+      document.documentElement.classList.add('mode-dark');
+      sessionStorage.setItem('aks-mode', 'dark');
+    }
+    closeScheme();
+  });
+
+  // ── "tap to open" glitch typewriter — loops to draw the eye ─────────
+  (function initOpenTagTyper() {
+    const el = document.getElementById('sn-open-type');
+    if (!el || (el as any)._wired) return;
+    (el as any)._wired = true;
+    const TEXT = 'tap to open';
+    const G = '!<>-_/[]{}=+*#';
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      el.textContent = TEXT;
+      return;
+    }
+    let pos = 0;
+    function typeStep() {
+      if (pos <= TEXT.length) {
+        const head = pos < TEXT.length ? G[(Math.random() * G.length) | 0] : '';
+        el.textContent = TEXT.slice(0, pos) + head;
+        pos++;
+        setTimeout(typeStep, 80 + Math.random() * 60);
+      } else {
+        // settled — after a beat, a short glitch burst, then wipe and loop
+        setTimeout(() => {
+          let burst = 0;
+          const bi = setInterval(() => {
+            const idx = (Math.random() * TEXT.length) | 0;
+            el.textContent = TEXT.slice(0, idx) + G[(Math.random() * G.length) | 0] + TEXT.slice(idx + 1);
+            if (++burst > 5) {
+              clearInterval(bi);
+              el.textContent = TEXT;
+              setTimeout(() => { pos = 0; el.textContent = ''; setTimeout(typeStep, 500); }, 1400);
+            }
+          }, 90);
+        }, 1800);
+      }
+    }
+    typeStep();
+  })();
+
+  // ── Infinite project wheel (Custom Physics, Snapping, Sound) ─────────
+  const wheel = document.getElementById('sn-wheel') as HTMLElement | null;
+  const wheelTrack = document.getElementById('sn-wheel-track') as HTMLElement | null;
+
+  if (wheel && wheelTrack) {
+    // The HTML ships ONE copy of the list (lighter pages); the seamless
+    // loop needs three, so clone the other two here before any measuring.
+    if (wheelTrack.dataset.copies === '1') {
+      const originals = Array.from(wheelTrack.children);
+      for (let c = 0; c < 2; c++) {
+        originals.forEach(item => wheelTrack.appendChild(item.cloneNode(true)));
+      }
+      wheelTrack.dataset.copies = '3';
+    }
+
+    const oneCopyHeight = () => wheelTrack.scrollHeight / 3;
+    scrollWheelToActive();
+
+    function handleInfiniteWrap() {
+      const h = oneCopyHeight();
+      if (h <= 0) return;
+      if (wheel.scrollTop < h * 0.5) {
+        isWrapping = true;
+        wheel.scrollTop += h;
+        targetScrollTop += h;
+        requestAnimationFrame(() => { isWrapping = false; });
+      } else if (wheel.scrollTop > h * 1.5) {
+        isWrapping = true;
+        wheel.scrollTop -= h;
+        targetScrollTop -= h;
+        requestAnimationFrame(() => { isWrapping = false; });
+      }
+    }
+
+    function updateTicks() {
+      if (!wheel || !wheelTrack) return;
+      const containerCenter = wheel.scrollTop + wheel.clientHeight / 2;
+      const items = Array.from(wheelTrack.querySelectorAll('.sn-wheel__item')) as HTMLElement[];
+      if (items.length === 0) return;
+      
+      let nearestIndex = -1;
+      let minDiff = Infinity;
+      
+      items.forEach((item, idx) => {
+        const itemCenter = item.offsetTop + item.offsetHeight / 2;
+        const diff = Math.abs(itemCenter - containerCenter);
+        if (diff < minDiff) {
+          minDiff = diff;
+          nearestIndex = idx;
+        }
+      });
+      
+      if (nearestIndex !== -1 && nearestIndex !== lastNearestIndex) {
+        const indexDiff = Math.abs(nearestIndex - lastNearestIndex);
+        if (lastNearestIndex !== -1 && !isWrapping && !isOpeningNav && indexDiff < 3) {
+          playTick();
+        }
+        lastNearestIndex = nearestIndex;
+      }
+    }
+
+    // Intercept mouse wheel events for custom inertia and resistance
+    wheel.addEventListener('wheel', (e) => {
+      e.preventDefault(); // Hijack default scroll
+      initAudio();
+      
+      // Scale scroll delta to create resistance (friction)
+      const resistanceFactor = 0.4;
+      targetScrollTop += e.deltaY * resistanceFactor;
+      
+      // Clamp target scroll
+      const maxScroll = wheel.scrollHeight - wheel.clientHeight;
+      targetScrollTop = Math.max(0, Math.min(maxScroll, targetScrollTop));
+      
+      if (!isAnimating) {
+        isAnimating = true;
+        wheel.style.scrollSnapType = 'none'; // disable native snap during custom animation
+        animateScroll();
+      }
+    }, { passive: false });
+
+    function animateScroll() {
+      if (!wheel) return;
+      const diff = targetScrollTop - wheel.scrollTop;
+      
+      if (Math.abs(diff) > 0.4) {
+        wheel.scrollTop += diff * 0.14; // smooth inertia easing
+        updateTicks();
+        requestAnimationFrame(animateScroll);
+      } else {
+        wheel.scrollTop = targetScrollTop;
+        isAnimating = false;
+        handleInfiniteWrap();
+        snapToNearest();
+      }
+    }
+
+    function snapToNearest() {
+      if (!wheel || !wheelTrack) return;
+      const containerCenter = wheel.scrollTop + wheel.clientHeight / 2;
+      const items = Array.from(wheelTrack.querySelectorAll('.sn-wheel__item')) as HTMLElement[];
+      if (items.length === 0) return;
+      
+      let closestItem: HTMLElement | null = null;
+      let minDiff = Infinity;
+      
+      items.forEach(item => {
+        const itemCenter = item.offsetTop + item.offsetHeight / 2;
+        const diff = Math.abs(itemCenter - containerCenter);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closestItem = item;
+        }
+      });
+      
+      if (closestItem) {
+        const targetY = closestItem.offsetTop - (wheel.clientHeight / 2) + (closestItem.offsetHeight / 2);
+        targetScrollTop = targetY;
+        
+        if (!isAnimating) {
+          isAnimating = true;
+          wheel.style.scrollSnapType = 'none';
+          animateScrollSnap();
+        }
+      }
+    }
+
+    function animateScrollSnap() {
+      if (!wheel) return;
+      const diff = targetScrollTop - wheel.scrollTop;
+      if (Math.abs(diff) > 0.4) {
+        wheel.scrollTop += diff * 0.16;
+        updateTicks();
+        requestAnimationFrame(animateScrollSnap);
+      } else {
+        wheel.scrollTop = targetScrollTop;
+        isAnimating = false;
+        wheel.style.scrollSnapType = 'y mandatory';
+        handleInfiniteWrap();
+      }
+    }
+
+    // Scroll listener for touch scroll and scrollbar interaction
+    wheel.addEventListener('scroll', () => {
+      if (!isAnimating) {
+        targetScrollTop = wheel.scrollTop;
+        handleInfiniteWrap();
+        updateTicks();
+      }
+    }, { passive: true });
+  }
+
+  // ── Copy email to clipboard ────────────────────────────────
+  const emailBox = document.getElementById('sn-email-box');
+  emailBox?.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText('advaitakelkar@gmail.com'); } catch (_) {}
+    emailBox.classList.add('is-copied');
+    setTimeout(() => emailBox.classList.remove('is-copied'), 1500);
+  });
+  emailBox?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (emailBox as HTMLElement).click(); }
+  });
+
+  // ── Randomize Social link pills ────────────────────────────
+  function initSocialPills() {
+    const nav = document.querySelector('.sn-panel__social');
+    if (!nav) return;
+    const pills = Array.from(nav.querySelectorAll('.sn-panel__social-pill'));
+    if (!pills.length) return;
+    
+    // Fisher-Yates shuffle
+    for (let i = pills.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pills[i], pills[j]] = [pills[j], pills[i]];
+    }
+    
+    // Re-append in random order
+    pills.forEach(pill => nav.appendChild(pill));
+  }
+
+  initSocialPills();
+  document.addEventListener('astro:after-swap', initSocialPills);
+</script>

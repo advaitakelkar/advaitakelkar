@@ -1,0 +1,33 @@
+---
+import { getCollection } from 'astro:content';
+import CategoryLayout from '../components/CategoryLayout.astro';
+
+export async function getStaticPaths() {
+  const allCats = await getCollection('categories');
+  return allCats.map((cat) => {
+    return {
+      params: { category: cat.id },
+      props: { cat },
+    };
+  });
+}
+
+const { cat } = Astro.props;
+const allProjects = await getCollection('projects');
+
+// Filter projects by category
+const filtered = allProjects.filter(p => p.data.category?.id === cat.id);
+const crumbs = [
+  { label: 'Home', href: '/' },
+  { label: cat.data.displayName }
+];
+---
+
+<CategoryLayout
+  projects={filtered}
+  title={cat.data.displayName}
+  crumbs={crumbs}
+  categoryId={cat.id}
+  intro={cat.data.intro}
+  tagline={cat.data.tagline}
+/>

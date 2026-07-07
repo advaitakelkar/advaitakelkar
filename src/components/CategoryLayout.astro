@@ -1,0 +1,631 @@
+---
+import { getCollection } from 'astro:content';
+import PageLayout from '../layouts/PageLayout.astro';
+import ProjectCard from './ProjectCard.astro';
+
+export interface Props {
+  projects: any[];
+  title: string;
+  crumbs?: { label: string; href?: string }[];
+  categoryId?: string;
+  intro?: string[];
+  tagline?: string;
+}
+
+const { projects, title, crumbs, categoryId, intro, tagline } = Astro.props;
+
+// Get all tags and categories for formatting
+const allTags = await getCollection('tags');
+const allCats = await getCollection('categories');
+const tagMap = Object.fromEntries(allTags.map(t => [t.id, t.data.name]));
+const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
+
+// Split this category's projects into studio tabs by tag (Studio 823 / FKD Workshop)
+const tagHas = (p: any, id: string) => (p.data.tags ?? []).some((t: any) => t.id === id);
+const tabGroups = [
+  { id: 'studio-823',   label: 'Studio 823',   shortLabel: '823', projects: projects.filter((p: any) => tagHas(p, 'studio-823')) },
+  { id: 'faizan-khatri', label: 'FKD Workshop', shortLabel: 'FKD', projects: projects.filter((p: any) => tagHas(p, 'faizan-khatri')) },
+];
+const showTabs = tabGroups.some(g => g.projects.length > 0);
+
+// 3-column intro copy now lives in the category's YAML (editable inline). Sub-views
+// without their own category record (e.g. the Work studio tabs) fall back to a
+// generic intro. The data-edit bindings below only attach when a categoryId exists.
+const introCols = (intro && intro.length) ? intro : [
+  `Welcome to the ${title} category — a curated collection of projects highlighting work in this space.`,
+  "Each project is part of a unified practice — different mediums tracing the threads of form, material, and concept that recur and evolve from one project to the next.",
+  "Browse the selected work below to explore the projects gathered in this collection.",
+];
+const introTagline = tagline ?? "A curated collection of work in this space.";
+const editable = Boolean(categoryId && intro && intro.length);
+---
+
+<PageLayout
+  title={title}
+  label={title}
+  crumbs={crumbs || [{ label: 'Home', href: '/' }, { label: title }]}
+  showFooter={true}
+  categoryId={categoryId}
+>
+  <article class="category-detail">
+    <!-- Top Full Width Header -->
+    <header class="project-top-header category-hero-header" id="project-top-header">
+      <h1 class="project-card__title category-hero-title">{title}</h1>
+    </header>
+
+    <!-- 3-Column Intro (mirrors the home page) -->
+    <section class="category-intro">
+      <p class="category-intro__tagline" data-edit={editable ? `categories/${categoryId}/tagline` : undefined}>{introTagline}</p>
+      <div class="category-intro__body" id="category-intro-body">
+        {introCols.map((text, i) => (
+          <div class:list={["category-intro__column", i > 0 && "category-intro__column--more"]}>
+            <p class="category-intro__desc" data-edit={editable ? `categories/${categoryId}/intro.${i}` : undefined}>{text}</p>
+          </div>
+        ))}
+        {introCols.length > 1 && (
+          <button class="category-readmore-btn" id="category-readmore-btn" type="button" aria-expanded="false">
+            <span>Read More</span>
+            <svg class="link-arrow category-readmore-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">
+              <line x1="6" y1="18" x2="18" y2="6"></line>
+              <polyline points="10 6 18 6 18 14"></polyline>
+            </svg>
+          </button>
+        )}
+      </div>
+    </section>
+
+    <!-- Project groups — tabbed (Studio 823 / FKD Workshop) on Work, else a flat card list -->
+    {showTabs ? (
+      <section class="cat-tabs" style="margin-top: clamp(4rem, 8vh, 6rem);">
+        <div class="cat-tabs__bar" role="tablist" aria-label="Project groups">
+          {tabGroups.map((g, i) => (
+            <button class:list={["cat-tab-btn", i === 0 && "is-active"]} role="tab" aria-selected={i === 0 ? 'true' : 'false'} data-tab={g.id} type="button">
+              <span>
+                <span class="tab-label-full">{g.label}</span>
+                <span class="tab-label-short">{g.shortLabel}</span>
+              </span>
+              <svg class="pill-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+            </button>
+          ))}
+        </div>
+        {tabGroups.map((g, i) => (
+          <div class:list={["cat-tab-panel", i === 0 && "is-active"]} id={`cat-panel-${g.id}`} role="tabpanel" style={i === 0 ? undefined : 'display:none;'}>
+            <div class="cat-card-list">
+              {g.projects.map(p => (
+                <ProjectCard project={p} tagMap={tagMap} catMap={catMap} showDescription={false} />
+              ))}
+              {g.projects.length === 0 && <p class="cat-tab-empty text-muted">No projects in this group yet.</p>}
+            </div>
+          </div>
+        ))}
+      </section>
+    ) : (
+      <div class="cat-card-list" style="margin-top: clamp(4rem, 8vh, 6rem);">
+        {projects.map(p => (
+          <ProjectCard project={p} tagMap={tagMap} catMap={catMap} showDescription={false} />
+        ))}
+        {projects.length === 0 && <p class="cat-tab-empty text-muted">No projects in this category yet.</p>}
+      </div>
+    )}
+
+  </article>
+
+  <style>
+    /* Layout styling matched with Project pages */
+    .category-detail {
+      padding-bottom: clamp(4rem, 8vh, 8rem);
+      min-height: 100dvh;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      gap: 0; /* header→intro rhythm comes from the 8px header margin, like home */
+    }
+
+    /* ── Category title — H1 big on desktop; on mobile it drops to the
+       home tagline style ("Architectural Designer": small, 600) ── */
+    .category-hero-title {
+      font-size: var(--_tokens---type--big);
+      font-weight: 500;
+      line-height: 0.95;
+      letter-spacing: -0.03em;
+      color: var(--_tokens---color--fg);
+      margin: 0;
+    }
+
+    @media (max-width: 768px) {
+      .category-hero-title {
+        font-size: var(--_tokens---type--small);
+        font-weight: 600;
+        line-height: 1.2;
+        letter-spacing: 0.01em;
+      }
+    }
+
+    /* ── 3-Column Intro — same grid gaps as the home page ── */
+    .category-intro__body {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 32px;
+      width: 100%;
+    }
+
+    @media (max-width: 1199px) {
+      .category-intro__body {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 24px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .category-intro__body {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+      /* Mobile: first paragraph only; the rest opens via the Read More
+         pill — same behaviour as the home page's Bio pill */
+      .category-intro__column--more { display: none; }
+      .category-intro__body.is-expanded .category-intro__column--more { display: block; }
+      .category-readmore-btn { display: inline-flex; }
+    }
+
+    /* Read More pill — same pill language as the home Bio pill */
+    .category-readmore-btn {
+      display: none; /* desktop shows all paragraphs */
+      align-items: center;
+      gap: 7px;
+      justify-self: start;
+      font-family: inherit;
+      font-size: var(--_tokens---type--ultrathin);
+      font-weight: 300;
+      letter-spacing: 0.05em;
+      color: var(--_tokens---color--muted);
+      background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+      border: 1px solid var(--_tokens---color--line-soft);
+      border-radius: var(--_tokens---radius--pill);
+      padding: 6px 12px;
+      cursor: pointer;
+      transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+    }
+    .category-readmore-arrow {
+      width: 0.8em;
+      height: 0.8em;
+      flex-shrink: 0;
+      opacity: 0.55;
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+    }
+    .category-readmore-btn[aria-expanded="true"] {
+      background-color: var(--_tokens---color--fg);
+      color: var(--_tokens---color--bg);
+      border-color: var(--_tokens---color--fg);
+    }
+    .category-readmore-btn[aria-expanded="true"] .category-readmore-arrow {
+      transform: rotate(135deg);
+      opacity: 1;
+    }
+
+    .category-intro__tagline {
+      font-size: var(--_tokens---type--micro);
+      font-weight: 400;
+      color: var(--_tokens---color--muted);
+      margin: 0 0 12px 0;
+      letter-spacing: 0.01em;
+    }
+
+    /* Same voice as the home three-column text: micro, muted */
+    .category-intro__desc {
+      font-size: var(--_tokens---type--micro);
+      font-weight: 400;
+      line-height: 1.55;
+      color: var(--_tokens---color--muted);
+      margin: 0;
+    }
+
+    .category-intro__link {
+      color: var(--_tokens---color--fg);
+      text-decoration: none;
+      white-space: nowrap;
+      border-bottom: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 30%, transparent);
+      transition: border-color 0.2s ease;
+    }
+    .category-intro__link:hover { border-color: var(--_tokens---color--fg); }
+    .category-intro__link .link-arrow {
+      width: 0.75em;
+      height: 0.75em;
+      display: inline-block;
+      vertical-align: baseline;
+      margin-left: 1px;
+    }
+
+    /* ── Full-width slider (below the intro, like the home page) ── */
+    .category-slider {
+      width: 100%;
+    }
+    .category-slider .project-slider {
+      min-height: 0;
+      aspect-ratio: 16 / 9;
+      max-height: 70vh;
+    }
+
+    /* ── Header — identical rhythm to the home hero: same top padding,
+       8px to the paragraph section, static (home's title doesn't stick) ── */
+    .project-top-header {
+      position: static;
+      padding-top: calc(clamp(2rem, 5vh, 3rem) + 48px); /* = home hero */
+      padding-bottom: 0;
+      margin: 0 0 8px;                                   /* = home header gap */
+    }
+
+    /* PAGE HEADING (mobile) — fixed bar, full length (side bar → right
+       edge), glass blur, muted full-width border; tap scrolls to top.
+       Identical recipe on home / about / projects / project pages. */
+    @media (max-width: 768px) {
+      .project-top-header {
+        position: fixed;
+        top: 0;
+        left: 44px; /* clear the side INDEX bar */
+        right: 0;
+        z-index: 110;
+        background-color: var(--_tokens---color--bg); /* opaque — no glass */
+        border-bottom: 1px solid var(--_tokens---color--line-soft);
+        padding: 16px 12px 14px;
+        margin: 0;
+        box-sizing: border-box;
+        cursor: pointer;
+      }
+      /* Content starts below the fixed heading (bar ≈52px + 16px gap) */
+      .category-detail {
+        padding-top: 68px;
+      }
+    }
+
+    /* ── Right Column (Sticky Slider) ── */
+    .project-col-right {
+      position: sticky;
+      top: calc(clamp(4rem, 6vh, 5rem) + 48px + 100px); /* Stick below the project title */
+    }
+
+    .category-projects-list {
+      border-top: 1px solid var(--_tokens---color--line-soft);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Project group tabs (same look as the About page tabs) ── */
+    .cat-tabs__bar {
+      display: flex;
+      flex-direction: row;
+      gap: 6px;
+      flex-wrap: nowrap;
+      width: 100%;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--_tokens---color--line-soft);
+      padding-bottom: 12px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .cat-tabs__bar::-webkit-scrollbar { display: none; }
+
+    .cat-tab-btn {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: var(--_tokens---type--medium);
+      font-family: inherit;
+      font-weight: 500;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+      border: 1px solid var(--_tokens---color--line-soft);
+      color: var(--_tokens---color--muted);
+      padding: 14px 22px;
+      cursor: pointer;
+      border-radius: var(--_tokens---radius--pill);
+      white-space: nowrap;
+      transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    }
+    .cat-tab-btn .pill-arrow {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      opacity: 0.55;
+      transition: opacity 0.2s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .cat-tab-btn:hover {
+      background-color: color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
+      color: var(--_tokens---color--fg);
+      border-color: color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
+    }
+    .cat-tab-btn:hover .pill-arrow { opacity: 1; transform: translate(2px, -2px); }
+    .cat-tab-btn.is-active {
+      background-color: var(--_tokens---color--fg);
+      color: var(--_tokens---color--bg);
+      border-color: var(--_tokens---color--fg);
+    }
+    .cat-tab-btn.is-active .pill-arrow { opacity: 0.7; }
+
+    /* Short labels (823 / FKD) replace the full names on small screens —
+       same mechanism as the About page tabs */
+    .tab-label-short { display: none; }
+    @media (max-width: 640px) {
+      .tab-label-full { display: none; }
+      .tab-label-short { display: inline; }
+      .cat-tab-btn {
+        padding: 10px 18px;
+        font-size: var(--_tokens---type--small);
+      }
+    }
+
+    .cat-tab-empty { padding: 2rem 24px; }
+
+    .cat-card-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Switch-style Row (Premium Typography & Hover) */
+    .switch-row {
+      position: relative;
+      display: block;
+      text-decoration: none;
+      color: var(--_tokens---color--fg);
+      padding: 1.5rem 0;
+      border-bottom: 1px solid var(--_tokens---color--line-soft);
+      z-index: 1;
+      transition: background-color 0.2s;
+    }
+    .switch-row:first-child {
+      border-top: 1px solid var(--_tokens---color--line-soft);
+    }
+    .switch-row:hover {
+      background-color: color-mix(in srgb, var(--_tokens---color--fg) 3%, transparent);
+    }
+    .switch-row__content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      z-index: 5;
+      pointer-events: none; /* Let hover hit the row exactly */
+      padding: 0 24px;
+    }
+    .switch-row__name {
+      font-size: var(--_tokens---type--medium);
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      margin: 0;
+      transition: opacity 0.2s ease;
+    }
+    .switch-row:hover .switch-row__name {
+      opacity: 0.7;
+    }
+    
+    .project-card__pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: var(--_tokens---type--micro);
+      font-weight: 500;
+      color: var(--_tokens---color--fg);
+      text-decoration: none;
+      border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
+      border-radius: var(--_tokens---radius--pill);
+      padding: 7px 14px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    }
+    .project-card__pill svg { width: 0.85em; height: 0.85em; transition: transform 0.25s ease; }
+    .switch-row:hover .project-card__pill {
+      background-color: var(--_tokens---color--fg);
+      color: var(--_tokens---color--bg);
+      border-color: var(--_tokens---color--fg);
+    }
+    .switch-row:hover .project-card__pill svg { transform: translate(2px, -2px); }
+
+    /* Hover Reveal Image (Cursor Tracking) */
+    .hover-reveal-img {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 400px; /* Adjust size as needed */
+      aspect-ratio: 16/10;
+      pointer-events: none;
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.8); /* Center on cursor, scale down initially */
+      z-index: 4; /* Below the text (z-index 5) but above background */
+      transition: opacity 0.4s ease, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      overflow: hidden;
+      border-radius: 8px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    }
+    .hover-reveal-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .switch-row:hover .hover-reveal-img {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    @media (max-width: 767px) {
+      /* Mobile fallback: disable hover reveal */
+      .hover-reveal-img { display: none !important; }
+      .switch-row__content { padding: 0 16px; }
+    }
+
+    /* Slider Styles */
+    .project-slider {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      min-height: 50vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background: color-mix(in srgb, var(--_tokens---color--fg) 3%, transparent);
+      border-radius: 4px;
+    }
+    .slider-image {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0;
+      transition: opacity 0.5s ease-in-out;
+    }
+    .slider-image.active {
+      opacity: 1;
+      z-index: 1;
+    }
+    .slider-controls {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      display: flex;
+      gap: 8px;
+      z-index: 10;
+    }
+    .slider-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--_tokens---color--bg);
+      color: var(--_tokens---color--fg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 15%, transparent);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .slider-btn:hover {
+      background: var(--_tokens---color--fg);
+      color: var(--_tokens---color--bg);
+    }
+    .slider-btn svg {
+      width: 20px;
+      height: 20px;
+    }
+  </style>
+
+  <script>
+    function initCategorySliders() {
+      const slider = document.getElementById('project-slider');
+      if (!slider) return;
+
+      const images = slider.querySelectorAll('.slider-image');
+      const prevBtn = slider.querySelector('.prev');
+      const nextBtn = slider.querySelector('.next');
+      if (images.length <= 1) return;
+
+      let currentIdx = 0;
+      let interval: number;
+
+      function showSlide(idx: number) {
+        images[currentIdx].classList.remove('active');
+        currentIdx = (idx + images.length) % images.length;
+        images[currentIdx].classList.add('active');
+      }
+
+      function nextSlide() { showSlide(currentIdx + 1); }
+      function prevSlide() { showSlide(currentIdx - 1); }
+
+      function startAutoSlide() {
+        clearInterval(interval);
+        interval = setInterval(nextSlide, 3000);
+      }
+
+      function stopAutoSlide() {
+        clearInterval(interval);
+      }
+
+      nextBtn?.addEventListener('click', () => { nextSlide(); startAutoSlide(); });
+      prevBtn?.addEventListener('click', () => { prevSlide(); startAutoSlide(); });
+
+      slider.addEventListener('mouseenter', stopAutoSlide);
+      slider.addEventListener('mouseleave', startAutoSlide);
+
+      startAutoSlide();
+    }
+
+    function initHoverReveal() {
+      const rows = document.querySelectorAll('.switch-row');
+      rows.forEach(row => {
+        const revealImg = row.querySelector('.hover-reveal-img') as HTMLElement;
+        if (!revealImg) return;
+
+        row.addEventListener('mousemove', (e: Event) => {
+          const mouseEvent = e as MouseEvent;
+          // Set coordinates exactly at the cursor
+          revealImg.style.left = `${mouseEvent.clientX}px`;
+          revealImg.style.top = `${mouseEvent.clientY}px`;
+        });
+      });
+    }
+
+    function initCategoryTabs() {
+      const tabs = document.querySelectorAll<HTMLElement>('.cat-tab-btn');
+      const panels = document.querySelectorAll<HTMLElement>('.cat-tab-panel');
+      if (!tabs.length) return;
+      tabs.forEach((tab) => {
+        tab.addEventListener('click', () => {
+          const target = tab.dataset.tab;
+          tabs.forEach((t) => {
+            const m = t === tab;
+            t.classList.toggle('is-active', m);
+            t.setAttribute('aria-selected', String(m));
+          });
+          panels.forEach((p) => {
+            const m = p.id === `cat-panel-${target}`;
+            p.style.display = m ? '' : 'none';
+            p.classList.toggle('is-active', m);
+          });
+        });
+      });
+    }
+
+    // Run on initial load (no View Transitions router here, so astro:page-load
+    // doesn't fire) and again after any swap.
+    // Read More pill (mobile): reveals the hidden intro paragraphs
+    function initIntroReadMore() {
+      const btn = document.getElementById('category-readmore-btn');
+      const body = document.getElementById('category-intro-body');
+      if (!btn || !body || (btn as any)._wired) return;
+      (btn as any)._wired = true;
+      btn.addEventListener('click', () => {
+        const expanded = body.classList.toggle('is-expanded');
+        btn.setAttribute('aria-expanded', String(expanded));
+        const label = btn.querySelector('span');
+        if (label) label.textContent = expanded ? 'Read Less' : 'Read More';
+      });
+    }
+
+    // Page heading: tap scrolls back to top (same as home/about)
+    function initHeadingScrollTop() {
+      const h = document.getElementById('project-top-header');
+      if (!h || (h as any)._topWired) return;
+      (h as any)._topWired = true;
+      h.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+    }
+
+    initCategorySliders();
+    initHoverReveal();
+    initCategoryTabs();
+    initIntroReadMore();
+    initHeadingScrollTop();
+    document.addEventListener('astro:after-swap', () => {
+      initCategorySliders();
+      initHoverReveal();
+      initCategoryTabs();
+      initIntroReadMore();
+      initHeadingScrollTop();
+    });
+  </script>
+</PageLayout>

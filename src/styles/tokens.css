@@ -1,0 +1,313 @@
+/* Inter is loaded via <link> in Base.astro <head> — NOT @import here.
+   An @import inside the bundled CSS chains render-blocking requests
+   (HTML → CSS → Google CSS → font) and delays first paint on every page. */
+
+:root {
+  /* Typography */
+  --_tokens---font--body: 'Inter', sans-serif;
+  /* --font--mono is an intentional alias of the body family (Inter). It tags
+     "technical" UI — metadata, breadcrumb pills, wayfinding labels — as a single
+     semantic slot, so a true monospace can be swapped in here in one place later
+     without touching components. (Fira Code was imported but never rendered.) */
+  --_tokens---font--mono: 'Inter', sans-serif;
+
+  /* ── Type scale — 5-level hierarchy, fluid via clamp() ──────
+     Level 1  display  | big       : 48px → 96px   hero, page titles
+     Level 2  heading  | medium    : 22px → 40px   section heads, major CTAs
+     Level 3  body     | small     : 18px → 18px   paragraphs, card titles
+     Level 4  caption  | micro     : 12px → 16px   dates, roles, metadata
+     Level 5  tag      | ultrathin : 10px → 11.5px  skill pills, fine print
+  ── */
+  --_tokens---type--big:       clamp(3rem, 2rem + 5vw, 6rem);
+  --_tokens---type--medium:    clamp(1.375rem, 0.75rem + 2vw, 2.5rem);
+  --_tokens---type--small:     1.125rem;
+  --_tokens---type--micro:     clamp(0.75rem, 0.4rem + 0.8vw, 1rem);
+  --_tokens---type--ultrathin: clamp(0.625rem, 0.58rem + 0.15vw, 0.72rem);
+
+  /* Display — oversized headings (project detail title + "Design" header).
+     Bigger than --type--big; tracked here so the two stay in lockstep. */
+  --_tokens---type--display:   clamp(4rem, 4rem + 5vw, 8rem);
+
+  /* ── Layout spacing — page rhythm (section gaps, page insets) ──────────── */
+  --_tokens---space--micro:  0.75rem;
+  --_tokens---space--small:  3rem;
+  --_tokens---space--medium: 6rem;
+  --_tokens---space--big:    11rem;
+
+  /* ── Component spacing — the fine step used inside cards, bars, pills.
+     Components previously hard-coded these px values; the scale names them so
+     padding/gaps stay on a 4px grid everywhere. (Values equal the old literals,
+     so adopting them changes nothing visually.) ─────────────────────────── */
+  --_tokens---space-1: 4px;
+  --_tokens---space-2: 8px;
+  --_tokens---space-3: 12px;
+  --_tokens---space-4: 16px;
+  --_tokens---space-5: 24px;
+  --_tokens---space-6: 32px;
+
+  /* Fixed left nav bar width — referenced by sticky offsets, overlays, insets */
+  --_tokens---layout--nav: 44px;
+
+  /* Radius */
+  --_tokens---radius--small:  0.5rem;
+  --_tokens---radius--medium: 0.5rem;
+  --_tokens---radius--pill:   999px;
+
+  /* Layout */
+  --_tokens---layout--container: 72rem;
+  --_tokens---layout--measure:   38rem;
+
+  /* Default color scheme: Void light */
+  --_tokens---color--bg:         #ffffff;
+  --_tokens---color--fg:         #111111;
+}
+
+/* Auto dark (OS) — skipped when user has manually forced light */
+@media (prefers-color-scheme: dark) {
+  :root:not(.mode-light) {
+    --_tokens---color--bg:       #111111;
+    --_tokens---color--fg:       #ffffff;
+  }
+}
+
+/* Manual dark override — user-toggled, wins over OS preference */
+html.mode-dark {
+  --_tokens---color--bg:         #111111;
+  --_tokens---color--fg:         #ffffff;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --_tokens---space--small:  12px;
+    --_tokens---space--medium: 24px;
+    --_tokens---space--big:    48px;
+  }
+}
+
+/*
+  Colors derived from the two primary colors (bg + fg).
+  - muted     : foreground at 60% — secondary text
+  - line      : full-strength foreground hairline
+  - line-soft : foreground at 8% — the faint hairline repeated across cards,
+                bars, pills and dropdowns (was hand-written dozens of times)
+  - bg-overlay: background at 75% — solid-ish scrim
+  - bg-glass  : background at 35% — the frosted-glass fill behind the side-nav
+                panel, breadcrumb dropdowns and image previews. Pair with
+                backdrop-filter: blur(20px). (Was written inline in 8 places;
+                the token now matches that real value.)
+*/
+:root, html {
+  --_tokens---color--muted:      color-mix(in srgb, var(--_tokens---color--fg) 60%, transparent);
+  --_tokens---color--line:       var(--_tokens---color--fg);
+  --_tokens---color--line-soft:  color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+  --_tokens---color--bg-overlay: color-mix(in srgb, var(--_tokens---color--bg) 75%, transparent);
+  --_tokens---color--bg-glass:   color-mix(in srgb, var(--_tokens---color--bg) 35%, transparent);
+}
+
+/* ─── Color Schemes ──────────────────────────────────────── */
+/* All schemes defined as LIGHT variants (light bg, dark fg) */
+/* Auto dark: @media (prefers-color-scheme: dark)            */
+/*   skipped when user adds .mode-light to <html>            */
+/* Manual dark: html.mode-dark.schN — user-toggled           */
+/* Applied via html.sch1 … html.sch9                         */
+/* Persisted in sessionStorage key 'aks'                     */
+
+/* sch1 — Moss */
+html.sch1 { --_tokens---color--bg: #ECE7E2; --_tokens---color--fg: #4A7766; }
+@media (prefers-color-scheme: dark) {
+  html:not(.mode-light).sch1 { --_tokens---color--bg: #4A7766; --_tokens---color--fg: #ECE7E2; }
+}
+
+/* sch2 — Clay */
+html.sch2 { --_tokens---color--bg: #fee7d5; --_tokens---color--fg: #4b3935; }
+@media (prefers-color-scheme: dark) {
+  html:not(.mode-light).sch2 { --_tokens---color--bg: #4b3935; --_tokens---color--fg: #fee7d5; }
+}
+
+/* sch3 — Dusk */
+html.sch3 { --_tokens---color--bg: #D7E7C3; --_tokens---color--fg: #6C5383; }
+@media (prefers-color-scheme: dark) {
+  html:not(.mode-light).sch3 { --_tokens---color--bg: #6C5383; --_tokens---color--fg: #D7E7C3; }
+}
+
+/* sch4 — Midnight */
+html.sch4 { --_tokens---color--bg: #D2B96A; --_tokens---color--fg: #0B1A35; }
+@media (prefers-color-scheme: dark) {
+  html:not(.mode-light).sch4 { --_tokens---color--bg: #0B1A35; --_tokens---color--fg: #D2B96A; }
+}
+
+/* sch6 — Ember */
+html.sch6 { --_tokens---color--bg: #ffe4a1; --_tokens---color--fg: #97322D; }
+@media (prefers-color-scheme: dark) {
+  html:not(.mode-light).sch6 { --_tokens---color--bg: #97322D; --_tokens---color--fg: #ffe4a1; }
+}
+
+/* sch7 — Nomad */
+html.sch7 { --_tokens---color--bg: #edcdc2; --_tokens---color--fg: #0093AF; }
+@media (prefers-color-scheme: dark) {
+  html:not(.mode-light).sch7 { --_tokens---color--bg: #0093AF; --_tokens---color--fg: #edcdc2; }
+}
+
+
+/* ─── Manual dark overrides (html.mode-dark) ────────────────────── */
+/* Higher specificity than @media — user choice wins over OS         */
+html.mode-dark.sch1 { --_tokens---color--bg: #4A7766; --_tokens---color--fg: #ECE7E2; }
+html.mode-dark.sch2 { --_tokens---color--bg: #4b3935; --_tokens---color--fg: #fee7d5; }
+html.mode-dark.sch3 { --_tokens---color--bg: #6C5383; --_tokens---color--fg: #D7E7C3; }
+html.mode-dark.sch4 { --_tokens---color--bg: #0B1A35; --_tokens---color--fg: #D2B96A; }
+html.mode-dark.sch6 { --_tokens---color--bg: #97322D; --_tokens---color--fg: #ffe4a1; }
+html.mode-dark.sch7 { --_tokens---color--bg: #0093AF; --_tokens---color--fg: #edcdc2; }
+
+/* ─── Base Reset ─────────────────────────────────────────── */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-family: var(--_tokens---font--body);
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background-color: var(--_tokens---color--bg);
+  color: var(--_tokens---color--fg);
+  min-height: 100dvh;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+/* ─── Accessibility primitives ───────────────────────────────
+   Keyboard focus ring. :focus-visible only matches keyboard/AT focus, so
+   mouse users never see it — but tab/arrow users always get a clear marker.
+   Components may layer their own invert on top; this is the floor. */
+:focus-visible {
+  outline: 2px solid var(--_tokens---color--fg);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Respect the OS "reduce motion" setting: collapse every CSS transition,
+   animation and smooth-scroll. JS-driven effects (text scramble, logo spin,
+   slider autoplay) are gated separately in their own scripts. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ─── Utility Classes ────────────────────────────────────── */
+
+.text-muted {
+  color: var(--_tokens---color--muted);
+}
+
+.container {
+  max-width: var(--_tokens---layout--container);
+  margin-inline: auto;
+  padding-inline: var(--_tokens---space--small);
+}
+
+/* Soft fading edges overlay for images */
+.soft-image-container {
+  position: relative;
+  overflow: hidden;
+  display: block;
+}
+
+.soft-image-container::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 16px 16px -8px var(--_tokens---color--bg),
+              inset 0 -16px 16px -8px var(--_tokens---color--bg);
+  pointer-events: none;
+  transition: box-shadow 0.3s ease;
+  z-index: 2;
+}
+
+
+
+
+/* ── Muted, scheme-aware scrollbars (Firefox + WebKit) ───────── */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--_tokens---color--fg) 18%, transparent);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background-color 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--_tokens---color--fg) 38%, transparent);
+}
+
+/* ─── Typography Combo Classes ───────────────────────────── */
+/* Reference: "big", "medium", "small", "micro"               */
+/* Use these classes directly on elements. Override weight,    */
+/* tracking, or line-height with modifier classes below.       */
+
+.t-big {
+  font-size: var(--_tokens---type--big);
+  font-weight: 500;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+}
+
+.t-medium {
+  font-size: var(--_tokens---type--medium);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.t-small {
+  font-size: var(--_tokens---type--small);
+  font-weight: 400;
+  line-height: 1.65;
+  letter-spacing: -0.01em;
+}
+
+.t-micro {
+  font-size: var(--_tokens---type--micro);
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0.04em;
+}
+
+.t-ultrathin {
+  font-size: var(--_tokens---type--ultrathin);
+  font-weight: 300;
+  line-height: 1.4;
+  letter-spacing: 0.05em;
+}
+

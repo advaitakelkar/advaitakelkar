@@ -1,0 +1,719 @@
+---
+import { getCollection } from 'astro:content';
+
+export interface Props {
+  isEmbedded?: boolean;
+  categoryId?: string;
+}
+
+const { isEmbedded = false, categoryId } = Astro.props;
+
+// Fetch projects, categories, and tags
+const allProjects = await getCollection('projects');
+const allTags     = await getCollection('tags');
+const allCats     = await getCollection('categories');
+
+// Lookup maps
+const tagMap = Object.fromEntries(allTags.map(t => [t.id, t.data.name]));
+const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
+
+// Abbreviate each word individually: keep words ≤3 chars, truncate longer ones to 3 chars.
+// "EPISODE Kolkata" → "EPI Kol", "Going PI" → "Goi PI", "SOCIAL 2" → "SOC 2"
+function abbrevName(name: string): string {
+  return name.trim().split(/\s+/).filter(w => w.length > 0).map(w => w.length <= 3 ? w : w.slice(0, 3)).join(' ');
+}
+
+// Sort projects
+const sorted = [...allProjects].sort((a, b) => {
+  if (a.data.numbr && b.data.numbr) return a.data.numbr - b.data.numbr;
+  if (a.data.numbr) return -1;
+  if (b.data.numbr) return 1;
+  return parseInt(b.data.year ?? '0') - parseInt(a.data.year ?? '0');
+});
+---
+
+<footer class:list={["home-search-footer", isEmbedded && "home-search-footer--embedded", categoryId && "is-category-filter"]} id="home-search-footer" data-category={categoryId}>
+  <div class="home-search__bar">
+    <input
+      type="search"
+      id="qs-input"
+      class="home-search__input"
+      placeholder="Quick Search"
+      autocomplete="off"
+      aria-label="Search projects"
+    />
+    <button class="home-search__clear" id="qs-clear" type="button" aria-label="Clear search">
+      <svg class="qs-clear-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+  </div>
+  <p class="home-search__count" id="qs-count" aria-live="polite"></p>
+  
+  <!-- Pill/bubble search — multi-row paragraph; rows are nowrap + clipped (stagger) -->
+  <div class="proj-bubbles supersmall" id="qs-grid" role="list" style="margin-top: 28px; border-top: none; padding-top: 0;">
+    {sorted.map(p => {
+      const tagsArr = (p.data.tags ?? []).map(t => tagMap[t.id] || t.id);
+      const catId = p.data.category ? p.data.category.id : '';
+      return (
+        <a
+          href={`/projects/${p.id}`}
+          class="proj-bubble"
+          data-name={p.data.name}
+          data-tags={tagsArr.join(',')}
+          data-cat={p.data.category ? (catMap[p.data.category.id] || p.data.category.id) : ''}
+          data-cat-id={catId}
+          data-year={p.data.year ?? ''}
+          data-loc={p.data.location ?? ''}
+          data-client={p.data.client ?? ''}
+          data-status={p.data.status ?? ''}
+          data-program={p.data.program ?? ''}
+        >
+          <span class="proj-bubble__name" data-short={p.data.shortName || abbrevName(p.data.name)} data-full={p.data.name}>{p.data.shortName || abbrevName(p.data.name)}</span>
+          <span class="proj-bubble__tag">{tagsArr[0] || (p.data.category ? catMap[p.data.category.id] : 'Design')}</span>
+          <svg class="link-arrow proj-bubble__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+            <line x1="6" y1="18" x2="18" y2="6"></line>
+            <polyline points="10 6 18 6 18 14"></polyline>
+          </svg>
+        </a>
+      );
+    })}
+    
+    <!-- Category Links -->
+    <a href="/work" class="proj-bubble admin-bubble" data-name="Work" data-tags="category,work" data-cat="Category">
+      <span class="proj-bubble__name" data-short="Work" data-full="Work">Work</span>
+      <span class="proj-bubble__tag">Category</span>
+      <svg class="link-arrow proj-bubble__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+    </a>
+    <a href="/freelancer" class="proj-bubble admin-bubble" data-name="Freelancer" data-tags="category,freelance,freelancer" data-cat="Category">
+      <span class="proj-bubble__name" data-short="Freelancer" data-full="Freelancer">Freelancer</span>
+      <span class="proj-bubble__tag">Category</span>
+      <svg class="link-arrow proj-bubble__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+    </a>
+    <a href="/academic" class="proj-bubble admin-bubble" data-name="Academic" data-tags="category,academic,scad,school" data-cat="Category">
+      <span class="proj-bubble__name" data-short="Academic" data-full="Academic">Academic</span>
+      <span class="proj-bubble__tag">Category</span>
+      <svg class="link-arrow proj-bubble__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+    </a>
+    <a href="/archv" class="proj-bubble admin-bubble" data-name="Archv" data-tags="category,archive,archv" data-cat="Category">
+      <span class="proj-bubble__name" data-short="Archv" data-full="Archv">Archv</span>
+      <span class="proj-bubble__tag">Category</span>
+      <svg class="link-arrow proj-bubble__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+    </a>
+    <a href="/work/studio-823" class="proj-bubble admin-bubble" data-name="Studio 823" data-tags="category,work,studio823" data-cat="Category">
+      <span class="proj-bubble__name" data-short="Std 823" data-full="Studio 823">Std 823</span>
+      <span class="proj-bubble__tag">Category</span>
+      <svg class="link-arrow proj-bubble__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+    </a>
+    <a href="/work/faizan-khatri" class="proj-bubble admin-bubble" data-name="FKD Workshop" data-tags="category,work,fkd,faizan" data-cat="Category">
+      <span class="proj-bubble__name" data-short="FKD Wrk" data-full="FKD Workshop">FKD Wrk</span>
+      <span class="proj-bubble__tag">Category</span>
+      <svg class="link-arrow proj-bubble__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+    </a>
+    
+    <!-- Admin CMS Quick Links (also filterable via Quick Search) -->
+    <a
+      href="/keystatic/singleton/home"
+      class="proj-bubble admin-bubble"
+      data-name="Home Admin"
+      data-tags="admin,cms,homepage,keystatic"
+      data-cat="Admin"
+      data-year=""
+      data-loc=""
+      data-client=""
+      data-status=""
+      data-program=""
+    >
+      <span class="proj-bubble__name" data-short="Hom Adm" data-full="Home Admin">Hom Adm</span>
+      <span class="proj-bubble__tag">Admin</span>
+      <svg class="link-arrow proj-bubble__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+        <line x1="6" y1="18" x2="18" y2="6"></line>
+        <polyline points="10 6 18 6 18 14"></polyline>
+      </svg>
+    </a>
+    <a
+      href="/keystatic/singleton/about"
+      class="proj-bubble admin-bubble"
+      data-name="About Admin"
+      data-tags="admin,cms,about,me,keystatic"
+      data-cat="Admin"
+      data-year=""
+      data-loc=""
+      data-client=""
+      data-status=""
+      data-program=""
+    >
+      <span class="proj-bubble__name" data-short="Abo Adm" data-full="About Admin">Abo Adm</span>
+      <span class="proj-bubble__tag">Admin</span>
+      <svg class="link-arrow proj-bubble__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+        <line x1="6" y1="18" x2="18" y2="6"></line>
+        <polyline points="10 6 18 6 18 14"></polyline>
+      </svg>
+    </a>
+    <a
+      href="/keystatic/collection/projects"
+      class="proj-bubble admin-bubble"
+      data-name="Projects Admin"
+      data-tags="admin,cms,projects,keystatic"
+      data-cat="Admin"
+      data-year=""
+      data-loc=""
+      data-client=""
+      data-status=""
+      data-program=""
+    >
+      <span class="proj-bubble__name" data-short="Pro Adm" data-full="Projects Admin">Pro Adm</span>
+      <span class="proj-bubble__tag">Admin</span>
+      <svg class="link-arrow proj-bubble__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+        <line x1="6" y1="18" x2="18" y2="6"></line>
+        <polyline points="10 6 18 6 18 14"></polyline>
+      </svg>
+    </a>
+  </div>
+</footer>
+
+<style>
+  .home-search-footer {
+    width: 100%;
+    border-top: 1px solid var(--_tokens---color--line-soft); /* family hairline */
+    padding-top: 32px;
+    padding-bottom: 24px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* standalone (non-embedded) padding to match standard page margins */
+  .home-search-footer:not(.home-search-footer--embedded) {
+    margin-top: clamp(3rem, 6vh, 5rem);
+  }
+
+  @media (max-width: 767px) and (orientation: portrait) {
+    .home-search-footer:not(.home-search-footer--embedded) {
+      padding-bottom: 80px; /* space for mobile bottom docked breadcrumbs */
+    }
+  }
+
+  .home-search-footer--embedded {
+    border-top: none !important;
+    margin-top: auto; /* push to the bottom when placed in a flex layout */
+  }
+
+  /* (No heading — the footer opens directly with the search bar) */
+
+  /* One full-width bar; the clear ✕ floats INSIDE the field's right edge */
+  .home-search__bar {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+
+  .home-search__input {
+    flex: 1;
+    height: 42px;
+    padding: 0 46px 0 20px; /* right side clears the inline ✕ */
+    font-size: var(--_tokens---type--micro);
+    font-family: inherit;
+    background: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    border: none;
+    color: var(--_tokens---color--fg);
+    border-radius: var(--_tokens---radius--pill);
+    outline: none;
+    opacity: 0.35; /* grayed out by default */
+    transition: background-color 0.2s, opacity 0.3s ease;
+  }
+
+  .home-search__input::placeholder { color: var(--_tokens---color--muted); }
+  .home-search__input:focus,
+  .home-search__input:not(:placeholder-shown),
+  .home-search__input.is-active {
+    opacity: 1; /* activated on focus / input */
+  }
+
+  .home-search__clear {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    color: var(--_tokens---color--muted);
+    background: none;
+    border: none;
+    border-radius: 50%;
+    padding: 0;
+    cursor: pointer;
+    opacity: 0.35; /* grayed out by default */
+    transition: background-color 0.2s, color 0.2s, opacity 0.3s ease;
+  }
+
+  .qs-clear-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+
+  .home-search__input:focus ~ .home-search__clear,
+  .home-search__input:not(:placeholder-shown) ~ .home-search__clear,
+  .home-search__clear:hover {
+    opacity: 1; /* activated on search/hover */
+  }
+
+  .home-search__clear:hover {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+  }
+
+  .home-search__count {
+    font-size: var(--_tokens---type--micro);
+    font-weight: 300;
+    color: var(--_tokens---color--muted);
+    letter-spacing: 0.04em;
+    margin-bottom: 24px;
+  }
+
+  .proj-bubbles {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  /* Each row: space-between so gaps fill 100% width (like justified text).
+     Use :global() so the rule matches JS-created elements that don't carry
+     Astro's scoped data-astro-cid attribute. */
+  :global(.qs-row) {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    gap: 5px;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  /* Last row: left-align (don't stretch the short final row across full width) */
+  :global(.qs-row--last) {
+    justify-content: flex-start;
+    gap: 5px;
+  }
+
+  .proj-bubble {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: var(--_tokens---type--ultrathin);
+    font-weight: 300;
+    color: var(--_tokens---color--muted);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    border: 1px solid var(--_tokens---color--line-soft);
+    border-radius: var(--_tokens---radius--pill);
+    padding: 6px 12px;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    overflow: hidden;
+    box-sizing: border-box;
+    flex: 0 0 auto;
+    transition: background-color 0.2s, color 0.2s, transform 0.15s, box-shadow 0.2s, width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* When squished, hide the text and arrow to make it a pure color dot */
+  .proj-bubble.is-squished {
+    color: transparent;
+  }
+  .proj-bubble.is-squished .proj-bubble__tag,
+  .proj-bubble.is-squished .proj-bubble__arrow {
+    opacity: 0 !important;
+  }
+
+  /* Temporary measure state — disable pill transitions only (name text is swapped in JS now) */
+  .qs-measure-state .proj-bubble {
+    transition: none !important;
+  }
+
+  /* Name shows abbreviated text at rest; JS swaps to full name on hover.
+     No max-width clipping needed — overflow is hidden by the pill itself. */
+  .proj-bubble__name {
+    color: inherit;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .proj-bubble__tag {
+    font-family: var(--_tokens---font--mono);
+    line-height: 1;
+    color: inherit;
+    opacity: 0;
+    max-width: 0;
+    margin-left: -7px;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: max-width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                opacity 0.28s ease,
+                margin-left 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .proj-bubble:hover .proj-bubble__tag,
+  .proj-bubble.is-tag-reveal .proj-bubble__tag {
+    max-width: 160px;
+    opacity: 0.6;
+    margin-left: 0;
+  }
+
+  .proj-bubble__arrow {
+    width: 0.8em;
+    height: 0.8em;
+    flex-shrink: 0;
+    opacity: 0.55;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+
+  /* Hover state: switches to full contrast (bg is fg, text/arrow is bg) and vertical translate -1px */
+  .proj-bubble:hover {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
+    transform: translateY(-1px);
+  }
+
+  .proj-bubble:hover .proj-bubble__arrow {
+    opacity: 1;
+  }
+
+  /* Matching state: switches to full contrast during active search */
+  .proj-bubble.is-match {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--_tokens---color--fg) 40%, transparent);
+  }
+
+  .proj-bubble.is-match:hover {
+    transform: translateY(-1px);
+  }
+
+  /* Active search state: dim non-matching bubbles */
+  .proj-bubbles.has-search .proj-bubble:not(.is-match) {
+    opacity: 0.2;
+  }
+
+  .proj-bubbles.has-search .proj-bubble:not(.is-match):hover {
+    opacity: 1;
+  }
+
+  /* Category filter state: lighten non-matching projects (lighter than muted) */
+  .is-category-filter .proj-bubbles .proj-bubble {
+    opacity: 0.35;
+  }
+
+  .is-category-filter .proj-bubbles .proj-bubble.is-category-match {
+    opacity: 1;
+  }
+
+  .is-category-filter .proj-bubbles .proj-bubble:not(.is-category-match):hover {
+    opacity: 0.6;
+  }
+
+  /* ── Admin Bubbles ── */
+  .admin-bubble {
+    border-color: color-mix(in srgb, var(--_tokens---color--fg) 14%, transparent);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+  }
+
+  /* Mobile supersmall scaling and compact spacing for global footer */
+  @media (max-width: 767px) {
+    .supersmall .proj-bubble {
+      font-size: calc(var(--_tokens---type--ultrathin) * 0.75) !important;
+      padding: 4.5px 9px !important; /* 75% of 6px 12px */
+      gap: 5.25px !important; /* 75% of 7px */
+    }
+    .supersmall .proj-bubble__arrow {
+      width: 0.6em !important;
+      height: 0.6em !important;
+    }
+    .home-search__count {
+      margin-bottom: 8px !important;
+    }
+    #qs-grid {
+      margin-top: 8px !important;
+    }
+    .home-search-footer {
+      padding-top: 20px !important;
+      padding-bottom: 20px !important;
+    }
+  }
+</style>
+
+<script>
+  function initQuickSearch() {
+    const footer = document.querySelector('.home-search-footer');
+    if (!footer) return;
+    const grid     = footer.querySelector('#qs-grid') as HTMLElement | null;
+    const input    = footer.querySelector('#qs-input') as HTMLInputElement | null;
+    const clearBtn = footer.querySelector('#qs-clear');
+    const count    = footer.querySelector('#qs-count');
+    if (!grid || grid.dataset.qsInit) return;  // guard against double-init on the same DOM
+    grid.dataset.qsInit = '1';
+    const g = grid;
+    const categoryId = footer.dataset.category || '';
+
+    // Shuffle the original pills once
+    const originals = Array.from(g.querySelectorAll('.proj-bubble')) as HTMLElement[];
+    for (let i = originals.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const t = originals[i]; originals[i] = originals[j]; originals[j] = t;
+    }
+    const total = originals.length;
+
+    // Clear and append in shuffled order directly to g
+    g.innerHTML = '';
+    originals.forEach(p => g.appendChild(p));
+
+    function buildRows() {
+      const pills = Array.from(g.querySelectorAll('.proj-bubble')) as HTMLElement[];
+      if (!pills.length) return;
+
+      // 1. Measure abbreviated (restW) and full-name (fullW) widths.
+      //    Pills already show abbreviated text from the Astro template.
+      g.style.flexDirection = 'row';
+      g.style.flexWrap = 'wrap';
+      g.style.gap = '5px';
+      pills.forEach(p => {
+        p.style.width = '';
+        g.appendChild(p);
+      });
+      g.classList.add('qs-measure-state'); // disables pill transitions
+      void g.offsetWidth; // force reflow — abbreviated text, natural widths
+      pills.forEach(p => { p.dataset.restW = String(p.offsetWidth); });
+
+      // Temporarily swap to full name + expand tag to measure true hover pill width.
+      // (The tag has max-width:0 at rest and expands via CSS :hover; we must force
+      //  it open here so fullW includes name + tag + arrow, not just name + arrow.)
+      pills.forEach(p => {
+        const nameEl = p.querySelector('.proj-bubble__name') as HTMLElement | null;
+        const tagEl  = p.querySelector('.proj-bubble__tag')  as HTMLElement | null;
+        if (nameEl) nameEl.textContent = nameEl.dataset.full ?? nameEl.textContent;
+        if (tagEl) {
+          tagEl.style.transition  = 'none';
+          tagEl.style.maxWidth    = '800px';
+          tagEl.style.marginLeft  = '0';
+        }
+      });
+      void g.offsetWidth;
+      pills.forEach(p => { p.dataset.fullW = String(p.offsetWidth); });
+
+      // Restore abbreviated text and collapsed tag
+      pills.forEach(p => {
+        const nameEl = p.querySelector('.proj-bubble__name') as HTMLElement | null;
+        const tagEl  = p.querySelector('.proj-bubble__tag')  as HTMLElement | null;
+        if (nameEl) nameEl.textContent = nameEl.dataset.short ?? nameEl.textContent;
+        if (tagEl) {
+          tagEl.style.transition  = '';
+          tagEl.style.maxWidth    = '';
+          tagEl.style.marginLeft  = '';
+        }
+      });
+      g.classList.remove('qs-measure-state');
+
+      // 2. Compute row grouping mathematically from restW + container width.
+      //    This avoids relying on offsetTop after qs-measure-state removal,
+      //    which is unreliable because CSS name transitions are mid-flight.
+      const containerW = g.clientWidth;
+      const gap = 5;
+      const rows: HTMLElement[][] = [];
+      let cur: HTMLElement[] = [];
+      let rowW = 0;
+      pills.forEach(p => {
+        const w = parseFloat(p.dataset.restW || '0');
+        if (cur.length > 0 && rowW + gap + w > containerW) {
+          rows.push(cur);
+          cur = [p];
+          rowW = w;
+        } else {
+          rowW = cur.length === 0 ? w : rowW + gap + w;
+          cur.push(p);
+        }
+      });
+      if (cur.length > 0) rows.push(cur);
+
+      // 3. Build qs-row wrappers.
+      // Apply layout via inline style — JS-created elements don't carry
+      // Astro's data-astro-cid attribute, so scoped CSS rules won't match.
+      g.style.flexDirection = '';
+      g.style.flexWrap = '';
+      g.style.gap = '';
+      g.innerHTML = '';
+      rows.forEach((rowPills, idx) => {
+        const isLast = idx === rows.length - 1;
+        const row = document.createElement('div');
+        row.className = isLast ? 'qs-row qs-row--last' : 'qs-row';
+        // Fixed 5px gap on every row — uniform spacing everywhere, left-aligned.
+        row.style.cssText = [
+          'display:flex',
+          'flex-direction:row',
+          'flex-wrap:nowrap',
+          'justify-content:flex-start',
+          'gap:5px',
+          'width:100%',
+          'overflow:visible',
+        ].join(';');
+        rowPills.forEach(p => row.appendChild(p));
+        g.appendChild(row);
+      });
+    }
+
+    // Mark category-matching bubbles if category filtering is active
+    if (categoryId) {
+      Array.from(g.querySelectorAll('.proj-bubble')).forEach(el0 => {
+        const el = el0 as HTMLElement;
+        const bubbleCatId = el.dataset.catId || '';
+        el.classList.toggle('is-category-match', bubbleCatId === categoryId);
+      });
+    }
+
+    // Defer buildRows until after the page layout (including home slider) has settled
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      buildRows();
+      render(input?.value || '');
+    }));
+
+    // Attach smart hover listeners to each pill once
+    originals.forEach(p => {
+      p.addEventListener('mouseenter', () => {
+        const row = p.parentElement;
+        if (!row || !row.classList.contains('qs-row')) return;
+
+        const rowPills = Array.from(row.children) as HTMLElement[];
+        const H = rowPills.indexOf(p);
+        if (H === -1) return;
+
+        clearTimeout((row as any)._resetTimer);
+
+        // Swap to full name — the pill clips it until the width animation reveals it
+        const hoverNameEl = p.querySelector('.proj-bubble__name') as HTMLElement | null;
+        if (hoverNameEl) hoverNameEl.textContent = hoverNameEl.dataset.full ?? hoverNameEl.textContent;
+        
+        const N = rowPills.length;
+        const targetW = rowPills.map(rp => parseFloat(rp.dataset.restW || '0'));
+        const fullW = parseFloat(p.dataset.fullW || '0');
+        const rowWidth = row.clientWidth;
+
+        // With space-between rows, all space not occupied by pill content is available gap
+        const isLastRow = row.classList.contains('qs-row--last');
+        const totalRestW = targetW.reduce((a, b) => a + b, 0) + (isLastRow ? (N - 1) * 5 : 0);
+        const emptySpace = Math.max(0, rowWidth - totalRestW);
+
+        const req = fullW - targetW[H];
+        targetW[H] = fullW;
+
+        let deficit = Math.max(0, req - emptySpace);
+
+        const others = rowPills
+          .map((rp, i) => ({ i, dist: Math.abs(i - H) }))
+          .filter(o => o.i !== H)
+          .sort((a, b) => {
+            if (b.dist !== a.dist) return b.dist - a.dist;
+            return a.i - b.i; // left-most wins ties
+          });
+
+        for (const o of others) {
+          if (deficit <= 0) break;
+          const maxSteal = targetW[o.i] - 26; // 26px minimum circle width
+          if (maxSteal > 0) {
+            const steal = Math.min(deficit, maxSteal);
+            targetW[o.i] -= steal;
+            deficit -= steal;
+          }
+        }
+
+        if (deficit > 0) {
+          targetW[H] -= deficit;
+        }
+
+        rowPills.forEach((rp, i) => {
+          rp.style.width = targetW[i] + 'px';
+          rp.classList.toggle('is-squished', targetW[i] <= 32);
+        });
+
+        // Gap stays fixed at 5px — no dynamic adjustment needed.
+      });
+      p.addEventListener('mouseleave', () => {
+        const row = p.parentElement;
+        if (!row || !row.classList.contains('qs-row')) return;
+        
+        const rowPills = Array.from(row.children) as HTMLElement[];
+        rowPills.forEach((rp) => {
+          rp.classList.remove('is-squished');
+          rp.style.width = rp.dataset.restW + 'px';
+        });
+
+        clearTimeout((row as any)._resetTimer);
+        (row as any)._resetTimer = setTimeout(() => {
+          rowPills.forEach(rp => {
+            rp.style.width = '';
+            // Restore abbreviated text once the collapse animation has finished
+            const nameEl = rp.querySelector('.proj-bubble__name') as HTMLElement | null;
+            if (nameEl) nameEl.textContent = nameEl.dataset.short ?? nameEl.textContent;
+          });
+        }, 400);
+      });
+    });
+
+    function render(query: string) {
+      const q = query.trim().toLowerCase();
+      const keywords = q.split(/\s+/).filter(Boolean);
+      g.classList.toggle('has-search', keywords.length > 0);
+      const matched = new Set<string>();
+      Array.from(g.querySelectorAll('.proj-bubble')).forEach(el0 => {
+        const el = el0 as HTMLElement;
+        if (!keywords.length) { el.classList.remove('is-match'); el.classList.remove('is-tag-reveal'); return; }
+        const hay = [
+          el.dataset.name, el.dataset.tags, el.dataset.cat, el.dataset.year,
+          el.dataset.loc, el.dataset.client, el.dataset.status, el.dataset.program
+        ].join(' ').toLowerCase();
+        const isMatch = keywords.every(kw => hay.includes(kw));
+        el.classList.toggle('is-match', isMatch);
+        if (isMatch) { if (el.dataset.name) matched.add(el.dataset.name); }
+        const tagText = (el.querySelector('.proj-bubble__tag')?.textContent || '').toLowerCase();
+        el.classList.toggle('is-tag-reveal', isMatch && keywords.some(kw => kw.length >= 3 && tagText.includes(kw)));
+      });
+      if (count) {
+        count.textContent = q
+          ? `Results ${total}   Showing Items 1 to ${matched.size} of ${total}`
+          : `Results ${total}   Showing all items`;
+      }
+    }
+
+    render('');
+
+    input?.addEventListener('input', () => {
+      render(input.value);
+      input.classList.toggle('is-active', !!input.value.trim());
+    });
+
+    clearBtn?.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (input) { input.value = ''; input.classList.remove('is-active'); render(''); input.focus(); }
+    });
+
+    let resizeTimer: number | undefined;
+    window.addEventListener('resize', () => {
+      window.clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(() => {
+        buildRows();
+        render(input?.value || '');
+      }, 180);
+    });
+  }
+
+  // Setup on page load
+  initQuickSearch();
+
+  // Support Astro View Transitions
+  document.addEventListener('astro:after-swap', initQuickSearch);
+</script>

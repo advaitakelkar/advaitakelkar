@@ -1,0 +1,340 @@
+---
+import '../styles/tokens.css';
+
+export interface Props {
+  title: string;
+  description?: string;
+  ogImage?: string;
+}
+
+const { title, description = 'Advaita Kelkar — Architect & Designer', ogImage } = Astro.props;
+const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+// Absolute share image (per-page override → site default). Crawlers need an
+// absolute URL, so resolve against the canonical site origin.
+const shareImage = new URL(ogImage ?? '/images/admin/profile.jpg', Astro.site).href;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/ak-favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+
+    <!-- Inter — loaded from the head (parallel, not chained behind the CSS
+         bundle like the old @import). Roman only: the site uses no italics.
+         display=swap paints text immediately in a fallback font. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100..900&display=swap" />
+
+    <title>{title} — AK</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalURL} />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Advaita Kelkar" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:image" content={shareImage} />
+    <meta property="og:image:alt" content={`${title} — Advaita Kelkar`} />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={shareImage} />
+
+    <!-- ── Scheme: runs synchronously in <head> → no FOUC, correct on every page load ── -->
+    <script is:inline>
+      (function () {
+        // Active schemes: Void, Moss, Clay, Dusk, Midnight, Ember, Nomad
+        var ALL_SCH = ['sch1','sch2','sch3','sch4','sch6','sch7'];
+        var VALID   = ['default','sch1','sch2','sch3','sch4','sch6','sch7'];
+
+        function setClass(id) {
+          ALL_SCH.forEach(function (s) { document.documentElement.classList.remove(s); });
+          if (id !== 'default') document.documentElement.classList.add(id);
+        }
+
+        // Void (black & white) gets 50%; the six colour schemes split the rest
+        var POOL = ['default','default','default','default','default','default',
+                    'sch1','sch2','sch3','sch4','sch6','sch7'];
+        function randomSch() {
+          return POOL[Math.floor(Math.random() * POOL.length)];
+        }
+
+        // Reload detection — Navigation Timing Level 2
+        var navEntry = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
+        var isReload = navEntry ? navEntry.type === 'reload' : false;
+
+        var stored = sessionStorage.getItem('aks');
+        var valid  = stored && VALID.indexOf(stored) !== -1;
+
+        if (isReload || !valid) {
+          var cls = randomSch();
+          setClass(cls);
+          sessionStorage.setItem('aks', cls);
+          sessionStorage.removeItem('aks-mode');
+        } else {
+          setClass(stored);
+          var storedMode = sessionStorage.getItem('aks-mode');
+          if (storedMode === 'dark')  document.documentElement.classList.add('mode-dark');
+          if (storedMode === 'light') document.documentElement.classList.add('mode-light');
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <style is:global>
+      html, body {
+        scroll-snap-type: none !important;
+        scroll-behavior: smooth !important;
+        overflow-x: hidden;
+      }    </style>
+
+    <slot />
+    <script>
+      // Global Arrow Hover Random Rotation
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      document.addEventListener('mouseover', (e) => {
+        if (prefersReducedMotion) return; // honor OS "reduce motion"
+        if (document.documentElement.dataset.edit === 'on') return; // stand down while editing
+        const target = e.target as HTMLElement;
+        const hoverContainer = target.closest('a, button, .project-card, .about-link-row, .qs-row, .home-slider__slide, .sn-panel__link');
+        if (hoverContainer) {
+          const arrow = hoverContainer.querySelector('.link-arrow') as HTMLElement;
+          if (arrow && !arrow.dataset.hasRandomHover) {
+            arrow.dataset.hasRandomHover = 'true';
+            arrow.style.transition = 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease';
+            
+            const onMouseEnter = () => {
+              const randomAngle = Math.floor(Math.random() * 360);
+              arrow.style.transform = `rotate(${randomAngle}deg)`;
+            };
+            
+            const onMouseLeave = () => {
+              arrow.style.transform = '';
+            };
+            
+            hoverContainer.addEventListener('mouseenter', onMouseEnter);
+            hoverContainer.addEventListener('mouseleave', onMouseLeave);
+            
+            // Trigger immediately on first hover detection
+            onMouseEnter();
+          }
+        }
+      });
+    </script>
+    <script>
+      // Global Text Scramble (Matrix Decode) Hover Effect
+      const GLYPHS = '01XYZ%$#@?*+=#-_[]{}<>/';
+
+      class TextScrambler {
+        el: HTMLElement;
+        originalText: string;
+        frame: number = 0;
+        queue: Array<{ from: string; to: string; start: number; end: number; char?: string }> = [];
+        resolveQueue: () => void = () => {};
+        animationFrameId: number = 0;
+
+        constructor(el: HTMLElement) {
+          this.el = el;
+          this.originalText = el.dataset.scrambleText || el.textContent || '';
+          if (!el.dataset.scrambleText) {
+            el.dataset.scrambleText = this.originalText;
+          }
+        }
+
+        scramble() {
+          const currentText = this.el.textContent || '';
+          const length = Math.max(this.originalText.length, currentText.length);
+          this.queue = [];
+          
+          for (let i = 0; i < length; i++) {
+            const from = currentText[i] || '';
+            const to = this.originalText[i] || '';
+            const start = Math.floor(Math.random() * 8);
+            const end = start + Math.floor(Math.random() * 12) + 4;
+            this.queue.push({ from, to, start, end });
+          }
+
+          cancelAnimationFrame(this.animationFrameId);
+          this.frame = 0;
+          
+          return new Promise((resolve) => {
+            this.resolveQueue = () => resolve(undefined);
+            this.tick();
+          });
+        }
+
+        tick() {
+          let output = '';
+          let complete = 0;
+
+          for (let i = 0, n = this.queue.length; i < n; i++) {
+            let { from, to, start, end, char } = this.queue[i];
+            if (this.frame >= end) {
+              complete++;
+              output += to;
+            } else if (this.frame >= start) {
+              if (!char || Math.random() < 0.28) {
+                char = GLYPHS[Math.floor(Math.random() * GLYPHS.length)];
+                this.queue[i].char = char;
+              }
+              output += char;
+            } else {
+              output += from;
+            }
+          }
+
+          this.el.textContent = output;
+
+          if (complete === this.queue.length) {
+            this.resolveQueue();
+          } else {
+            this.frame++;
+            this.animationFrameId = requestAnimationFrame(() => this.tick());
+          }
+        }
+
+        stop() {
+          cancelAnimationFrame(this.animationFrameId);
+          this.el.textContent = this.originalText;
+        }
+      }
+
+      function getScrambleTarget(target: HTMLElement): HTMLElement | null {
+        // 0. Direct match: if the target (or close ancestor) is one of our designated safe text components,
+        // use it immediately if it does not contain child elements (to preserve inner tags/SVGs).
+        const directTextSpan = target.closest(
+          '.home-nav-row__text, .about-link-row__text, ' +
+          '.sn-panel__link span, ' +
+          // .proj-bubble__name is excluded: pills have their own JS hover that swaps abbreviated↔full name
+          '.project-card__stack-name, .project-card__title, ' +
+          '.education-card__school, .about-card__title, .stacked-name, .about-card__collab'
+        );
+        if (directTextSpan && directTextSpan.children.length === 0) {
+          return directTextSpan as HTMLElement;
+        }
+
+        // Find the closest potential scramble container/element candidate
+        let candidate: HTMLElement | null = null;
+
+        // 1. Explicit scramble attribute
+        const scrambleAttr = target.closest('[data-scramble]');
+        if (scrambleAttr) {
+          candidate = scrambleAttr as HTMLElement;
+        } else {
+          // 2. Headings (h1-h6)
+          const heading = target.closest('h1, h2, h3, h4, h5, h6');
+          if (heading) {
+            candidate = heading as HTMLElement;
+          } else {
+            // 3. Links and navigation items
+            const link = target.closest('a');
+            if (link) {
+              // Exclude breadcrumbs from ever scrambling
+              if (link.closest('.breadcrumb, .page-breadcrumb')) {
+                return null;
+              }
+              // Exclude proj-bubble pills: they have their own JS hover for abbreviated↔full name
+              if (link.classList.contains('proj-bubble')) {
+                return null;
+              }
+              // Exclude email (mailto) links from the glitch/scramble effect
+              if (link.getAttribute('href')?.startsWith('mailto:')) {
+                return null;
+              }
+              // Exclude explicit no-scramble items
+              if (link.hasAttribute('data-no-scramble') || link.classList.contains('education-inline-link')) {
+                return null;
+              }
+              // Exclude long paragraphs or paragraph links
+              if (link.closest('p, .home-intro__desc, .about-card__desc, .project-card__desc')) {
+                const text = link.textContent?.trim() || '';
+                if (text.length > 50) return null;
+              }
+              const textSpan = link.querySelector(
+                '.home-nav-row__text, .about-link-row__text, ' +
+                '.sn-panel__link span, ' +
+                '.project-card__stack-name'
+              );
+              if (textSpan) return textSpan as HTMLElement;
+              candidate = link;
+            } else {
+              // 4. Card headers and titles
+              const title = target.closest(
+                '.project-card__title, .education-card__school, ' +
+                '.about-card__role, .about-card__org, .about-card__title, .stacked-name, .about-card__collab'
+              );
+              if (title) {
+                candidate = title as HTMLElement;
+              }
+            }
+          }
+        }
+
+        // Safety check: if the candidate exists and is safe (no element children), scramble it.
+        // This ensures nested HTML structure (such as SVG icons or spans) is never deleted.
+        if (candidate) {
+          if (candidate.children.length === 0) {
+            return candidate;
+          }
+          // If it has children, attempt to find a child that is safe to scramble
+          const safeChild = candidate.querySelector(
+            '.home-nav-row__text, .about-link-row__text, ' +
+            '.sn-panel__link span, ' +
+            '.project-card__stack-name, .project-card__title, ' +
+            '.education-card__school, .about-card__title, .stacked-name, .about-card__collab'
+          );
+          if (safeChild && safeChild.children.length === 0) {
+            return safeChild as HTMLElement;
+          }
+        }
+
+        return null;
+      }
+
+      function getTriggerElement(scrambleEl: HTMLElement): HTMLElement {
+        return scrambleEl.closest(
+          'a, button, .home-nav-row, .about-link-row, .home-slider__slide, ' +
+          '.sn-panel__link, .project-card, .education-card, .about-card, ' +
+          '.skill-pill, .proj-bubble'
+        ) as HTMLElement || scrambleEl;
+      }
+
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      document.addEventListener('mouseover', (e) => {
+        if (reduceMotion) return; // honor OS "reduce motion" — skip scramble
+        if (document.documentElement.dataset.edit === 'on') return; // stand down while editing
+        const target = e.target as HTMLElement;
+        const scrambleEl = getScrambleTarget(target);
+
+        if (scrambleEl) {
+          if (!scrambleEl.dataset.hasScrambleListener) {
+            scrambleEl.dataset.hasScrambleListener = 'true';
+            const scrambler = new TextScrambler(scrambleEl);
+
+            const onMouseEnter = () => {
+              scrambler.scramble();
+            };
+
+            const onMouseLeave = () => {
+              scrambler.stop();
+            };
+
+            const triggerEl = getTriggerElement(scrambleEl);
+            triggerEl.addEventListener('mouseenter', onMouseEnter);
+            triggerEl.addEventListener('mouseleave', onMouseLeave);
+
+            // Trigger immediately for the current hover
+            onMouseEnter();
+          }
+        }
+      });
+    </script>  </body>
+</html>

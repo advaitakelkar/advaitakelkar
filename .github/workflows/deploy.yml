@@ -1,0 +1,47 @@
+name: Deploy to Firebase Hosting
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build Astro site
+        run: pnpm build
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ADVAITAKELKAR_SITE }}
+
+      - name: Deploy to Firebase Hosting
+        run: |
+          set +e
+          out=$(npx firebase-tools@latest deploy --only hosting --project advaitakelkar-site 2>&1)
+          code=$?
+          echo "$out"
+          if [ $code -ne 0 ]; then
+            # Firebase returns an error when the uploaded build is byte-identical
+            # to what's already live ("is the current active version"). That's a
+            # no-op, not a failure — treat it as success so the run stays green.
+            if echo "$out" | grep -q "is the current active version"; then
+              echo "::notice::No content changes detected — site already up to date. Treating as success."
+              exit 0
+            fi
+            exit $code
+          fi

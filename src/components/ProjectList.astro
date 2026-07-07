@@ -1,0 +1,1918 @@
+---
+import { getCollection } from 'astro:content';
+import PageLayout from '../layouts/PageLayout.astro';
+
+export interface Props {
+  projects: any[];
+  title: string;
+  crumbs?: { label: string; href?: string }[];
+}
+
+const { projects, title, crumbs } = Astro.props;
+
+const allTags = await getCollection('tags');
+const allCats = await getCollection('categories');
+
+// Sort by number then year
+const sorted = [...projects].sort((a, b) => {
+  if (a.data.numbr && b.data.numbr) return a.data.numbr - b.data.numbr;
+  if (a.data.numbr) return -1;
+  if (b.data.numbr) return 1;
+  return parseInt(b.data.year ?? '0') - parseInt(a.data.year ?? '0');
+});
+
+const tagMap = Object.fromEntries(allTags.map(t => [t.id, t.data.name]));
+const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
+
+// Abbreviate project names for footer bubbles (same logic as Footer.astro)
+function abbrevName(name: string): string {
+  return name.trim().split(/\s+/).filter(w => w.length > 0).map(w => w.length <= 3 ? w : w.slice(0, 3)).join(' ');
+}
+
+// Count projects per tag to find top 4
+const tagCounts: Record<string, number> = {};
+projects.forEach(p => {
+  (p.data.tags ?? []).forEach(t => {
+    tagCounts[t.id] = (tagCounts[t.id] || 0) + 1;
+  });
+});
+const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCounts[a.id] || 0));
+---
+
+<PageLayout
+  title={title}
+  label={title}
+  crumbs={crumbs || [
+    { label: 'Home', href: '/' },
+    { label: title }
+  ]}
+  showFooter={false}
+>
+  <section class="projects-page">
+    <!-- Top Section: Header, search, filters, and cards -->
+    <div class="projects-top-section">
+      <div class="projects-header-blur-overlay"></div>
+      <div class="projects-fixed-wrapper">
+        <!-- Title scrolls away with the page; only the bar below stays stuck -->
+        <header class="projects-header">
+        <h1 class="projects-title">{title}</h1>
+        <p class="projects-count text-muted">{projects.length} of {projects.length} works</p>
+      </header>
+      <div class="projects-sticky-header">
+
+      <!-- Search bar matching home UI -->
+      <div class="projects-search-bar">
+        <input
+          type="search"
+          id="projects-search-input"
+          class="projects-search-input"
+          placeholder="Search projects by name, tag, location, client, status, year..."
+          autocomplete="off"
+          aria-label="Search projects"
+        />
+        <button class="projects-search-clear" id="projects-search-clear" type="button" aria-label="Clear search and all filters" title="Clear search and filters">
+          <svg class="projects-search-clear__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <!-- Filter bar with dropdown and scrollable tag picker -->
+      <div class="filter-bar">
+        <div class="filter-group">
+          <span class="filter-label text-muted">Category</span>
+          <div class="filter-select-wrap">
+            <select id="cat-select" class="filter-select">
+              <option value="">All Categories</option>
+              {allCats.map(cat => (
+                <option value={cat.id}>{cat.data.displayName}</option>
+              ))}
+            </select>
+            <svg class="filter-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+        </div>
+        
+        <div class="filter-group filter-group--tags">
+          <div class="tag-picker-wrapper">
+            <button class="tag-picker-item is-active" data-filter="" id="all-tag-btn" type="button">All</button>
+            <span class="tag-picker-divider">|</span>
+            <div class="tag-scroll-nav">
+              <button class="tag-scroll-arrow tag-scroll-arrow--left" id="tag-scroll-left" aria-label="Scroll tags left" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+                  <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+              </button>
+              <div class="tag-picker-container" id="tag-picker-container">
+                <div class="tag-picker" id="tag-picker">
+                  {sortedTags.map(tag => (
+                    <button class="tag-picker-item" data-filter={tag.id} type="button">
+                      {tag.data.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button class="tag-scroll-arrow tag-scroll-arrow--right" id="tag-scroll-right" aria-label="Scroll tags right" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </button>
+            </div>
+          </div>
+          </div>
+        </div>
+      </div>
+      </div>
+
+
+      <!-- Project list — accordion cards -->
+    <div class="project-cards-container" id="project-cards-container">
+      {sorted.map((p, i) => {
+        const tagsArr = (p.data.tags ?? []).map(t => tagMap[t.id] || t.id);
+        const tagLine = tagsArr.join(', ');
+        const firstTag = tagsArr[0] || (p.data.category ? catMap[p.data.category.id] : '');
+        const metaParts = [
+          { label: 'Location', val: p.data.location },
+          { label: 'Client',   val: p.data.client },
+          { label: 'Status',   val: p.data.status },
+          { label: 'Program',  val: p.data.program },
+        ].filter(m => m.val);
+        // All images — cover first, then the rest; strip is horizontally scrollable
+        const allImgs: string[] = [];
+        if (p.data.coverImage) allImgs.push(p.data.coverImage);
+        if (p.data.multiImage) allImgs.push(...(p.data.multiImage as string[]));
+        return (
+        <div
+          class="project-card"
+          data-name={p.data.name}
+          data-loc={p.data.location ?? ''}
+          data-year={p.data.year ?? ''}
+          data-client={p.data.client ?? ''}
+          data-status={p.data.status ?? ''}
+          data-size={p.data.size ?? ''}
+          data-program={p.data.program ?? ''}
+          data-cat={p.data.category ? (catMap[p.data.category.id] || p.data.category.id) : ''}
+          data-cat-id={p.data.category ? p.data.category.id : ''}
+          data-tags={(p.data.tags ?? []).map(t => tagMap[t.id] || t.id).join(',')}
+          data-tag-ids={(p.data.tags ?? []).map(t => t.id).join(',')}
+        >
+          <!-- Header -->
+          <div class="project-card__header">
+            <h2 class="project-card__stack-name">{p.data.name}</h2>
+            <span class="project-card__stack-right">
+              <a href={`/projects/${p.id}`} class="project-card__pill">
+                <span>Go to project</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+              </a>
+            </span>
+          </div>
+
+          <div class="project-card__body">
+            <div class="project-card__body-inner">
+              <div class="project-card__columns">
+                <!-- Left: description -->
+                <div class="project-card__description-col">
+                  <p class="project-card__intro">{p.data.smallIntro}</p>
+                  {p.data.description && (
+                    <p class="project-card__desc">
+                      {p.data.description.replace(/<[^>]*>/g, '').substring(0, 120) + (p.data.description.replace(/<[^>]*>/g, '').length > 120 ? '...' : '')}
+                    </p>
+                  )}
+                </div>
+
+                <!-- Right: scrollable thumbnail strip -->
+                <div class="project-card__image-col">
+                  <div class:list={['project-card__thumbs-scroll', allImgs.length < 5 && 'is-few']}>
+                    {allImgs.map((src, idx) => (
+                      <button
+                        type="button"
+                        class="project-card__thumb-item"
+                        data-src={src}
+                        data-alt={p.data.name}
+                        aria-label={`View image ${idx + 1} of ${p.data.name}`}
+                      >
+                        <img src={src} alt={`${p.data.name} ${idx + 1}`} loading="lazy" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Bottom Bar -->
+              <div class="project-card__bottom-bar">
+                <div class="project-card__bottom-left">
+                  <div class="project-card__metaline">
+                    {metaParts.map((m, idx) => (
+                      <span class="project-card__meta-item">
+                        {idx > 0 && <span class="project-card__meta-sep">·</span>}
+                        <span class="project-card__meta-val">{m.val}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div class="project-card__bottom-right">
+                  {tagLine && <span class="project-card__bottom-tags">{tagLine}</span>}
+                  {p.data.year && <span class="project-card__bottom-year">{p.data.year}</span>}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        );
+      })}
+    </div>
+    </div> <!-- End projects-top-section -->
+
+    <!-- Bottom Section: Bubbles interface — styled to match Footer -->
+    <div class="projects-bottom-section">
+      <h2 class="projects-bottom-section__title">Projects Quick Search</h2>
+      <!-- Bottom quick-search bubbles — all projects, grey by default, highlight on match -->
+      <div class="proj-bubbles" id="proj-bubbles" aria-label="Quick project search">
+        {sorted.map(p => {
+          const tagsArr = (p.data.tags ?? []).map(t => tagMap[t.id] || t.id);
+          return (
+            <a
+              href={`/projects/${p.id}`}
+              class="proj-bubble"
+              data-name={p.data.name}
+              data-loc={p.data.location ?? ''}
+              data-year={p.data.year ?? ''}
+              data-client={p.data.client ?? ''}
+              data-status={p.data.status ?? ''}
+              data-program={p.data.program ?? ''}
+              data-cat={p.data.category ? (catMap[p.data.category.id] || p.data.category.id) : ''}
+              data-tags={tagsArr.join(',')}
+            >
+              <span class="proj-bubble__name" data-short={p.data.shortName || abbrevName(p.data.name)} data-full={p.data.name}>{p.data.shortName || abbrevName(p.data.name)}</span>
+              <span class="proj-bubble__tag">{tagsArr[0] || (p.data.category ? catMap[p.data.category.id] : 'Design')}</span>
+              <svg class="link-arrow proj-bubble__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
+                <line x1="6" y1="18" x2="18" y2="6"></line>
+                <polyline points="10 6 18 6 18 14"></polyline>
+              </svg>
+            </a>
+          );
+        })}
+      </div>
+    </div>
+
+    <!-- Mobile image preview — shared, top-level so it overlays all cards.
+         Frosted/translucent panel anchored to the top OR bottom edge (whichever
+<div class="project-card__hover-preview" id="desktop-preview">
+      <img class="project-card__hover-preview-img" id="desktop-preview-img" src="" alt="" />
+    </div>
+
+    <!-- Single full-screen frosted-glass background. The card's scrub strip is
+         lifted sharp on top; image fills the larger region; link + ✕ bar by the strip -->
+    <div class="project-lightbox" id="project-lightbox" aria-hidden="true">
+      <div class="project-lightbox__image-area" id="lightbox-image-area">
+        <img class="project-lightbox__img" id="lightbox-img" src="" alt="" />
+      </div>
+      <h2 class="project-lightbox__title" id="lightbox-title"></h2>
+      <div class="project-lightbox__bar" id="lightbox-bar">
+        <a class="project-lightbox__link" id="lightbox-link" href="#">
+          <span>Go to project</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"/><polyline points="10 6 18 6 18 14"/></svg>
+        </a>
+        <button class="project-lightbox__close" id="lightbox-close" type="button" aria-label="Close image">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+</PageLayout>
+
+<style>
+  :global(html) {
+    scroll-snap-type: none !important;
+    scroll-behavior: smooth;
+    scroll-padding-top: 64px; /* any anchored/jumped heading lands clear of the fixed top breadcrumb */
+  }
+
+  @media (max-width: 767px) and (orientation: portrait) {
+    :global(html) {
+      scroll-padding-top: 12px; /* breadcrumb docks to the bottom on mobile */
+    }
+  }
+
+  .projects-page {
+    padding-top: calc(clamp(2rem, 5vh, 3rem) + 48px); /* = home hero padding */
+    padding-bottom: var(--_tokens---space--small);
+    min-height: 100dvh;
+    box-sizing: border-box;
+    position: relative;
+  }
+
+  @media (max-width: 768px) {
+    .projects-page {
+      padding-top: 0;
+    }
+  }
+
+  @media (max-width: 767px) and (orientation: portrait) {
+    .projects-page {
+      padding-bottom: 80px; /* space for mobile bottom docked breadcrumbs */
+    }
+  }
+
+  /* Sticky search + filter bar — sticks below the breadcrumb; the title above
+     it scrolls away normally */
+  .projects-sticky-header {
+    position: sticky;
+    top: 64px; /* parks just below the fixed breadcrumb */
+    z-index: 90; /* Lower than Breadcrumb (100) and SideNav (200) */
+    background-color: transparent; /* transparent to let bubbles float independently */
+    padding-inline: 20px; /* same global inset as the project card content */
+    padding-top: 16px;
+    padding-bottom: 24px;
+    border: none;
+    transition: background-color 0.3s ease;
+    pointer-events: none; /* let clicks pass through empty space */
+  }
+
+  .projects-sticky-header > * {
+    pointer-events: auto; /* restore clickability for search input and filter controls */
+  }
+
+  .projects-header-blur-overlay {
+    position: fixed;
+    top: 0;
+    left: 44px;
+    right: 0;
+    height: 180px; /* fallback desktop height */
+    z-index: 80; /* behind search/filters (90-110), in front of cards */
+    pointer-events: none;
+    background: linear-gradient(
+      to bottom,
+      var(--_tokens---color--bg) 50%,
+      transparent 100%
+    );
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+  }
+
+  /* Masks the 0–64px breadcrumb strip so cards never peek above the stuck bar */
+  .projects-sticky-header::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 44px;
+    right: 0;
+    height: 64px;
+    background-color: var(--_tokens---color--bg);
+    z-index: -1;
+  }
+
+  .projects-header {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    padding-inline: 20px; /* same global inset as the project card content */
+    margin-bottom: 16px;
+  }
+
+  /* Title — H1 big on desktop; family small style on mobile */
+  .projects-title {
+    font-size: var(--_tokens---type--big);
+    font-weight: 500;
+    color: var(--_tokens---color--fg);
+    letter-spacing: -0.03em;
+    line-height: 0.95;
+    margin: 0;
+  }
+
+  @media (max-width: 768px) {
+    .projects-title {
+      font-size: var(--_tokens---type--small) !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.01em !important;
+      line-height: 1.2 !important;
+      text-transform: none !important;
+      color: var(--_tokens---color--fg) !important;
+    }
+  }
+
+  .projects-count {
+    font-size: var(--_tokens---type--micro);
+    font-weight: 300;
+    letter-spacing: 0.04em;
+    margin: 0;
+  }
+
+  /* Search Bar — ONE full-length bar; the clear ✕ floats inside its right edge */
+  .projects-search-bar {
+    position: relative;
+    display: flex;
+    margin: 0 0 18px;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .projects-search-input {
+    flex: 1;
+    min-width: 0;
+    height: 66px;
+    padding: 0 76px 0 32px; /* right side clears the inline ✕ */
+    font-size: var(--_tokens---type--small);
+    font-family: inherit;
+    background: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    border: none;
+    color: var(--_tokens---color--fg);
+    border-radius: var(--_tokens---radius--pill);
+    outline: none;
+    opacity: 0.35; /* grayed out by default */
+    transition: background-color 0.2s, opacity 0.3s ease;
+  }
+
+  .projects-search-input::placeholder { color: var(--_tokens---color--muted); }
+  .projects-search-input:focus,
+  .projects-search-input:not(:placeholder-shown),
+  .projects-search-input.is-active {
+    opacity: 1; /* activated */
+  }
+
+  /* Clears the search AND all filters — always available, inside the field */
+  .projects-search-clear {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 50%;
+    color: var(--_tokens---color--muted);
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+  }
+
+  .projects-search-clear__icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+  }
+
+  .projects-search-clear:hover {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+  }
+
+  /* Filters (Dropdown Category + Scrollable Tag Picker) */
+  .filter-bar {
+    display: flex;
+    flex-direction: row;
+    gap: 32px;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+  }
+
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .filter-group--tags {
+    flex: 1;
+    min-width: 0;
+    opacity: 0.35; /* grayed out by default */
+    transition: opacity 0.3s ease;
+  }
+
+  .filter-group--tags:hover,
+  .filter-group--tags:focus-within,
+  .filter-group--tags.is-active {
+    opacity: 1; /* activated */
+  }
+
+  .filter-label {
+    font-size: var(--_tokens---type--micro);
+    font-weight: 300;
+    text-transform: none;
+    letter-spacing: 0.08em;
+    color: var(--_tokens---color--muted);
+    flex-shrink: 0;
+  }
+
+  .filter-select-wrap {
+    position: relative;
+    display: inline-block;
+    flex-shrink: 0;
+    opacity: 0.35; /* grayed out by default */
+    transition: opacity 0.3s ease;
+  }
+
+  .filter-select-wrap:hover,
+  .filter-select-wrap:focus-within,
+  .filter-select-wrap.is-active {
+    opacity: 1; /* activated */
+  }
+
+  .filter-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    color: var(--_tokens---color--fg);
+    font-family: inherit;
+    font-size: var(--_tokens---type--micro);
+    font-weight: 300;
+    text-transform: none;
+    letter-spacing: 0.04em;
+    border: none;
+    border-radius: var(--_tokens---radius--pill);
+    padding: 10px 40px 10px 20px;
+    cursor: pointer;
+    outline: none;
+    min-width: 180px;
+    transition: background-color 0.2s;
+  }
+
+  .filter-select:hover {
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
+  }
+
+  .filter-select option {
+    background-color: var(--_tokens---color--bg);
+    color: var(--_tokens---color--fg);
+  }
+
+  .filter-select-arrow {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1em;
+    height: 1em;
+    font-size: var(--_tokens---type--micro);
+    pointer-events: none;
+    color: var(--_tokens---color--fg);
+    opacity: 0.7;
+  }
+
+  /* Tag horizontal scrollable picker */
+  .tag-picker-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .tag-picker-divider {
+    color: color-mix(in srgb, var(--_tokens---color--fg) 15%, transparent);
+    font-weight: 300;
+    font-size: var(--_tokens---type--micro);
+    user-select: none;
+    flex-shrink: 0;
+  }
+
+  .tag-scroll-nav {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .tag-scroll-arrow {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    color: var(--_tokens---color--fg);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background-color 0.2s, opacity 0.2s;
+    opacity: 0.8;
+  }
+
+  .tag-scroll-arrow:hover {
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
+    opacity: 1;
+  }
+
+  .tag-scroll-arrow:disabled {
+    opacity: 0.15;
+    cursor: not-allowed;
+  }
+
+  .tag-scroll-arrow svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .tag-picker-container {
+    flex: 1;
+    min-width: 0;
+    max-width: 420px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+    scroll-behavior: smooth;
+  }
+
+  .tag-picker-container::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tag-picker {
+    display: flex;
+    gap: 8px;
+    white-space: nowrap;
+    width: max-content;
+  }
+
+  .tag-picker-item {
+    background-color: transparent;
+    color: var(--_tokens---color--fg);
+    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
+    border-radius: var(--_tokens---radius--pill);
+    padding: 6px 14px;
+    font-size: var(--_tokens---type--micro);
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  }
+
+  .tag-picker-item:hover,
+  .tag-picker-item.is-active {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
+  }
+
+  /* ── Accordion Card List ── */
+  .project-cards-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 8px; /* sticky bar is in normal flow now — no big clearance needed */
+  }
+
+  .project-card {
+    width: 100%;
+    box-sizing: border-box;
+    cursor: default;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 2.5%, var(--_tokens---color--bg));
+    border: none;
+    border-radius: 0;
+    overflow: visible;
+    box-shadow: 0 8px 24px -10px color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
+    /* No isolation: the fixed hover-preview must escape the card's stacking
+       context so the image floats above ALL cards, not just its own */
+  }
+
+  .project-card[hidden] { display: none !important; }
+
+  /* ── Always-visible header strip ── */
+  .project-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px 20px;
+    user-select: none;
+  }
+
+  .project-card__stack-name {
+    font-size: clamp(2rem, 1.375rem + 3.5vw, 4rem); /* between --type--medium and --type--big */
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--_tokens---color--fg);
+    transition: opacity 0.2s ease;
+    margin: 0;
+  }
+
+  .project-card:hover .project-card__stack-name {
+    opacity: 1;
+  }
+
+  .project-card__stack-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  .project-card__stack-tags,
+  .project-card__stack-year {
+    font-size: var(--_tokens---type--micro);
+    font-weight: 300;
+    color: var(--_tokens---color--muted);
+    white-space: nowrap;
+  }
+
+  /* ── Pill / CTA button ── */
+  .project-card__pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: var(--_tokens---type--micro);
+    font-weight: 500;
+    color: var(--_tokens---color--fg);
+    text-decoration: none;
+    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
+    border-radius: var(--_tokens---radius--pill);
+    padding: 7px 14px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  }
+
+  .project-card__pill svg { width: 0.85em; height: 0.85em; transition: transform 0.25s ease; }
+
+  .project-card__pill:hover {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
+  }
+
+  .project-card__pill:hover svg { transform: translate(2px, -2px); }
+
+  /* Cards are always open — no accordion, no clipping */
+  .project-card__body {
+    overflow: visible;
+  }
+
+  .project-card__body-inner {
+    position: relative;
+    overflow: visible;
+    min-height: 0;
+  }
+
+  .project-card__columns {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    min-height: 120px;
+    overflow: visible;
+    position: relative;
+  }
+
+  .project-card__description-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px 20px;
+    box-sizing: border-box;
+  }
+
+  .project-card__intro {
+    font-size: var(--_tokens---type--small);
+    font-weight: 600; /* semibold */
+    line-height: 1.4; /* slightly tighter */
+    color: var(--_tokens---color--muted);
+    margin: 0;
+    max-width: 62ch;
+  }
+
+  .project-card__desc {
+    font-size: var(--_tokens---type--micro); /* micro size */
+    line-height: 1.55;
+    color: var(--_tokens---color--muted);
+    margin: 0;
+    max-width: 62ch;
+    opacity: 0.85;
+  }
+
+  .project-card__image-col {
+    width: 40%;
+    flex-shrink: 0;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    background: none;
+  }
+
+  /* ── Thumbnail strip: shows exactly 5 thumbs; >5 scrolls horizontally ── */
+  .project-card__thumbs-scroll {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    overflow-x: auto;
+    overflow-y: hidden;
+    width: 100%;
+    height: 100%;
+    gap: 2px;
+    padding: 0;
+    background: none;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .project-card__thumbs-scroll::-webkit-scrollbar { display: none; }
+
+  /* Fewer than 5 images → arrange from the right (no scroll needed) */
+  .project-card__thumbs-scroll.is-few { justify-content: flex-end; }
+
+  /* Square thumbnails sized so 5 fill the strip; a 6th+ overflows → scroll */
+  .project-card__thumb-item {
+    all: unset;
+    flex: 0 0 calc((100% - 8px) / 5); /* 5 thumbs + 4×2px gaps */
+    aspect-ratio: 1;
+    max-height: 100%;
+    overflow: hidden;
+    cursor: crosshair;
+    position: relative;
+  }
+
+  .project-card__thumb-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+    transition: opacity 0.15s ease, filter 0.15s ease;
+  }
+
+  /* While a preview is active: the scrubbed thumbnail stays in colour, the rest
+     drop to grayscale so the active image reads clearly */
+  .project-card.is-previewing .project-card__thumb-item img {
+    filter: grayscale(1);
+    opacity: 0.5;
+  }
+  .project-card.is-previewing .project-card__thumb-item.is-active img {
+    filter: none;
+    opacity: 1;
+  }
+
+  /* ── Scrub preview: big image filling the left 60% of the viewport, centered,
+        independent of card height. Fixed → escapes the card bounds entirely. ── */
+  .project-card__hover-preview {
+    position: fixed;
+    left: 44px; /* clear the side-nav index bar */
+    top: 0;     /* grows up beneath the frosted breadcrumb (it sits over the image) */
+    bottom: 0;
+    width: 56vw; /* left ~60% of the screen, minus the side-nav bar */
+    z-index: 95; /* above all cards, under breadcrumb (100) + sidenav (200) */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px;
+    box-sizing: border-box;
+    background-color: var(--_tokens---color--bg-glass); /* same glass as the mobile preview / breadcrumb */
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+
+  .project-card__hover-preview.is-visible {
+    opacity: 1;
+    pointer-events: none; /* scrubbing passes through to the thumbnails */
+  }
+
+  /* As big as it can fit in the left 60%, centered. Portrait images go tall. */
+  .project-card__hover-preview-img {
+    max-width: 100%;
+    max-height: 90vh;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+  }
+
+  /* No placeholder art: projects without images leave the space empty */
+
+  .project-card__bottom-bar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 20px 14px;
+    box-sizing: border-box;
+    font-size: var(--_tokens---type--micro);
+    color: var(--_tokens---color--muted);
+  }
+
+  .project-card__bottom-left {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+  }
+
+  .project-card__bottom-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+    font-weight: 300;
+  }
+
+  .project-card__bottom-tags {
+    color: var(--_tokens---color--muted);
+  }
+
+  .project-card__bottom-year {
+    color: var(--_tokens---color--muted);
+  }
+
+  .project-card__metaline {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 4px 4px;
+    font-size: var(--_tokens---type--micro);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .project-card__meta-item { display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; }
+  .project-card__meta-sep { color: color-mix(in srgb, var(--_tokens---color--fg) 25%, transparent); margin-right: 4px; }
+  .project-card__meta-val { color: var(--_tokens---color--muted); font-weight: 400; }
+
+  @media (max-width: 768px) {
+    .project-card__meta-item:not(:first-child),
+    .project-card__meta-sep {
+      display: none;
+    }
+  }
+
+  .project-card__pill--cta {
+    padding: 9px 16px;
+    font-size: var(--_tokens---type--small);
+  }
+
+  .projects-top-section {
+    position: relative;
+    width: 100%;
+  }
+
+  .projects-fixed-wrapper {
+    display: contents;
+  }
+
+  /* ── Desktop: title + search + filters stay fixed while scrolling,
+     parked below the top breadcrumb bar; cards scroll underneath.
+     Clearance is measured by script (same mechanism as mobile). ── */
+  @media (min-width: 769px) {
+    .projects-fixed-wrapper {
+      display: block;
+      position: fixed;
+      top: 0;     /* runs up BEHIND the breadcrumb bar — no see-through slit */
+      left: 44px; /* clear the side INDEX bar */
+      right: 0;
+      z-index: 90;
+      background-color: var(--_tokens---color--bg);
+      border-bottom: 1px solid var(--_tokens---color--line-soft);
+      padding: 76px var(--_tokens---space--small) 0; /* 64px breadcrumb + 12px */
+      box-sizing: border-box;
+    }
+    .projects-page {
+      padding-top: 0; /* clearance comes from the measured cards padding */
+    }
+    .projects-header {
+      padding-inline: 0;
+    }
+    .projects-sticky-header {
+      position: static;
+      top: auto;
+      padding-inline: 0;
+      padding-top: 0;
+      background-color: transparent;
+    }
+    .projects-sticky-header::before {
+      display: none;
+    }
+  }
+  @media (min-width: 1200px) {
+    .projects-fixed-wrapper {
+      padding-inline: clamp(6rem, 12vw, 16rem); /* align with page content */
+    }
+  }
+
+
+
+  /* ── Bottom quick-search section — matches Footer visual style ── */
+  .projects-bottom-section {
+    position: relative;
+    width: 100%;
+    margin-top: clamp(2rem, 5vh, 4rem);
+    border-top: 1px solid var(--_tokens---color--line-soft);
+    padding-top: 32px;
+    padding-bottom: 24px;
+  }
+
+  .projects-bottom-section__title {
+    font-size: var(--_tokens---type--small);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--_tokens---color--fg);
+    margin: 0 0 16px 0;
+  }
+
+  /* Bubbles container — wrap freely, same gap as footer */
+  .proj-bubbles {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 5px;
+    transition: opacity 0.25s ease;
+  }
+
+  /* Individual pill — matches Footer .proj-bubble exactly */
+  .proj-bubble {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: var(--_tokens---type--ultrathin);
+    font-weight: 300;
+    color: var(--_tokens---color--muted);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    border: 1px solid var(--_tokens---color--line-soft);
+    border-radius: var(--_tokens---radius--pill);
+    padding: 6px 12px;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: background-color 0.2s, color 0.2s, transform 0.15s, opacity 0.2s;
+  }
+
+  .proj-bubble__name {
+    font-size: var(--_tokens---type--ultrathin);
+    font-weight: 300;
+    letter-spacing: -0.01em;
+    color: inherit;
+  }
+
+  .proj-bubble__tag {
+    font-family: var(--_tokens---font--mono);
+    line-height: 1;
+    font-size: var(--_tokens---type--ultrathin);
+    color: inherit;
+    letter-spacing: 0.04em;
+    opacity: 0;
+    max-width: 0;
+    margin-left: -7px;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: max-width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                opacity 0.28s ease,
+                margin-left 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .proj-bubble:hover .proj-bubble__tag {
+    max-width: 160px;
+    opacity: 0.6;
+    margin-left: 0;
+  }
+
+  .proj-bubble__arrow {
+    width: 0.8em;
+    height: 0.8em;
+    flex-shrink: 0;
+    opacity: 0.55;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+
+  .proj-bubble:hover {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
+    transform: translateY(-1px);
+  }
+
+  .proj-bubble:hover .proj-bubble__arrow {
+    opacity: 1;
+  }
+
+  /* Search match state */
+  .proj-bubble.is-match {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
+  }
+
+  .proj-bubble.is-match:hover {
+    transform: translateY(-1px);
+  }
+
+  /* Active search: dim non-matching bubbles */
+  .proj-bubbles.has-search .proj-bubble:not(.is-match) {
+    opacity: 0.2;
+  }
+
+  .proj-bubbles.has-search .proj-bubble:not(.is-match):hover {
+    opacity: 1;
+  }
+
+  @media (max-width: 768px) {
+    /* Fixed header stack: title, search bar, and filter bar all pin to the
+       top of the viewport; only the project cards scroll underneath. The
+       entire top section is fixed with a frosted glass backdrop filter. */
+    /* Fixed header stack: title, search bar, and filter bar all pin to the
+       top of the viewport; only the project cards scroll underneath. The
+       entire top section wrapper is fixed with a frosted glass backdrop filter. */
+    .projects-top-section {
+      position: static;
+    }
+    .projects-fixed-wrapper {
+      display: block;
+      position: fixed;
+      top: 0;
+      left: 44px;
+      right: 0;
+      z-index: 110;
+      background-color: var(--_tokens---color--bg) !important; /* opaque — no glass */
+      border-bottom: 1px solid var(--_tokens---color--line-soft) !important;
+      padding-top: 16px;
+      padding-bottom: 12px;
+      padding-inline: var(--_tokens---space--small);
+      box-sizing: border-box;
+      pointer-events: auto !important;
+    }
+    .projects-header-blur-overlay {
+      display: none !important;
+    }
+    .projects-header,
+    .projects-sticky-header {
+      pointer-events: auto; /* Restore interactivity for search/filter */
+    }
+    .projects-header {
+      position: static;
+      padding-top: 0;
+      padding-inline: 0;
+      margin-bottom: 10px; /* gap before the search/filter bar below it */
+      background: transparent;
+    }
+    .projects-sticky-header {
+      position: static;
+      padding-top: 0;
+      padding-inline: 0;
+      padding-bottom: 0;
+      background: transparent;
+    }
+    .projects-sticky-header::before {
+      display: none;
+    }
+    /* Fallback space above the cards before the script measures the exact
+       fixed-bar height (avoids a flash of cards hidden underneath) */
+    .project-cards-container {
+      padding-top: 190px;
+    }
+
+    .projects-search-bar {
+      margin: 0 0 8px;
+    }
+    .projects-search-input {
+      height: 48px;
+      font-size: var(--_tokens---type--micro);
+    }
+    .projects-search-clear {
+      width: 32px;
+      height: 32px;
+    }
+    /* Single-row minimal filter: [All Categories ▾]  [All | Interior  Arch… →] */
+    .filter-bar {
+      flex-direction: row;
+      align-items: center;
+      flex-wrap: nowrap;
+      gap: 10px;
+    }
+    .filter-label {
+      display: none; /* drop the "Category" label — the dropdown reads for itself */
+    }
+    .filter-group {
+      gap: 0;
+    }
+    .filter-select-wrap {
+      flex-shrink: 0;
+    }
+    .filter-select {
+      min-width: 0;
+      padding: 9px 32px 9px 14px;
+    }
+    /* Tags fill the rest of the row */
+    .filter-group--tags,
+    .tag-picker-wrapper,
+    .tag-scroll-nav {
+      flex: 1;
+      min-width: 0;
+    }
+    .tag-scroll-arrow {
+      display: none !important; /* no arrow buttons on mobile */
+    }
+    /* Tighter input padding; right side still clears the inline ✕ */
+    .projects-search-input {
+      padding: 0 48px 0 20px;
+    }
+    .projects-search-clear {
+      right: 8px;
+    }
+
+    /* Tags: simple horizontal scroll strip on mobile */
+    .tag-picker-container {
+      flex: 1;
+      min-width: 0;
+      max-width: none;
+      overflow-x: auto;
+      overflow-y: hidden;
+    }
+    /* (Top spacing above the cards now comes entirely from the fixed
+       header stack's measured height, applied as padding-top above.) */
+    /* Mobile card: name + short intro + scrub strip. Flush left/right. */
+    .project-card__header {
+      padding: 10px 0;
+    }
+    /* Hide the description column entirely on mobile, matching category cards */
+    .project-card__description-col {
+      display: none;
+    }
+    .project-card__bottom-bar {
+      display: none;
+    }
+    /* All cards open by default on mobile — no collapsing */
+    .project-card__body {
+      max-height: none;
+      overflow: visible;
+    }
+    .project-card__body-inner {
+      overflow: visible;
+    }
+    /* Pill → bare arrow (no border/bg) so the name has the full width */
+    .project-card__pill {
+      border: none;
+      background: transparent;
+      padding: 0;
+    }
+    .project-card__pill span {
+      display: none;
+    }
+    /* Arrow matches category card arrow size */
+    .project-card__pill svg {
+      width: 20px;
+      height: 20px;
+    }
+    .project-card__columns {
+      flex-direction: column;
+      min-height: auto;
+    }
+    .project-card__image-col {
+      width: 100%;
+      height: auto;
+    }
+    /* Strip is flush left/right; 5 thumbs fit the row, anything beyond 5 scrolls horizontally */
+    .project-card__thumbs-scroll {
+      justify-content: flex-start;
+      padding: 0;
+    }
+    .project-card__thumbs-scroll.is-few { justify-content: flex-start; } /* always left-aligned on mobile */
+    .project-card__thumb-item {
+      flex: 0 0 calc((100% - 8px) / 5);
+      width: auto;
+      height: auto;
+      aspect-ratio: 1;
+    }
+    /* While the lightbox is open: lift the card's strip ABOVE the full glass
+       (z120) so the thumbnails stay sharp, and disable native scroll so the
+       drag scrubs */
+    .project-card.is-previewing .project-card__thumbs-scroll {
+      position: relative;
+      z-index: 121;
+      /* pan-x: the strip stays horizontally scrollable while the lightbox
+         is open (needed beyond ~5 thumbs); dragging still scrubs — the
+         preview follows whichever thumb passes under the finger */
+      touch-action: pan-x;
+    }
+    /* The in-card scrub preview is desktop-only — mobile uses the lightbox below */
+    .project-card__hover-preview {
+      display: none !important;
+    }
+  }
+
+  /* ── Mobile image preview ────────────────────────────────────────────
+     A transparent full-screen container holding two frosted-glass panes that
+     sandwich the card's scrub strip. The strip stays sharp in the gap; the
+     image and the link/✕ bar sit sharp on the glass; everything behind the
+     glass (other cards) is blurred — same glass as the side nav / breadcrumb.
+     Sits BELOW the breadcrumb (100) + side nav (200). */
+  /* Single full-screen glass — same as the side nav (bg 35% + blur 20) */
+  .project-lightbox {
+    display: none;
+    position: fixed;
+    left: 44px; /* clear the side-nav index bar */
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 120; /* over the fixed title/search/filter stack (105–110);
+                     under the docked breadcrumb (150) + side nav (200) */
+    pointer-events: auto; /* tap the glass to close */
+    background-color: var(--_tokens---color--bg-glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .project-lightbox.is-open { display: block; }
+
+  /* Holds the image in the larger region; transparent (the glass is behind it) */
+  .project-lightbox__image-area {
+    position: absolute;
+    left: 0;
+    right: 0;
+    /* top / bottom set in JS */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 22px;
+    box-sizing: border-box;
+    pointer-events: none; /* taps fall through to the glass → close */
+  }
+
+  .project-lightbox__img {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+  }
+
+  /* Link (left) + ✕ (right) bar — sits in the gap right by the strip */
+  .project-lightbox__bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 44px;
+    /* top set in JS — just above the strip (image on top) or just below it */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    box-sizing: border-box;
+    pointer-events: none;
+  }
+
+  .project-lightbox__link {
+    pointer-events: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--_tokens---type--micro);
+    font-weight: 500;
+    color: var(--_tokens---color--fg);
+  }
+
+  .project-lightbox__link svg { width: 0.9em; height: 0.9em; flex-shrink: 0; }
+
+  /* Project name in medium size font above/below the scrub strip */
+  .project-lightbox__title {
+    position: absolute;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: flex-start;
+    text-align: left;
+    padding: 16px 16px;
+    margin: 0;
+    box-sizing: border-box;
+    font-weight: 600;
+    color: var(--_tokens---color--fg);
+    pointer-events: none; /* passes clicks through to the glass below to close */
+    font-family: var(--_tokens---font--sans);
+    line-height: 1.25;
+  }
+
+  .project-lightbox__close {
+    pointer-events: auto;
+    all: unset;
+    cursor: pointer;
+    color: var(--_tokens---color--fg);
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .project-lightbox__close svg { width: 22px; height: 22px; }
+</style>
+
+<script>
+  // ── Mobile image preview controller (shared, top-level — floats over cards) ──
+  const lightbox = document.getElementById('project-lightbox');
+  const lbImg = document.getElementById('lightbox-img') as HTMLImageElement | null;
+  const lbImageArea = document.getElementById('lightbox-image-area');
+  const lbBar = document.getElementById('lightbox-bar');
+  const lbLink = document.getElementById('lightbox-link') as HTMLAnchorElement | null;
+  const lbTitle = document.getElementById('lightbox-title');
+  let lbThumbs: HTMLElement[] = [];     // the CARD's own thumbnails (strip stays put)
+  let lbStripEl: HTMLElement | null = null; // the card strip currently being previewed
+  let activeCard: HTMLElement | null = null; // card whose preview is showing (for grayscale)
+  let lbIndex = 0;                      // current image index (for prev/next loop)
+
+  // Which thumbnail is under a given screen-x — drives the drag/scrub
+  function thumbIndexAtX(thumbs: HTMLElement[], clientX: number): number {
+    if (!thumbs.length) return -1;
+    for (let i = 0; i < thumbs.length; i++) {
+      const r = thumbs[i].getBoundingClientRect();
+      if (clientX >= r.left && clientX <= r.right) return i;
+    }
+    return clientX < thumbs[0].getBoundingClientRect().left ? 0 : thumbs.length - 1;
+  }
+
+  function setLbActive(i: number) {
+    if (!lbImg) return;
+    const t = lbThumbs[i];
+    if (!t) return;
+    lbIndex = i;
+    lbThumbs.forEach((el, j) => el.classList.toggle('is-active', j === i));
+    lbImg.src = t.dataset.src ?? '';
+    lbImg.alt = t.dataset.alt ?? '';
+  }
+
+  // Sandwich the strip: image pane fills the larger side, filler pane the other,
+  // and the link/✕ bar sits in the gap right next to the strip.
+  const BAR_H = 44;
+  function positionPanel(strip: HTMLElement) {
+    if (!lightbox || !lbImageArea || !lbBar || !lbTitle) return;
+    const rect = strip.getBoundingClientRect();
+    const vh = window.innerHeight;
+    const imageOnBottom = (vh - rect.bottom) >= rect.top;
+    if (imageOnBottom) {
+      // image fills below the strip; bar just below the strip
+      lbImageArea.style.top = rect.bottom + 'px';
+      lbImageArea.style.bottom = '0px';
+      lbImageArea.style.paddingTop = BAR_H + 'px'; // clear the bar
+      lbImageArea.style.paddingBottom = '84px';    // clear the breadcrumb dock
+      lbBar.style.top = rect.bottom + 'px';
+
+      // Title is on TOP (above the strip)
+      lbTitle.style.top = '0px';
+      lbTitle.style.bottom = (vh - rect.top) + 'px';
+      lbTitle.style.paddingTop = '20px';
+      lbTitle.style.paddingBottom = '12px';
+      lbTitle.style.alignItems = 'flex-end';
+
+      const availableHeight = rect.top - 20 - 12;
+      const fontSizePx = Math.max(18, Math.min(36, availableHeight * 0.12));
+      lbTitle.style.fontSize = `${fontSizePx}px`;
+    } else {
+      // image fills above the strip; bar just above the strip
+      lbImageArea.style.top = '0px';
+      lbImageArea.style.bottom = (vh - rect.top) + 'px';
+      lbImageArea.style.paddingTop = '20px';
+      lbImageArea.style.paddingBottom = BAR_H + 'px'; // clear the bar
+      lbBar.style.top = (rect.top - BAR_H) + 'px';
+
+      // Title is on BOTTOM (below the strip)
+      lbTitle.style.top = rect.bottom + 'px';
+      lbTitle.style.bottom = '0px';
+      lbTitle.style.paddingTop = '12px';
+      lbTitle.style.paddingBottom = '84px'; // clear the bottom breadcrumb dock
+      lbTitle.style.alignItems = 'flex-start';
+
+      const availableHeight = (vh - rect.bottom) - 84 - 12;
+      const fontSizePx = Math.max(18, Math.min(36, availableHeight * 0.12));
+      lbTitle.style.fontSize = `${fontSizePx}px`;
+    }
+  }
+
+  function openLightbox(card: HTMLElement, strip: HTMLElement, startIdx: number) {
+    if (!lightbox) return;
+    lbThumbs = Array.from(card.querySelectorAll<HTMLElement>('.project-card__thumb-item'));
+    lbStripEl = strip;
+    activeCard = card;
+    card.classList.add('is-previewing'); // grayscales the non-active thumbnails
+    const href = card.querySelector('.project-card__pill')?.getAttribute('href');
+    if (lbLink && href) lbLink.href = href;
+    if (lbTitle) lbTitle.textContent = card.dataset.name || '';
+    positionPanel(strip);
+    setLbActive(startIdx);
+    lightbox.classList.add('is-open');
+    lightbox.setAttribute('aria-hidden', 'false');
+    // Fully lock the page so nothing scrolls behind the open lightbox
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeLightbox() {
+    if (!lightbox) return;
+    lightbox.classList.remove('is-open');
+    lightbox.setAttribute('aria-hidden', 'true');
+    document.documentElement.style.overflow = '';
+    document.body.style.overflow = '';
+    lbThumbs.forEach(t => t.classList.remove('is-active'));
+    activeCard?.classList.remove('is-previewing');
+    activeCard = null;
+    lbStripEl = null;
+  }
+
+  if (lightbox) {
+    // Tap the glass (or image) to dismiss — the strip is lifted above it and
+    // stays tappable; the ✕ closes; the link navigates
+    lightbox.addEventListener('click', closeLightbox);
+    document.getElementById('lightbox-close')?.addEventListener('click', closeLightbox);
+    lbLink?.addEventListener('click', (e) => e.stopPropagation());
+    // Block touch-scroll/rubber-band on the glass while open
+    lightbox.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLightbox(); });
+    window.addEventListener('resize', () => {
+      if (lbStripEl && lightbox.classList.contains('is-open')) positionPanel(lbStripEl);
+    });
+  }
+
+  // ── Scrub preview: same model on desktop and mobile ──
+  // Desktop: hovering / dragging across the strip scrubs the left-side preview.
+  // Mobile: tap opens the frosted lightbox; sliding across the strip scrubs it.
+  // In both, the active thumbnail stays in colour while the rest go grayscale.
+  function initImagePreview() {
+    const isHoverDevice = window.matchMedia('(hover: hover)').matches;
+
+    document.querySelectorAll<HTMLElement>('.project-card').forEach(card => {
+      const strip = card.querySelector<HTMLElement>('.project-card__thumbs-scroll');
+      if (!strip) return;
+      const thumbs = Array.from(card.querySelectorAll<HTMLElement>('.project-card__thumb-item'));
+      let lastIdx = -1;
+
+      if (isHoverDevice) {
+        // One shared preview element for the whole page (not one per card)
+        const preview = document.getElementById('desktop-preview');
+        const previewImg = document.getElementById('desktop-preview-img') as HTMLImageElement | null;
+        if (!preview || !previewImg) return;
+        let hideTimer: ReturnType<typeof setTimeout> | null = null;
+
+        const showIdx = (i: number) => {
+          const t = thumbs[i];
+          if (!t) return;
+          if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+          previewImg.src = t.dataset.src ?? '';
+          previewImg.alt = t.dataset.alt ?? '';
+          preview.classList.add('is-visible');
+          card.classList.add('is-previewing'); // grayscale the rest
+          thumbs.forEach((el, j) => el.classList.toggle('is-active', j === i));
+          lastIdx = i;
+        };
+        const hide = () => {
+          hideTimer = setTimeout(() => {
+            preview.classList.remove('is-visible');
+            card.classList.remove('is-previewing');
+            thumbs.forEach(t => t.classList.remove('is-active'));
+            lastIdx = -1;
+          }, 80);
+        };
+
+        strip.addEventListener('pointerenter', () => { if (thumbs.length) showIdx(0); });
+        // Scrub: image follows the pointer across the strip (hover or click-drag)
+        strip.addEventListener('pointermove', (e) => {
+          const i = thumbIndexAtX(thumbs, e.clientX);
+          if (i >= 0 && i !== lastIdx) showIdx(i);
+        });
+        strip.addEventListener('pointerleave', () => hide());
+      } else {
+        // Mobile: tap a thumb → open the frosted lightbox at that image
+        thumbs.forEach((thumb, idx) => {
+          thumb.addEventListener('click', () => openLightbox(card, strip, idx));
+        });
+        // Slide across the strip while the lightbox is open → scrub the image
+        strip.addEventListener('pointermove', (e) => {
+          if (!lightbox || !lightbox.classList.contains('is-open') || activeCard !== card) return;
+          const i = thumbIndexAtX(thumbs, e.clientX);
+          if (i >= 0 && i !== lastIdx) { lastIdx = i; setLbActive(i); }
+        });
+      }
+    });
+  }
+
+  initImagePreview();
+  document.addEventListener('astro:after-swap', initImagePreview);
+
+  // Cards are always open (no accordion). Leaving a card just clears the shared
+  // scrub preview so the next hover starts clean.
+  function initCardLeave() {
+    const preview = document.getElementById('desktop-preview');
+    document.querySelectorAll<HTMLElement>('.project-card').forEach(card => {
+      card.addEventListener('mouseleave', () => {
+        preview?.classList.remove('is-visible');
+        card.classList.remove('is-previewing');
+        card.querySelectorAll<HTMLElement>('.project-card__thumb-item').forEach(t => t.classList.remove('is-active'));
+      });
+    });
+  }
+
+  initCardLeave();
+  document.addEventListener('astro:after-swap', initCardLeave);
+</script>
+
+<script>
+  const container = document.getElementById('project-cards-container');
+  const cards = Array.from(container?.querySelectorAll<HTMLElement>('.project-card') ?? []);
+  const searchInput = document.getElementById('projects-search-input') as HTMLInputElement;
+  const clearBtn = document.getElementById('projects-search-clear');
+  const countLabel = document.querySelector('.projects-count');
+
+  const catSelect = document.getElementById('cat-select') as HTMLSelectElement;
+  const tagPicker = document.getElementById('tag-picker');
+
+  let searchQuery = '';
+  let activeCat = '';
+  let activeTag = '';
+
+  // ── State ──────────────────────────────────────────────────
+
+  function getVisibleCards() {
+    return cards.filter(c => !c.hidden);
+  }
+
+  // Click to toggle open/close has been removed - cards are statically open.
+
+
+
+  function applyVisibility(matchingCards: HTMLElement[]) {
+    cards.forEach(card => {
+      card.hidden = true;
+    });
+    matchingCards.forEach(card => { card.hidden = false; });
+    if (countLabel) {
+      countLabel.textContent = `${matchingCards.length} of ${cards.length} works`;
+    }
+  }
+
+  // Bottom bubbles: always present, grey by default, highlight on search match
+  const grid = document.getElementById('proj-bubbles');
+  if (grid) {
+    const bubblesArr = Array.from(grid.querySelectorAll('.proj-bubble')) as HTMLElement[];
+    for (let i = bubblesArr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const temp = bubblesArr[i];
+      bubblesArr[i] = bubblesArr[j];
+      bubblesArr[j] = temp;
+    }
+    bubblesArr.forEach(b => grid.appendChild(b));
+  }
+
+  // Hover name swap: abbreviated → full on mouseenter, back on mouseleave
+  document.querySelectorAll<HTMLElement>('.proj-bubble__name').forEach(nameEl => {
+    const bubble = nameEl.closest('.proj-bubble') as HTMLElement;
+    if (!bubble) return;
+    bubble.addEventListener('mouseenter', () => {
+      nameEl.textContent = nameEl.dataset.full ?? nameEl.textContent;
+    });
+    bubble.addEventListener('mouseleave', () => {
+      nameEl.textContent = nameEl.dataset.short ?? nameEl.textContent;
+    });
+  });
+
+  const bubbles = document.querySelectorAll<HTMLElement>('.proj-bubble');
+  function updateBubbles(keywords: string[]) {
+    if (grid) {
+      grid.classList.toggle('has-search', keywords.length > 0);
+    }
+    bubbles.forEach(b => {
+      if (!keywords.length) { b.classList.remove('is-match'); return; }
+      const hay = [
+        b.dataset.name, b.dataset.loc, b.dataset.year, b.dataset.client,
+        b.dataset.status, b.dataset.program, b.dataset.cat, b.dataset.tags
+      ].join(' ').toLowerCase();
+      b.classList.toggle('is-match', keywords.every(kw => hay.includes(kw)));
+    });
+  }
+
+  function updateFieldActivation() {
+    // 1. Search input
+    if (searchInput) {
+      if (searchInput.value.trim()) searchInput.classList.add('is-active');
+      else searchInput.classList.remove('is-active');
+    }
+    // 2. Category select dropdown
+    const selectWrap = document.querySelector('.filter-select-wrap');
+    if (catSelect && selectWrap) {
+      if (catSelect.value) selectWrap.classList.add('is-active');
+      else selectWrap.classList.remove('is-active');
+    }
+    // 3. Tag group wrapper
+    const tagGroup = document.querySelector('.filter-group--tags');
+    if (tagGroup) {
+      if (activeTag) tagGroup.classList.add('is-active');
+      else tagGroup.classList.remove('is-active');
+    }
+  }
+
+  function applyFilter() {
+    updateFieldActivation();
+    const query = searchQuery.trim().toLowerCase();
+    const keywords = query.split(/\s+/).filter(Boolean);
+
+    const matchingCards: HTMLElement[] = [];
+
+    cards.forEach(card => {
+      const name = (card.dataset.name ?? '').toLowerCase();
+      const loc = (card.dataset.loc ?? '').toLowerCase();
+      const year = (card.dataset.year ?? '').toLowerCase();
+      const client = (card.dataset.client ?? '').toLowerCase();
+      const status = (card.dataset.status ?? '').toLowerCase();
+      const size = (card.dataset.size ?? '').toLowerCase();
+      const program = (card.dataset.program ?? '').toLowerCase();
+      const cat = (card.dataset.cat ?? '').toLowerCase();
+      const tags = (card.dataset.tags ?? '').toLowerCase();
+      const catId = card.dataset.catId ?? '';
+      const tagIds = (card.dataset.tagIds ?? '').split(',').filter(Boolean);
+
+      // smart multi-keyword match (AND logic)
+      const searchMatch = !keywords.length || keywords.every(kw =>
+        name.includes(kw) ||
+        loc.includes(kw) ||
+        year.includes(kw) ||
+        client.includes(kw) ||
+        status.includes(kw) ||
+        size.includes(kw) ||
+        program.includes(kw) ||
+        cat.includes(kw) ||
+        tags.includes(kw)
+      );
+
+      const catMatch = !activeCat || catId === activeCat;
+      const tagMatch = !activeTag || tagIds.includes(activeTag);
+
+      if (searchMatch && catMatch && tagMatch) {
+        matchingCards.push(card);
+      }
+    });
+
+    applyVisibility(matchingCards);
+    updateBubbles(keywords);
+  }
+
+  // Input typing listener
+  searchInput?.addEventListener('input', (e) => {
+    searchQuery = (e.target as HTMLInputElement).value;
+    applyFilter();
+  });
+
+  // Select dropdown filter listeners
+  catSelect?.addEventListener('change', (e) => {
+    activeCat = (e.target as HTMLSelectElement).value;
+    applyFilter();
+  });
+
+  // --- Tag Picker Scroll Navigation ---
+  const tagPickerContainer = document.getElementById('tag-picker-container');
+  const scrollLeftBtn = document.getElementById('tag-scroll-left') as HTMLButtonElement;
+  const scrollRightBtn = document.getElementById('tag-scroll-right') as HTMLButtonElement;
+
+  function updateScrollArrows() {
+    if (!tagPickerContainer || !scrollLeftBtn || !scrollRightBtn) return;
+    const { scrollLeft, scrollWidth, clientWidth } = tagPickerContainer;
+    
+    // Disable arrows based on scroll position limits
+    scrollLeftBtn.disabled = scrollLeft <= 1;
+    scrollRightBtn.disabled = scrollLeft + clientWidth >= scrollWidth - 2;
+    
+    // Only display arrows if container actually has overflow
+    const hasOverflow = scrollWidth > clientWidth;
+    scrollLeftBtn.style.display = hasOverflow ? 'flex' : 'none';
+    scrollRightBtn.style.display = hasOverflow ? 'flex' : 'none';
+  }
+
+  // Smooth scroll offset on arrow click
+  scrollLeftBtn?.addEventListener('click', () => {
+    tagPickerContainer?.scrollBy({ left: -140, behavior: 'smooth' });
+  });
+
+  scrollRightBtn?.addEventListener('click', () => {
+    tagPickerContainer?.scrollBy({ left: 140, behavior: 'smooth' });
+  });
+
+  tagPickerContainer?.addEventListener('scroll', updateScrollArrows, { passive: true });
+  window.addEventListener('resize', updateScrollArrows, { passive: true });
+
+  const allTagBtn = document.getElementById('all-tag-btn');
+
+  // Static All Tag button click listener
+  allTagBtn?.addEventListener('click', () => {
+    // Remove active state from all scrolling tag buttons
+    tagPicker?.querySelectorAll('.tag-picker-item').forEach(b => b.classList.remove('is-active'));
+    allTagBtn.classList.add('is-active');
+    activeTag = '';
+    applyFilter();
+    setTimeout(updateScrollArrows, 50);
+  });
+
+  // Tag scrollable picker click listener using event delegation
+  tagPicker?.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest('.tag-picker-item');
+    if (!btn) return;
+
+    const filter = (btn as HTMLElement).dataset.filter ?? '';
+    activeTag = filter;
+
+    // Set active state on clicked button and remove from all others (including All tag button)
+    allTagBtn?.classList.remove('is-active');
+    tagPicker.querySelectorAll('.tag-picker-item').forEach(b => {
+      b.classList.toggle('is-active', b === btn);
+    });
+
+    applyFilter();
+    // Re-check arrows in case item selection changes container layout (unlikely but safe)
+    setTimeout(updateScrollArrows, 50);
+  });
+
+  // Clear search and filters trigger
+  clearBtn?.addEventListener('click', () => {
+    if (searchInput) searchInput.value = '';
+    if (catSelect) catSelect.value = '';
+    searchQuery = '';
+    activeCat = '';
+    activeTag = '';
+    // Reset tag picker active states
+    allTagBtn?.classList.add('is-active');
+    tagPicker?.querySelectorAll('.tag-picker-item').forEach(btn => {
+      btn.classList.remove('is-active');
+    });
+    applyFilter();
+    updateScrollArrows();
+  });
+
+  // Mobile space-savers: shorter placeholder + abbreviated "All Categories"
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    if (searchInput) searchInput.placeholder = 'Search projects';
+    const allCatOpt = catSelect?.querySelector('option[value=""]');
+    if (allCatOpt) allCatOpt.textContent = 'CTGRY';
+  }
+
+  // Pre-load search query from URL params if present (links from skillset click on About page)
+  const urlParams = new URLSearchParams(window.location.search);
+  const qParam = urlParams.get('search') || urlParams.get('q');
+  if (qParam) {
+    searchQuery = qParam;
+    if (searchInput) searchInput.value = qParam;
+  }
+
+  // Initialize visibility and tag scroll arrows
+  applyFilter();
+  setTimeout(updateScrollArrows, 100);
+</script>
+
+<script>
+  // ── Mobile fixed header stack ────────────────────────────────
+  // On mobile the entire top section wrapper (header + search + filters) is position:fixed
+  // with a glass blur, so the project cards scroll underneath it.
+  // We measure the wrapper height and apply it as paddingTop to cards container.
+  function positionMobileProjectsHeader() {
+    const fixedWrapper = document.querySelector('.projects-fixed-wrapper') as HTMLElement | null;
+    const overlay = document.querySelector('.projects-header-blur-overlay') as HTMLElement | null;
+    const cards = document.getElementById('project-cards-container');
+    if (!fixedWrapper || !cards) return;
+
+    const isMobile = window.innerWidth <= 768;
+    const wrapperHeight = fixedWrapper.offsetHeight;
+    // Mobile: wrapper is pinned at top:0. Desktop: pinned at top:64px
+    // (below the breadcrumb), so add that offset plus a small gap.
+    cards.style.paddingTop = isMobile
+      ? `${wrapperHeight}px`
+      : `${wrapperHeight + 16}px`;
+    if (overlay) {
+      overlay.style.height = isMobile ? `${wrapperHeight + 40}px` : '';
+    }
+  }
+
+  positionMobileProjectsHeader();
+  window.addEventListener('resize', () => {
+    clearTimeout((window as any)._projHeaderTimer);
+    (window as any)._projHeaderTimer = setTimeout(positionMobileProjectsHeader, 120);
+  });
+
+  function setupScrollToTop() {
+    const fixedWrapper = document.querySelector('.projects-fixed-wrapper');
+    if (fixedWrapper) {
+      fixedWrapper.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement;
+        if (!target.closest('input') && !target.closest('select') && !target.closest('button') && !target.closest('a')) {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      });
+    }
+  }
+  setupScrollToTop();
+
+  document.addEventListener('astro:after-swap', () => {
+    positionMobileProjectsHeader();
+    setupScrollToTop();
+  });
+</script>
