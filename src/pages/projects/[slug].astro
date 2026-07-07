@@ -771,21 +771,54 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     }
   }
 
-  /* Mobile: names hidden, compact circles — five always fit on one row */
+  /* Mobile: names hidden; circles grow to fill the full row width
+     (each capped at 1/5 of the row so a solo avatar doesn't balloon) */
   @media (max-width: 768px) {
     .project-people {
       gap: 8px;
       flex-wrap: nowrap;
+      width: 100%;
     }
     .project-people__person {
-      max-width: none;
+      flex: 1 1 0;
+      max-width: calc((100% - 32px) / 5);
     }
     .project-people__avatar {
-      width: 36px;
-      height: 36px;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 1 / 1;
     }
     .project-people__name {
       display: none;
+    }
+
+    /* ── Fixed head: name + metaline + people pinned to the top, opaque;
+       the rest of the page scrolls beneath it ── */
+    .project-top-header.is-fixed-head {
+      position: fixed;
+      top: 0;
+      left: 44px; /* clears the INDEX rail */
+      right: 0;
+      z-index: 50;
+      margin: 0;
+      padding: calc(8px + env(safe-area-inset-top)) 12px 10px;
+      background-color: var(--_tokens---color--bg);
+      border-bottom: 1px solid var(--_tokens---color--line-soft);
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .project-top-header.is-fixed-head .project-card__metaline--incol {
+      margin-top: 0;
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+
+    /* Spacer: page content starts below the fixed head (height set by JS) */
+    .project-detail.has-fixed-head {
+      padding-top: calc(var(--head-h, 40vh) + 12px);
     }
   }
 
@@ -1396,10 +1429,12 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     width: 100%;
   }
 
-  /* Desktop: dense micro-scrub — flexible columns, ~9-12 thumbs per row */
+  /* Desktop: column count is set inline by fitDeckGrid() so the grid's
+     height matches the right-hand image; this is only the pre-JS fallback.
+     (No !important — it must lose to the JS inline style.) */
   @media (min-width: 1024px) {
     .deck-grid {
-      grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)) !important;
+      grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
       gap: 6px;
     }
 
@@ -2139,7 +2174,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     // ── Lightbox deck elements (reordered to match the shuffled sequence) ──
     const lightboxDeck = document.getElementById('lightbox-deck') as HTMLElement | null;
     if (lightboxDeck) reorderChildrenByIndex(lightboxDeck, order);
-    const deckItems = lightboxDeck
+    let deckItems = lightboxDeck
       ? Array.from(lightboxDeck.querySelectorAll('.lightbox-deck__item')) as HTMLElement[]
       : [];
 
@@ -2308,6 +2343,31 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       if (e.key === 'Escape') closeLightbox();
     });
 
+    // ── Broken images never render as empty/alt-text cards: drop the card
+    // from the scrub, the lightbox, and the rotation entirely. ──
+    const dropCard = (idx: number) => {
+      deck.querySelector(`.deck-card-item[data-index="${idx}"]`)?.remove();
+      lightboxDeck?.querySelector(`.lightbox-deck__item[data-index="${idx}"]`)?.remove();
+      deckItems = lightboxDeck
+        ? Array.from(lightboxDeck.querySelectorAll('.lightbox-deck__item')) as HTMLElement[]
+        : [];
+      const pos = order.indexOf(idx);
+      if (pos >= 0) order.splice(pos, 1);
+      if (!order.length) return;
+      if (currentIdx === idx || currentPos >= order.length) {
+        goToPos(Math.min(currentPos, order.length - 1));
+        updateDisplay(false);
+      }
+      fitDeckGrid();
+    };
+    deck.querySelectorAll('.deck-card-item img:not(.deck-card-logo)').forEach(im => {
+      const img = im as HTMLImageElement;
+      const idx = parseInt(img.closest('.deck-card-item')?.getAttribute('data-index') ?? '-1', 10);
+      if (idx < 0) return;
+      if (img.complete && img.naturalWidth === 0) { requestAnimationFrame(() => dropCard(idx)); return; }
+      img.addEventListener('error', () => dropCard(idx));
+    });
+
     startAutoplay();
     updateScrubActiveState();
 
@@ -2326,20 +2386,18 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       const gap = 6; // matches desktop .deck-grid gap
       if (!targetHeight || !containerWidth || !count) return;
 
-      let bestCols = 3;
-      let bestDiff = Infinity;
-      for (let cols = 3; cols <= 24; cols++) {
+      // Fewest columns (= biggest cards) whose full grid still fits the
+      // reserved height — the scrub grows to meet the image's bottom edge.
+      let bestCols = 24;
+      for (let cols = 2; cols <= 24; cols++) {
         const cardWidth = (containerWidth - gap * (cols - 1)) / cols;
-        if (cardWidth <= 0) break;
+        if (cardWidth <= 0) continue;
         const rows = Math.ceil(count / cols);
         const totalHeight = rows * cardWidth * 1.5 + (rows - 1) * gap;
-        const diff = Math.abs(totalHeight - targetHeight);
-        if (diff < bestDiff) {
-          bestDiff = diff;
-          bestCols = cols;
-        }
+        if (totalHeight <= targetHeight) { bestCols = cols; break; }
       }
-      deck.style.setProperty('grid-template-columns', `repeat(${bestCols}, 1fr)`);
+      // 'important' — the stylesheet's fallback rules also use !important
+      deck.style.setProperty('grid-template-columns', `repeat(${bestCols}, 1fr)`, 'important');
     };
 
     fitDeckGrid();
@@ -2691,12 +2749,58 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     }
   }
 
+  // ── Mobile (standard pages): the project name + metaline + people become a
+  // fixed opaque head; everything else scrolls beneath it. The metaline and
+  // people nodes are relocated into the header on mobile and restored to the
+  // left column on desktop. ──
+  function initMobileFixedHead() {
+    const article = document.querySelector('.project-detail') as HTMLElement | null;
+    if (!article || article.getAttribute('data-is-card') === 'true') return;
+    const header = document.getElementById('project-top-header');
+    const metaline = document.querySelector('.project-card__metaline--incol') as HTMLElement | null;
+    const people = document.querySelector('.project-people') as HTMLElement | null;
+    const info = document.querySelector('.project-card-info') as HTMLElement | null;
+    if (!header) return;
+
+    const mq = window.matchMedia('(max-width: 768px)');
+    const apply = () => {
+      if (mq.matches) {
+        if (metaline) header.appendChild(metaline);
+        if (people) header.appendChild(people);
+        header.classList.add('is-fixed-head');
+        article.classList.add('has-fixed-head');
+        const setH = () => article.style.setProperty('--head-h', `${header.offsetHeight}px`);
+        setH();
+        if (!(header as any)._headRO && 'ResizeObserver' in window) {
+          (header as any)._headRO = new ResizeObserver(setH);
+          (header as any)._headRO.observe(header);
+        }
+      } else {
+        header.classList.remove('is-fixed-head');
+        article.classList.remove('has-fixed-head');
+        article.style.removeProperty('--head-h');
+        if (info) {
+          const textRow = info.querySelector('.project-card__row2');
+          if (metaline) info.insertBefore(metaline, textRow);
+          if (people) info.insertBefore(people, textRow);
+        }
+      }
+    };
+    apply();
+    if (!(header as any)._mqWired) {
+      (header as any)._mqWired = true;
+      mq.addEventListener('change', apply);
+    }
+  }
+
   document.addEventListener('astro:page-load', () => {
     initProjectPage();
     initHeadingScrollTop();
+    initMobileFixedHead();
   });
   if (document.readyState !== 'loading') {
     initProjectPage();
     initHeadingScrollTop();
+    initMobileFixedHead();
   }
 </script>
