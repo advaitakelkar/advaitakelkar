@@ -174,8 +174,7 @@ if (p.id === 'ai-works') {
     flex-direction: row;
     align-items: center;
     justify-content: flex-start;
-    overflow-x: auto;
-    overflow-y: hidden;
+    overflow: hidden; /* strip never scrolls — JS prunes it to 5 random thumbs */
     width: 100%;
     height: 100%;
     gap: 2px;
@@ -256,6 +255,19 @@ if (p.id === 'ai-works') {
     const strips = Array.from(document.querySelectorAll<HTMLElement>('.pcard__thumbs'));
     if (!strips.length) return;
     const isHover = window.matchMedia('(hover: hover)').matches;
+
+    // Each load: keep 5 random thumbs per strip (random pick, random order),
+    // drop the rest — five squares always fill the row, nothing scrolls.
+    strips.forEach((strip) => {
+      if ((strip as any)._pruned) return; (strip as any)._pruned = true;
+      const items = Array.from(strip.children) as HTMLElement[];
+      for (let i = items.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [items[i], items[j]] = [items[j], items[i]];
+      }
+      items.slice(5).forEach(el => el.remove());
+      items.slice(0, 5).forEach(el => strip.appendChild(el));
+    });
 
     // Overlays must live inside .page-wrap (a z-index:1 stacking context) so the
     // nav/breadcrumb stay above them and the lifted mobile strip can sit on top.

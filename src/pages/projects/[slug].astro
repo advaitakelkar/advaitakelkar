@@ -81,6 +81,27 @@ const cardNameFromUrl = (url: string): string => {
   return name || data.name;
 };
 const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
+
+// ── Superhero logos (sups-cards / sups-in-the-hinterland) ──
+// DC + Marvel publisher logos keep their color; character/team logos render
+// monochrome via CSS filter. Matched by character name in the filename.
+const LOGO_RULES: Array<{ match: RegExp; src: string; mono: boolean }> = [
+  { match: /batman|joker|penguin|freeze/i,                       src: '/images/logos/batman.png',        mono: true },
+  { match: /superman/i,                                          src: '/images/logos/superman.png',      mono: true },
+  { match: /flash/i,                                             src: '/images/logos/flash.png',         mono: true },
+  { match: /green lantern/i,                                     src: '/images/logos/green-lantern.png', mono: true },
+  { match: /wonder wom|martian|cygborg|cyborg|poison ivy|harley/i, src: '/images/logos/dc.png',          mono: false },
+  { match: /captain america|winter so|hulk|loki|scarlet|scalet/i, src: '/images/logos/avengers.png',     mono: true },
+  { match: /wolverine|cyclops|strom|storm|jean grey|professor|nightcrawler|gambit|emma frost|magneto|juggernaut|deadpool/i,
+                                                                 src: '/images/logos/xmen.png',          mono: true },
+  { match: /spider/i,                                            src: '/images/logos/marvel.png',        mono: false },
+];
+const logoProjects = ['sups-cards', 'sups-in-the-hinterland'];
+const logoFor = (url: string): { src: string; mono: boolean } | null => {
+  if (!logoProjects.includes(project.id)) return null;
+  const name = cardNameFromUrl(url);
+  return LOGO_RULES.find(r => r.match.test(name)) ?? null;
+};
 ---
 
 <PageLayout
@@ -364,6 +385,7 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
               name = name.replace(/^ADVT_[A-Z_]+_/, '').replace(/^ADVT_SP_\s*/, '').trim();
               name = name.replace(/\s+\d+\s*$/, '').replace(/\s*\d+$/, '').trim();
               
+              const logo = logoFor(img);
               return (
                 <button
                   type="button"
@@ -373,6 +395,7 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
                 >
                   <div class="deck-card-inner">
                     <img src={img} alt={name} loading="lazy" />
+                    {logo && <img class:list={["deck-card-logo", logo.mono && "is-mono"]} src={logo.src} alt="" loading="lazy" />}
                     <div class="deck-card-glow"></div>
                     <div class="deck-card-label">{name}</div>
                   </div>
@@ -405,11 +428,15 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
 
           <!-- Scroll-snap deck: one card at a time, neighbours peeking -->
           <div class="lightbox-deck" id="lightbox-deck">
-            {allImages.map((img, idx) => (
+            {allImages.map((img, idx) => {
+              const logo = logoFor(img);
+              return (
               <div class="lightbox-deck__item" data-index={idx}>
                 <img src={img} alt={cardNameFromUrl(img)} loading="lazy" />
+                {logo && <img class:list={["lightbox-card-logo", logo.mono && "is-mono"]} src={logo.src} alt="" loading="lazy" />}
               </div>
-            ))}
+              );
+            })}
           </div>
 
           <!-- Card name: bottom-left at page padding, one word per row -->
@@ -741,6 +768,24 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
     .project-people__avatar {
       width: 60px;
       height: 60px;
+    }
+  }
+
+  /* Mobile: names hidden, compact circles — five always fit on one row */
+  @media (max-width: 768px) {
+    .project-people {
+      gap: 8px;
+      flex-wrap: nowrap;
+    }
+    .project-people__person {
+      max-width: none;
+    }
+    .project-people__avatar {
+      width: 36px;
+      height: 36px;
+    }
+    .project-people__name {
+      display: none;
     }
   }
 
@@ -1300,10 +1345,8 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
     margin-top: 12px;
     width: 100%;
     justify-content: flex-start;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
+    overflow: hidden; /* never scrolls — JS prunes to 5 random thumbs per load */
     scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
   }
   .project-detail__thumbs::-webkit-scrollbar {
     display: none;
@@ -1394,7 +1437,7 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
     transform-style: preserve-3d;
   }
 
-  .deck-card-inner img {
+  .deck-card-inner img:not(.deck-card-logo) {
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -1418,13 +1461,13 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
     box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
   }
 
-  .deck-card-item.is-active img {
+  .deck-card-item.is-active img:not(.deck-card-logo) {
     filter: grayscale(0) !important;
     opacity: 1 !important;
   }
 
-  .deck-card-item:hover img,
-  .deck-card-item:focus img {
+  .deck-card-item:hover img:not(.deck-card-logo),
+  .deck-card-item:focus img:not(.deck-card-logo) {
     filter: grayscale(0);
     opacity: 1;
     transform: scale(1.02);
@@ -1445,6 +1488,35 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
 
   .deck-card-item:hover .deck-card-glow {
     opacity: 1;
+  }
+
+  /* ── Publisher/team logo on the muted scrub cards ──
+     Sits centered like the back of a playing card; fades away when the card
+     becomes active or is hovered (the photo takes over). */
+  .deck-card-logo {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 55%;
+    max-height: 45%;
+    object-fit: contain;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+    pointer-events: none;
+    opacity: 0.9;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+
+  .deck-card-logo.is-mono {
+    filter: brightness(0) invert(1) drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
+  }
+
+  .deck-card-item.is-active .deck-card-logo,
+  .deck-card-item:hover .deck-card-logo,
+  .deck-card-item:focus .deck-card-logo {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.25);
   }
 
   /* Micro text label overlay on each card */
@@ -1638,6 +1710,7 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
   .lightbox-deck:active { cursor: grabbing; }
 
   .lightbox-deck__item {
+    position: relative; /* anchors the corner logo */
     flex-shrink: 0;
     width: 72vw;
     height: 60dvh;
@@ -1660,7 +1733,7 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
     filter: grayscale(0) blur(0) !important;
   }
 
-  .lightbox-deck__item img {
+  .lightbox-deck__item img:not(.lightbox-card-logo) {
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -1680,6 +1753,36 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
       width: 24vw;
       height: 62dvh;
     }
+  }
+
+  /* ── Publisher/team logo — top-left corner, like a playing-card suit mark.
+     Inherits the neighbours' grayscale/blur (filter is on the item), and pops
+     in with a small scale animation when the card becomes the centre one. ── */
+  .lightbox-card-logo {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    width: 20%;
+    max-width: 72px;
+    max-height: 52px;
+    object-fit: contain;
+    object-position: left top;
+    z-index: 3;
+    pointer-events: none;
+    opacity: 0.55;
+    transform: scale(0.85);
+    transform-origin: top left;
+    filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.6));
+    transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .lightbox-card-logo.is-mono {
+    filter: brightness(0) invert(1) drop-shadow(0 2px 10px rgba(0, 0, 0, 0.6));
+  }
+
+  .lightbox-deck__item.is-center .lightbox-card-logo {
+    opacity: 1;
+    transform: scale(1);
   }
 
   /* ── Project name: bottom-left, one word per line ── */
@@ -2275,11 +2378,17 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
     const images = JSON.parse(slider.getAttribute('data-images') || '[]');
     const projectName = document.querySelector('.project-detail')?.getAttribute('data-project-name') || '';
 
-    // Randomise the navigation sequence once per load; the thumbnail strip is
-    // reordered to match it, so next/prev always lands on the adjacent thumb,
-    // and it stays fixed until reload.
-    const order = shuffle(Array.from({ length: images.length }, (_, i) => i));
-    if (strip) reorderChildrenByIndex(strip, order);
+    // Each load: pick 5 random images (random order) — that set IS the scrub,
+    // the slider, and the lightbox until the next reload. Thumbs outside the
+    // pick are removed so the strip never scrolls.
+    const order = shuffle(Array.from({ length: images.length }, (_, i) => i)).slice(0, 5);
+    if (strip) {
+      Array.from(strip.querySelectorAll('.project-detail__thumb-item')).forEach(t => {
+        const idx = parseInt(t.getAttribute('data-index') || '-1', 10);
+        if (!order.includes(idx)) t.remove();
+      });
+      reorderChildrenByIndex(strip, order);
+    }
     const thumbs = strip ? Array.from(strip.querySelectorAll('.project-detail__thumb-item')) : [];
 
     let currentPos = 0;
@@ -2287,7 +2396,7 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
     let isOpen = false;
 
     const goToPos = (pos: number) => {
-      const count = images.length;
+      const count = order.length;
       currentPos = ((pos % count) + count) % count;
       currentIdx = order[currentPos];
     };
@@ -2332,7 +2441,7 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
       if (lightboxImg) lightboxImg.src = activeUrl;
       if (ambientImg) ambientImg.src = activeUrl;
       if (headerTitle) headerTitle.textContent = `${projectName} — Photo`;
-      if (counter) counter.textContent = `${currentPos + 1} / ${images.length}`;
+      if (counter) counter.textContent = `${currentPos + 1} / ${order.length}`;
 
       // Lightbox name label: word-by-word spans
       const lbName = document.getElementById('lightbox-card-label');
@@ -2342,7 +2451,7 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
 
       // Page active elements
       if (activeImg) activeImg.src = activeUrl;
-      if (pagination) pagination.textContent = `${currentPos + 1} / ${images.length}`;
+      if (pagination) pagination.textContent = `${currentPos + 1} / ${order.length}`;
 
       thumbs.forEach((t, i) => t.classList.toggle('is-active', i === currentPos));
 
@@ -2381,6 +2490,7 @@ const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
         updateDisplay();
       }, 2000);
     };
+    updateDisplay();
     restartAutoplay();
 
     // Thumb strip listeners

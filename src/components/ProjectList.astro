@@ -849,8 +849,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     flex-direction: row;
     align-items: center;
     justify-content: flex-start;
-    overflow-x: auto;
-    overflow-y: hidden;
+    overflow: hidden; /* strip never scrolls — JS prunes it to 5 random thumbs */
     width: 100%;
     height: 100%;
     gap: 2px;
@@ -1583,6 +1582,19 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   function initImagePreview() {
     const isHoverDevice = window.matchMedia('(hover: hover)').matches;
 
+    // Prune each strip to 5 random thumbs (random pick, random order) BEFORE
+    // wiring listeners, so the scrub only ever tracks live elements.
+    document.querySelectorAll<HTMLElement>('.project-card__thumbs-scroll').forEach(strip => {
+      if ((strip as any)._pruned) return; (strip as any)._pruned = true;
+      const items = Array.from(strip.children) as HTMLElement[];
+      for (let i = items.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [items[i], items[j]] = [items[j], items[i]];
+      }
+      items.slice(5).forEach(el => el.remove());
+      items.slice(0, 5).forEach(el => strip.appendChild(el));
+    });
+
     document.querySelectorAll<HTMLElement>('.project-card').forEach(card => {
       const strip = card.querySelector<HTMLElement>('.project-card__thumbs-scroll');
       if (!strip) return;
@@ -1659,7 +1671,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 </script>
 
 <script>
-  import { shuffleChildren, pickRandom } from '../lib/random';
+  import { shuffleChildren } from '../lib/random';
 
   const container = document.getElementById('project-cards-container');
   const cards = Array.from(container?.querySelectorAll<HTMLElement>('.project-card') ?? []);
@@ -1696,15 +1708,6 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
   // Project cards: shuffle so the list order is different on every load
   if (container) shuffleChildren(container);
-
-  // Thumbnail scrub: show at most 5 random images per card — the full
-  // gallery lives on the project page, so no horizontal scrolling here.
-  document.querySelectorAll('.project-card__thumbs-scroll').forEach(strip => {
-    const thumbs = Array.from(strip.children) as HTMLElement[];
-    if (thumbs.length <= 5) return;
-    const keep = new Set(pickRandom(thumbs, 5));
-    thumbs.forEach(t => { if (!keep.has(t)) t.remove(); });
-  });
 
   // Bottom bubbles: always present, grey by default, highlight on search match
   const grid = document.getElementById('proj-bubbles');
