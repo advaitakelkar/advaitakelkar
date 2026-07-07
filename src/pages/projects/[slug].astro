@@ -66,67 +66,71 @@ const isCardPage = cardPageSlugs.includes(project.id);
 >
     <article class="project-detail" data-project-id={project.id} data-project-name={data.name} data-is-card={isCardPage ? "true" : "false"}>
       
-      <!-- Top Header -->
-      <header class="project-top-header" id="project-top-header">
-        <div class="project-header-title-row">
-          <h1 class="project-name-title" id="project-name-click">
-            <span class="project-name-main">{data.name}</span>
-          </h1>
-        </div>
-        
-        <div class="project-card__metaline">
-          {(yearLoc || data.status) && (
-            <div class="project-meta-row">
-              <span class="project-meta-left project-card__meta-val">{yearLoc}</span>
-              {data.status && <span class="project-meta-right project-card__meta-val">{data.status}</span>}
+      {isCardPage ? (
+        /* CARD PAGES: Wrapped in Sticky Dashboard wrapper */
+        <div class="project-dashboard-wrap" id="project-dashboard">
+          <header class="project-top-header" id="project-top-header">
+            <div class="project-header-title-row">
+              <h1 class="project-name-title" id="project-name-click">
+                <span class="project-name-main">{data.name}</span>
+              </h1>
             </div>
-          )}
-          {(firstTag || category) && (
-            <div class="project-meta-row">
-              <span class="project-meta-left project-card__meta-val">{firstTag ? firstTag.data.name : ''}</span>
-              {category && <a href={`/${category.id}`} class="category-link project-meta-right project-card__meta-val">{category.data.displayName}</a>}
+            
+            <div class="project-card__metaline">
+              {(yearLoc || data.status) && (
+                <div class="project-meta-row">
+                  <span class="project-meta-left project-card__meta-val">{yearLoc}</span>
+                  {data.status && <span class="project-meta-right project-card__meta-val">{data.status}</span>}
+                </div>
+              )}
+              {(firstTag || category) && (
+                <div class="project-meta-row">
+                  <span class="project-meta-left project-card__meta-val">{firstTag ? firstTag.data.name : ''}</span>
+                  {category && <a href={`/${category.id}`} class="category-link project-meta-right project-card__meta-val">{category.data.displayName}</a>}
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </header>
+          </header>
 
-      <!-- Main content body (Conditional column styling) -->
-      <div class:list={["project-content-grid", isCardPage && "project-content-grid--card"]}>
-        <!-- Left Column: Description Text -->
-        <div class="project-col-left">
-          <div class="project-card-info">
-            <div class="project-card__row project-card__row2">
-              <div class="project-card__text-block">
-                {data.smallIntro && <p class="project-card__intro">{data.smallIntro}</p>}
-                {data.description && (
-                  <div class="project-card__desc" set:html={data.description} />
-                )}
+          <div class="project-content-grid project-content-grid--card">
+            <!-- Left Column: Description Text -->
+            <div class="project-col-left">
+              <div class="project-card-info">
+                <div class="project-card__row project-card__row2">
+                  <div class="project-card__text-block">
+                    {data.smallIntro && <p class="project-card__intro">{data.smallIntro}</p>}
+                    {data.description && (
+                      <div class="project-card__desc" set:html={data.description} />
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        <!-- Right Column: Card Slider or Standard Slider -->
-        {hasImages && (
-        <div class="project-col-right" id="project-slider-col">
-          {isCardPage ? (
-            /* CARD LAYOUT SLIDER */
-            <div class="project-slider-wrapper" id="page-slider-wrapper" data-images={JSON.stringify(allImages)}>
-              <div class="project-detail__active-wrap" id="page-active-wrap" style="cursor: pointer;" title="Click to open fullscreen modal">
-                <button class="project-detail__nav-arrow project-detail__nav-arrow--prev" id="page-prev" type="button" aria-label="Previous card">
-                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                </button>
-                <img class="project-detail__active-img" id="page-active-img" src={allImages[0]} alt={data.name} />
-                
-                <!-- Autoplay Timer Ring in Top-Right Corner -->
-                <div class="autoplay-timer-ring">
-                  <svg width="24" height="24" viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="10" class="timer-ring-bg" />
-                    <circle cx="12" cy="12" r="10" class="timer-ring-progress" id="page-timer-progress" />
-                  </svg>
+            <!-- Right Column: Active Card Slider -->
+            {hasImages && (
+            <div class="project-col-right" id="project-slider-col">
+              <div class="project-slider-wrapper" id="page-slider-wrapper" data-images={JSON.stringify(allImages)}>
+                <div class="project-detail__active-wrap" id="page-active-wrap" style="cursor: pointer;" title="Click to open fullscreen modal">
+                  <button class="project-detail__nav-arrow project-detail__nav-arrow--prev" id="page-prev" type="button" aria-label="Previous card">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                  </button>
+                  <img class="project-detail__active-img" id="page-active-img" src={allImages[0]} alt={data.name} />
+                  
+                  <!-- Autoplay Timer Ring in Top-Right Corner -->
+                  <div class="autoplay-timer-ring">
+                    <svg width="24" height="24" viewBox="0 0 24 24">
+                      <circle cx="12" cy="12" r="10" class="timer-ring-bg" />
+                      <circle cx="12" cy="12" r="10" class="timer-ring-progress" id="page-timer-progress" />
+                    </svg>
+                  </div>
+
+                  <button class="project-detail__nav-arrow project-detail__nav-arrow--next" id="page-next" type="button" aria-label="Next card">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                  </button>
                 </div>
 
-                <!-- Active Card Name Overlay on top of image (left aligned) -->
+                <!-- Active Card Name Overlay below image container (left aligned) -->
                 <div class="project-detail__active-label" id="page-active-label">
                   {(() => {
                     const firstImg = allImages[0];
@@ -139,56 +143,94 @@ const isCardPage = cardPageSlugs.includes(project.id);
                   })()}
                 </div>
 
-                <button class="project-detail__nav-arrow project-detail__nav-arrow--next" id="page-next" type="button" aria-label="Next card">
-                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                </button>
-              </div>
-
-              <!-- Pagination counter label (omits card name to prevent repetition) -->
-              <div class="project-detail__pagination" id="page-pagination">
-                1 / {allImages.length}
+                <!-- Pagination counter label -->
+                <div class="project-detail__pagination" id="page-pagination">
+                  1 / {allImages.length}
+                </div>
               </div>
             </div>
-          ) : (
-            /* STANDARD LAYOUT SLIDER WITH THUMBNAILS */
-            <div class="project-slider-wrapper project-slider-wrapper--standard" id="standard-slider-wrapper" data-images={JSON.stringify(allImages)}>
-              <div class="project-detail__active-wrap" id="standard-active-wrap" style="cursor: pointer;" title="Click to open image">
-                <button class="project-detail__nav-arrow project-detail__nav-arrow--prev" id="standard-prev" type="button" aria-label="Previous image">
-                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                </button>
-                <img class="project-detail__active-img" id="standard-active-img" src={allImages[0]} alt={data.name} />
-                <button class="project-detail__nav-arrow project-detail__nav-arrow--next" id="standard-next" type="button" aria-label="Next image">
-                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                </button>
-              </div>
-
-              <!-- Pagination counter -->
-              <div class="project-detail__pagination" id="standard-pagination">
-                1 / {allImages.length}
-              </div>
-              
-              <!-- Horizontal Thumbnail Strip below Active Image -->
-              <div class="project-detail__thumbs" id="standard-thumbs">
-                {allImages.map((img, idx) => (
-                  <button
-                    type="button"
-                    class:list={[
-                      "project-detail__thumb-item",
-                      idx === 0 && "is-active"
-                    ]}
-                    data-index={idx}
-                  >
-                    <img src={img} alt={`${data.name} thumbnail ${idx + 1}`} loading="lazy" />
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-        )}
-      </div>
+      ) : (
+        /* STANDARD PROJECTS: Normal Stacked Flow */
+        <>
+          <header class="project-top-header" id="project-top-header">
+            <div class="project-header-title-row">
+              <h1 class="project-name-title" id="project-name-click">
+                <span class="project-name-main">{data.name}</span>
+              </h1>
+            </div>
+            
+            <div class="project-card__metaline">
+              {(yearLoc || data.status) && (
+                <div class="project-meta-row">
+                  <span class="project-meta-left project-card__meta-val">{yearLoc}</span>
+                  {data.status && <span class="project-meta-right project-card__meta-val">{data.status}</span>}
+                </div>
+              )}
+              {(firstTag || category) && (
+                <div class="project-meta-row">
+                  <span class="project-meta-left project-card__meta-val">{firstTag ? firstTag.data.name : ''}</span>
+                  {category && <a href={`/${category.id}`} class="category-link project-meta-right project-card__meta-val">{category.data.displayName}</a>}
+                </div>
+              )}
+            </div>
+          </header>
 
-      <!-- STANDARD PAGE ONLY: Design & Making Collapsible Sections (At bottom of article, stacked) -->
+          <div class="project-content-grid">
+            <div class="project-col-left">
+              <div class="project-card-info">
+                <div class="project-card__row project-card__row2">
+                  <div class="project-card__text-block">
+                    {data.smallIntro && <p class="project-card__intro">{data.smallIntro}</p>}
+                    {data.description && (
+                      <div class="project-card__desc" set:html={data.description} />
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {hasImages && (
+            <div class="project-col-right" id="project-slider-col">
+              <div class="project-slider-wrapper project-slider-wrapper--standard" id="standard-slider-wrapper" data-images={JSON.stringify(allImages)}>
+                <div class="project-detail__active-wrap" id="standard-active-wrap" style="cursor: pointer;" title="Click to open image">
+                  <button class="project-detail__nav-arrow project-detail__nav-arrow--prev" id="standard-prev" type="button" aria-label="Previous image">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                  </button>
+                  <img class="project-detail__active-img" id="standard-active-img" src={allImages[0]} alt={data.name} />
+                  <button class="project-detail__nav-arrow project-detail__nav-arrow--next" id="standard-next" type="button" aria-label="Next image">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                  </button>
+                </div>
+
+                <div class="project-detail__pagination" id="standard-pagination">
+                  1 / {allImages.length}
+                </div>
+                
+                <div class="project-detail__thumbs" id="standard-thumbs">
+                  {allImages.map((img, idx) => (
+                    <button
+                      type="button"
+                      class:list={[
+                        "project-detail__thumb-item",
+                        idx === 0 && "is-active"
+                      ]}
+                      data-index={idx}
+                    >
+                      <img src={img} alt={`${data.name} thumbnail ${idx + 1}`} loading="lazy" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            )}
+          </div>
+        </>
+      )}
+
+      <!-- STANDARD PAGE ONLY: Design & Making Collapsible Sections -->
       {!isCardPage && (
         <div class="project-metadata-sections">
           <section class="project-design-section">
@@ -264,7 +306,7 @@ const isCardPage = cardPageSlugs.includes(project.id);
               return (
                 <button
                   type="button"
-                  class="deck-card-item"
+                  class:list={["deck-card-item", idx === 0 && "is-active"]}
                   data-index={idx}
                   aria-label={`Open card ${name}`}
                 >
@@ -280,7 +322,7 @@ const isCardPage = cardPageSlugs.includes(project.id);
         </section>
       )}
 
-      <!-- Fullscreen Lightbox Modal (Conditional arrows depending on page layout) -->
+      <!-- Fullscreen Lightbox Modal -->
       <div id="card-lightbox" class="card-lightbox" aria-hidden="true" style="display: none;">
         <!-- Dynamic Blurred Background Ambient Image -->
         <img class="lightbox-bg-ambient" id="lightbox-ambient-img" src="" alt="" />
@@ -301,13 +343,21 @@ const isCardPage = cardPageSlugs.includes(project.id);
         <!-- Centered Card Container (with 3D perspective wrapper) -->
         <div class="lightbox-perspective-wrap">
           <div class="lightbox-card-container" id="lightbox-card-container">
-            <!-- Left/Right navigation inputs overlaid directly on image container (Card Page style) -->
+            <!-- Left/Right navigation inputs overlaid directly on image container -->
             <button class="lightbox-nav-arrow lightbox-nav-arrow--prev" id="lightbox-prev" type="button" aria-label="Previous card">
               <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
             </button>
 
             <img class="lightbox-card-img" id="lightbox-card-img" src="" alt="Active Playing Card" />
-            <div class="lightbox-card-label-overlay" id="lightbox-card-label">CARD NAME</div>
+            
+            <!-- Autoplay Timer Ring inside Lightbox container (top right corner) -->
+            <div class="autoplay-timer-ring">
+              <svg width="24" height="24" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" class="timer-ring-bg" />
+                <circle cx="12" cy="12" r="10" class="timer-ring-progress" id="lightbox-timer-progress" />
+              </svg>
+            </div>
+
             <div class="lightbox-card-shadow"></div>
             <div class="lightbox-card-shine"></div>
 
@@ -316,6 +366,9 @@ const isCardPage = cardPageSlugs.includes(project.id);
             </button>
           </div>
         </div>
+
+        <!-- Name Label below the Lightbox card container -->
+        <div class="lightbox-card-label-overlay" id="lightbox-card-label">CARD NAME</div>
 
         <div class="lightbox-hint">Tap card to flip to next</div>
       </div>
@@ -336,16 +389,9 @@ const isCardPage = cardPageSlugs.includes(project.id);
 
   .project-top-header {
     position: static;
-    padding-top: calc(clamp(2rem, 5vh, 3rem) + 48px);
+    padding-top: 0;
     padding-bottom: 0;
     margin: 0 0 8px;
-  }
-
-  @media (max-width: 768px) {
-    .project-top-header {
-      padding-top: calc(1.5rem + 48px);
-      margin: 0;
-    }
   }
 
   .project-header-title-row {
@@ -362,6 +408,7 @@ const isCardPage = cardPageSlugs.includes(project.id);
     line-height: 0.95;
     color: var(--_tokens---color--fg);
     margin: 0;
+    transition: font-size 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   /* 2-Column Content Grid: Stacks on mobile by default for standard pages */
@@ -387,7 +434,7 @@ const isCardPage = cardPageSlugs.includes(project.id);
 
   /* Overrides for Card Page layout (forces 2-column side-by-side even on mobile) */
   .project-content-grid--card {
-    grid-template-columns: 1fr 1fr !important;
+    grid-template-columns: 1.2fr 1fr !important;
     gap: var(--_tokens---space-5) !important;
   }
 
@@ -413,6 +460,7 @@ const isCardPage = cardPageSlugs.includes(project.id);
     gap: 16px;
     width: 100%;
     padding: 16px 0;
+    transition: padding 0.3s ease, gap 0.3s ease;
   }
 
   .project-card__text-block {
@@ -427,6 +475,7 @@ const isCardPage = cardPageSlugs.includes(project.id);
     line-height: 1.55;
     color: var(--_tokens---color--fg);
     margin: 0;
+    transition: font-size 0.3s ease;
   }
 
   .project-card__desc {
@@ -435,6 +484,7 @@ const isCardPage = cardPageSlugs.includes(project.id);
     line-height: 1.55;
     color: var(--_tokens---color--muted);
     margin: 0;
+    transition: opacity 0.3s ease, max-height 0.3s ease;
   }
 
   .project-card__desc :global(p) {
@@ -449,6 +499,7 @@ const isCardPage = cardPageSlugs.includes(project.id);
     padding-top: 12px;
     width: 100%;
     border-top: 1px solid var(--_tokens---color--line-soft);
+    transition: opacity 0.3s ease, margin-top 0.3s ease;
   }
 
   .project-meta-row {
@@ -476,6 +527,44 @@ const isCardPage = cardPageSlugs.includes(project.id);
     color: var(--_tokens---color--fg);
   }
 
+  /* ── Sticky Dashboard Wrapper (Card Pages) ── */
+  .project-dashboard-wrap {
+    position: sticky;
+    top: 0;
+    background-color: var(--_tokens---color--bg);
+    z-index: 50;
+    border-bottom: 1px solid var(--_tokens---color--line-soft);
+    padding-top: calc(clamp(1.2rem, 3vh, 1.8rem) + 48px);
+    padding-bottom: var(--_tokens---space-4);
+    box-sizing: border-box;
+    transition: padding-top 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                padding-bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 0.3s ease;
+  }
+
+  .project-dashboard-wrap.is-scrolled {
+    padding-top: calc(0.3rem + 48px) !important;
+    padding-bottom: 8px !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  }
+
+  .project-dashboard-wrap.is-scrolled .project-name-title {
+    font-size: var(--_tokens---type--normal) !important;
+  }
+
+  .project-dashboard-wrap.is-scrolled .project-card__metaline {
+    display: none !important;
+  }
+
+  .project-dashboard-wrap.is-scrolled .project-card-info {
+    padding: 0 !important;
+    gap: 0 !important;
+  }
+
+  .project-dashboard-wrap.is-scrolled .project-card__desc {
+    display: none !important;
+  }
+
   /* ── Right-Column Active Slider ── */
   .project-slider-wrapper {
     display: flex;
@@ -495,6 +584,7 @@ const isCardPage = cardPageSlugs.includes(project.id);
     border: 1px solid var(--_tokens---color--line-soft);
     border-radius: 8px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    transition: max-height 0.3s ease;
   }
 
   .project-slider-wrapper--standard .project-detail__active-wrap {
@@ -589,28 +679,19 @@ const isCardPage = cardPageSlugs.includes(project.id);
     stroke-dashoffset: 0;
   }
 
-  /* Left-aligned name label overlay on active slider image */
+  /* Left-aligned name label overlay below active slider image */
   .project-detail__active-label {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    box-sizing: border-box;
-    padding: 16px 20px;
-    font-size: var(--_tokens---type--micro);
-    font-family: var(--_tokens---font--mono);
-    color: #ffffff;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0) 100%);
-    text-transform: none;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    z-index: 3;
-    pointer-events: none;
+    margin-top: 12px;
+    font-size: clamp(1rem, 1.2vw, 1.25rem); /* medium size font */
+    font-weight: 600; /* bolder */
+    color: var(--_tokens---color--fg);
     text-align: left;
+    text-transform: none;
+    letter-spacing: -0.01em;
   }
 
   .project-detail__pagination {
-    margin-top: 12px;
+    margin-top: 8px;
     font-family: var(--_tokens---font--mono);
     font-size: var(--_tokens---type--micro);
     color: var(--_tokens---color--muted);
@@ -798,6 +879,18 @@ const isCardPage = cardPageSlugs.includes(project.id);
     border-color: var(--_tokens---color--fg);
   }
 
+  /* ACTIVE CARD: remains colored, highlighted and outlined */
+  .deck-card-item.is-active .deck-card-inner {
+    border-color: var(--_tokens---color--fg) !important;
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+  }
+
+  .deck-card-item.is-active img {
+    filter: grayscale(0) !important;
+    opacity: 1 !important;
+  }
+
   .deck-card-item:hover img,
   .deck-card-item:focus img {
     filter: grayscale(0);
@@ -861,7 +954,7 @@ const isCardPage = cardPageSlugs.includes(project.id);
     left: 0;
     width: 100vw;
     height: 100vh;
-    z-index: 9999;
+    z-index: 999999; /* Higher than SideNav (300) to cover the vertical bar completely */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1010,7 +1103,7 @@ const isCardPage = cardPageSlugs.includes(project.id);
   }
 
   .project-detail[data-is-card="false"] .lightbox-card-img {
-    object-fit: contain; /* Don't crop landscape projects */
+    object-fit: contain;
   }
 
   /* Lightbox arrow controls overlaid directly on the image/card itself */
@@ -1053,28 +1146,33 @@ const isCardPage = cardPageSlugs.includes(project.id);
     right: 16px;
   }
 
+  .lightbox-card-container .autoplay-timer-ring {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 28px;
+    height: 28px;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  /* Centered Name Label below the Lightbox card container */
   .lightbox-card-label-overlay {
     position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    box-sizing: border-box;
-    padding: 24px 20px;
-    font-size: var(--_tokens---type--micro);
-    font-family: var(--_tokens---font--mono);
-    color: #ffffff;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0) 100%);
-    text-transform: none;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    z-index: 4;
-    pointer-events: none;
+    bottom: 72px; /* Sits above hint label */
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: clamp(1.1rem, 1.5vw, 1.4rem); /* medium size font */
+    font-weight: 600; /* bolder */
+    color: #ffffff; /* color light */
     text-align: center;
-    transition: opacity 0.3s ease;
+    text-transform: none;
+    z-index: 10;
+    pointer-events: none;
   }
 
   .project-detail[data-is-card="false"] .lightbox-card-label-overlay {
-    display: none !important; /* Hide labels on standard landscape galleries */
+    display: none !important;
   }
 
   .lightbox-card-shadow {
@@ -1116,7 +1214,41 @@ const isCardPage = cardPageSlugs.includes(project.id);
     z-index: 10;
   }
 
+  /* ── Compact responsive styles for Card Pages on mobile ── */
   @media (max-width: 768px) {
+    .project-dashboard-wrap {
+      padding-top: calc(0.3rem + 48px) !important;
+      padding-bottom: 8px !important;
+    }
+    .project-content-grid--card {
+      gap: 12px !important;
+    }
+    .project-card-info {
+      padding: 0 !important;
+      gap: 4px !important;
+    }
+    .project-detail__active-wrap {
+      max-height: 22vh !important;
+      width: auto !important;
+      aspect-ratio: 2/3 !important;
+      margin: 0 auto;
+    }
+    .project-card__desc {
+      display: none !important; /* Always hide long description on mobile for card pages to keep it compact */
+    }
+    .project-card__intro {
+      font-size: clamp(0.7rem, 1.8vw, 0.8rem) !important;
+      line-height: 1.35 !important;
+    }
+    .project-detail__active-label {
+      margin-top: 4px !important;
+      font-size: 0.9rem !important;
+    }
+    .project-detail__pagination {
+      margin-top: 4px !important;
+      font-size: 0.8rem !important;
+    }
+
     .project-detail {
       padding-bottom: 96px !important;
     }
@@ -1177,6 +1309,7 @@ const isCardPage = cardPageSlugs.includes(project.id);
     const pageActiveWrap = document.getElementById('page-active-wrap');
 
     const timerProgress = document.getElementById('page-timer-progress');
+    const dashboard = document.getElementById('project-dashboard');
 
     if (!deck || !lightbox || !lightboxImg || !cardContainer) return;
 
@@ -1207,11 +1340,29 @@ const isCardPage = cardPageSlugs.includes(project.id);
     };
 
     const resetTimerRing = () => {
+      // Page slider progress ring
       if (timerProgress) {
         timerProgress.classList.remove('is-animating');
         void timerProgress.offsetWidth;
         timerProgress.classList.add('is-animating');
       }
+
+      // Lightbox progress ring
+      const lightboxProgress = document.getElementById('lightbox-timer-progress');
+      if (lightboxProgress) {
+        lightboxProgress.classList.remove('is-animating');
+        void lightboxProgress.offsetWidth;
+        if (isOpen) {
+          lightboxProgress.classList.add('is-animating');
+        }
+      }
+    };
+
+    const updateScrubActiveState = () => {
+      const buttons = Array.from(deck.querySelectorAll('.deck-card-item'));
+      buttons.forEach((btn, idx) => {
+        btn.classList.toggle('is-active', idx === currentIdx);
+      });
     };
 
     const openLightbox = (index: number) => {
@@ -1256,6 +1407,7 @@ const isCardPage = cardPageSlugs.includes(project.id);
       }
 
       resetTimerRing();
+      updateScrubActiveState();
     };
 
     const setCard = (index: number) => {
@@ -1287,6 +1439,10 @@ const isCardPage = cardPageSlugs.includes(project.id);
       }
       if (timerProgress) {
         timerProgress.classList.remove('is-animating');
+      }
+      const lightboxProgress = document.getElementById('lightbox-timer-progress');
+      if (lightboxProgress) {
+        lightboxProgress.classList.remove('is-animating');
       }
     };
 
@@ -1370,6 +1526,23 @@ const isCardPage = cardPageSlugs.includes(project.id);
       }
     });
 
+    // Scroll shrinking title trigger
+    if (dashboard) {
+      const handleScroll = () => {
+        if (window.scrollY > 20) {
+          dashboard.classList.add('is-scrolled');
+        } else {
+          dashboard.classList.remove('is-scrolled');
+        }
+      };
+      window.addEventListener('scroll', handleScroll, { passive: true });
+      handleScroll();
+
+      document.addEventListener('astro:before-preparation', () => {
+        window.removeEventListener('scroll', handleScroll);
+      }, { once: true });
+    }
+
     document.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowRight') {
         setCard(currentIdx + 1);
@@ -1406,6 +1579,9 @@ const isCardPage = cardPageSlugs.includes(project.id);
     }, { passive: true });
 
     startAutoplay();
+    
+    // Initial active scrub highlight
+    updateScrubActiveState();
   }
 
   function initStandardSlider() {
