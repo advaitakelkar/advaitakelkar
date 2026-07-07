@@ -123,19 +123,61 @@ dynamicCrumbs.push({ label: data.name });
           </div>
           
           <div class="project-section-content">
-            <div class="project-slider-wrapper" data-images={JSON.stringify(proj.images)}>
+            <div class="project-slider-wrapper" data-images={JSON.stringify(proj.images)} data-project-name={proj.name}>
               <div class="project-detail__active-wrap">
                 <button class="project-detail__nav-arrow project-detail__nav-arrow--prev" type="button" aria-label="Previous image">
                   <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
                 </button>
                 <img class="project-detail__active-img" src={proj.images[0]} alt={proj.name} />
+                <div class="project-detail__active-label">
+                  {(() => {
+                    const firstImg = proj.images[0];
+                    const filename = firstImg.substring(firstImg.lastIndexOf('/') + 1);
+                    const ext = filename.substring(filename.lastIndexOf('.'));
+                    let name = filename.slice(0, filename.length - ext.length);
+                    name = name.replace(/^ADVT_[A-Z_]+_/, '').replace(/^ADVT_SP_\s*/, '').trim();
+                    name = name.replace(/\s+\d+\s*$/, '').replace(/\s*\d+$/, '').trim();
+                    if (proj.name === 'Space Pirates' || name === 'A' || name === 'B' || name === 'C') {
+                      return 'Space Pirates';
+                    }
+                    if (name.toLowerCase() === 'winter soildier') return 'Winter Soldier';
+                    if (name.toLowerCase() === 'wonder women') return 'Wonder Woman';
+                    if (name.toLowerCase() === 'cygborg') return 'Cyborg';
+                    if (name.toLowerCase() === 'scalet witch') return 'Scarlet Witch';
+                    if (name.toLowerCase() === 'strom') return 'Storm';
+                    return name;
+                  })()}
+                </div>
                 <button class="project-detail__nav-arrow project-detail__nav-arrow--next" type="button" aria-label="Next image">
                   <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
                 </button>
               </div>
 
               <!-- Pagination label below image -->
-              <div class="project-detail__pagination">1 / {proj.images.length}</div>
+              <div class="project-detail__pagination">
+                {(() => {
+                  const firstImg = proj.images[0];
+                  const filename = firstImg.substring(firstImg.lastIndexOf('/') + 1);
+                  const ext = filename.substring(filename.lastIndexOf('.'));
+                  let name = filename.slice(0, filename.length - ext.length);
+                  name = name.replace(/^ADVT_[A-Z_]+_/, '').replace(/^ADVT_SP_\s*/, '').trim();
+                  name = name.replace(/\s+\d+\s*$/, '').replace(/\s*\d+$/, '').trim();
+                  if (proj.name === 'Space Pirates' || name === 'A' || name === 'B' || name === 'C') {
+                    name = 'Space Pirates';
+                  } else if (name.toLowerCase() === 'winter soildier') {
+                    name = 'Winter Soldier';
+                  } else if (name.toLowerCase() === 'wonder women') {
+                    name = 'Wonder Woman';
+                  } else if (name.toLowerCase() === 'cygborg') {
+                    name = 'Cyborg';
+                  } else if (name.toLowerCase() === 'scalet witch') {
+                    name = 'Scarlet Witch';
+                  } else if (name.toLowerCase() === 'strom') {
+                    name = 'Storm';
+                  }
+                  return `${name} — 1 / ${proj.images.length}`;
+                })()}
+              </div>
               
               <!-- Thumbnails scrub bar -->
               <div class="project-detail__thumbs">
@@ -295,6 +337,24 @@ dynamicCrumbs.push({ label: data.name });
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
+  }
+
+  .project-detail__active-label {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 14px 20px;
+    font-size: var(--_tokens---type--micro);
+    font-family: var(--_tokens---font--mono);
+    color: #ffffff;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0) 100%);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    z-index: 3;
+    pointer-events: none;
+    text-align: center;
   }
 
   .project-detail__nav-arrow {
@@ -642,11 +702,30 @@ dynamicCrumbs.push({ label: data.name });
       const activePrev = slider.querySelector('.project-detail__nav-arrow--prev');
       const activeNext = slider.querySelector('.project-detail__nav-arrow--next');
       const pagination = slider.querySelector('.project-detail__pagination');
+      const activeLabel = slider.querySelector('.project-detail__active-label');
 
       if (!activeImg || !strip) return;
       const images = JSON.parse(slider.getAttribute('data-images') || '[]');
+      const projName = slider.getAttribute('data-project-name') || '';
       let currentIdx = 0;
       let autoplayInterval: number | null = null;
+
+      const getCardName = (url: string): string => {
+        const filename = url.substring(url.lastIndexOf('/') + 1);
+        const ext = filename.substring(filename.lastIndexOf('.'));
+        let name = filename.slice(0, filename.length - ext.length);
+        name = name.replace(/^ADVT_[A-Z_]+_/, '').replace(/^ADVT_SP_\s*/, '').trim();
+        name = name.replace(/\s+\d+\s*$/, '').replace(/\s*\d+$/, '').trim();
+        if (projName === 'Space Pirates' || name === 'A' || name === 'B' || name === 'C') {
+          return 'Space Pirates';
+        }
+        if (name.toLowerCase() === 'winter soildier') return 'Winter Soldier';
+        if (name.toLowerCase() === 'wonder women') return 'Wonder Woman';
+        if (name.toLowerCase() === 'cygborg') return 'Cyborg';
+        if (name.toLowerCase() === 'scalet witch') return 'Scarlet Witch';
+        if (name.toLowerCase() === 'strom') return 'Storm';
+        return name;
+      };
 
       // Helper: find index of thumbnail under clientX
       function thumbIndexAtX(clientX: number): number {
@@ -660,10 +739,16 @@ dynamicCrumbs.push({ label: data.name });
 
       const setDisplayImage = (idx: number) => {
         currentIdx = idx;
-        activeImg.src = images[idx] || '';
+        const activeUrl = images[idx] || '';
+        activeImg.src = activeUrl;
+        
+        const cardName = getCardName(activeUrl);
+        if (activeLabel) {
+          activeLabel.textContent = cardName;
+        }
         
         if (pagination) {
-          pagination.textContent = `${idx + 1} / ${images.length}`;
+          pagination.textContent = `${cardName} — ${idx + 1} / ${images.length}`;
         }
 
         thumbs.forEach((t, i) => {
