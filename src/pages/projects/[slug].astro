@@ -84,9 +84,16 @@ if (isScarpinPage) {
       if (folder.startsWith('.')) continue; // skip .DS_Store, .gitkeep
       const folderPath = path.join(scarpinDir, folder);
       if (fs.statSync(folderPath).isDirectory()) {
-        const files = fs.readdirSync(folderPath).filter(f => /\.(jpe?g|png|webp|gif|mp4)$/i.test(f));
+        let files = fs.readdirSync(folderPath).filter(f => /\.(jpe?g|png|webp|gif|mp4)$/i.test(f));
         if (files.length > 0) {
           files.sort();
+          // Ensure a file named 'cover' (any extension) is always first
+          const coverIdx = files.findIndex(f => f.toLowerCase().startsWith('cover.'));
+          if (coverIdx > 0) {
+            const coverFile = files.splice(coverIdx, 1)[0];
+            files.unshift(coverFile);
+          }
+          
           const urls = files.map(f => `/images/scarpin/${folder}/${f}`);
           
           let cleanName = folder.replace(/^\d+\s*/, '').trim();
@@ -747,6 +754,40 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     margin: 0;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+  }
+
+  .scarpin-item-media-wrap {
+    width: 100%;
+    aspect-ratio: 1; /* Square */
+    position: relative;
+    background-color: var(--_tokens---color--bg-glass);
+    border: 1px solid var(--_tokens---color--line-soft);
+    border-radius: 6px;
+    overflow: hidden;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .scarpin-item-media-wrap:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  }
+
+  .scarpin-media {
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* Fit portraits in height */
+    display: block;
+    filter: grayscale(1);
+    opacity: 0.85;
+    transition: filter 0.3s ease, opacity 0.3s ease, transform 0.4s ease;
+  }
+
+  .scarpin-item-media-wrap:hover .scarpin-media {
+    filter: grayscale(0);
+    opacity: 1;
+    transform: scale(1.03);
   }
 
   .scarpin-thumbnails {
@@ -3319,11 +3360,15 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
           if (progressRing) {
             progressRing.classList.remove('is-animating');
             progressRing.style.transition = 'none';
-            // Force reflow
-            void progressRing.offsetWidth;
+            void progressRing.offsetWidth; // Force reflow
           }
 
-          if (!isHovered && !isLbOpen && urls.length > 1) {
+          const hasHoverCapability = window.matchMedia('(hover: hover)').matches;
+          // Mobile (no hover): always auto-play
+          // Desktop (has hover): auto-play ONLY when hovering
+          const shouldPlay = !isLbOpen && urls.length > 1 && (!hasHoverCapability || isHovered);
+
+          if (shouldPlay) {
             if (progressRing) {
               progressRing.style.transition = `stroke-dashoffset ${AUTOPLAY_DELAY}ms linear`;
               progressRing.classList.add('is-animating');
