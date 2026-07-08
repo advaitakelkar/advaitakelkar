@@ -442,26 +442,34 @@ const categoryPeople = Array.from(uniquePeople);
 
     /* ── People UI ── */
     .category-people {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 16px;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      width: 100%;
+      max-width: 240px; /* Keep them small and elegant */
       margin-top: 32px;
+      margin-bottom: 36px; /* Space below for the name tooltip to appear */
+      position: relative;
     }
     
     .category-people__person {
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 10px;
+      position: relative;
+      cursor: pointer;
     }
     
     .category-people__avatar {
-      width: 24px;
-      height: 24px;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 1;
       border-radius: 50%;
       overflow: hidden;
+      flex-shrink: 0;
       background-color: var(--_tokens---color--bg-glass);
       border: 1px solid var(--_tokens---color--line-soft);
-      flex-shrink: 0;
+      transition: transform 0.2s ease;
     }
     
     .category-people__avatar img {
@@ -469,11 +477,37 @@ const categoryPeople = Array.from(uniquePeople);
       height: 100%;
       object-fit: cover;
       display: block;
+      filter: grayscale(1);
+      opacity: 0.6;
+      transition: filter 0.2s ease, opacity 0.2s ease;
     }
     
     .category-people__name {
-      font-size: var(--_tokens---type--small);
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 50%;
+      transform: translate(-50%, -4px);
+      font-size: var(--_tokens---type--micro);
       color: var(--_tokens---color--fg);
+      text-align: center;
+      line-height: 1.15;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      white-space: nowrap;
+      z-index: 10;
+    }
+
+    .category-people__person:hover .category-people__avatar img,
+    .category-people__person.is-active .category-people__avatar img {
+      filter: grayscale(0);
+      opacity: 1;
+    }
+
+    .category-people__person:hover .category-people__name,
+    .category-people__person.is-active .category-people__name {
+      opacity: 1;
+      transform: translate(-50%, 0);
     }
 
     /* ── Sticky Header Mobile Layout ── */
@@ -513,47 +547,10 @@ const categoryPeople = Array.from(uniquePeople);
 
       /* 5 avatars in a row on mobile */
       .category-people {
-        display: grid;
-        grid-template-columns: repeat(5, 1fr);
-        gap: 12px;
-        width: 100%;
-        margin-top: 24px;
-      }
-      
-      .category-people__person {
-        flex-direction: column;
-        gap: 4px;
-        align-items: center;
-        cursor: pointer;
-      }
-      
-      .category-people__avatar {
-        width: 100%;
-        aspect-ratio: 1;
-        height: auto;
-      }
-      
-      .category-people__avatar img {
-        filter: grayscale(1);
-        opacity: 0.6;
-        transition: filter 0.2s ease, opacity 0.2s ease;
-      }
-      
-      .category-people__name {
-        font-size: var(--_tokens---type--micro);
-        opacity: 0;
-        text-align: center;
-        transition: opacity 0.2s ease;
-        line-height: 1.1;
-      }
-      
-      .category-people__person.is-active .category-people__avatar img {
-        filter: grayscale(0);
-        opacity: 1;
-      }
-      
-      .category-people__person.is-active .category-people__name {
-        opacity: 1;
+        max-width: 200px;
+        margin-left: auto;
+        margin-right: auto;
+        margin-bottom: 28px;
       }
     }
     

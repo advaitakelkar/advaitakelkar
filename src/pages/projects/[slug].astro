@@ -1097,28 +1097,34 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
   /* ── People: circular portraits with the name below each ── */
   .project-people {
-    display: flex;
-    align-items: flex-start;
-    gap: 14px;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    width: 100%;
+    max-width: 240px; /* Keep them small and elegant */
+    margin-top: 24px;
+    margin-bottom: 36px; /* Space below for the name tooltip to appear */
+    position: relative;
   }
 
   .project-people__person {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
-    max-width: 72px;
+    position: relative;
+    cursor: pointer;
   }
 
   .project-people__avatar {
-    width: 44px;
-    height: 44px;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
     border-radius: 50%;
     overflow: hidden;
     flex-shrink: 0;
     background-color: var(--_tokens---color--bg-glass);
     border: 1px solid var(--_tokens---color--line-soft);
+    transition: transform 0.2s ease;
   }
 
   .project-people__avatar img {
@@ -1126,47 +1132,44 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     height: 100%;
     object-fit: cover;
     filter: grayscale(1);
+    opacity: 0.6;
+    transition: filter 0.2s ease, opacity 0.2s ease;
   }
 
   .project-people__name {
-    font-size: var(--_tokens---type--ultrathin);
-    color: var(--_tokens---color--muted);
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 50%;
+    transform: translate(-50%, -4px);
+    font-size: var(--_tokens---type--micro);
+    color: var(--_tokens---color--fg);
     text-align: center;
-    line-height: 1.25;
+    line-height: 1.15;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    white-space: nowrap;
+    z-index: 10;
   }
 
-  @media (min-width: 1024px) {
-    .project-people {
-      gap: 18px;
-    }
-    .project-people__person {
-      max-width: 88px;
-    }
-    .project-people__avatar {
-      width: 60px;
-      height: 60px;
-    }
+  .project-people__person:hover .project-people__avatar img,
+  .project-people__person.is-active .project-people__avatar img {
+    filter: grayscale(0);
+    opacity: 1;
   }
 
-  /* Mobile: names hidden; circles grow to fill the full row width
-     (each capped at 1/5 of the row so a solo avatar doesn't balloon) */
+  .project-people__person:hover .project-people__name,
+  .project-people__person.is-active .project-people__name {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+
   @media (max-width: 768px) {
     .project-people {
-      gap: 8px;
-      flex-wrap: nowrap;
-      width: 100%;
-    }
-    .project-people__person {
-      flex: 1 1 0;
-      max-width: calc((100% - 32px) / 5);
-    }
-    .project-people__avatar {
-      width: 100%;
-      height: auto;
-      aspect-ratio: 1 / 1;
-    }
-    .project-people__name {
-      display: none;
+      max-width: 200px;
+      margin-left: auto;
+      margin-right: auto;
+      margin-bottom: 28px;
     }
 
     /* Bold, tight title on mobile so it reads on two lines */
@@ -3571,14 +3574,32 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     }
   }
 
+  function initProjectPeople() {
+    const peopleEls = document.querySelectorAll('.project-people__person');
+    peopleEls.forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const wasActive = el.classList.contains('is-active');
+        peopleEls.forEach(p => p.classList.remove('is-active'));
+        if (!wasActive) el.classList.add('is-active');
+      });
+    });
+
+    document.addEventListener('click', () => {
+      peopleEls.forEach(p => p.classList.remove('is-active'));
+    });
+  }
+
   document.addEventListener('astro:page-load', () => {
     initProjectPage();
     initHeadingScrollTop();
     initMobileFixedHead();
+    initProjectPeople();
   });
   if (document.readyState !== 'loading') {
     initProjectPage();
     initHeadingScrollTop();
     initMobileFixedHead();
+    initProjectPeople();
   }
 </script>
