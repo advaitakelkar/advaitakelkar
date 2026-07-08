@@ -1142,6 +1142,44 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     }
   }
 
+  /* Work-category pages opt OUT of the viewport-locked 2-column layout above:
+     they use the same simple, full-width 3-tab list (name / Design / Making)
+     at every breakpoint, not a fixed-height desktop grid. Cancelling the
+     outer grid + the display:contents on its children lets the tab content
+     (metaline, description, image, scrub) stack in normal document flow,
+     matching mobile — the page scrolls normally instead of being locked to
+     100dvh with only the deck scrolling internally. */
+  @media (min-width: 1024px) {
+    .project-detail[data-category="work"] {
+      display: block;
+      height: auto;
+      overflow: visible;
+      padding-bottom: clamp(4rem, 8vh, 8rem);
+    }
+    .project-detail[data-category="work"] .project-dashboard-wrap {
+      display: flex;
+      flex-direction: column;
+    }
+    .project-detail[data-category="work"] .project-content-grid--card {
+      display: grid; /* falls back to its own column ratio instead of bubbling into the (now-cancelled) outer grid */
+    }
+    .project-detail[data-category="work"] .project-top-header {
+      padding-top: calc(clamp(0.5rem, 1.5vh, 1rem) + 48px);
+    }
+    .project-detail[data-category="work"] .project-col-right {
+      position: static;
+      height: auto;
+    }
+    .project-detail[data-category="work"] .project-detail__active-wrap {
+      height: auto;
+      max-height: none;
+    }
+    .project-detail[data-category="work"] .card-deck-section {
+      height: auto;
+      overflow: visible;
+    }
+  }
+
   .project-top-header {
     position: static;
     padding-top: calc(clamp(0.5rem, 1.5vh, 1rem) + 48px);
@@ -1610,6 +1648,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     .project-detail[data-category="work"] .project-card__metaline {
       padding: 8px 12px 0;
     }
+    /* border-top: none is set generally (all viewports) below — the tab
+       header's own border-bottom is the only line above the metaline now. */
 
     .project-detail[data-category="work"] {
       padding-top: 0 !important; /* no fixed dashboard to clear space for */
@@ -1625,12 +1665,15 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
   /* The project name is the first toggle dropdown (same left-label + arrow
      pattern as Design/Making below it, on every viewport, and — like them —
-     collapsed by default): clicking it reveals everything else (description,
-     people, image, pagination, scrub) below the always-visible title + metaline.
-     .project-content-grid--card is display:contents on desktop (≥1024px, so its
-     children can sit directly in the outer page grid) and .project-col-left is
-     display:contents on the mobile single-column reorder — neither renders a box
-     of its own to collapse, so every actual rendered piece is targeted directly. */
+     collapsed by default): the header row (name + arrow) is the only thing
+     always visible; clicking it reveals the metaline (year/location/status +
+     category) plus everything else (description, people, image, pagination,
+     scrub). .project-content-grid--card is display:contents on desktop
+     (≥1024px, so its children can sit directly in the outer page grid) and
+     .project-col-left is display:contents on the mobile single-column reorder
+     — neither renders a box of its own to collapse, so every actual rendered
+     piece is targeted directly, regardless of how deep it's nested. */
+  .project-detail[data-category="work"] .project-dashboard-wrap:not(.is-expanded) .project-card__metaline,
   .project-detail[data-category="work"] .project-dashboard-wrap:not(.is-expanded) .project-card__row2,
   .project-detail[data-category="work"] .project-dashboard-wrap:not(.is-expanded) .project-credits-btn,
   .project-detail[data-category="work"] .project-dashboard-wrap:not(.is-expanded) .project-people,
@@ -2229,6 +2272,11 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
      never a doubled-up line between two adjacent headers. */
   .project-detail[data-category="work"] .project-design-section,
   .project-detail[data-category="work"] .project-making-section {
+    border-top: none;
+  }
+  /* The metaline sits right under the name tab's own border-bottom when
+     open — its own separate border-top would double that line. */
+  .project-detail[data-category="work"] .project-card__metaline {
     border-top: none;
   }
   /* Each tab's header sticks to the top of the viewport while its own
