@@ -1397,9 +1397,9 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       transform: translate(-50%, 0);
     }
 
-    /* Bold, tight title on mobile so it reads on two lines */
+    /* Medium-weight, tight title on mobile so it reads on two lines */
     .project-name-title {
-      font-weight: 700;
+      font-weight: 500;
     }
 
     /* ── Fixed head: name + metaline + people pinned to the top, opaque;
@@ -2027,6 +2027,12 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     display: flex;
     flex-direction: column;
     margin-top: 24px;
+    /* .project-col-right is position:sticky (a positioned element), so per
+       CSS stacking rules it paints above later non-positioned siblings
+       regardless of DOM order — without this it renders underneath the
+       still-stuck slider image as the page scrolls, looking cut in half. */
+    position: relative;
+    z-index: 1;
   }
 
   .project-design-section,
@@ -2788,6 +2794,13 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       gap: 12px !important;
       align-items: stretch !important;
     }
+    .project-col-left,
+    .project-col-right {
+      /* Without this, grid items default to min-width:auto and the card's
+         fixed aspect-ratio box can blow out past its 1fr track, bleeding
+         the image to the screen edge instead of stopping at the page margin. */
+      min-width: 0;
+    }
     .project-col-left {
       display: flex;
     }
@@ -3259,6 +3272,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     let currentIdx = order[0] ?? 0;
     let isOpen = false;
     let autoplayInterval: number | null = null;
+    let isPaused = false; // set by hover/click on the image; blocks auto-resume
 
     reorderChildrenByIndex(deck, order);
 
@@ -3423,6 +3437,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     };
 
     const startAutoplay = () => {
+      if (isPaused) return;
       stopAutoplay();
       resetTimerRing();
       autoplayInterval = window.setInterval(() => {
@@ -3448,6 +3463,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
     const closeLightbox = () => {
       isOpen = false;
+      isPaused = false; // back to the page view — resume normal autoplay
       lightbox.style.display = 'none';
       lightbox.setAttribute('aria-hidden', 'true');
       document.body.style.overflow = '';
@@ -3489,7 +3505,20 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     closeBtn?.addEventListener('click', closeLightbox);
     lightbox.querySelector('.lightbox-backdrop')?.addEventListener('click', closeLightbox);
 
-    pageActiveWrap?.addEventListener('click', () => openLightbox(currentIdx));
+    pageActiveWrap?.addEventListener('click', () => {
+      openLightbox(currentIdx);
+      isPaused = true;
+      stopAutoplay();
+    });
+
+    // Hover pauses autoplay on the page-view image and inside the lightbox;
+    // it resumes on mouseleave unless a click has paused it for good.
+    pageActiveWrap?.addEventListener('mouseenter', stopAutoplay);
+    pageActiveWrap?.addEventListener('mouseleave', () => { if (!isPaused) startAutoplay(); });
+    if (lightboxDeck) {
+      lightboxDeck.addEventListener('mouseenter', stopAutoplay);
+      lightboxDeck.addEventListener('mouseleave', () => { if (!isPaused && isOpen) startAutoplay(); });
+    }
 
     document.addEventListener('keydown', (e) => {
       if (!isOpen) return;
@@ -3635,6 +3664,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     let currentPos = 0;
     let currentIdx = order[0] ?? 0;
     let isOpen = false;
+    let isPaused = false; // set by hover/click on the image; blocks auto-resume
 
     const timerRings = ['page-timer-progress', 'page-timer-progress-mini']
       .map(id => document.getElementById(id))
@@ -3690,6 +3720,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
     const closeLightbox = () => {
       isOpen = false;
+      isPaused = false; // back to the page view — resume normal autoplay
       if (lightbox) {
         lightbox.style.display = 'none';
         lightbox.setAttribute('aria-hidden', 'true');
@@ -3699,6 +3730,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         cardContainer.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale(1)';
       }
       resetTimerRing();
+      restartAutoplay();
     };
 
     const updateDisplay = () => {
@@ -3759,8 +3791,12 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
     // ── Autoplay: advance every 2s; any manual interaction resets the clock ──
     let autoplayInterval: number | null = null;
+    const stopAutoplay = () => {
+      if (autoplayInterval) { clearInterval(autoplayInterval); autoplayInterval = null; }
+    };
     const restartAutoplay = () => {
-      if (autoplayInterval) clearInterval(autoplayInterval);
+      if (isPaused) return;
+      stopAutoplay();
       autoplayInterval = window.setInterval(() => {
         goToPos(currentPos + 1);
         updateDisplay();
@@ -3815,7 +3851,16 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       const target = e.target as HTMLElement;
       if (target.closest('.project-detail__nav-arrow')) return;
       openLightbox(currentIdx);
+      isPaused = true;
+      stopAutoplay();
     });
+
+    // Hover pauses autoplay on the page-view image and inside the lightbox;
+    // it resumes on mouseleave unless a click has paused it for good.
+    activeWrap?.addEventListener('mouseenter', stopAutoplay);
+    activeWrap?.addEventListener('mouseleave', () => { if (!isPaused) restartAutoplay(); });
+    cardContainer?.addEventListener('mouseenter', stopAutoplay);
+    cardContainer?.addEventListener('mouseleave', () => { if (!isPaused && isOpen) restartAutoplay(); });
 
     prevArrow?.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -3855,6 +3900,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       lightboxImg.addEventListener('click', (e) => {
         e.stopPropagation();
         applyPos(currentPos + 1);
+        isPaused = true;
+        stopAutoplay();
       });
     }
 
