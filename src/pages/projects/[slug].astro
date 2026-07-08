@@ -3468,7 +3468,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     let currentIdx = order[0] ?? 0;
     let isOpen = false;
     let autoplayInterval: number | null = null;
-    let isPaused = false; // set by hover/click on the image; blocks auto-resume
 
     reorderChildrenByIndex(deck, order);
 
@@ -3636,7 +3635,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     };
 
     const startAutoplay = () => {
-      if (isPaused) return;
       stopAutoplay();
       resetTimerRing();
       autoplayInterval = window.setInterval(() => {
@@ -3662,7 +3660,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
     const closeLightbox = () => {
       isOpen = false;
-      isPaused = false; // back to the page view — resume normal autoplay
       lightbox.style.display = 'none';
       lightbox.setAttribute('aria-hidden', 'true');
       document.body.style.overflow = '';
@@ -3707,22 +3704,15 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
     pageActiveWrap?.addEventListener('click', () => {
       openLightbox(currentIdx);
-      // Only pause-on-click on hover-capable (desktop) devices — on touch
-      // there's no hover to un-pause it again, so tapping to open the
-      // lightbox must never be the thing that kills autoplay on mobile.
-      if (window.matchMedia('(hover: hover)').matches) {
-        isPaused = true;
-        stopAutoplay();
-      }
     });
 
     // Hover pauses autoplay on the page-view image and inside the lightbox;
-    // it resumes on mouseleave unless a click has paused it for good.
+    // it resumes as soon as the pointer leaves.
     pageActiveWrap?.addEventListener('mouseenter', stopAutoplay);
-    pageActiveWrap?.addEventListener('mouseleave', () => { if (!isPaused) startAutoplay(); });
+    pageActiveWrap?.addEventListener('mouseleave', startAutoplay);
     if (lightboxDeck) {
       lightboxDeck.addEventListener('mouseenter', stopAutoplay);
-      lightboxDeck.addEventListener('mouseleave', () => { if (!isPaused && isOpen) startAutoplay(); });
+      lightboxDeck.addEventListener('mouseleave', () => { if (isOpen) startAutoplay(); });
     }
 
     document.addEventListener('keydown', (e) => {
@@ -3885,7 +3875,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     let currentPos = 0;
     let currentIdx = order[0] ?? 0;
     let isOpen = false;
-    let isPaused = false; // set by hover/click on the image; blocks auto-resume
 
     const timerRings = ['page-timer-progress', 'page-timer-progress-mini']
       .map(id => document.getElementById(id))
@@ -3941,7 +3930,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
     const closeLightbox = () => {
       isOpen = false;
-      isPaused = false; // back to the page view — resume normal autoplay
       if (lightbox) {
         lightbox.style.display = 'none';
         lightbox.setAttribute('aria-hidden', 'true');
@@ -4016,7 +4004,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       if (autoplayInterval) { clearInterval(autoplayInterval); autoplayInterval = null; }
     };
     const restartAutoplay = () => {
-      if (isPaused) return;
       stopAutoplay();
       autoplayInterval = window.setInterval(() => {
         goToPos(currentPos + 1);
@@ -4072,21 +4059,14 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       const target = e.target as HTMLElement;
       if (target.closest('.project-detail__nav-arrow')) return;
       openLightbox(currentIdx);
-      // Only pause-on-click on hover-capable (desktop) devices — on touch
-      // there's no hover to un-pause it again, so tapping to open the
-      // lightbox must never be the thing that kills autoplay on mobile.
-      if (window.matchMedia('(hover: hover)').matches) {
-        isPaused = true;
-        stopAutoplay();
-      }
     });
 
     // Hover pauses autoplay on the page-view image and inside the lightbox;
-    // it resumes on mouseleave unless a click has paused it for good.
+    // it resumes as soon as the pointer leaves.
     activeWrap?.addEventListener('mouseenter', stopAutoplay);
-    activeWrap?.addEventListener('mouseleave', () => { if (!isPaused) restartAutoplay(); });
+    activeWrap?.addEventListener('mouseleave', restartAutoplay);
     cardContainer?.addEventListener('mouseenter', stopAutoplay);
-    cardContainer?.addEventListener('mouseleave', () => { if (!isPaused && isOpen) restartAutoplay(); });
+    cardContainer?.addEventListener('mouseleave', () => { if (isOpen) restartAutoplay(); });
 
     prevArrow?.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -4126,13 +4106,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       lightboxImg.addEventListener('click', (e) => {
         e.stopPropagation();
         applyPos(currentPos + 1);
-        // Same hover-capable guard as above: on touch there's no hover to
-        // resume it, so tapping the lightbox image to advance must not
-        // also permanently kill autoplay.
-        if (window.matchMedia('(hover: hover)').matches) {
-          isPaused = true;
-          stopAutoplay();
-        }
       });
     }
 
