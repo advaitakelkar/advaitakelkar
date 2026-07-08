@@ -345,14 +345,20 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         </>
       ) : isCardPage ? (
         /* CARD PAGES: Wrapped in Sticky Dashboard wrapper */
-        <div class="project-dashboard-wrap" id="project-dashboard">
+        <div class:list={["project-dashboard-wrap", category?.id === 'work' && "is-expanded"]} id="project-dashboard">
           <header class="project-top-header" id="project-top-header">
-            <div class="project-header-title-row">
+            <div class="project-header-title-row" id="project-name-header">
               <h1 class="project-name-title" id="project-name-click">
                 <span class="project-name-main">{data.name}</span>
               </h1>
+              {category?.id === 'work' && (
+                <button class="project-detail-collapse-btn" id="project-name-toggle" type="button" aria-expanded="true" aria-label="Toggle project details">
+                  <svg class="toggle-icon-minus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+                  <svg class="toggle-icon-plus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" style="display: none;"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+                </button>
+              )}
             </div>
-            
+
             <div class="project-card__metaline">
               <div class="project-meta-row">
                 <span class="project-card__meta-val">
@@ -380,9 +386,17 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                   </div>
                 </div>
 
-                {/* People row — shown for freelancer/work (non-original) card pages */}
+                {/* People row — shown for freelancer/work (non-original) card pages.
+                    Work pages hide it behind a "Credits" pill instead of always showing it. */}
                 {!isOriginalCardPage && (
-                  <div class="project-people" style="margin-top: 20px;">
+                  <>
+                    {category?.id === 'work' && (
+                      <button class="project-credits-btn" id="project-credits-btn" type="button" aria-expanded="false">
+                        <span>Credits</span>
+                        <svg class="link-arrow project-credits-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+                      </button>
+                    )}
+                    <div class:list={["project-people", category?.id === 'work' && "project-people--collapsible"]} id="project-people-panel" style="margin-top: 20px;">
                     {people.map((person) => {
                       const isCas = person === 'Casimir Esbach';
                       const isFaizan = person === 'Faizan Khatri';
@@ -399,9 +413,10 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                         </>
                       );
                     })}
-                  </div>
+                    </div>
+                  </>
                 )}
-                
+
 
                 <!-- Card Name & Pagination in left column (horizontally aligned with image bottom) -->
                 <div class="project-card-name-pagination-row">
@@ -1281,6 +1296,59 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     border-bottom: 1px solid var(--_tokens---color--line-soft);
   }
 
+  /* Work-category mobile: people hide behind this pill instead of always
+     showing — same look as .project-readmore-btn elsewhere on the page. */
+  .project-credits-btn {
+    all: unset;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 16px;
+    font-size: var(--_tokens---type--micro);
+    font-weight: 500;
+    color: var(--_tokens---color--fg);
+    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
+    border-radius: var(--_tokens---radius--pill);
+    padding: 4px 12px;
+    white-space: nowrap;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  }
+  .project-credits-btn:hover {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
+  }
+  .project-credits-arrow {
+    width: 0.85em;
+    height: 0.85em;
+    transition: transform 0.35s ease;
+  }
+  .project-credits-btn[aria-expanded="true"] .project-credits-arrow {
+    transform: rotate(135deg);
+  }
+  @media (min-width: 1024px) {
+    .project-credits-btn {
+      display: none; /* desktop always shows the people row, unchanged */
+    }
+  }
+  @media (max-width: 768px) {
+    .project-people--collapsible {
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+      margin-top: 0 !important;
+      margin-bottom: 0 !important;
+      transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease, margin 0.3s ease;
+    }
+    .project-people--collapsible.is-expanded {
+      max-height: 300px;
+      opacity: 1;
+      margin-top: 12px !important;
+      margin-bottom: 12px !important;
+    }
+  }
+
   /* ── People: circular portraits with the name inline on desktop ── */
   .project-people {
     display: flex;
@@ -1538,6 +1606,20 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       border-bottom: 1px solid var(--_tokens---color--line-soft);
       box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
       box-sizing: border-box;
+    }
+
+    /* The project name is the first toggle dropdown (same left-label +
+       arrow pattern as Design/Making below it): tapping it collapses
+       everything except the always-visible title + metaline. */
+    .project-detail[data-category="work"] .project-content-grid--card {
+      max-height: 3000px;
+      opacity: 1;
+      overflow: hidden;
+      transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    }
+    .project-detail[data-category="work"] .project-dashboard-wrap:not(.is-expanded) .project-content-grid--card {
+      max-height: 0;
+      opacity: 0;
     }
   }
 
@@ -2229,27 +2311,24 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     width: 100%;
   }
 
-  /* Work-category mobile scrub: one horizontally-scrolling row, fixed-height
-     squares matching the standard-page thumb strip's mobile size — never
-     rendered on desktop, which keeps the full #deck-grid below the image. */
+  /* Work-category mobile scrub: every image in ONE row, never scrolling —
+     each panel shrinks in width to fit them all (height stays fixed, matching
+     the standard-page thumb strip's mobile height) — never rendered on
+     desktop, which keeps the full #deck-grid below the image. */
   .deck-grid--mobile-scrub {
     display: flex;
     flex-wrap: nowrap;
     grid-template-columns: none !important;
-    gap: 6px;
+    gap: 4px;
     margin-top: 12px;
-    overflow-x: auto;
-    overflow-y: hidden;
-    scrollbar-width: none;
-  }
-  .deck-grid--mobile-scrub::-webkit-scrollbar {
-    display: none;
+    overflow: hidden;
   }
   .deck-grid--mobile-scrub .deck-card-item {
-    flex: 0 0 68px;
-    width: 68px;
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto;
     height: 68px;
-    aspect-ratio: 1;
+    aspect-ratio: auto;
   }
   @media (min-width: 1024px) {
     .deck-grid--mobile-scrub {
@@ -2922,10 +3001,20 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       display: contents;
     }
     .project-detail[data-category="work"] .project-card__row2 { order: 1; }
-    .project-detail[data-category="work"] .project-people { order: 2; }
-    .project-detail[data-category="work"] .project-col-right { order: 3; }
-    .project-detail[data-category="work"] .project-card-name-pagination-row { order: 4; }
-    .project-detail[data-category="work"] .deck-grid--mobile-scrub { order: 5; }
+    .project-detail[data-category="work"] .project-credits-btn { order: 2; }
+    .project-detail[data-category="work"] .project-people { order: 3; }
+    .project-detail[data-category="work"] .project-col-right { order: 4; }
+    .project-detail[data-category="work"] .project-card-name-pagination-row { order: 5; }
+    .project-detail[data-category="work"] .deck-grid--mobile-scrub { order: 6; }
+    .project-detail[data-category="work"] .project-card__text-block {
+      gap: 6px !important;
+    }
+    .project-detail[data-category="work"] .project-card__intro {
+      padding-bottom: 8px !important;
+    }
+    .project-detail[data-category="work"] .project-card__desc {
+      line-height: 1.4 !important;
+    }
     .project-card__intro {
       font-size: clamp(0.7rem, 1.8vw, 0.8rem) !important;
       line-height: 1.35 !important;
@@ -3618,8 +3707,13 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
     pageActiveWrap?.addEventListener('click', () => {
       openLightbox(currentIdx);
-      isPaused = true;
-      stopAutoplay();
+      // Only pause-on-click on hover-capable (desktop) devices — on touch
+      // there's no hover to un-pause it again, so tapping to open the
+      // lightbox must never be the thing that kills autoplay on mobile.
+      if (window.matchMedia('(hover: hover)').matches) {
+        isPaused = true;
+        stopAutoplay();
+      }
     });
 
     // Hover pauses autoplay on the page-view image and inside the lightbox;
@@ -3729,6 +3823,21 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     if ('ResizeObserver' in window && deckSection) {
       new ResizeObserver(fitDeckGrid).observe(deckSection);
     }
+
+    // Design/Making collapse (card pages render these too, but initStandardSlider
+    // — where this used to be wired — never runs here) + the work-category
+    // project name's own toggle, sharing the same is-expanded mechanism.
+    wireCollapse(document.querySelector('.project-design-section'), 'project-design-click', 'project-design-toggle', 'project-design-panel');
+    wireCollapse(document.querySelector('.project-making-section'), 'project-making-click', 'project-making-toggle', 'project-making-panel');
+    wireCollapse(document.getElementById('project-dashboard'), 'project-name-header', 'project-name-toggle', 'project-name-panel');
+
+    // Work-category mobile: "Credits" pill reveals the people row
+    const creditsBtn = document.getElementById('project-credits-btn');
+    const peoplePanel = document.getElementById('project-people-panel');
+    creditsBtn?.addEventListener('click', () => {
+      const isExpanded = peoplePanel?.classList.toggle('is-expanded') ?? false;
+      creditsBtn.setAttribute('aria-expanded', String(isExpanded));
+    });
   }
 
 
@@ -3963,8 +4072,13 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       const target = e.target as HTMLElement;
       if (target.closest('.project-detail__nav-arrow')) return;
       openLightbox(currentIdx);
-      isPaused = true;
-      stopAutoplay();
+      // Only pause-on-click on hover-capable (desktop) devices — on touch
+      // there's no hover to un-pause it again, so tapping to open the
+      // lightbox must never be the thing that kills autoplay on mobile.
+      if (window.matchMedia('(hover: hover)').matches) {
+        isPaused = true;
+        stopAutoplay();
+      }
     });
 
     // Hover pauses autoplay on the page-view image and inside the lightbox;
@@ -4012,8 +4126,13 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       lightboxImg.addEventListener('click', (e) => {
         e.stopPropagation();
         applyPos(currentPos + 1);
-        isPaused = true;
-        stopAutoplay();
+        // Same hover-capable guard as above: on touch there's no hover to
+        // resume it, so tapping the lightbox image to advance must not
+        // also permanently kill autoplay.
+        if (window.matchMedia('(hover: hover)').matches) {
+          isPaused = true;
+          stopAutoplay();
+        }
       });
     }
 
@@ -4037,45 +4156,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       if (e.key === 'ArrowLeft')  { e.preventDefault(); e.stopImmediatePropagation(); applyPos(currentPos - 1); }
       if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); closeLightbox(); }
     });
-
-    // Metadata collapser
-    const wireCollapse = (sect: Element | null, headerId: string, toggleId: string, panelId: string) => {
-      if (!sect) return;
-      const header = sect.querySelector(`#${headerId}`);
-      const toggleBtn = sect.querySelector(`#${toggleId}`);
-      
-      if (!header || !toggleBtn) return;
-      const iconMinus = toggleBtn.querySelector('.toggle-icon-minus') as HTMLElement | null;
-      const iconPlus = toggleBtn.querySelector('.toggle-icon-plus') as HTMLElement | null;
-
-      const toggleSection = () => {
-        const isExpanded = sect.classList.toggle('is-expanded');
-        toggleBtn.setAttribute('aria-expanded', String(isExpanded));
-        
-        toggleBtn.querySelectorAll('.link-arrow').forEach((a) => {
-          (a as HTMLElement).style.transform = `rotate(${Math.floor(Math.random() * 360)}deg)`;
-        });
-
-        if (iconMinus && iconPlus) {
-          if (isExpanded) {
-            iconMinus.style.display = 'block';
-            iconPlus.style.display = 'none';
-          } else {
-            iconMinus.style.display = 'none';
-            iconPlus.style.display = 'block';
-          }
-        }
-      };
-
-      header.addEventListener('click', (e) => {
-        e.stopPropagation();
-        toggleSection();
-      });
-      toggleBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        toggleSection();
-      });
-    };
 
     wireCollapse(designSection, 'project-design-click', 'project-design-toggle', 'project-design-panel');
     wireCollapse(makingSection, 'project-making-click', 'project-making-toggle', 'project-making-panel');
@@ -4317,6 +4397,47 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       });
     }
+  }
+
+  // Generic header+arrow collapse toggle (module-level so both initStandardSlider
+  // and initCardDeck can wire Design/Making — and, on card pages, the project
+  // name's own toggle — to the same is-expanded/aria-expanded/icon-swap behavior).
+  function wireCollapse(sect: Element | null, headerId: string, toggleId: string, panelId: string) {
+    if (!sect) return;
+    const header = sect.querySelector(`#${headerId}`);
+    const toggleBtn = sect.querySelector(`#${toggleId}`);
+
+    if (!header || !toggleBtn) return;
+    const iconMinus = toggleBtn.querySelector('.toggle-icon-minus') as HTMLElement | null;
+    const iconPlus = toggleBtn.querySelector('.toggle-icon-plus') as HTMLElement | null;
+
+    const toggleSection = () => {
+      const isExpanded = sect.classList.toggle('is-expanded');
+      toggleBtn.setAttribute('aria-expanded', String(isExpanded));
+
+      toggleBtn.querySelectorAll('.link-arrow').forEach((a) => {
+        (a as HTMLElement).style.transform = `rotate(${Math.floor(Math.random() * 360)}deg)`;
+      });
+
+      if (iconMinus && iconPlus) {
+        if (isExpanded) {
+          iconMinus.style.display = 'block';
+          iconPlus.style.display = 'none';
+        } else {
+          iconMinus.style.display = 'none';
+          iconPlus.style.display = 'block';
+        }
+      }
+    };
+
+    header.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleSection();
+    });
+    toggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleSection();
+    });
   }
 
   // Collapse every chapter accordion (module-level so the header tap can call it)
