@@ -419,6 +419,27 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                     </div>
                   </div>
                 </div>
+
+                <!-- Work-category pages only: single-row scrub right below the
+                     pagination (mobile only — desktop keeps the deck grid below
+                     the image, matching #deck-grid so it shares its click/active
+                     wiring; hidden on desktop so it doesn't duplicate that grid). -->
+                {hasImages && category?.id === 'work' && (
+                  <div class="deck-grid deck-grid--mobile-scrub" id="deck-grid-mobile-scrub">
+                    {allImages.map((img, idx) => (
+                      <button
+                        type="button"
+                        class:list={["deck-card-item", idx === 0 && "is-active"]}
+                        data-index={idx}
+                        aria-label={`Jump to image ${idx + 1}`}
+                      >
+                        <div class="deck-card-inner">
+                          <img src={img} alt={`${data.name} thumbnail ${idx + 1}`} loading="lazy" />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1489,6 +1510,35 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     .project-detail[data-is-card="true"] {
       padding-top: calc(var(--dash-h, 60vh) + 8px);
     }
+
+    /* Work-category pages: only the project NAME behaves like a pinned tab —
+       the rest of the dashboard (metaline, category link) scrolls away
+       normally instead of staying fixed on screen. */
+    .project-detail[data-category="work"] .project-dashboard-wrap {
+      position: static;
+      box-shadow: none;
+      border-bottom: none;
+      padding: 0 !important; /* the sticky title row below owns the top safe-area clearance instead */
+    }
+
+    .project-detail[data-category="work"] .project-card__metaline {
+      padding: 8px 12px 0;
+    }
+
+    .project-detail[data-category="work"] {
+      padding-top: 0 !important; /* no fixed dashboard to clear space for */
+    }
+
+    .project-detail[data-category="work"] .project-header-title-row {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background-color: var(--_tokens---color--bg);
+      padding: calc(12px + env(safe-area-inset-top)) 0 8px;
+      border-bottom: 1px solid var(--_tokens---color--line-soft);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+      box-sizing: border-box;
+    }
   }
 
 
@@ -2179,6 +2229,34 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     width: 100%;
   }
 
+  /* Work-category mobile scrub: one horizontally-scrolling row, fixed-height
+     squares matching the standard-page thumb strip's mobile size — never
+     rendered on desktop, which keeps the full #deck-grid below the image. */
+  .deck-grid--mobile-scrub {
+    display: flex;
+    flex-wrap: nowrap;
+    grid-template-columns: none !important;
+    gap: 6px;
+    margin-top: 12px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+  .deck-grid--mobile-scrub::-webkit-scrollbar {
+    display: none;
+  }
+  .deck-grid--mobile-scrub .deck-card-item {
+    flex: 0 0 68px;
+    width: 68px;
+    height: 68px;
+    aspect-ratio: 1;
+  }
+  @media (min-width: 1024px) {
+    .deck-grid--mobile-scrub {
+      display: none;
+    }
+  }
+
   /* Desktop: column count is set inline by fitDeckGrid() so the grid's
      height matches the right-hand image; this is only the pre-JS fallback.
      (No !important — it must lose to the JS inline style.) */
@@ -2824,6 +2902,30 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     .project-card__desc::-webkit-scrollbar {
       display: none;
     }
+    /* Work-category pages show the mobile scrub right under the pagination
+       instead — hide the full deck grid at the bottom to avoid duplicating it. */
+    .project-detail[data-category="work"] .card-deck-section {
+      display: none;
+    }
+
+    /* Work-category pages: single column instead of side-by-side — text/people
+       on top, then the image, then the pagination + scrub. .project-col-left
+       and .project-card-info are unwrapped (display:contents) so their
+       children become direct items of the grid and can be reordered freely
+       alongside .project-col-right without touching the markup. */
+    .project-detail[data-category="work"] .project-content-grid--card {
+      grid-template-columns: 1fr !important;
+      gap: 16px !important;
+    }
+    .project-detail[data-category="work"] .project-col-left,
+    .project-detail[data-category="work"] .project-card-info {
+      display: contents;
+    }
+    .project-detail[data-category="work"] .project-card__row2 { order: 1; }
+    .project-detail[data-category="work"] .project-people { order: 2; }
+    .project-detail[data-category="work"] .project-col-right { order: 3; }
+    .project-detail[data-category="work"] .project-card-name-pagination-row { order: 4; }
+    .project-detail[data-category="work"] .deck-grid--mobile-scrub { order: 5; }
     .project-card__intro {
       font-size: clamp(0.7rem, 1.8vw, 0.8rem) !important;
       line-height: 1.35 !important;
@@ -3204,6 +3306,11 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
   function initCardDeck() {
     const deck = document.getElementById('deck-grid');
+    // Work-category pages only: the mobile one-row scrub right under the
+    // pagination. Its .deck-card-item buttons share the same click/active
+    // wiring as the main #deck-grid below the image (see updateScrubActiveState
+    // and cardButtons below).
+    const mobileScrub = document.getElementById('deck-grid-mobile-scrub');
     const lightbox = document.getElementById('card-lightbox');
     const ambientImg = document.getElementById('lightbox-ambient-img') as HTMLImageElement | null;
     const closeBtn = document.getElementById('lightbox-close');
@@ -3363,6 +3470,9 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       deck.querySelectorAll('.deck-card-item').forEach(btn => {
         btn.classList.toggle('is-active', parseInt(btn.getAttribute('data-index') || '-1', 10) === currentIdx);
       });
+      mobileScrub?.querySelectorAll('.deck-card-item').forEach(btn => {
+        btn.classList.toggle('is-active', parseInt(btn.getAttribute('data-index') || '-1', 10) === currentIdx);
+      });
     };
 
     // ── Name label: set word-by-word spans ─────────────────────────────────
@@ -3492,7 +3602,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     }
 
     // ── Scrub grid listeners ─────────────────────────────────────────────────
-    const cardButtons = Array.from(deck.querySelectorAll('.deck-card-item'));
+    const cardButtons = Array.from(deck.querySelectorAll('.deck-card-item'))
+      .concat(mobileScrub ? Array.from(mobileScrub.querySelectorAll('.deck-card-item')) : []);
     cardButtons.forEach(btn => {
       btn.addEventListener('click', () => {
         const idx = parseInt(btn.getAttribute('data-index') || '0', 10);
@@ -3533,6 +3644,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     // from the scrub, the lightbox, and the rotation entirely. ──
     const dropCard = (idx: number) => {
       deck.querySelector(`.deck-card-item[data-index="${idx}"]`)?.remove();
+      mobileScrub?.querySelector(`.deck-card-item[data-index="${idx}"]`)?.remove();
       lightboxDeck?.querySelector(`.lightbox-deck__item[data-index="${idx}"]`)?.remove();
       deckItems = lightboxDeck
         ? Array.from(lightboxDeck.querySelectorAll('.lightbox-deck__item')) as HTMLElement[]
