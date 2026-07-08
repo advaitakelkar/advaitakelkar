@@ -341,7 +341,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
               <h1 class="project-name-title" id="project-name-click">
                 <span class="project-name-main">{data.name}</span>
               </h1>
-              {category && <span class="project-category-tag">{category.data.displayName}</span>}
             </div>
             
             <div class="project-card__metaline">
@@ -349,6 +348,11 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                 <span class="project-card__meta-val">
                   {[yearLoc, data.status].filter(Boolean).join(', ')}
                 </span>
+                {category && (
+                  <a href={`/${category.id}/`} class="project-card__meta-cat-link">
+                    {category.data.displayName}
+                  </a>
+                )}
               </div>
             </div>
           </header>
@@ -2883,8 +2887,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     flex-direction: column !important;
     gap: 8px !important;
     margin-top: 20px !important;
-    padding-bottom: 20px !important;
-    border-bottom: 1px solid var(--_tokens---color--line-soft) !important;
+    padding-bottom: 8px !important;
+    border-bottom: none !important;
   }
   :global(.deck-logos-title) {
     font-size: var(--_tokens---type--micro) !important;
@@ -2910,23 +2914,32 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     opacity: 1 !important;
   }
 
-  .project-category-tag {
+  .project-meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+
+  .project-card__meta-cat-link {
     font-size: var(--_tokens---type--micro);
-    font-weight: 500;
+    font-family: var(--_tokens---font--mono);
     color: var(--_tokens---color--muted);
-    border: 1px solid var(--_tokens---color--line-soft);
-    padding: 2px 10px;
-    border-radius: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    align-self: center;
+    font-weight: 500;
+    text-transform: capitalize;
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+  .project-card__meta-cat-link:hover {
+    color: var(--_tokens---color--fg);
+    text-decoration: underline;
   }
 
   /* Prompt code block styling with global scoping for set:html support */
   :global(.prompt-box) {
     display: flex !important;
     flex-direction: column !important;
-    background: color-mix(in srgb, var(--_tokens---color--fg) 3%, transparent) !important;
+    background: transparent !important;
     border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent) !important;
     border-radius: 6px !important;
     margin-top: 20px !important;
@@ -2936,7 +2949,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     display: flex !important;
     justify-content: space-between !important;
     align-items: center !important;
-    background: color-mix(in srgb, var(--_tokens---color--fg) 5%, transparent) !important;
+    background: transparent !important;
     padding: 6px 12px !important;
     border-bottom: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent) !important;
   }
