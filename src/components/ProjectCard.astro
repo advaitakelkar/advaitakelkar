@@ -18,10 +18,12 @@ const desc = realText(p.data.description);
 
 const tagsArr = (p.data.tags ?? []).map((t: any) => tagMap[t.id] || t.id);
 
-// Bottom fact line — same voice as the home slider card:
-// "2024, Mumbai IN, tag" (values only; the page IS the category, so no
-// category label here)
-const factsLine = [p.data.year, p.data.location, tagsArr[0]].filter(Boolean).join(', ');
+// Find first collaborator tag (Studio 823 / FKD Workshop) or default to the first tag
+const studioTag = tagsArr.find((t: string) => t === 'Studio 823' || t === 'FKD Workshop');
+const displayStudio = p.data.collaborator || studioTag || tagsArr[0];
+
+const leftFacts = [p.data.year, p.data.location, displayStudio].filter(Boolean).join(', ');
+const rightTags = tagsArr.filter((t: string) => t !== 'Studio 823' && t !== 'FKD Workshop' && t !== p.data.collaborator).join(', ');
 
 const allImgs: string[] = [];
 if (p.id === 'ai-works') {
@@ -54,193 +56,201 @@ if (p.id === 'ai-works') {
 }
 ---
 
-<a href={`/projects/${p.id}`} class:list={["pcard", !showDescription && "pcard--no-desc"]} data-name={p.data.name}>
-  <div class="pcard__header">
+<a href={`/projects/${p.id}`} class="pcard" data-name={p.data.name}>
+  <div class="pcard__row-first">
     <h2 class="pcard__name">{p.data.name}</h2>
-    <svg class="link-arrow pcard__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
-  </div>
-
-  <div class="pcard__columns">
-    {showDescription && (intro || desc) && (
-      <div class="pcard__desc-col">
-        {intro && <p class="pcard__intro">{intro}</p>}
-        {desc && (
-          <p class="pcard__desc">
-            {desc.replace(/<[^>]*>/g, '').substring(0, 120) + (desc.replace(/<[^>]*>/g, '').length > 120 ? '...' : '')}
-          </p>
-        )}
+    <div class="pcard__right-wrap">
+      <div class="pcard__image-col">
+        <div class:list={["pcard__thumbs", allImgs.length < 5 && "is-few"]}>
+          {allImgs.map((src, idx) => (
+            <span class="pcard__thumb"><img src={src} alt={`${p.data.name} ${idx + 1}`} loading="lazy" /></span>
+          ))}
+        </div>
       </div>
-    )}
-    <div class="pcard__image-col">
-      <div class:list={["pcard__thumbs", allImgs.length < 5 && "is-few"]}>
-        {allImgs.map((src, idx) => (
-          <span class="pcard__thumb"><img src={src} alt={`${p.data.name} ${idx + 1}`} loading="lazy" /></span>
-        ))}
-      </div>
+      <svg class="link-arrow pcard__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
     </div>
   </div>
 
-  <div class="pcard__meta">
-    <span class="pcard__meta-left pcard__meta-val">{factsLine}</span>
+  <div class="pcard__row-second">
+    <span class="pcard__meta-left">{leftFacts}</span>
+    <span class="pcard__meta-right">{rightTags}</span>
   </div>
 </a>
 
 <style>
   .pcard {
-    display: block;
+    display: flex;
+    flex-direction: column;
     text-decoration: none;
     color: var(--_tokens---color--fg);
-    background-color: color-mix(in srgb, var(--_tokens---color--fg) 2.5%, var(--_tokens---color--bg));
-    box-shadow: 0 8px 24px -10px color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
+    background: transparent;
+    box-shadow: none;
     width: 100%;
     box-sizing: border-box;
+    border-bottom: 1px solid var(--_tokens---color--line-soft);
+    padding: 1.5rem 0;
   }
 
-  .pcard__header {
+  .pcard:first-child {
+    border-top: 1px solid var(--_tokens---color--line-soft);
+  }
+
+  .pcard__row-first {
     display: flex;
+    flex-direction: row;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    padding: 8px 0;
+    width: 100%;
+    gap: 24px;
   }
 
   .pcard__name {
     font-size: clamp(1.9rem, 1.3rem + 2.8vw, 3.2rem);
     font-weight: 500;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.03em;
     line-height: 1.05;
     margin: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    flex-shrink: 1;
+    min-width: 0;
   }
 
-  /* Just an arrow (rotates on hover via the global link-arrow script) */
-  .pcard__arrow {
-    width: 1em;
-    height: 1em;
-    flex-shrink: 0;
-    color: var(--_tokens---color--fg);
-  }
-
-  .pcard__columns {
+  .pcard__right-wrap {
     display: flex;
     flex-direction: row;
-    width: 100%;
-    min-height: 100px;
-  }
-
-  .pcard__desc-col {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    padding: 8px 0;
-    box-sizing: border-box;
-  }
-  .pcard__intro {
-    font-size: var(--_tokens---type--small);
-    font-weight: 600;
-    line-height: 1.4;
-    color: var(--_tokens---color--muted);
-    margin: 0;
-    max-width: 62ch;
-  }
-  .pcard__desc {
-    font-size: var(--_tokens---type--micro);
-    line-height: 1.55;
-    color: var(--_tokens---color--muted);
-    margin: 0;
-    max-width: 62ch;
-    opacity: 0.85;
-  }
-
-  /* No-description cards keep the images on the right, empty space on the left */
-  .pcard--no-desc .pcard__columns::before {
-    content: "";
-    flex: 1;
+    align-items: center;
+    gap: 24px;
+    flex-shrink: 0;
   }
 
   .pcard__image-col {
-    width: 40%;
-    flex-shrink: 0;
-    overflow: hidden;
     display: flex;
-    align-items: stretch;
+    align-items: center;
+    overflow: hidden;
   }
 
   .pcard__thumbs {
     display: flex;
     flex-direction: row;
     align-items: center;
-    justify-content: flex-start;
-    overflow: hidden; /* strip never scrolls — JS prunes it to 5 random thumbs */
-    width: 100%;
-    height: 100%;
-    gap: 2px;
-    scrollbar-width: none;
+    gap: 4px;
   }
-  .pcard__thumbs::-webkit-scrollbar { display: none; }
-  .pcard__thumbs.is-few { justify-content: flex-end; }
 
   .pcard__thumb {
-    flex: 0 0 calc((100% - 8px) / 5);
-    aspect-ratio: 1;
-    max-height: 100%;
+    width: 64px;
+    height: 64px;
     overflow: hidden;
     display: block;
+    aspect-ratio: 1;
+    flex-shrink: 0;
+    cursor: pointer;
   }
+
   .pcard__thumb img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
+    transition: filter 0.15s ease, opacity 0.15s ease;
   }
-  /* No placeholder art: projects without images leave the space empty */
 
-  .pcard__meta {
+  .pcard__arrow {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    color: var(--_tokens---color--fg);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .pcard:hover .pcard__arrow {
+    transform: translate(3px, -3px);
+  }
+
+  .pcard__row-second {
     display: flex;
-    align-items: center;
+    flex-direction: row;
     justify-content: space-between;
-    gap: 8px;
-    padding: 6px 0 10px;
-    font-size: var(--_tokens---type--ultrathin);
+    align-items: center;
+    width: 100%;
+    margin-top: 12px;
+    font-size: var(--_tokens---type--micro);
     color: var(--_tokens---color--muted);
   }
-  .pcard__meta-left { min-width: 0; overflow-wrap: anywhere; }
-  .pcard__meta-val { color: var(--_tokens---color--muted); font-weight: 400; }
-  .pcard__meta-k { color: var(--_tokens---color--muted); }
-  .pcard__meta-right { flex-shrink: 0; white-space: nowrap; }
 
-  @media (max-width: 768px) {
-    .pcard__header { padding: 10px 0; }
-    .pcard__name { white-space: normal; }
-    .pcard__desc-col { display: none; }
-    .pcard--no-desc .pcard__columns::before { display: none; }
-    .pcard__columns { flex-direction: column; min-height: auto; }
-    .pcard__image-col { width: 100%; height: auto; }
-    .pcard__thumbs { padding: 0; box-sizing: border-box; }
-    .pcard__thumbs.is-few { justify-content: flex-start; } /* always left-aligned on mobile */
-    .pcard__thumb { flex: 0 0 calc((100% - 8px) / 5); }
-    /* Fact line below the scrub — same voice as the home slider card */
-    .pcard__meta {
-      font-size: var(--_tokens---type--micro);
-      padding: 8px 0 12px;
-    }
+  .pcard__meta-left {
+    font-weight: 400;
   }
-  .pcard__thumb { cursor: pointer; }
-  .pcard__thumb img { transition: filter 0.15s ease, opacity 0.15s ease; }
+
+  .pcard__meta-right {
+    font-weight: 400;
+    text-align: right;
+  }
+
   /* While scrubbing: active thumb in colour, the rest grayscale */
   .pcard.is-previewing .pcard__thumb img { filter: grayscale(1); opacity: 0.5; }
   .pcard.is-previewing .pcard__thumb.is-active img { filter: none; opacity: 1; }
 
   @media (max-width: 768px) {
+    .pcard {
+      padding: 1rem 0;
+    }
+
+    .pcard__row-first {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      grid-template-rows: auto auto;
+      gap: 12px 8px;
+    }
+
+    .pcard__name {
+      grid-column: 1;
+      grid-row: 1;
+      white-space: normal;
+      overflow: visible;
+      text-overflow: clip;
+      font-size: var(--_tokens---type--medium);
+    }
+
+    .pcard__right-wrap {
+      display: contents;
+    }
+
+    .pcard__image-col {
+      grid-column: 1 / -1;
+      grid-row: 2;
+      width: 100%;
+    }
+
+    .pcard__thumbs {
+      width: 100%;
+      gap: 2px;
+    }
+
+    .pcard__thumb {
+      flex: 1 1 0%;
+      width: auto;
+      height: auto;
+      aspect-ratio: 1;
+    }
+
+    .pcard__arrow {
+      grid-column: 2;
+      grid-row: 1;
+      width: 20px;
+      height: 20px;
+    }
+
+    .pcard__row-second {
+      margin-top: 8px;
+      font-size: var(--_tokens---type--micro);
+    }
+
     /* Lift the strip above the mobile glass and scrub (no native scroll) */
     .pcard.is-previewing .pcard__thumbs {
       position: relative;
       z-index: 121;
-      /* pan-x: strip stays scrollable while the lightbox is open; dragging
-         still scrubs as thumbs pass under the finger */
       touch-action: pan-x;
     }
   }

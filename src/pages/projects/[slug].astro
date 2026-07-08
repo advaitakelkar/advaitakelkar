@@ -40,7 +40,11 @@ const PEOPLE: Record<string, string> = {
   'Faizan Khatri':   '/images/people/faizan-khatri.jpeg',
   'Samir Raut':      '/images/people/samir-raut.jpeg',
 };
-const people: string[] = (data.people?.length ? data.people : ['Advaita Kelkar']);
+const people: string[] = data.people?.length 
+  ? data.people 
+  : (category?.id === 'work' 
+      ? ['Samir Raut', 'Faizan Khatri', 'Advaita Kelkar'] 
+      : ['Advaita Kelkar']);
 
 // Build dynamic breadcrumbs based on category structure
 const dynamicCrumbs = [ { label: 'Home', href: '/' } ];
@@ -199,7 +203,13 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   crumbs={dynamicCrumbs}
   showFooter={!isCardPage}
 >
-    <article class="project-detail" data-project-id={project.id} data-project-name={data.name} data-is-card={isCardPage ? "true" : "false"} data-is-scarpin={isScarpinPage ? "true" : "false"}>
+    <article class="project-detail"
+      data-project-id={project.id}
+      data-project-name={data.name}
+      data-is-card={isCardPage ? "true" : "false"}
+      data-is-scarpin={isScarpinPage ? "true" : "false"}
+      data-category={category ? category.id : ''}
+    >
       
       {isScarpinPage ? (
         /* SCARPIN PAGE: 12-slider Grid */
@@ -437,6 +447,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                 <div class="project-people">
                   {people.map((person) => {
                     const isCas = person === 'Casimir Esbach';
+                    const isFaizan = person === 'Faizan Khatri';
                     const displayName = isCas ? `${person} (Professor)` : person;
                     return (
                       <>
@@ -446,7 +457,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                           </div>
                           <span class="project-people__name">{displayName}</span>
                         </div>
-                        {isCas && <div class="project-people__divider" aria-hidden="true" />}
+                        {(isCas || isFaizan) && <div class="project-people__divider" aria-hidden="true" />}
                       </>
                     );
                   })}
@@ -1204,8 +1215,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
 
   .project-people__avatar {
-    width: 72px; /* 2× the previous 36px */
-    height: 72px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     overflow: hidden;
     flex-shrink: 0;
@@ -1262,7 +1273,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
   .project-people__divider {
     width: 1px;
-    height: 40px;
+    height: 20px;
     background-color: var(--_tokens---color--line-soft);
     align-self: center;
     margin-inline: -4px;
@@ -1950,6 +1961,30 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     font-weight: 500;
     color: var(--_tokens---color--fg);
     margin: 0;
+  }
+
+  /* Work category projects: style Design & Making sections like chapters */
+  .project-detail[data-category="work"] .project-section-subtitle {
+    font-size: var(--_tokens---type--big);
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+  }
+
+  .project-detail[data-category="work"] .project-design-header,
+  .project-detail[data-category="work"] .project-making-header {
+    align-items: center;
+  }
+
+  .project-detail[data-category="work"] .project-detail-collapse-btn {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+  }
+
+  .project-detail[data-category="work"] .project-detail-collapse-btn svg {
+    width: 32px !important;
+    height: 32px !important;
   }
 
   .project-design-content,
