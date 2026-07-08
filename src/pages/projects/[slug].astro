@@ -963,7 +963,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       background-color: var(--_tokens---color--bg);
       padding-top: calc(clamp(0.5rem, 1.5vh, 1rem) + 48px);
       padding-bottom: 12px;
-      border-bottom: 1px solid var(--_tokens---color--line-soft);
+      border-bottom: none;
       box-sizing: border-box;
     }
 
@@ -2795,22 +2795,50 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
 
   /* For standard and scarpin pages: Simple and clean fullscreen lightbox */
-  /* For standard and scarpin pages: 4:3 Landscape 3D cards layout matching the card page lightbox UI */
+  /* For standard and scarpin pages: Full-size image layout with solid dark black background, matching card-page overlay background */
+  .project-detail[data-is-card="false"] ~ #card-lightbox .lightbox-bg-ambient,
+  .project-detail[data-is-card="false"] #scarpin-lightbox .lightbox-bg-ambient {
+    display: none !important;
+  }
+  .project-detail[data-is-card="false"] ~ #card-lightbox .lightbox-backdrop,
+  .project-detail[data-is-card="false"] #scarpin-lightbox .lightbox-backdrop {
+    background-color: rgba(0, 0, 0, 0.97) !important;
+  }
+
   .project-detail[data-is-card="false"] ~ #card-lightbox .lightbox-card-container,
   .project-detail[data-is-card="false"] #scarpin-lightbox .lightbox-card-container {
-    aspect-ratio: 4 / 3;
+    aspect-ratio: auto;
     width: 90vw;
-    max-width: 600px;
-    transform-style: preserve-3d;
-    transition: transform 0.15s ease-out;
+    max-width: 1200px;
+    height: 80vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    transform: none !important;
+    perspective: none;
   }
 
   .project-detail[data-is-card="false"] ~ #card-lightbox .lightbox-card-img,
   .project-detail[data-is-card="false"] #scarpin-lightbox .lightbox-card-img {
     max-width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 12px;
+    max-height: 80vh;
+    object-fit: contain;
+    border-radius: 4px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+  }
+
+  /* Hide card-specific overlays (name overlay, hint text, shadows/shine) on standard/scarpin lightboxes */
+  .project-detail[data-is-card="false"] ~ #card-lightbox .lightbox-card-shadow,
+  .project-detail[data-is-card="false"] ~ #card-lightbox .lightbox-card-shine,
+  .project-detail[data-is-card="false"] ~ #card-lightbox .lightbox-hint,
+  .project-detail[data-is-card="false"] ~ #card-lightbox .lightbox-name,
+  .project-detail[data-is-card="false"] #scarpin-lightbox .lightbox-card-shadow,
+  .project-detail[data-is-card="false"] #scarpin-lightbox .lightbox-card-shine,
+  .project-detail[data-is-card="false"] #scarpin-lightbox .lightbox-name {
+    display: none !important;
   }
 
   /* Keep nav arrows always visible on standard/scarpin lightboxes for desktop */
@@ -2892,7 +2920,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     background-size: contain;
     background-position: center;
     background-repeat: no-repeat;
-    background-color: var(--_tokens---color--muted);
+    background-color: var(--_tokens---color--fg) !important;
     mask-image: var(--logo);
     mask-size: contain;
     mask-position: center;
@@ -2901,12 +2929,58 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     -webkit-mask-size: contain;
     -webkit-mask-position: center;
     -webkit-mask-repeat: no-repeat;
-    opacity: 0.6;
-    transition: opacity 0.2s, background-color 0.2s;
+    opacity: 1 !important;
   }
-  .deck-logo-item:hover {
-    opacity: 1;
-    background-color: var(--_tokens---color--fg);
+
+  /* Collapsible prompt details and summary pill */
+  .prompt-details {
+    margin-top: 20px;
+    outline: none;
+  }
+  .prompt-summary-pill {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 2px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--_tokens---color--line-soft);
+    font-size: var(--_tokens---type--micro);
+    font-weight: 500;
+    color: var(--_tokens---color--fg);
+    background: transparent;
+    list-style: none; /* Hide default arrow */
+    transition: all 0.2s ease;
+    user-select: none;
+    outline: none;
+  }
+  .prompt-summary-pill::-webkit-details-marker {
+    display: none; /* Hide default Safari arrow */
+  }
+  .prompt-summary-pill:hover {
+    background: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    border-color: var(--_tokens---color--fg);
+  }
+  /* Open state of summary pill */
+  .prompt-details[open] .prompt-summary-pill {
+    background: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
+  }
+  .prompt-content {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    background: var(--_tokens---color--bg-glass);
+    border: 1px solid var(--_tokens---color--line-soft);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-top: 12px;
+    gap: 12px;
+    animation: slideDown 0.2s ease-out;
+  }
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 </style>
 
@@ -3610,36 +3684,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       applyPos(currentPos + 1);
     });
 
-    if (cardContainer) {
-      cardContainer.addEventListener('pointermove', (e: PointerEvent) => {
-        const rect = cardContainer.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        
-        const centerX = rect.width / 2;
-        const centerY = rect.height / 2;
-        
-        const maxTilt = 15;
-        const tiltX = ((x - centerX) / centerX) * maxTilt;
-        const tiltY = -((y - centerY) / centerY) * maxTilt;
-        
-        cardContainer.style.transform = `perspective(1000px) rotateX(${tiltY}deg) rotateY(${tiltX}deg) scale(1.04)`;
-        
-        const shine = cardContainer.querySelector('.lightbox-card-shine') as HTMLElement | null;
-        if (shine) {
-          const angle = Math.atan2(y - centerY, x - centerX) * (180 / Math.PI);
-          shine.style.background = `linear-gradient(${angle + 180}deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0) 60%)`;
-        }
-      });
 
-      cardContainer.addEventListener('pointerleave', () => {
-        cardContainer.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale(1)';
-        const shine = cardContainer.querySelector('.lightbox-card-shine') as HTMLElement | null;
-        if (shine) {
-          shine.style.background = 'linear-gradient(105deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 40%, rgba(255,255,255,0) 100%)';
-        }
-      });
-    }
 
     document.addEventListener('keydown', (e) => {
       if (!isOpen) return;
