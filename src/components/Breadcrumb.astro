@@ -643,6 +643,19 @@ if (activeProject) {
         const el = document.activeElement as HTMLElement | null;
         if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
         if (panel?.classList.contains('is-open')) return;
+
+        // Do not navigate pages if any project image lightbox is open
+        const detailLightbox1 = document.getElementById('project-active-lightbox');
+        const detailLightbox2 = document.getElementById('card-lightbox');
+        const scarpinLightbox = document.getElementById('scarpin-lightbox');
+        const listLightbox = document.getElementById('project-lightbox');
+        const isAnyLightboxOpen = 
+          (detailLightbox1 && detailLightbox1.style.display !== 'none') ||
+          (detailLightbox2 && detailLightbox2.style.display !== 'none') ||
+          (scarpinLightbox && scarpinLightbox.style.display !== 'none') ||
+          (listLightbox && listLightbox.classList.contains('is-open'));
+        if (isAnyLightboxOpen) return;
+
         if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
 
         const p = window.location.pathname.replace(/\/$/, '') || '/';

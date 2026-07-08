@@ -1046,6 +1046,19 @@ const schemes = [
       if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)) {
         return;
       }
+
+      // Do not toggle SideNav if any lightbox is open
+      const detailLightbox1 = document.getElementById('project-active-lightbox');
+      const detailLightbox2 = document.getElementById('card-lightbox');
+      const scarpinLightbox = document.getElementById('scarpin-lightbox');
+      const listLightbox = document.getElementById('project-lightbox');
+      const isAnyLightboxOpen = 
+        (detailLightbox1 && detailLightbox1.style.display !== 'none') ||
+        (detailLightbox2 && detailLightbox2.style.display !== 'none') ||
+        (scarpinLightbox && scarpinLightbox.style.display !== 'none') ||
+        (listLightbox && listLightbox.classList.contains('is-open'));
+      if (isAnyLightboxOpen) return;
+
       if (e.key === ' ' || e.code === 'Space') {
         e.preventDefault();
         navOpen ? closeNav() : openNav();

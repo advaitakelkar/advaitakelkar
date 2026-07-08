@@ -74,6 +74,22 @@ const cardPageSlugs = [
 const isCardPage = cardPageSlugs.includes(project.id);
 const isScarpinPage = project.id === 'scarpin';
 
+// Levenshtein distance — used to tolerate small folder-name typos when
+// matching a scarpin credit against the PEOPLE registry.
+function editDistance(a: string, b: string): number {
+  const dp: number[][] = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
+  for (let i = 0; i <= a.length; i++) dp[i][0] = i;
+  for (let j = 0; j <= b.length; j++) dp[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      dp[i][j] = a[i - 1] === b[j - 1]
+        ? dp[i - 1][j - 1]
+        : 1 + Math.min(dp[i - 1][j - 1], dp[i - 1][j], dp[i][j - 1]);
+    }
+  }
+  return dp[a.length][b.length];
+}
+
 // Load Scarpin image data if this is the Scarpin page
 let scarpinSliders: { folder: string; cleanName: string; personName: string; avatar: string | null; urls: string[] }[] = [];
 if (isScarpinPage) {
@@ -107,14 +123,20 @@ if (isScarpinPage) {
           let avatar = null;
           if (personName) {
             const searchName = personName.toLowerCase().replace(/[^a-z]/g, '');
-            for (const [key, val] of Object.entries(PEOPLE)) {
-              if (key.toLowerCase().replace(/[^a-z]/g, '') === searchName) {
-                avatar = val;
-                personName = key;
-                break;
-              }
+            // Exact match first; fall back to a small edit-distance so a folder
+            // typo (e.g. "kelakar" vs "kelkar") doesn't silently drop the avatar.
+            let bestKey: string | null = null;
+            let bestDist = Infinity;
+            for (const key of Object.keys(PEOPLE)) {
+              const keyNorm = key.toLowerCase().replace(/[^a-z]/g, '');
+              const dist = editDistance(keyNorm, searchName);
+              if (dist < bestDist) { bestDist = dist; bestKey = key; }
             }
-            if (!avatar) {
+            const threshold = Math.max(2, Math.floor(searchName.length * 0.2));
+            if (bestKey && bestDist <= threshold) {
+              avatar = PEOPLE[bestKey];
+              personName = bestKey;
+            } else {
               personName = personName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
             }
           }
@@ -1471,31 +1493,31 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     transform-origin: 50% 50%;
     stroke-dasharray: 62.83; /* 2 * PI * 10 */
     stroke-dashoffset: 62.83;
-    transition: none;
-  }
-
-  .timer-ring-progress.is-animating {
-    transition: stroke-dashoffset 2s linear;
-    stroke-dashoffset: 0;
   }
 
   .timer-ring-dot {
     fill: #ffffff;
     transform-origin: 12px 12px;
     transform: rotate(0deg);
-    transition: none;
   }
 
-  .timer-ring-progress.is-animating ~ .timer-ring-dot,
-  .timer-ring-progress.is-animating + .timer-ring-dot {
-    transition: transform 2s linear;
-    transform: rotate(360deg);
+  /* Keyframe-driven (not transition) so re-adding .is-animating after a reflow
+     reliably RESTARTS the sweep from 0 on every image change — a transition
+     can silently refuse to re-run when its end value is unchanged. Duration is
+     driven by --timer-dur so each context can differ (2s slider, 4s scarpin). */
+  @keyframes timer-ring-sweep {
+    from { stroke-dashoffset: 62.83; }
+    to   { stroke-dashoffset: 0; }
   }
-
-  .scarpin-timer-ring.is-animating ~ .timer-ring-dot,
-  .scarpin-timer-ring.is-animating + .timer-ring-dot {
-    transition: transform 4s linear;
-    transform: rotate(360deg);
+  @keyframes timer-ring-dot-sweep {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+  .autoplay-timer-ring.is-animating .timer-ring-progress {
+    animation: timer-ring-sweep var(--timer-dur, 2s) linear forwards;
+  }
+  .autoplay-timer-ring.is-animating .timer-ring-progress ~ .timer-ring-dot {
+    animation: timer-ring-dot-sweep var(--timer-dur, 2s) linear forwards;
   }
 
   /* ── Name & Pagination alignment row inside Left Column ── */
@@ -2614,16 +2636,39 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
   /* ── Dark Mode Overrides for Cards & Logos ── */
   :global(html.mode-dark) .project-card__overlay-name {
-    color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--fg) !important;
   }
+  @media (prefers-color-scheme: dark) {
+    :global(html:not(.mode-light)) .project-card__overlay-name {
+      color: var(--_tokens---color--fg) !important;
+    }
+  }
+
   :global(html.mode-dark) .page-active-card-logo {
-    background-color: var(--_tokens---color--fg);
+    background-color: var(--_tokens---color--fg) !important;
   }
+  @media (prefers-color-scheme: dark) {
+    :global(html:not(.mode-light)) .page-active-card-logo {
+      background-color: var(--_tokens---color--fg) !important;
+    }
+  }
+
   :global(html.mode-dark) .lightbox-card-logo {
-    background-color: var(--_tokens---color--fg);
+    background-color: var(--_tokens---color--fg) !important;
   }
+  @media (prefers-color-scheme: dark) {
+    :global(html:not(.mode-light)) .lightbox-card-logo {
+      background-color: var(--_tokens---color--fg) !important;
+    }
+  }
+
   :global(html.mode-dark) .deck-card-logo {
-    background-color: var(--_tokens---color--fg);
+    background-color: var(--_tokens---color--fg) !important;
+  }
+  @media (prefers-color-scheme: dark) {
+    :global(html:not(.mode-light)) .deck-card-logo {
+      background-color: var(--_tokens---color--fg) !important;
+    }
   }
 </style>
 
@@ -2635,8 +2680,13 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     if (!article) return;
 
     const isCardPage = article.getAttribute('data-is-card') === 'true';
+    const isScarpinPage = article.getAttribute('data-is-scarpin') === 'true';
 
-    if (isCardPage) {
+    if (isScarpinPage) {
+      // Scarpin has its own unique 12-slider grid — neither the card deck nor
+      // the standard single-image slider markup exists on this page.
+      initScarpinSliders();
+    } else if (isCardPage) {
       initCardDeck();
     } else {
       initStandardSlider();
@@ -2781,15 +2831,21 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     // ── Timer ring ─────────────────────────────────────────────────────────
     const resetTimerRing = () => {
       timerRings.forEach(ring => {
-        ring.classList.remove('is-animating');
-        void ring.offsetWidth;
-        ring.classList.add('is-animating');
+        const wrap = ring.closest('.autoplay-timer-ring');
+        if (wrap) {
+          wrap.classList.remove('is-animating');
+          void (wrap as HTMLElement).offsetWidth;
+          wrap.classList.add('is-animating');
+        }
       });
       const lightboxProgress = document.getElementById('lightbox-timer-progress');
       if (lightboxProgress) {
-        lightboxProgress.classList.remove('is-animating');
-        void lightboxProgress.offsetWidth;
-        if (isOpen) lightboxProgress.classList.add('is-animating');
+        const wrap = lightboxProgress.closest('.autoplay-timer-ring');
+        if (wrap) {
+          wrap.classList.remove('is-animating');
+          void (wrap as HTMLElement).offsetWidth;
+          if (isOpen) wrap.classList.add('is-animating');
+        }
       }
     };
 
@@ -2859,9 +2915,15 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     // ── Autoplay ────────────────────────────────────────────────────────────
     const stopAutoplay = () => {
       if (autoplayInterval) { clearInterval(autoplayInterval); autoplayInterval = null; }
-      timerRings.forEach(ring => ring.classList.remove('is-animating'));
+      timerRings.forEach(ring => {
+        const wrap = ring.closest('.autoplay-timer-ring');
+        if (wrap) wrap.classList.remove('is-animating');
+      });
       const lp = document.getElementById('lightbox-timer-progress');
-      if (lp) lp.classList.remove('is-animating');
+      if (lp) {
+        const wrap = lp.closest('.autoplay-timer-ring');
+        if (wrap) wrap.classList.remove('is-animating');
+      }
     };
 
     const startAutoplay = () => {
@@ -2935,9 +2997,11 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
     document.addEventListener('keydown', (e) => {
       if (!isOpen) return;
-      if (e.key === 'ArrowRight') { e.preventDefault(); goToPos(currentPos + 1); updateDisplay(true); startAutoplay(); }
-      if (e.key === 'ArrowLeft')  { e.preventDefault(); goToPos(currentPos - 1); updateDisplay(true); startAutoplay(); }
-      if (e.key === 'Escape') { e.preventDefault(); closeLightbox(); }
+      // While the lightbox is open the arrows drive it exclusively — stop the
+      // event before the site-wide prev/next-project handler can also fire.
+      if (e.key === 'ArrowRight') { e.preventDefault(); e.stopImmediatePropagation(); goToPos(currentPos + 1); updateDisplay(true); startAutoplay(); }
+      if (e.key === 'ArrowLeft')  { e.preventDefault(); e.stopImmediatePropagation(); goToPos(currentPos - 1); updateDisplay(true); startAutoplay(); }
+      if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); closeLightbox(); }
     });
 
     // ── Broken images never render as empty/alt-text cards: drop the card
@@ -3076,6 +3140,30 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     let currentIdx = order[0] ?? 0;
     let isOpen = false;
 
+    const timerRings = ['page-timer-progress', 'page-timer-progress-mini']
+      .map(id => document.getElementById(id))
+      .filter((el): el is HTMLElement => el !== null);
+
+    const resetTimerRing = () => {
+      timerRings.forEach(ring => {
+        const wrap = ring.closest('.autoplay-timer-ring');
+        if (wrap) {
+          wrap.classList.remove('is-animating');
+          void (wrap as HTMLElement).offsetWidth;
+          wrap.classList.add('is-animating');
+        }
+      });
+      const lightboxProgress = document.getElementById('lightbox-timer-progress');
+      if (lightboxProgress) {
+        const wrap = lightboxProgress.closest('.autoplay-timer-ring');
+        if (wrap) {
+          wrap.classList.remove('is-animating');
+          void (wrap as HTMLElement).offsetWidth;
+          if (isOpen) wrap.classList.add('is-animating');
+        }
+      }
+    };
+
     const goToPos = (pos: number) => {
       const count = order.length;
       currentPos = ((pos % count) + count) % count;
@@ -3101,6 +3189,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         lightbox.setAttribute('aria-hidden', 'false');
       }
       document.body.style.overflow = 'hidden';
+      resetTimerRing();
     };
 
     const closeLightbox = () => {
@@ -3113,6 +3202,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       if (cardContainer) {
         cardContainer.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale(1)';
       }
+      resetTimerRing();
     };
 
     const updateDisplay = () => {
@@ -3145,6 +3235,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
           activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
         }
       }
+
+      resetTimerRing();
     };
 
     const applyPos = (pos: number) => {
@@ -3285,201 +3377,12 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
     document.addEventListener('keydown', (e) => {
       if (!isOpen) return;
-      if (e.key === 'ArrowRight') { e.preventDefault(); applyPos(currentPos + 1); }
-      if (e.key === 'ArrowLeft')  { e.preventDefault(); applyPos(currentPos - 1); }
-      if (e.key === 'Escape') { e.preventDefault(); closeLightbox(); }
+      // While the lightbox is open the arrows drive it exclusively — stop the
+      // event before the site-wide prev/next-project handler can also fire.
+      if (e.key === 'ArrowRight') { e.preventDefault(); e.stopImmediatePropagation(); applyPos(currentPos + 1); }
+      if (e.key === 'ArrowLeft')  { e.preventDefault(); e.stopImmediatePropagation(); applyPos(currentPos - 1); }
+      if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); closeLightbox(); }
     });
-
-    // ── Scarpin Sliders Init ──
-    const initScarpinSliders = () => {
-      const isScarpin = document.querySelector('.project-detail')?.getAttribute('data-is-scarpin') === 'true';
-      if (!isScarpin) return;
-
-      const items = document.querySelectorAll('.scarpin-grid-item');
-      const scarpinLb = document.getElementById('scarpin-lightbox');
-      if (!scarpinLb) return;
-
-      const lbImg = document.getElementById('scarpin-lightbox-img');
-      const lbVid = document.getElementById('scarpin-lightbox-vid');
-      const lbAmbient = document.getElementById('scarpin-lightbox-ambient');
-      const lbCounter = document.getElementById('scarpin-lightbox-counter');
-      const lbLabel = document.getElementById('scarpin-lightbox-label');
-      const lbPrev = document.getElementById('scarpin-lightbox-prev');
-      const lbNext = document.getElementById('scarpin-lightbox-next');
-      const lbClose = document.getElementById('scarpin-lightbox-close');
-
-      let lbImages = [];
-      let lbPos = 0;
-      let lbTitle = '';
-      let isLbOpen = false;
-
-      const updateLightbox = () => {
-        if (lbImages.length === 0) return;
-        const url = lbImages[lbPos];
-        if (url.endsWith('.mp4')) {
-          lbImg.style.display = 'none';
-          lbVid.style.display = 'block';
-          lbVid.src = url;
-          lbAmbient.src = '';
-        } else {
-          lbVid.style.display = 'none';
-          lbVid.src = '';
-          lbImg.style.display = 'block';
-          lbImg.src = url;
-          lbAmbient.src = url;
-        }
-        lbCounter.textContent = `${lbPos + 1} / ${lbImages.length}`;
-      };
-
-      const openScarpinLightbox = (images, pos, title) => {
-        lbImages = images;
-        lbPos = pos;
-        lbTitle = title;
-        lbLabel.textContent = title;
-        updateLightbox();
-        scarpinLb.style.display = 'block';
-        setTimeout(() => {
-          scarpinLb.classList.add('is-open');
-          scarpinLb.setAttribute('aria-hidden', 'false');
-          isLbOpen = true;
-        }, 10);
-      };
-
-      const closeScarpinLightbox = () => {
-        if (!isLbOpen) return;
-        scarpinLb.classList.remove('is-open');
-        scarpinLb.setAttribute('aria-hidden', 'true');
-        isLbOpen = false;
-        setTimeout(() => {
-          scarpinLb.style.display = 'none';
-          lbVid.src = ''; // stop video playback
-        }, 400);
-      };
-
-      lbClose?.addEventListener('click', closeScarpinLightbox);
-      scarpinLb?.querySelector('.lightbox-backdrop')?.addEventListener('click', closeScarpinLightbox);
-      
-      lbPrev?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        lbPos = (lbPos - 1 + lbImages.length) % lbImages.length;
-        updateLightbox();
-      });
-      
-      lbNext?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        lbPos = (lbPos + 1) % lbImages.length;
-        updateLightbox();
-      });
-      
-      document.addEventListener('keydown', (e) => {
-        if (isLbOpen) {
-          if (e.key === 'ArrowRight') { e.preventDefault(); e.stopImmediatePropagation(); lbNext.click(); }
-          if (e.key === 'ArrowLeft') { e.preventDefault(); e.stopImmediatePropagation(); lbPrev.click(); }
-          if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); closeScarpinLightbox(); }
-        }
-      });
-
-      items.forEach(item => {
-        const urls = JSON.parse(item.getAttribute('data-images') || '[]');
-        if (urls.length === 0) return;
-
-        let pos = 0;
-        let timer = null;
-        let isHovered = false;
-        const AUTOPLAY_DELAY = 4000;
-
-        const counter = item.querySelector('.scarpin-item-counter');
-        const mediaWrap = item.querySelector('.scarpin-item-media-wrap');
-        const thumbs = item.querySelectorAll('.scarpin-thumb');
-        const title = item.querySelector('.scarpin-item-title').textContent;
-        const progressRing = item.querySelector('.scarpin-timer-ring');
-
-        const updateMedia = () => {
-          const url = urls[pos];
-          const existingMedia = mediaWrap.querySelector('.scarpin-media');
-          
-          let newMedia;
-          if (url.endsWith('.mp4')) {
-            newMedia = document.createElement('video');
-            newMedia.className = 'scarpin-media scarpin-media--active';
-            newMedia.src = url;
-            newMedia.autoplay = true;
-            newMedia.loop = true;
-            newMedia.muted = true;
-            newMedia.playsInline = true;
-          } else {
-            newMedia = document.createElement('img');
-            newMedia.className = 'scarpin-media scarpin-media--active';
-            newMedia.src = url;
-            newMedia.loading = 'lazy';
-            newMedia.alt = title;
-          }
-          
-          existingMedia.replaceWith(newMedia);
-          counter.textContent = `${pos + 1} / ${urls.length}`;
-
-          thumbs.forEach((thumb, idx) => {
-            thumb.classList.toggle('is-active', idx === pos);
-            if (idx === pos) {
-              thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-            }
-          });
-
-          resetTimer();
-        };
-
-        const resetTimer = () => {
-          clearInterval(timer);
-          if (progressRing) {
-            progressRing.classList.remove('is-animating');
-            progressRing.style.transition = 'none';
-            void progressRing.offsetWidth; // Force reflow
-          }
-
-          const hasHoverCapability = window.matchMedia('(hover: hover)').matches;
-          // Mobile (no hover): always auto-play
-          // Desktop (has hover): auto-play ONLY when hovering
-          const shouldPlay = !isLbOpen && urls.length > 1 && (!hasHoverCapability || isHovered);
-
-          if (shouldPlay) {
-            if (progressRing) {
-              progressRing.style.transition = `stroke-dashoffset ${AUTOPLAY_DELAY}ms linear`;
-              progressRing.classList.add('is-animating');
-            }
-            timer = setInterval(() => {
-              pos = (pos + 1) % urls.length;
-              updateMedia();
-            }, AUTOPLAY_DELAY);
-          }
-        };
-
-        item.addEventListener('mouseenter', () => {
-          isHovered = true;
-          resetTimer();
-        });
-
-        item.addEventListener('mouseleave', () => {
-          isHovered = false;
-          resetTimer();
-        });
-
-        thumbs.forEach((thumb, idx) => {
-          thumb.addEventListener('click', (e) => {
-            e.stopPropagation();
-            pos = idx;
-            updateMedia();
-          });
-        });
-
-        mediaWrap?.addEventListener('click', () => {
-          openScarpinLightbox(urls, pos, title);
-        });
-
-        resetTimer();
-      });
-    };
-
-    initScarpinSliders();
 
     // Metadata collapser
     const wireCollapse = (sect: Element | null, headerId: string, toggleId: string, panelId: string) => {
@@ -3553,6 +3456,194 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         // and whether the intro is collapsed.
         refreshFixedHead();
       });
+    });
+  }
+
+  function initScarpinSliders() {
+    const isScarpin = document.querySelector('.project-detail')?.getAttribute('data-is-scarpin') === 'true';
+    if (!isScarpin) return;
+
+    const items = document.querySelectorAll('.scarpin-grid-item');
+    const scarpinLb = document.getElementById('scarpin-lightbox');
+    if (!scarpinLb) return;
+
+    const lbImg = document.getElementById('scarpin-lightbox-img');
+    const lbVid = document.getElementById('scarpin-lightbox-vid');
+    const lbAmbient = document.getElementById('scarpin-lightbox-ambient');
+    const lbCounter = document.getElementById('scarpin-lightbox-counter');
+    const lbLabel = document.getElementById('scarpin-lightbox-label');
+    const lbPrev = document.getElementById('scarpin-lightbox-prev');
+    const lbNext = document.getElementById('scarpin-lightbox-next');
+    const lbClose = document.getElementById('scarpin-lightbox-close');
+
+    let lbImages = [];
+    let lbPos = 0;
+    let lbTitle = '';
+    let isLbOpen = false;
+
+    const updateLightbox = () => {
+      if (lbImages.length === 0) return;
+      const url = lbImages[lbPos];
+      if (url.endsWith('.mp4')) {
+        lbImg.style.display = 'none';
+        lbVid.style.display = 'block';
+        lbVid.src = url;
+        lbAmbient.src = '';
+      } else {
+        lbVid.style.display = 'none';
+        lbVid.src = '';
+        lbImg.style.display = 'block';
+        lbImg.src = url;
+        lbAmbient.src = url;
+      }
+      lbCounter.textContent = `${lbPos + 1} / ${lbImages.length}`;
+    };
+
+    const openScarpinLightbox = (images, pos, title) => {
+      lbImages = images;
+      lbPos = pos;
+      lbTitle = title;
+      lbLabel.textContent = title;
+      updateLightbox();
+      scarpinLb.style.display = 'block';
+      setTimeout(() => {
+        scarpinLb.classList.add('is-open');
+        scarpinLb.setAttribute('aria-hidden', 'false');
+        isLbOpen = true;
+      }, 10);
+    };
+
+    const closeScarpinLightbox = () => {
+      if (!isLbOpen) return;
+      scarpinLb.classList.remove('is-open');
+      scarpinLb.setAttribute('aria-hidden', 'true');
+      isLbOpen = false;
+      setTimeout(() => {
+        scarpinLb.style.display = 'none';
+        lbVid.src = ''; // stop video playback
+      }, 400);
+    };
+
+    lbClose?.addEventListener('click', closeScarpinLightbox);
+    scarpinLb?.querySelector('.lightbox-backdrop')?.addEventListener('click', closeScarpinLightbox);
+
+    lbPrev?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      lbPos = (lbPos - 1 + lbImages.length) % lbImages.length;
+      updateLightbox();
+    });
+
+    lbNext?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      lbPos = (lbPos + 1) % lbImages.length;
+      updateLightbox();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (isLbOpen) {
+        if (e.key === 'ArrowRight') { e.preventDefault(); e.stopImmediatePropagation(); lbNext.click(); }
+        if (e.key === 'ArrowLeft') { e.preventDefault(); e.stopImmediatePropagation(); lbPrev.click(); }
+        if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); closeScarpinLightbox(); }
+      }
+    });
+
+    items.forEach(item => {
+      const urls = JSON.parse(item.getAttribute('data-images') || '[]');
+      if (urls.length === 0) return;
+
+      let pos = 0;
+      let timer = null;
+      let isHovered = false;
+      const AUTOPLAY_DELAY = 4000;
+
+      const counter = item.querySelector('.scarpin-item-counter');
+      const mediaWrap = item.querySelector('.scarpin-item-media-wrap');
+      const thumbs = item.querySelectorAll('.scarpin-thumb');
+      const title = item.querySelector('.scarpin-item-title').textContent;
+      const progressRing = item.querySelector('.scarpin-timer-ring');
+
+      const updateMedia = () => {
+        const url = urls[pos];
+        const existingMedia = mediaWrap.querySelector('.scarpin-media');
+
+        let newMedia;
+        if (url.endsWith('.mp4')) {
+          newMedia = document.createElement('video');
+          newMedia.className = 'scarpin-media scarpin-media--active';
+          newMedia.src = url;
+          newMedia.autoplay = true;
+          newMedia.loop = true;
+          newMedia.muted = true;
+          newMedia.playsInline = true;
+        } else {
+          newMedia = document.createElement('img');
+          newMedia.className = 'scarpin-media scarpin-media--active';
+          newMedia.src = url;
+          newMedia.loading = 'lazy';
+          newMedia.alt = title;
+        }
+
+        existingMedia.replaceWith(newMedia);
+        counter.textContent = `${pos + 1} / ${urls.length}`;
+
+        thumbs.forEach((thumb, idx) => {
+          thumb.classList.toggle('is-active', idx === pos);
+          if (idx === pos) {
+            thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+          }
+        });
+
+        resetTimer();
+      };
+
+      const resetTimer = () => {
+        clearInterval(timer);
+        const wrap = progressRing ? progressRing.closest('.autoplay-timer-ring') as HTMLElement | null : null;
+        if (wrap) {
+          // Restart the keyframe sweep: drop the class, set this slider's
+          // duration, force a reflow, then (below) re-add to run it fresh.
+          wrap.classList.remove('is-animating');
+          wrap.style.setProperty('--timer-dur', `${AUTOPLAY_DELAY}ms`);
+          void wrap.offsetWidth; // reflow so the re-added class restarts the animation
+        }
+
+        const hasHoverCapability = window.matchMedia('(hover: hover)').matches;
+        // Mobile (no hover): always auto-play
+        // Desktop (has hover): auto-play ONLY when hovering
+        const shouldPlay = !isLbOpen && urls.length > 1 && (!hasHoverCapability || isHovered);
+
+        if (shouldPlay) {
+          if (wrap) wrap.classList.add('is-animating');
+          timer = setInterval(() => {
+            pos = (pos + 1) % urls.length;
+            updateMedia();
+          }, AUTOPLAY_DELAY);
+        }
+      };
+
+      item.addEventListener('mouseenter', () => {
+        isHovered = true;
+        resetTimer();
+      });
+
+      item.addEventListener('mouseleave', () => {
+        isHovered = false;
+        resetTimer();
+      });
+
+      thumbs.forEach((thumb, idx) => {
+        thumb.addEventListener('click', (e) => {
+          e.stopPropagation();
+          pos = idx;
+          updateMedia();
+        });
+      });
+
+      mediaWrap?.addEventListener('click', () => {
+        openScarpinLightbox(urls, pos, title);
+      });
+
+      resetTimer();
     });
   }
 

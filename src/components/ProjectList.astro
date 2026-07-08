@@ -1568,7 +1568,21 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     lbLink?.addEventListener('click', (e) => e.stopPropagation());
     // Block touch-scroll/rubber-band on the glass while open
     lightbox.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLightbox(); });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeLightbox();
+      if (lightbox && lightbox.classList.contains('is-open')) {
+        if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          const nextIdx = (lbIndex + 1) % lbThumbs.length;
+          setLbActive(nextIdx);
+        }
+        if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          const prevIdx = (lbIndex - 1 + lbThumbs.length) % lbThumbs.length;
+          setLbActive(prevIdx);
+        }
+      }
+    });
     window.addEventListener('resize', () => {
       if (lbStripEl && lightbox.classList.contains('is-open')) positionPanel(lbStripEl);
     });
