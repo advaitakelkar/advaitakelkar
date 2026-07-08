@@ -53,9 +53,23 @@
   }
 
   const isUnlocked = () => sessionStorage.getItem(KEY) === PASSWORD;
+
+  const BYPASS_SLUGS = [
+    'alt-verse',
+    'architect-x-architects',
+    'future-of-dance',
+    'indian-royals',
+    'sups-cards',
+    'sups-in-the-hinterland',
+    'human-pods'
+  ];
+
   const onProjectPage = () => {
     const p = window.location.pathname.replace(/\/$/, '') || '/';
-    return p.startsWith('/projects/') && p !== '/projects';
+    if (!p.startsWith('/projects/') || p === '/projects') return false;
+    const slug = p.split('/').pop() || '';
+    if (BYPASS_SLUGS.includes(slug)) return false;
+    return true;
   };
 
   function reflectToggles() {
