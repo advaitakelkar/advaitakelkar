@@ -341,6 +341,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
               <h1 class="project-name-title" id="project-name-click">
                 <span class="project-name-main">{data.name}</span>
               </h1>
+              {category && <span class="project-category-tag">{category.data.displayName}</span>}
             </div>
             
             <div class="project-card__metaline">
@@ -486,8 +487,17 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                   </button>
                 </div>
 
-                <div class="project-detail__pagination" id="standard-pagination">
-                  1 / {allImages.length}
+                <div class="project-detail__pagination-row">
+                  <div class="project-detail__pagination" id="standard-pagination">
+                    1 / {allImages.length}
+                  </div>
+                  <div class="autoplay-timer-ring autoplay-timer-ring--mini" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24">
+                      <circle cx="12" cy="12" r="10" class="timer-ring-bg" />
+                      <circle cx="12" cy="12" r="10" class="timer-ring-progress" id="page-timer-progress-mini" />
+                      <circle cx="12" cy="2" r="2" class="timer-ring-dot" />
+                    </svg>
+                  </div>
                 </div>
                 
                 <div class="project-detail__thumbs" id="standard-thumbs">
@@ -1620,6 +1630,23 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
 
   /* ── Name & Pagination alignment row inside Left Column ── */
+  .project-detail__pagination-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-top: 12px;
+    margin-bottom: 8px;
+    box-sizing: border-box;
+  }
+
+  .project-detail__pagination {
+    font-family: var(--_tokens---font--mono);
+    font-size: var(--_tokens---type--micro);
+    color: var(--_tokens---color--muted);
+    font-weight: 600;
+  }
+
   .project-card-name-pagination-row {
     display: flex;
     justify-content: space-between; /* active-card logo left, pagination + ring right */
@@ -2796,16 +2823,16 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
   /* For standard and scarpin pages: Simple and clean fullscreen lightbox */
   /* For standard and scarpin pages: Full-size image layout with solid dark black background, matching card-page overlay background */
-  .project-detail[data-is-card="false"] ~ #card-lightbox .lightbox-bg-ambient,
+  .project-detail[data-is-card="false"] #card-lightbox .lightbox-bg-ambient,
   .project-detail[data-is-card="false"] #scarpin-lightbox .lightbox-bg-ambient {
     display: none !important;
   }
-  .project-detail[data-is-card="false"] ~ #card-lightbox .lightbox-backdrop,
+  .project-detail[data-is-card="false"] #card-lightbox .lightbox-backdrop,
   .project-detail[data-is-card="false"] #scarpin-lightbox .lightbox-backdrop {
     background-color: rgba(0, 0, 0, 0.97) !important;
   }
 
-  .project-detail[data-is-card="false"] ~ #card-lightbox .lightbox-card-container,
+  .project-detail[data-is-card="false"] #card-lightbox .lightbox-card-container,
   .project-detail[data-is-card="false"] #scarpin-lightbox .lightbox-card-container {
     aspect-ratio: auto;
     width: 90vw;
@@ -2821,7 +2848,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     perspective: none;
   }
 
-  .project-detail[data-is-card="false"] ~ #card-lightbox .lightbox-card-img,
+  .project-detail[data-is-card="false"] #card-lightbox .lightbox-card-img,
   .project-detail[data-is-card="false"] #scarpin-lightbox .lightbox-card-img {
     max-width: 100%;
     max-height: 80vh;
@@ -2831,10 +2858,10 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
 
   /* Hide card-specific overlays (name overlay, hint text, shadows/shine) on standard/scarpin lightboxes */
-  .project-detail[data-is-card="false"] ~ #card-lightbox .lightbox-card-shadow,
-  .project-detail[data-is-card="false"] ~ #card-lightbox .lightbox-card-shine,
-  .project-detail[data-is-card="false"] ~ #card-lightbox .lightbox-hint,
-  .project-detail[data-is-card="false"] ~ #card-lightbox .lightbox-name,
+  .project-detail[data-is-card="false"] #card-lightbox .lightbox-card-shadow,
+  .project-detail[data-is-card="false"] #card-lightbox .lightbox-card-shine,
+  .project-detail[data-is-card="false"] #card-lightbox .lightbox-hint,
+  .project-detail[data-is-card="false"] #card-lightbox .lightbox-name,
   .project-detail[data-is-card="false"] #scarpin-lightbox .lightbox-card-shadow,
   .project-detail[data-is-card="false"] #scarpin-lightbox .lightbox-card-shine,
   .project-detail[data-is-card="false"] #scarpin-lightbox .lightbox-name {
@@ -2842,7 +2869,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
 
   /* Keep nav arrows always visible on standard/scarpin lightboxes for desktop */
-  .project-detail[data-is-card="false"] ~ #card-lightbox .lightbox-nav-arrow,
+  .project-detail[data-is-card="false"] #card-lightbox .lightbox-nav-arrow,
   .project-detail[data-is-card="false"] #scarpin-lightbox .lightbox-nav-arrow {
     opacity: 0.75;
   }
@@ -2917,70 +2944,79 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     display: inline-block;
     width: 24px;
     height: 24px;
-    background-size: contain;
-    background-position: center;
-    background-repeat: no-repeat;
     background-color: var(--_tokens---color--fg) !important;
-    mask-image: var(--logo);
-    mask-size: contain;
-    mask-position: center;
-    mask-repeat: no-repeat;
-    -webkit-mask-image: var(--logo);
-    -webkit-mask-size: contain;
-    -webkit-mask-position: center;
-    -webkit-mask-repeat: no-repeat;
+    -webkit-mask: var(--logo) center / contain no-repeat !important;
+    mask: var(--logo) center / contain no-repeat !important;
     opacity: 1 !important;
   }
 
-  /* Collapsible prompt details and summary pill */
-  .prompt-details {
-    margin-top: 20px;
-    outline: none;
-  }
-  .prompt-summary-pill {
-    display: inline-flex;
-    align-items: center;
-    cursor: pointer;
-    padding: 2px 12px;
-    border-radius: 12px;
-    border: 1px solid var(--_tokens---color--line-soft);
+  .project-category-tag {
     font-size: var(--_tokens---type--micro);
     font-weight: 500;
-    color: var(--_tokens---color--fg);
-    background: transparent;
-    list-style: none; /* Hide default arrow */
-    transition: all 0.2s ease;
-    user-select: none;
-    outline: none;
+    color: var(--_tokens---color--muted);
+    border: 1px solid var(--_tokens---color--line-soft);
+    padding: 2px 10px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    align-self: center;
   }
-  .prompt-summary-pill::-webkit-details-marker {
-    display: none; /* Hide default Safari arrow */
-  }
-  .prompt-summary-pill:hover {
-    background: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
-    border-color: var(--_tokens---color--fg);
-  }
-  /* Open state of summary pill */
-  .prompt-details[open] .prompt-summary-pill {
-    background: var(--_tokens---color--fg);
-    color: var(--_tokens---color--bg);
-    border-color: var(--_tokens---color--fg);
-  }
-  .prompt-content {
+
+  /* Prompt code block styling */
+  .prompt-box {
     display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    background: var(--_tokens---color--bg-glass);
+    flex-direction: column;
+    background: color-mix(in srgb, var(--_tokens---color--fg) 3%, transparent);
     border: 1px solid var(--_tokens---color--line-soft);
     border-radius: 6px;
-    padding: 10px 12px;
-    margin-top: 12px;
-    gap: 12px;
-    animation: slideDown 0.2s ease-out;
+    margin-top: 20px;
+    overflow: hidden;
   }
-  @keyframes slideDown {
-    from { opacity: 0; transform: translateY(-4px); }
-    to { opacity: 1; transform: translateY(0); }
+  .prompt-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: color-mix(in srgb, var(--_tokens---color--fg) 5%, transparent);
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--_tokens---color--line-soft);
+  }
+  .prompt-header-title {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--_tokens---color--muted);
+  }
+  .copy-prompt-btn {
+    all: unset;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--_tokens---color--muted);
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+  }
+  .copy-prompt-btn:hover {
+    color: var(--_tokens---color--fg);
+    background: color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+    border-color: var(--_tokens---color--line-soft);
+  }
+  .prompt-body {
+    padding: 12px;
+  }
+  .prompt-text {
+    font-size: var(--_tokens---type--micro);
+    font-style: italic; /* Italics! */
+    font-family: var(--_tokens---font--mono);
+    color: var(--_tokens---color--fg);
+    line-height: 1.5;
+    word-break: break-word;
   }
 </style>
 
@@ -4070,12 +4106,17 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       const textEl = box?.querySelector('.prompt-text');
       if (textEl) {
         navigator.clipboard.writeText(textEl.textContent || '');
-        const oldContent = btn.innerHTML;
-        btn.innerHTML = '<span class="copied-indicator">Copied!</span>';
-        btn.style.borderColor = 'var(--_tokens---color--fg)';
+        const btnText = btn.querySelector('.copy-btn-text');
+        const oldHtml = btn.innerHTML;
+        if (btnText) {
+          btnText.textContent = 'Copied!';
+          btn.style.color = 'var(--_tokens---color--fg)';
+        } else {
+          btn.innerHTML = '<span class="copied-indicator">Copied!</span>';
+        }
         setTimeout(() => {
-          btn.innerHTML = oldContent;
-          btn.style.borderColor = 'transparent';
+          btn.innerHTML = oldHtml;
+          btn.style.color = '';
         }, 1500);
       }
     });
