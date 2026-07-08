@@ -435,14 +435,21 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                 </div>
 
                 <div class="project-people">
-                  {people.map((person) => (
-                    <div class="project-people__person">
-                      <div class="project-people__avatar">
-                        <img src={PEOPLE[person] ?? PEOPLE['Advaita Kelkar']} alt={person} loading="lazy" />
-                      </div>
-                      <span class="project-people__name">{person}</span>
-                    </div>
-                  ))}
+                  {people.map((person) => {
+                    const isCas = person === 'Casimir Esbach';
+                    const displayName = isCas ? `${person} (Professor)` : person;
+                    return (
+                      <>
+                        <div class="project-people__person">
+                          <div class="project-people__avatar">
+                            <img src={PEOPLE[person] ?? PEOPLE['Advaita Kelkar']} alt={person} loading="lazy" />
+                          </div>
+                          <span class="project-people__name">{displayName}</span>
+                        </div>
+                        {isCas && <div class="project-people__divider" aria-hidden="true" />}
+                      </>
+                    );
+                  })}
                 </div>
 
                 <div class="project-card__row project-card__row2">
@@ -950,7 +957,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       grid-column: 1 / -1;
       grid-row: 1;
       background-color: var(--_tokens---color--bg);
-      padding-top: calc(clamp(1.2rem, 3vh, 1.8rem) + 48px);
+      padding-top: calc(clamp(0.5rem, 1.5vh, 1rem) + 48px);
       padding-bottom: 12px;
       border-bottom: 1px solid var(--_tokens---color--line-soft);
       box-sizing: border-box;
@@ -1008,7 +1015,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
   .project-top-header {
     position: static;
-    padding-top: calc(clamp(2rem, 5vh, 3rem) + 48px);
+    padding-top: calc(clamp(0.5rem, 1.5vh, 1rem) + 48px);
     padding-bottom: 0;
     margin: 0 0 8px;
   }
@@ -1042,14 +1049,14 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
   @media (min-width: 1024px) {
     .project-content-grid {
-      grid-template-columns: 1fr 1fr;
-      align-items: start;
+      grid-template-columns: 4.5fr 5.5fr;
+      align-items: end;
     }
   }
 
   @media (min-width: 1200px) {
     .project-content-grid {
-      grid-template-columns: 4.5fr 5.5fr;
+      grid-template-columns: 4fr 6fr;
     }
   }
 
@@ -1253,6 +1260,14 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     }
   }
 
+  .project-people__divider {
+    width: 1px;
+    height: 40px;
+    background-color: var(--_tokens---color--line-soft);
+    align-self: center;
+    margin-inline: -4px;
+  }
+
   @media (max-width: 768px) {
     .project-people {
       display: grid;
@@ -1261,6 +1276,10 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       max-width: none;
       width: 100%;
       margin-bottom: 28px;
+    }
+
+    .project-people__divider {
+      display: none;
     }
 
     .project-people__person {
@@ -1420,7 +1439,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
 
   .project-slider-wrapper--standard .project-detail__active-wrap {
-    aspect-ratio: 16/10 !important; /* Standard landscape aspect ratio */
+    aspect-ratio: 4/3 !important; /* Taller standard aspect ratio to make images bigger */
     background: transparent;
     border: none;
     border-radius: 0;
