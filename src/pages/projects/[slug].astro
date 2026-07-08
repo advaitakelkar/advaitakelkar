@@ -448,25 +448,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
           <div class="project-content-grid">
             <div class="project-col-left">
               <div class="project-card-info">
-                <div class="project-people">
-                  {people.map((person) => {
-                    const isCas = person === 'Casimir Esbach';
-                    const isFaizan = person === 'Faizan Khatri';
-                    const displayName = isCas ? `${person} (Professor)` : person;
-                    return (
-                      <>
-                        <div class="project-people__person">
-                          <div class="project-people__avatar">
-                            <img src={PEOPLE[person] ?? PEOPLE['Advaita Kelkar']} alt={person} loading="lazy" />
-                          </div>
-                          <span class="project-people__name">{displayName}</span>
-                        </div>
-                        {(isCas || isFaizan) && <div class="project-people__divider" aria-hidden="true" />}
-                      </>
-                    );
-                  })}
-                </div>
-
+                <!-- Subtitle (Intro) & Description (aim/narrative) at the top of left column -->
                 <div class="project-card__row project-card__row2">
                   <div class="project-card__text-block">
                     {data.smallIntro && <p class="project-card__intro">{data.smallIntro}</p>}
@@ -485,6 +467,44 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                     )}
                   </div>
                 </div>
+
+                <!-- Collaborator circles (people) below the description -->
+                <div class="project-people" style="margin-top: 24px;">
+                  {people.map((person) => {
+                    const isCas = person === 'Casimir Esbach';
+                    const isFaizan = person === 'Faizan Khatri';
+                    const displayName = isCas ? `${person} (Professor)` : person;
+                    return (
+                      <>
+                        <div class="project-people__person">
+                          <div class="project-people__avatar">
+                            <img src={PEOPLE[person] ?? PEOPLE['Advaita Kelkar']} alt={person} loading="lazy" />
+                          </div>
+                          <span class="project-people__name">{displayName}</span>
+                        </div>
+                        {(isCas || isFaizan) && <div class="project-people__divider" aria-hidden="true" />}
+                      </>
+                    );
+                  })}
+                </div>
+
+                <!-- Thumbnail scrub below the people -->
+                {hasImages && (
+                  <div class="project-detail__thumbs" id="standard-thumbs" style="margin-top: 24px; margin-bottom: 24px;">
+                    {allImages.map((img, idx) => (
+                      <button
+                        type="button"
+                        class:list={[
+                          "project-detail__thumb-item",
+                          idx === 0 && "is-active"
+                        ]}
+                        data-index={idx}
+                      >
+                        <img src={img} alt={`${data.name} thumbnail ${idx + 1}`} />
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -501,7 +521,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                   </button>
                 </div>
 
-                <div class="project-detail__pagination-row">
+                <div class="project-detail__pagination-row" style="margin-top: 12px;">
                   <div class="project-detail__pagination" id="standard-pagination">
                     1 / {allImages.length}
                   </div>
@@ -512,21 +532,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                       <circle cx="12" cy="2" r="2" class="timer-ring-dot" />
                     </svg>
                   </div>
-                </div>
-                
-                <div class="project-detail__thumbs" id="standard-thumbs">
-                  {allImages.map((img, idx) => (
-                    <button
-                      type="button"
-                      class:list={[
-                        "project-detail__thumb-item",
-                        idx === 0 && "is-active"
-                      ]}
-                      data-index={idx}
-                    >
-                      <img src={img} alt={`${data.name} thumbnail ${idx + 1}`} />
-                    </button>
-                  ))}
                 </div>
               </div>
             </div>
