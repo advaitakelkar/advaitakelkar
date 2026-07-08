@@ -1,4 +1,6 @@
 ---
+import fs from 'node:fs';
+import path from 'node:path';
 import { getCollection, getEntry } from 'astro:content';
 import PageLayout from '../../layouts/PageLayout.astro';
 import { isPlaceholder, realText } from '../../lib/content';
@@ -70,6 +72,30 @@ const cardPageSlugs = [
   'human-pods'
 ];
 const isCardPage = cardPageSlugs.includes(project.id);
+const isScarpinPage = project.id === 'scarpin';
+
+// Load Scarpin image data if this is the Scarpin page
+let scarpinSliders: { folder: string; urls: string[] }[] = [];
+if (isScarpinPage) {
+  const scarpinDir = path.join(process.cwd(), 'public', 'images', 'scarpin');
+  if (fs.existsSync(scarpinDir)) {
+    const entries = fs.readdirSync(scarpinDir);
+    for (const folder of entries) {
+      if (folder.startsWith('.')) continue; // skip .DS_Store, .gitkeep
+      const folderPath = path.join(scarpinDir, folder);
+      if (fs.statSync(folderPath).isDirectory()) {
+        const files = fs.readdirSync(folderPath).filter(f => /\.(jpe?g|png|webp|gif|mp4)$/i.test(f));
+        if (files.length > 0) {
+          files.sort();
+          const urls = files.map(f => `/images/scarpin/${folder}/${f}`);
+          scarpinSliders.push({ folder, urls });
+        }
+      }
+    }
+  }
+  // Sort folders alphabetically (e.g., "01 Scarpa...", "02 Roberto...")
+  scarpinSliders.sort((a, b) => a.folder.localeCompare(b.folder));
+}
 
 // Derive a display name from an image filename (same rules as the client script)
 const cardNameFromUrl = (url: string): string => {
@@ -117,9 +143,105 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   crumbs={dynamicCrumbs}
   showFooter={!isCardPage}
 >
-    <article class="project-detail" data-project-id={project.id} data-project-name={data.name} data-is-card={isCardPage ? "true" : "false"}>
+    <article class="project-detail" data-project-id={project.id} data-project-name={data.name} data-is-card={isCardPage ? "true" : "false"} data-is-scarpin={isScarpinPage ? "true" : "false"}>
       
-      {isCardPage ? (
+      {isScarpinPage ? (
+        /* SCARPIN PAGE: 12-slider Grid */
+        <>
+          <header class="project-top-header" id="project-top-header">
+            <div class="project-header-title-row">
+              <h1 class="project-name-title" id="project-name-click">
+                <span class="project-name-main">{data.name}</span>
+              </h1>
+            </div>
+            
+            <div class="project-card__metaline">
+              {(yearLoc || data.status) && (
+                <div class="project-meta-row">
+                  <span class="project-meta-left project-card__meta-val">{yearLoc}</span>
+                  {data.status && <span class="project-meta-right project-card__meta-val">{data.status}</span>}
+                </div>
+              )}
+              {(firstTag || category) && (
+                <div class="project-meta-row">
+                  <span class="project-meta-left project-card__meta-val">{firstTag ? firstTag.data.name : ''}</span>
+                  {category && <a href={`/${category.id}`} class="category-link project-meta-right project-card__meta-val">{category.data.displayName}</a>}
+                </div>
+              )}
+            </div>
+          </header>
+          
+          <div class="scarpin-grid-container">
+            <div class="scarpin-intro">
+               {data.smallIntro && <p class="project-card__intro">{data.smallIntro}</p>}
+               {data.description && <div class="project-card__desc" set:html={data.description} />}
+            </div>
+            
+            <div class="scarpin-grid">
+              {scarpinSliders.map((slider) => {
+                // Determine clean name for display by stripping leading numbers
+                const cleanName = slider.folder.replace(/^\d+\s*/, '').trim(); 
+                return (
+                  <div class="scarpin-grid-item" data-images={JSON.stringify(slider.urls)}>
+                    <div class="scarpin-item-header">
+                      <h3 class="scarpin-item-title">{cleanName}</h3>
+                      <span class="scarpin-item-counter">1 / {slider.urls.length}</span>
+                    </div>
+                    <div class="scarpin-item-media-wrap">
+                      <button class="scarpin-nav scarpin-nav--prev" type="button" aria-label="Previous media">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                      </button>
+                      
+                      {slider.urls[0].endsWith('.mp4') ? (
+                        <video class="scarpin-media" src={slider.urls[0]} autoplay loop muted playsinline></video>
+                      ) : (
+                        <img class="scarpin-media" src={slider.urls[0]} alt={cleanName} loading="lazy" />
+                      )}
+
+                      <button class="scarpin-nav scarpin-nav--next" type="button" aria-label="Next media">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          
+          {/* Lightbox for Scarpin */}
+          <div id="scarpin-lightbox" class="card-lightbox" aria-hidden="true" style="display: none;">
+            <img class="lightbox-bg-ambient" id="scarpin-lightbox-ambient" src="" alt="" />
+            <div class="lightbox-backdrop"></div>
+            
+            <div class="lightbox-header">
+              <span class="lightbox-pagination" id="scarpin-lightbox-counter">1 / 1</span>
+              <button class="lightbox-close-btn" id="scarpin-lightbox-close" type="button" aria-label="Close lightbox">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+            
+            <div class="lightbox-perspective-wrap">
+              <div class="lightbox-card-container scarpin-lightbox-container" id="scarpin-lightbox-container">
+                <button class="lightbox-nav-arrow lightbox-nav-arrow--prev" id="scarpin-lightbox-prev" type="button" aria-label="Previous">
+                  <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </button>
+
+                <img class="lightbox-card-img" id="scarpin-lightbox-img" src="" alt="Active media" style="display: none;" />
+                <video class="lightbox-card-img" id="scarpin-lightbox-vid" src="" autoplay loop muted playsinline style="display: none;"></video>
+
+                <div class="lightbox-card-shadow"></div>
+                <div class="lightbox-card-shine"></div>
+
+                <button class="lightbox-nav-arrow lightbox-nav-arrow--next" id="scarpin-lightbox-next" type="button" aria-label="Next">
+                  <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+              </div>
+            </div>
+
+            <h2 class="lightbox-name" id="scarpin-lightbox-label"></h2>
+          </div>
+        </>
+      ) : isCardPage ? (
         /* CARD PAGES: Wrapped in Sticky Dashboard wrapper */
         <div class="project-dashboard-wrap" id="project-dashboard">
           <header class="project-top-header" id="project-top-header">
@@ -292,7 +414,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       )}
 
       <!-- STANDARD PAGE ONLY: chapter dropdowns (when defined) or Design & Making -->
-      {!isCardPage && (data.chapters?.length ?? 0) > 0 && (
+      {!isCardPage && !isScarpinPage && (data.chapters?.length ?? 0) > 0 && (
         <div class="project-chapters">
           {data.chapters.map((ch: { title: string; subtitle?: string; body: string }) => {
             const words = (ch.subtitle || ch.title).split(' ');
@@ -322,7 +444,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         </div>
       )}
 
-      {!isCardPage && !(data.chapters?.length) && (
+      {!isCardPage && !isScarpinPage && !(data.chapters?.length) && (
         <div class="project-metadata-sections">
           <section class="project-design-section">
             <div class="project-header-title-row project-design-header" id="project-design-click">
@@ -518,6 +640,147 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     gap: var(--_tokens---space-5);
     position: relative;
   }
+
+  /* ── Scarpin Page Grid Layout ── */
+  .scarpin-grid-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--_tokens---space-6);
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 12px;
+  }
+
+  .scarpin-intro {
+    width: 100%;
+    max-width: 60ch;
+    margin-bottom: 24px;
+  }
+
+  .scarpin-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 32px 24px;
+    width: 100%;
+  }
+
+  @media (min-width: 768px) {
+    .scarpin-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .scarpin-grid {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 40px 32px;
+    }
+    .scarpin-grid-container {
+      padding: 0;
+    }
+  }
+
+  .scarpin-grid-item {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .scarpin-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 0 4px;
+  }
+
+  .scarpin-item-title {
+    font-size: var(--_tokens---type--micro);
+    font-weight: 500;
+    color: var(--_tokens---color--fg);
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .scarpin-item-counter {
+    font-family: var(--_tokens---font--mono);
+    font-size: 11px;
+    color: var(--_tokens---color--muted);
+  }
+
+  .scarpin-item-media-wrap {
+    width: 100%;
+    aspect-ratio: 4/5;
+    position: relative;
+    background-color: var(--_tokens---color--bg-glass);
+    border: 1px solid var(--_tokens---color--line-soft);
+    border-radius: 6px;
+    overflow: hidden;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .scarpin-item-media-wrap:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  }
+
+  .scarpin-media {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    filter: grayscale(1);
+    opacity: 0.85;
+    transition: filter 0.3s ease, opacity 0.3s ease, transform 0.4s ease;
+  }
+
+  .scarpin-item-media-wrap:hover .scarpin-media {
+    filter: grayscale(0);
+    opacity: 1;
+    transform: scale(1.03);
+  }
+
+  .scarpin-nav {
+    all: unset;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    cursor: pointer;
+    color: #ffffff;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 50%;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+
+  .scarpin-item-media-wrap:hover .scarpin-nav {
+    opacity: 1;
+  }
+  
+  .scarpin-nav:hover {
+    background: rgba(0, 0, 0, 0.7);
+    transform: translateY(-50%) scale(1.1);
+  }
+
+  .scarpin-nav--prev {
+    left: 12px;
+  }
+
+  .scarpin-nav--next {
+    right: 12px;
+  }
+
 
   /* ── Desktop: viewport-locked layout — nothing scrolls except the deck ── */
   @media (min-width: 1024px) {
@@ -2852,6 +3115,151 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       if (e.key === 'ArrowLeft') applyPos(currentPos - 1);
       if (e.key === 'Escape' && isOpen) closeLightbox();
     });
+
+    // ── Scarpin Sliders Init ──
+    const initScarpinSliders = () => {
+      const isScarpin = document.querySelector('.project-detail')?.getAttribute('data-is-scarpin') === 'true';
+      if (!isScarpin) return;
+
+      const items = document.querySelectorAll('.scarpin-grid-item');
+      const scarpinLb = document.getElementById('scarpin-lightbox');
+      if (!scarpinLb) return;
+
+      const lbImg = document.getElementById('scarpin-lightbox-img');
+      const lbVid = document.getElementById('scarpin-lightbox-vid');
+      const lbAmbient = document.getElementById('scarpin-lightbox-ambient');
+      const lbCounter = document.getElementById('scarpin-lightbox-counter');
+      const lbLabel = document.getElementById('scarpin-lightbox-label');
+      const lbPrev = document.getElementById('scarpin-lightbox-prev');
+      const lbNext = document.getElementById('scarpin-lightbox-next');
+      const lbClose = document.getElementById('scarpin-lightbox-close');
+
+      let lbImages = [];
+      let lbPos = 0;
+      let lbTitle = '';
+      let isLbOpen = false;
+
+      const updateLightbox = () => {
+        if (lbImages.length === 0) return;
+        const url = lbImages[lbPos];
+        if (url.endsWith('.mp4')) {
+          lbImg.style.display = 'none';
+          lbVid.style.display = 'block';
+          lbVid.src = url;
+          lbAmbient.src = '';
+        } else {
+          lbVid.style.display = 'none';
+          lbVid.src = '';
+          lbImg.style.display = 'block';
+          lbImg.src = url;
+          lbAmbient.src = url;
+        }
+        lbCounter.textContent = `${lbPos + 1} / ${lbImages.length}`;
+      };
+
+      const openScarpinLightbox = (images, pos, title) => {
+        lbImages = images;
+        lbPos = pos;
+        lbTitle = title;
+        lbLabel.textContent = title;
+        updateLightbox();
+        scarpinLb.style.display = 'block';
+        setTimeout(() => {
+          scarpinLb.classList.add('is-open');
+          scarpinLb.setAttribute('aria-hidden', 'false');
+          isLbOpen = true;
+        }, 10);
+      };
+
+      const closeScarpinLightbox = () => {
+        if (!isLbOpen) return;
+        scarpinLb.classList.remove('is-open');
+        scarpinLb.setAttribute('aria-hidden', 'true');
+        isLbOpen = false;
+        setTimeout(() => {
+          scarpinLb.style.display = 'none';
+          lbVid.src = ''; // stop video playback
+        }, 400);
+      };
+
+      lbClose?.addEventListener('click', closeScarpinLightbox);
+      scarpinLb?.querySelector('.lightbox-backdrop')?.addEventListener('click', closeScarpinLightbox);
+      
+      lbPrev?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        lbPos = (lbPos - 1 + lbImages.length) % lbImages.length;
+        updateLightbox();
+      });
+      
+      lbNext?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        lbPos = (lbPos + 1) % lbImages.length;
+        updateLightbox();
+      });
+      
+      document.addEventListener('keydown', (e) => {
+        if (isLbOpen) {
+          if (e.key === 'ArrowRight') { e.stopImmediatePropagation(); lbNext.click(); }
+          if (e.key === 'ArrowLeft') { e.stopImmediatePropagation(); lbPrev.click(); }
+          if (e.key === 'Escape') { e.stopImmediatePropagation(); closeScarpinLightbox(); }
+        }
+      });
+
+      items.forEach(item => {
+        const urls = JSON.parse(item.getAttribute('data-images') || '[]');
+        if (urls.length === 0) return;
+
+        let pos = 0;
+        const counter = item.querySelector('.scarpin-item-counter');
+        const mediaWrap = item.querySelector('.scarpin-item-media-wrap');
+        const prevBtn = item.querySelector('.scarpin-nav--prev');
+        const nextBtn = item.querySelector('.scarpin-nav--next');
+        const title = item.querySelector('.scarpin-item-title').textContent;
+
+        const updateMedia = () => {
+          const url = urls[pos];
+          const existingMedia = mediaWrap.querySelector('.scarpin-media');
+          
+          let newMedia;
+          if (url.endsWith('.mp4')) {
+            newMedia = document.createElement('video');
+            newMedia.className = 'scarpin-media';
+            newMedia.src = url;
+            newMedia.autoplay = true;
+            newMedia.loop = true;
+            newMedia.muted = true;
+            newMedia.playsInline = true;
+          } else {
+            newMedia = document.createElement('img');
+            newMedia.className = 'scarpin-media';
+            newMedia.src = url;
+            newMedia.loading = 'lazy';
+            newMedia.alt = title;
+          }
+          
+          existingMedia.replaceWith(newMedia);
+          counter.textContent = `${pos + 1} / ${urls.length}`;
+        };
+
+        prevBtn?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          pos = (pos - 1 + urls.length) % urls.length;
+          updateMedia();
+        });
+
+        nextBtn?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          pos = (pos + 1) % urls.length;
+          updateMedia();
+        });
+
+        mediaWrap?.addEventListener('click', () => {
+          openScarpinLightbox(urls, pos, title);
+        });
+      });
+    };
+
+    initScarpinSliders();
 
     // Metadata collapser
     const wireCollapse = (sect: Element | null, headerId: string, toggleId: string, panelId: string) => {
