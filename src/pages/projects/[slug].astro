@@ -425,6 +425,9 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
           <!-- Top row: timer ring left, pagination centered, close right -->
           <div class="lightbox-header lightbox-header--deck">
             <span class="lightbox-pagination lightbox-pagination--deck" id="lightbox-counter">1 / {allImages.length}</span>
+            <div class="lightbox-scrubber" id="lightbox-scrubber" role="slider" aria-label="Scrub through cards">
+              <div class="lightbox-scrubber__fill" id="lightbox-scrubber-fill"></div>
+            </div>
             <div class="autoplay-timer-ring lightbox-header__ring" aria-hidden="true">
               <svg width="100%" height="100%" viewBox="0 0 24 24">
                 <circle cx="12" cy="12" r="10" class="timer-ring-bg" />
@@ -1744,19 +1747,71 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     }
   }
 
+  .lightbox-header--deck {
+    grid-template-columns: auto 1fr auto auto;
+    gap: 20px;
+  }
+
   .lightbox-header--deck .lightbox-pagination--deck {
     justify-self: start;
   }
 
   .lightbox-header--deck .lightbox-header__ring {
     position: static;
-    justify-self: center;
-    width: 48px;
-    height: 48px;
+    justify-self: end;
+    width: 36px;
+    height: 36px;
   }
 
   .lightbox-header--deck .lightbox-close-btn {
     justify-self: end;
+  }
+
+  /* ── Scrubber: thin track between pagination and timer — click/drag to
+     jump anywhere in the deck instantly ── */
+  .lightbox-scrubber {
+    position: relative;
+    align-self: center;
+    height: 28px; /* generous hit area around the 2px track */
+    pointer-events: auto;
+    cursor: pointer;
+    touch-action: none;
+  }
+
+  .lightbox-scrubber::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 2px;
+    border-radius: 1px;
+    background-color: rgba(255, 255, 255, 0.18);
+  }
+
+  .lightbox-scrubber__fill {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 2px;
+    width: 0%;
+    border-radius: 1px;
+    background-color: rgba(255, 255, 255, 0.75);
+    transition: width 0.15s ease;
+  }
+
+  .lightbox-scrubber__fill::after {
+    content: '';
+    position: absolute;
+    right: -5px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #ffffff;
   }
 
   .lightbox-close-btn {
@@ -2334,6 +2389,9 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       resetTimerRing();
       updateScrubActiveState();
 
+      const scrubFill = document.getElementById('lightbox-scrubber-fill');
+      if (scrubFill) scrubFill.style.width = `${(currentPos / Math.max(order.length - 1, 1)) * 100}%`;
+
       if (scrollDeck && isOpen) scrollDeckTo(currentPos);
     };
 
@@ -2445,6 +2503,31 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       if (img.complete && img.naturalWidth === 0) { requestAnimationFrame(() => dropCard(idx)); return; }
       img.addEventListener('error', () => dropCard(idx));
     });
+
+    // ── Header scrubber: click/drag jumps through the deck instantly ──
+    const scrubberEl = document.getElementById('lightbox-scrubber');
+    if (scrubberEl) {
+      const scrubTo = (clientX: number) => {
+        const rect = scrubberEl.getBoundingClientRect();
+        const t = Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1);
+        const pos = Math.round(t * (order.length - 1));
+        if (pos !== currentPos) {
+          goToPos(pos);
+          updateDisplay(false);
+          scrollDeckTo(currentPos, 'instant' as ScrollBehavior);
+        }
+      };
+      scrubberEl.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        scrubberEl.setPointerCapture(e.pointerId);
+        stopAutoplay();
+        scrubTo(e.clientX);
+      });
+      scrubberEl.addEventListener('pointermove', (e) => {
+        if (scrubberEl.hasPointerCapture && scrubberEl.hasPointerCapture(e.pointerId)) scrubTo(e.clientX);
+      });
+      scrubberEl.addEventListener('pointerup', () => startAutoplay());
+    }
 
     updateDisplay(false);
     startAutoplay();
