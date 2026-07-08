@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { getCollection, getEntry } from 'astro:content';
 import PageLayout from '../../layouts/PageLayout.astro';
-import { isPlaceholder, realText } from '../../lib/content';
+import { isPlaceholder, realText, publicFileExists } from '../../lib/content';
 
 export async function getStaticPaths() {
   const projects = await getCollection('projects');
@@ -160,6 +160,9 @@ const cardNameFromUrl = (url: string): string => {
   return name || data.name;
 };
 const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
+
+// Download pills (Summary / Book, …) — only surface the ones whose PDF exists.
+const downloads = (data.downloads ?? []).filter(d => publicFileExists(d.href));
 
 // ── Superhero logos (sups-cards / sups-in-the-hinterland) ──
 // DC + Marvel publisher logos keep their color; character/team logos render
@@ -447,6 +450,16 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                     {data.smallIntro && <p class="project-card__intro">{data.smallIntro}</p>}
                     {data.description && (
                       <div class="project-card__desc" set:html={data.description} />
+                    )}
+                    {downloads.length > 0 && (
+                      <div class="project-downloads">
+                        {downloads.map(d => (
+                          <a class="project-download-pill" href={d.href} download target="_blank" rel="noopener">
+                            <span>{d.label}</span>
+                            <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+                          </a>
+                        ))}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -1085,6 +1098,9 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     line-height: 1.55;
     color: var(--_tokens---color--fg);
     margin: 0;
+    /* Hairline separating the subtitle from the summary below it */
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--_tokens---color--line-soft);
     transition: font-size 0.3s ease;
   }
 
@@ -1095,6 +1111,45 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     color: var(--_tokens---color--muted);
     margin: 0;
     transition: opacity 0.3s ease, max-height 0.3s ease;
+  }
+
+  /* ── Download pills (Summary / Book) ── */
+  .project-downloads {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 4px;
+  }
+
+  .project-download-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border: 1px solid var(--_tokens---color--line);
+    border-radius: 999px;
+    font-size: var(--_tokens---type--micro);
+    font-weight: 500;
+    color: var(--_tokens---color--fg);
+    text-decoration: none;
+    background: transparent;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .project-download-pill svg {
+    width: 0.85em;
+    height: 0.85em;
+    transition: transform 0.25s ease;
+  }
+
+  .project-download-pill:hover {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
+  }
+
+  .project-download-pill:hover svg {
+    transform: translate(2px, -2px);
   }
 
   .project-card__desc :global(p) {
@@ -1127,23 +1182,23 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
-    gap: 20px;
+    gap: 24px;
     width: 100%;
     margin-top: 24px;
-    margin-bottom: 24px;
+    margin-bottom: 44px; /* room for the name that drops below on hover/click */
   }
 
   .project-people__person {
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     align-items: center;
-    gap: 8px;
     cursor: pointer;
+    position: relative;
   }
 
   .project-people__avatar {
-    width: 36px;
-    height: 36px;
+    width: 72px; /* 2× the previous 36px */
+    height: 72px;
     border-radius: 50%;
     overflow: hidden;
     flex-shrink: 0;
@@ -1160,21 +1215,42 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     transition: filter 0.2s ease, opacity 0.2s ease;
   }
 
+  /* Name is hidden by default; drops in below the circle on hover or click */
   .project-people__name {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translate(-50%, -4px);
     font-size: var(--_tokens---type--micro);
     color: var(--_tokens---color--fg);
+    text-align: center;
+    line-height: 1.15;
     white-space: nowrap;
-    opacity: 0.7;
-    transition: opacity 0.2s ease;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 10;
   }
 
-  .project-people__person:hover .project-people__avatar img {
+  .project-people__person.is-active .project-people__avatar img {
     filter: grayscale(0);
     opacity: 1;
   }
 
-  .project-people__person:hover .project-people__name {
+  .project-people__person.is-active .project-people__name {
     opacity: 1;
+    transform: translate(-50%, 0);
+  }
+
+  @media (hover: hover) {
+    .project-people__person:hover .project-people__avatar img {
+      filter: grayscale(0);
+      opacity: 1;
+    }
+    .project-people__person:hover .project-people__name {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
   }
 
   @media (max-width: 768px) {

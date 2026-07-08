@@ -67,6 +67,12 @@ const projects = defineCollection({
       subtitle: z.string().optional(),
       body: z.string(),
     })).optional(),
+    // Download pills (e.g. Summary / Book PDFs) shown under the summary. Each
+    // pill only renders once its file exists in public/ (publicFileExists).
+    downloads: z.array(z.object({
+      label: z.string(),
+      href: z.string(),
+    })).optional(),
     tags: z.array(reference('tags')).optional(),
     category: reference('categories').optional(),
   }),
