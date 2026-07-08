@@ -42,11 +42,17 @@ const PEOPLE: Record<string, string> = {
   'Devarsh Deth':    '/images/people/devarsh-deth.jpeg',
   'Dhruv Chavan':    '/images/people/dhruv-chavan.png',
 };
-const people: string[] = data.people?.length 
-  ? data.people 
-  : (category?.id === 'work' 
-      ? ['Samir Raut', 'Faizan Khatri', 'Advaita Kelkar'] 
-      : ['Advaita Kelkar']);
+// Samir Raut is Studio 823-only; Faizan Khatri appears on both his own tab and
+// Studio 823's — never default Samir onto an FKD-tagged (or untagged) work page.
+const isStudio823Tag = tags.some(t => t?.id === 'studio-823');
+const isFkdTag = tags.some(t => t?.id === 'faizan-khatri');
+const people: string[] = data.people?.length
+  ? data.people
+  : isStudio823Tag
+    ? ['Samir Raut', 'Faizan Khatri', 'Advaita Kelkar']
+    : isFkdTag
+      ? ['Faizan Khatri', 'Advaita Kelkar']
+      : ['Advaita Kelkar'];
 
 // Build dynamic breadcrumbs based on category structure
 const dynamicCrumbs = [ { label: 'Home', href: '/' } ];
@@ -347,16 +353,16 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         </>
       ) : isCardPage ? (
         /* CARD PAGES: Wrapped in Sticky Dashboard wrapper */
-        <div class:list={["project-dashboard-wrap", category?.id === 'work' && "is-expanded"]} id="project-dashboard">
+        <div class="project-dashboard-wrap" id="project-dashboard">
           <header class="project-top-header" id="project-top-header">
             <div class="project-header-title-row" id="project-name-header">
               <h1 class="project-name-title" id="project-name-click">
                 <span class="project-name-main">{data.name}</span>
               </h1>
               {category?.id === 'work' && (
-                <button class="project-detail-collapse-btn" id="project-name-toggle" type="button" aria-expanded="true" aria-label="Toggle project details">
-                  <svg class="toggle-icon-minus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
-                  <svg class="toggle-icon-plus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" style="display: none;"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+                <button class="project-detail-collapse-btn" id="project-name-toggle" type="button" aria-expanded="false" aria-label="Toggle project details">
+                  <svg class="toggle-icon-minus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" style="display: none;"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+                  <svg class="toggle-icon-plus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
                 </button>
               )}
             </div>
@@ -399,11 +405,15 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                       </button>
                     )}
                     <div class:list={["project-people", category?.id === 'work' && "project-people--collapsible"]} id="project-people-panel" style="margin-top: 20px;">
-                    {people.map((person) => {
+                    {people.map((person, idx) => {
                       const isCas = person === 'Casimir Esbach';
                       const isFaizan = person === 'Faizan Khatri';
                       const isDhruv = person === 'Dhruv Chavan';
                       const displayName = isCas ? `${person} (Professor)` : isDhruv ? `${person} (Mumbai Workshop)` : person;
+                      // Friends (Devarsh, Dhruv) always sit to the right of the divider,
+                      // regardless of who they follow.
+                      const isFriend = (p: string) => p === 'Devarsh Deth' || p === 'Dhruv Chavan';
+                      const showDivider = isCas || isFaizan || (!isFriend(person) && isFriend(people[idx + 1]));
                       return (
                         <>
                           <div class="project-people__person">
@@ -412,7 +422,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                             </div>
                             <span class="project-people__name">{displayName}</span>
                           </div>
-                          {(isCas || isFaizan) && <div class="project-people__divider" aria-hidden="true" />}
+                          {showDivider && <div class="project-people__divider" aria-hidden="true" />}
                         </>
                       );
                     })}
@@ -551,11 +561,15 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
                 <!-- Collaborator circles (people) below the description -->
                 <div class="project-people" style="margin-top: 24px;">
-                  {people.map((person) => {
+                  {people.map((person, idx) => {
                     const isCas = person === 'Casimir Esbach';
                     const isFaizan = person === 'Faizan Khatri';
                     const isDhruv = person === 'Dhruv Chavan';
                     const displayName = isCas ? `${person} (Professor)` : isDhruv ? `${person} (Mumbai Workshop)` : person;
+                    // Friends (Devarsh, Dhruv) always sit to the right of the divider,
+                    // regardless of who they follow.
+                    const isFriend = (p: string) => p === 'Devarsh Deth' || p === 'Dhruv Chavan';
+                    const showDivider = isCas || isFaizan || (!isFriend(person) && isFriend(people[idx + 1]));
                     return (
                       <>
                         <div class="project-people__person">
@@ -564,7 +578,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                           </div>
                           <span class="project-people__name">{displayName}</span>
                         </div>
-                        {(isCas || isFaizan) && <div class="project-people__divider" aria-hidden="true" />}
+                        {showDivider && <div class="project-people__divider" aria-hidden="true" />}
                       </>
                     );
                   })}
@@ -1602,30 +1616,29 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     }
 
     .project-detail[data-category="work"] .project-header-title-row {
-      position: sticky;
-      top: 0;
-      z-index: 50;
-      background-color: var(--_tokens---color--bg);
-      padding: calc(12px + env(safe-area-inset-top)) 0 8px;
-      border-bottom: 1px solid var(--_tokens---color--line-soft);
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-      box-sizing: border-box;
+      /* Sticky positioning + background live in the shared, all-viewport
+         tab-header rule below — this only adds the notch-safe top padding. */
+      padding-top: calc(12px + env(safe-area-inset-top));
     }
 
   }
 
   /* The project name is the first toggle dropdown (same left-label + arrow
-     pattern as Design/Making below it, on every viewport): clicking it
-     collapses everything except the always-visible title + metaline. */
-  .project-detail[data-category="work"] .project-content-grid--card {
-    max-height: 3000px;
-    opacity: 1;
-    overflow: hidden;
-    transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
-  }
-  .project-detail[data-category="work"] .project-dashboard-wrap:not(.is-expanded) .project-content-grid--card {
-    max-height: 0;
-    opacity: 0;
+     pattern as Design/Making below it, on every viewport, and — like them —
+     collapsed by default): clicking it reveals everything else (description,
+     people, image, pagination, scrub) below the always-visible title + metaline.
+     .project-content-grid--card is display:contents on desktop (≥1024px, so its
+     children can sit directly in the outer page grid) and .project-col-left is
+     display:contents on the mobile single-column reorder — neither renders a box
+     of its own to collapse, so every actual rendered piece is targeted directly. */
+  .project-detail[data-category="work"] .project-dashboard-wrap:not(.is-expanded) .project-card__row2,
+  .project-detail[data-category="work"] .project-dashboard-wrap:not(.is-expanded) .project-credits-btn,
+  .project-detail[data-category="work"] .project-dashboard-wrap:not(.is-expanded) .project-people,
+  .project-detail[data-category="work"] .project-dashboard-wrap:not(.is-expanded) .project-card-name-pagination-row,
+  .project-detail[data-category="work"] .project-dashboard-wrap:not(.is-expanded) .deck-grid--mobile-scrub,
+  .project-detail[data-category="work"] .project-dashboard-wrap:not(.is-expanded) .project-col-right,
+  .project-detail[data-category="work"] .project-dashboard-wrap:not(.is-expanded) .card-deck-section {
+    display: none !important;
   }
 
 
@@ -2208,6 +2221,29 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     width: 40px;
     height: 40px;
     flex-shrink: 0;
+  }
+
+  /* Simple tab UI, not cards: no box-shadow/elevation anywhere — each of the
+     three headers (name, Design, Making) gets exactly one border directly
+     beneath it, replacing the section's separate border-top so there's
+     never a doubled-up line between two adjacent headers. */
+  .project-detail[data-category="work"] .project-design-section,
+  .project-detail[data-category="work"] .project-making-section {
+    border-top: none;
+  }
+  /* Each tab's header sticks to the top of the viewport while its own
+     content scrolls past underneath — only one tab is open at a time
+     (see wireWorkAccordion), so at most one is meaningfully "stuck" at once. */
+  .project-detail[data-category="work"] .project-header-title-row,
+  .project-detail[data-category="work"] .project-design-header,
+  .project-detail[data-category="work"] .project-making-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background-color: var(--_tokens---color--bg);
+    border-bottom: 1px solid var(--_tokens---color--line-soft);
+    padding-bottom: 12px;
+    box-sizing: border-box;
   }
 
   .project-detail[data-category="work"] .project-detail-collapse-btn svg {
@@ -3820,11 +3856,17 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     }
 
     // Design/Making collapse (card pages render these too, but initStandardSlider
-    // — where this used to be wired — never runs here) + the work-category
-    // project name's own toggle, sharing the same is-expanded mechanism.
-    wireCollapse(document.querySelector('.project-design-section'), 'project-design-click', 'project-design-toggle', 'project-design-panel');
-    wireCollapse(document.querySelector('.project-making-section'), 'project-making-click', 'project-making-toggle', 'project-making-panel');
-    wireCollapse(document.getElementById('project-dashboard'), 'project-name-header', 'project-name-toggle', 'project-name-panel');
+    // — where this used to be wired — never runs here). Work-category pages get
+    // the 3-way single-open accordion (name/Design/Making); other card pages
+    // (freelancer, original card sets) keep Design/Making independent, with no
+    // name toggle since that button only renders for work pages.
+    const isWorkCategory = document.querySelector('.project-detail')?.getAttribute('data-category') === 'work';
+    if (isWorkCategory) {
+      wireWorkAccordion();
+    } else {
+      wireCollapse(document.querySelector('.project-design-section'), 'project-design-click', 'project-design-toggle', 'project-design-panel');
+      wireCollapse(document.querySelector('.project-making-section'), 'project-making-click', 'project-making-toggle', 'project-making-panel');
+    }
 
     // Work-category mobile: "Credits" pill reveals the people row
     const creditsBtn = document.getElementById('project-credits-btn');
@@ -4415,6 +4457,74 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     toggleBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       toggleSection();
+    });
+  }
+
+  // Work-category pages: the project name / Design / Making tabs act as one
+  // accordion — only one open at a time (opening one closes the other two),
+  // a single click toggles just that tab, and a double click opens or closes
+  // all three together. Each tab's own header sticks to the top of the
+  // viewport (CSS: position:sticky) while its content is being scrolled.
+  function wireWorkAccordion() {
+    type Entry = { sect: Element; headerId: string; toggleId: string };
+    const candidates: Entry[] = [
+      { sect: document.getElementById('project-dashboard'), headerId: 'project-name-header', toggleId: 'project-name-toggle' },
+      { sect: document.querySelector('.project-design-section'), headerId: 'project-design-click', toggleId: 'project-design-toggle' },
+      { sect: document.querySelector('.project-making-section'), headerId: 'project-making-click', toggleId: 'project-making-toggle' },
+    ].filter((e): e is Entry => !!e.sect);
+
+    const setExpanded = (entry: Entry, expanded: boolean) => {
+      entry.sect.classList.toggle('is-expanded', expanded);
+      const toggleBtn = entry.sect.querySelector(`#${entry.toggleId}`);
+      if (!toggleBtn) return;
+      toggleBtn.setAttribute('aria-expanded', String(expanded));
+      const iconMinus = toggleBtn.querySelector('.toggle-icon-minus') as HTMLElement | null;
+      const iconPlus = toggleBtn.querySelector('.toggle-icon-plus') as HTMLElement | null;
+      if (iconMinus && iconPlus) {
+        iconMinus.style.display = expanded ? 'block' : 'none';
+        iconPlus.style.display = expanded ? 'none' : 'block';
+      }
+    };
+
+    // Pass null to close every tab.
+    const openOnly = (target: Entry | null) => {
+      candidates.forEach(entry => setExpanded(entry, entry === target));
+    };
+
+    const toggleAll = () => {
+      const allOpen = candidates.every(entry => entry.sect.classList.contains('is-expanded'));
+      candidates.forEach(entry => setExpanded(entry, !allOpen));
+    };
+
+    candidates.forEach(entry => {
+      const header = entry.sect.querySelector(`#${entry.headerId}`);
+      const toggleBtn = entry.sect.querySelector(`#${entry.toggleId}`);
+      if (!header || !toggleBtn) return;
+
+      // A double click fires click, click, dblclick — delay the single-click
+      // action just long enough to cancel it if a second click follows.
+      let clickTimer: number | null = null;
+
+      const onClick = (e: Event) => {
+        e.stopPropagation();
+        if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; return; }
+        clickTimer = window.setTimeout(() => {
+          clickTimer = null;
+          const wasExpanded = entry.sect.classList.contains('is-expanded');
+          openOnly(wasExpanded ? null : entry);
+        }, 250);
+      };
+
+      const onDblClick = (e: Event) => {
+        e.stopPropagation();
+        if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; }
+        toggleAll();
+      };
+
+      header.addEventListener('click', onClick);
+      toggleBtn.addEventListener('click', onClick);
+      header.addEventListener('dblclick', onDblClick);
+      toggleBtn.addEventListener('dblclick', onDblClick);
     });
   }
 
