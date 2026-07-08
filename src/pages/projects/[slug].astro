@@ -353,16 +353,16 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         </>
       ) : isCardPage ? (
         /* CARD PAGES: Wrapped in Sticky Dashboard wrapper */
-        <div class="project-dashboard-wrap" id="project-dashboard">
+        <div class:list={["project-dashboard-wrap", category?.id === 'work' && "is-expanded"]} id="project-dashboard">
           <header class="project-top-header" id="project-top-header">
             <div class="project-header-title-row" id="project-name-header">
               <h1 class="project-name-title" id="project-name-click">
                 <span class="project-name-main">{data.name}</span>
               </h1>
               {category?.id === 'work' && (
-                <button class="project-detail-collapse-btn" id="project-name-toggle" type="button" aria-expanded="false" aria-label="Toggle project details">
-                  <svg class="toggle-icon-minus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" style="display: none;"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
-                  <svg class="toggle-icon-plus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+                <button class="project-detail-collapse-btn" id="project-name-toggle" type="button" aria-expanded="true" aria-label="Toggle project details">
+                  <svg class="toggle-icon-minus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+                  <svg class="toggle-icon-plus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" style="display: none;"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
                 </button>
               )}
             </div>
@@ -449,9 +449,9 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                 </div>
 
                 <!-- Work-category pages only: single-row scrub right below the
-                     pagination (mobile only — desktop keeps the deck grid below
-                     the image, matching #deck-grid so it shares its click/active
-                     wiring; hidden on desktop so it doesn't duplicate that grid). -->
+                     pagination, mobile only (desktop uses the left-column deck
+                     grid below instead, matching #deck-grid so it shares its
+                     click/active wiring; hidden on desktop to avoid duplicating it). -->
                 {hasImages && category?.id === 'work' && (
                   <div class="deck-grid deck-grid--mobile-scrub" id="deck-grid-mobile-scrub">
                     {allImages.map((img, idx) => (
@@ -467,6 +467,40 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                       </button>
                     ))}
                   </div>
+                )}
+
+                <!-- Work-category pages only, desktop: the deck grid sits in the
+                     left column beside the image, same as the alt-verse-style card
+                     pages — hidden on mobile in favour of the compact scrub above. -->
+                {hasImages && category?.id === 'work' && (
+                  <section class="card-deck-section card-deck-section--work-left">
+                    <div class="deck-grid" id="deck-grid" data-images={JSON.stringify(allImages)}>
+                      {allImages.map((img, idx) => {
+                        const filename = img.substring(img.lastIndexOf('/') + 1);
+                        const ext = filename.substring(filename.lastIndexOf('.'));
+                        let name = filename.slice(0, filename.length - ext.length);
+                        name = name.replace(/^ADVT_[A-Z_]+_/, '').replace(/^ADVT_SP_\s*/, '').trim();
+                        name = name.replace(/\s+\d+\s*$/, '').replace(/\s*\d+$/, '').trim();
+                        const logo = logoFor(img);
+                        return (
+                          <button
+                            type="button"
+                            class:list={["deck-card-item", idx === 0 && "is-active"]}
+                            data-index={idx}
+                            data-logo={logo?.src}
+                            aria-label={`Open card ${name}`}
+                          >
+                            <div class="deck-card-inner">
+                              <img src={img} alt={name} loading="lazy" />
+                              {logo && <span class="deck-card-logo" style={`--logo: url('${logo.src}')`} aria-hidden="true"></span>}
+                              <div class="deck-card-glow"></div>
+                              <div class="deck-card-label">{name}</div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
                 )}
               </div>
             </div>
@@ -727,8 +761,10 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         </div>
       )}
 
-      <!-- CARD DECK SECTION ONLY (visible at the bottom on mobile, inside left column on desktop) -->
-      {hasImages && isCardPage && (
+      <!-- CARD DECK SECTION ONLY (visible at the bottom on mobile, inside left column on
+           desktop) — work-category pages render their own copy inside .project-col-left
+           instead (left of the image, alt-verse style), so this is freelancer/original-card-set only. -->
+      {hasImages && isCardPage && category?.id !== 'work' && (
         <section class="card-deck-section">
           <div class="deck-grid" id="deck-grid" data-images={JSON.stringify(allImages)}>
             {allImages.map((img, idx) => {
@@ -2266,13 +2302,31 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     flex-shrink: 0;
   }
 
+  /* Work-category pages: the deck grid lives in .project-col-left now (left
+     of the image, alt-verse style) instead of the old locked desktop grid —
+     on mobile the compact one-row scrub above the pagination replaces it. */
+  @media (max-width: 768px) {
+    .project-detail[data-category="work"] .card-deck-section {
+      display: none !important;
+    }
+  }
+  .project-detail[data-category="work"] .card-deck-section--work-left {
+    width: 100%;
+    margin-top: 16px;
+  }
+
   /* Simple tab UI, not cards: no box-shadow/elevation anywhere — each of the
      three headers (name, Design, Making) gets exactly one border directly
      beneath it, replacing the section's separate border-top so there's
-     never a doubled-up line between two adjacent headers. */
+     never a doubled-up line between two adjacent headers. Design/Making no
+     longer carry the old space-3 margin+padding either — that made the gap
+     above each closed tab much bigger than the 12px gap below it; now the
+     header's own uniform 12px top/bottom padding is the only spacing. */
   .project-detail[data-category="work"] .project-design-section,
   .project-detail[data-category="work"] .project-making-section {
     border-top: none;
+    padding-top: 0;
+    margin-top: 0;
   }
   /* The metaline sits right under the name tab's own border-bottom when
      open — its own separate border-top would double that line. */
@@ -2281,7 +2335,9 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
   /* Each tab's header sticks to the top of the viewport while its own
      content scrolls past underneath — only one tab is open at a time
-     (see wireWorkAccordion), so at most one is meaningfully "stuck" at once. */
+     (see wireWorkAccordion), so at most one is meaningfully "stuck" at once.
+     Equal 12px above and below the label on every one of the three tabs,
+     on both mobile and desktop. */
   .project-detail[data-category="work"] .project-header-title-row,
   .project-detail[data-category="work"] .project-design-header,
   .project-detail[data-category="work"] .project-making-header {
@@ -2290,6 +2346,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     z-index: 50;
     background-color: var(--_tokens---color--bg);
     border-bottom: 1px solid var(--_tokens---color--line-soft);
+    padding-top: 12px;
     padding-bottom: 12px;
     box-sizing: border-box;
   }
@@ -3070,11 +3127,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     .project-card__desc::-webkit-scrollbar {
       display: none;
     }
-    /* Work-category pages show the mobile scrub right under the pagination
-       instead — hide the full deck grid at the bottom to avoid duplicating it. */
-    .project-detail[data-category="work"] .card-deck-section {
-      display: none;
-    }
 
     /* Work-category pages: single column instead of side-by-side — text/people
        on top, then the image, then the pagination + scrub. .project-col-left
@@ -3787,6 +3839,44 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         startAutoplay();
       });
     });
+
+    // Mobile scrub: dragging a finger across the strip live-previews each
+    // image under it (same "hover scrub" feel as the category-page thumb
+    // strips), instead of needing a separate tap per image.
+    if (mobileScrub) {
+      const thumbIndexAtX = (clientX: number): number | null => {
+        const items = Array.from(mobileScrub.querySelectorAll<HTMLElement>('.deck-card-item'));
+        if (!items.length) return null;
+        for (const item of items) {
+          const r = item.getBoundingClientRect();
+          if (clientX >= r.left && clientX <= r.right) {
+            return parseInt(item.getAttribute('data-index') || '-1', 10);
+          }
+        }
+        const firstRect = items[0].getBoundingClientRect();
+        if (clientX < firstRect.left) return parseInt(items[0].getAttribute('data-index') || '-1', 10);
+        const lastRect = items[items.length - 1].getBoundingClientRect();
+        if (clientX > lastRect.right) return parseInt(items[items.length - 1].getAttribute('data-index') || '-1', 10);
+        return null;
+      };
+      const scrubTo = (clientX: number) => {
+        const idx = thumbIndexAtX(clientX);
+        if (idx !== null && idx !== currentIdx) {
+          goToPos(order.indexOf(idx));
+          updateDisplay(true);
+        }
+      };
+      mobileScrub.addEventListener('pointerdown', (e) => {
+        mobileScrub.setPointerCapture(e.pointerId);
+        stopAutoplay();
+        scrubTo(e.clientX);
+      });
+      mobileScrub.addEventListener('pointermove', (e) => {
+        if (mobileScrub.hasPointerCapture && mobileScrub.hasPointerCapture(e.pointerId)) scrubTo(e.clientX);
+      });
+      mobileScrub.addEventListener('pointerup', () => startAutoplay());
+      mobileScrub.addEventListener('pointercancel', () => startAutoplay());
+    }
 
     closeBtn?.addEventListener('click', closeLightbox);
     lightbox.querySelector('.lightbox-backdrop')?.addEventListener('click', closeLightbox);
