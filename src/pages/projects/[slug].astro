@@ -75,7 +75,7 @@ const isCardPage = cardPageSlugs.includes(project.id);
 const isScarpinPage = project.id === 'scarpin';
 
 // Load Scarpin image data if this is the Scarpin page
-let scarpinSliders: { folder: string; urls: string[] }[] = [];
+let scarpinSliders: { folder: string; cleanName: string; personName: string; avatar: string | null; urls: string[] }[] = [];
 if (isScarpinPage) {
   const scarpinDir = path.join(process.cwd(), 'public', 'images', 'scarpin');
   if (fs.existsSync(scarpinDir)) {
@@ -88,7 +88,31 @@ if (isScarpinPage) {
         if (files.length > 0) {
           files.sort();
           const urls = files.map(f => `/images/scarpin/${folder}/${f}`);
-          scarpinSliders.push({ folder, urls });
+          
+          let cleanName = folder.replace(/^\d+\s*/, '').trim();
+          let personName = '';
+          const dashIdx = cleanName.lastIndexOf('-');
+          if (dashIdx !== -1) {
+            personName = cleanName.substring(dashIdx + 1).trim();
+            cleanName = cleanName.substring(0, dashIdx).trim();
+          }
+
+          let avatar = null;
+          if (personName) {
+            const searchName = personName.toLowerCase().replace(/[^a-z]/g, '');
+            for (const [key, val] of Object.entries(PEOPLE)) {
+              if (key.toLowerCase().replace(/[^a-z]/g, '') === searchName) {
+                avatar = val;
+                personName = key;
+                break;
+              }
+            }
+            if (!avatar) {
+              personName = personName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+            }
+          }
+
+          scarpinSliders.push({ folder, cleanName, personName, avatar, urls });
         }
       }
     }
@@ -178,29 +202,51 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
             </div>
             
             <div class="scarpin-grid">
-              {scarpinSliders.map((slider) => {
-                // Determine clean name for display by stripping leading numbers
-                const cleanName = slider.folder.replace(/^\d+\s*/, '').trim(); 
+              {scarpinSliders.map((slider, idx) => {
                 return (
-                  <div class="scarpin-grid-item" data-images={JSON.stringify(slider.urls)}>
+                  <div class="scarpin-grid-item" data-images={JSON.stringify(slider.urls)} data-index={idx}>
                     <div class="scarpin-item-header">
-                      <h3 class="scarpin-item-title">{cleanName}</h3>
-                      <span class="scarpin-item-counter">1 / {slider.urls.length}</span>
+                      <h3 class="scarpin-item-title">{slider.cleanName}</h3>
                     </div>
                     <div class="scarpin-item-media-wrap">
-                      <button class="scarpin-nav scarpin-nav--prev" type="button" aria-label="Previous media">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                      </button>
-                      
                       {slider.urls[0].endsWith('.mp4') ? (
-                        <video class="scarpin-media" src={slider.urls[0]} autoplay loop muted playsinline></video>
+                        <video class="scarpin-media scarpin-media--active" src={slider.urls[0]} autoplay loop muted playsinline></video>
                       ) : (
-                        <img class="scarpin-media" src={slider.urls[0]} alt={cleanName} loading="lazy" />
+                        <img class="scarpin-media scarpin-media--active" src={slider.urls[0]} alt={slider.cleanName} loading="lazy" />
                       )}
+                    </div>
+                    
+                    <div class="scarpin-thumbnails">
+                      {slider.urls.map((u, i) => (
+                        <button type="button" class={`scarpin-thumb ${i === 0 ? 'is-active' : ''}`} data-thumb-index={i} aria-label={`View media ${i + 1}`}>
+                          {u.endsWith('.mp4') ? (
+                            <video src={u} muted playsinline></video>
+                          ) : (
+                            <img src={u} alt="" loading="lazy" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
 
-                      <button class="scarpin-nav scarpin-nav--next" type="button" aria-label="Next media">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                      </button>
+                    <div class="scarpin-item-footer">
+                      <div class="scarpin-person">
+                        {slider.avatar ? (
+                          <img class="scarpin-avatar" src={slider.avatar} alt={slider.personName} loading="lazy" />
+                        ) : (
+                          <div class="scarpin-avatar scarpin-avatar--placeholder"></div>
+                        )}
+                        <span class="scarpin-person-name">{slider.personName}</span>
+                      </div>
+                      
+                      <div class="scarpin-pagination-wrap">
+                        <div class="autoplay-timer-ring autoplay-timer-ring--mini">
+                          <svg width="20" height="20" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10" class="timer-ring-bg" />
+                            <circle cx="12" cy="12" r="10" class="timer-ring-progress scarpin-timer-ring" />
+                          </svg>
+                        </div>
+                        <span class="scarpin-item-counter">1 / {slider.urls.length}</span>
+                      </div>
                     </div>
                   </div>
                 );
@@ -703,82 +749,96 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     letter-spacing: 0.05em;
   }
 
-  .scarpin-item-counter {
-    font-family: var(--_tokens---font--mono);
-    font-size: 11px;
-    color: var(--_tokens---color--muted);
+  .scarpin-thumbnails {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: 2px;
   }
 
-  .scarpin-item-media-wrap {
-    width: 100%;
-    aspect-ratio: 4/5;
-    position: relative;
-    background-color: var(--_tokens---color--bg-glass);
-    border: 1px solid var(--_tokens---color--line-soft);
-    border-radius: 6px;
+  .scarpin-thumbnails::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scarpin-thumb {
+    all: unset;
+    flex: 0 0 calc((100% - 32px) / 5); /* Show ~5 thumbnails */
+    aspect-ratio: 1;
+    border-radius: 4px;
     overflow: hidden;
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    background-color: var(--_tokens---color--bg-glass);
+    border: 1px solid var(--_tokens---color--line-soft);
+    position: relative;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, transform 0.2s ease;
   }
   
-  .scarpin-item-media-wrap:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  .scarpin-thumb:hover {
+    transform: translateY(-2px);
   }
 
-  .scarpin-media {
+  .scarpin-thumb img, 
+  .scarpin-thumb video {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    display: block;
     filter: grayscale(1);
-    opacity: 0.85;
-    transition: filter 0.3s ease, opacity 0.3s ease, transform 0.4s ease;
+    opacity: 0.6;
+    transition: filter 0.2s ease, opacity 0.2s ease;
   }
 
-  .scarpin-item-media-wrap:hover .scarpin-media {
+  .scarpin-thumb:hover img, 
+  .scarpin-thumb:hover video,
+  .scarpin-thumb.is-active img, 
+  .scarpin-thumb.is-active video {
     filter: grayscale(0);
     opacity: 1;
-    transform: scale(1.03);
   }
 
-  .scarpin-nav {
-    all: unset;
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 10;
-    cursor: pointer;
-    color: #ffffff;
-    width: 36px;
-    height: 36px;
+  .scarpin-thumb.is-active {
+    border-color: var(--_tokens---color--fg);
+  }
+
+  .scarpin-item-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 12px;
+    border-top: 1px solid var(--_tokens---color--line-soft);
+  }
+
+  .scarpin-person {
     display: flex;
     align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease;
-    background: rgba(0, 0, 0, 0.25);
+    gap: 10px;
+  }
+
+  .scarpin-avatar {
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    object-fit: cover;
+    border: 1px solid var(--_tokens---color--line-soft);
   }
 
-  .scarpin-item-media-wrap:hover .scarpin-nav {
-    opacity: 1;
-  }
-  
-  .scarpin-nav:hover {
-    background: rgba(0, 0, 0, 0.7);
-    transform: translateY(-50%) scale(1.1);
+  .scarpin-avatar--placeholder {
+    background-color: var(--_tokens---color--fg);
   }
 
-  .scarpin-nav--prev {
-    left: 12px;
+  .scarpin-person-name {
+    font-size: var(--_tokens---type--micro);
+    color: var(--_tokens---color--fg);
+    font-weight: 500;
   }
 
-  .scarpin-nav--next {
-    right: 12px;
+  .scarpin-pagination-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
 
@@ -3210,11 +3270,15 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         if (urls.length === 0) return;
 
         let pos = 0;
+        let timer = null;
+        let isHovered = false;
+        const AUTOPLAY_DELAY = 4000;
+
         const counter = item.querySelector('.scarpin-item-counter');
         const mediaWrap = item.querySelector('.scarpin-item-media-wrap');
-        const prevBtn = item.querySelector('.scarpin-nav--prev');
-        const nextBtn = item.querySelector('.scarpin-nav--next');
+        const thumbs = item.querySelectorAll('.scarpin-thumb');
         const title = item.querySelector('.scarpin-item-title').textContent;
+        const progressRing = item.querySelector('.scarpin-timer-ring');
 
         const updateMedia = () => {
           const url = urls[pos];
@@ -3223,7 +3287,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
           let newMedia;
           if (url.endsWith('.mp4')) {
             newMedia = document.createElement('video');
-            newMedia.className = 'scarpin-media';
+            newMedia.className = 'scarpin-media scarpin-media--active';
             newMedia.src = url;
             newMedia.autoplay = true;
             newMedia.loop = true;
@@ -3231,7 +3295,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
             newMedia.playsInline = true;
           } else {
             newMedia = document.createElement('img');
-            newMedia.className = 'scarpin-media';
+            newMedia.className = 'scarpin-media scarpin-media--active';
             newMedia.src = url;
             newMedia.loading = 'lazy';
             newMedia.alt = title;
@@ -3239,23 +3303,61 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
           
           existingMedia.replaceWith(newMedia);
           counter.textContent = `${pos + 1} / ${urls.length}`;
+
+          thumbs.forEach((thumb, idx) => {
+            thumb.classList.toggle('is-active', idx === pos);
+            if (idx === pos) {
+              thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
+          });
+
+          resetTimer();
         };
 
-        prevBtn?.addEventListener('click', (e) => {
-          e.stopPropagation();
-          pos = (pos - 1 + urls.length) % urls.length;
-          updateMedia();
+        const resetTimer = () => {
+          clearInterval(timer);
+          if (progressRing) {
+            progressRing.classList.remove('is-animating');
+            progressRing.style.transition = 'none';
+            // Force reflow
+            void progressRing.offsetWidth;
+          }
+
+          if (!isHovered && !isLbOpen && urls.length > 1) {
+            if (progressRing) {
+              progressRing.style.transition = `stroke-dashoffset ${AUTOPLAY_DELAY}ms linear`;
+              progressRing.classList.add('is-animating');
+            }
+            timer = setInterval(() => {
+              pos = (pos + 1) % urls.length;
+              updateMedia();
+            }, AUTOPLAY_DELAY);
+          }
+        };
+
+        item.addEventListener('mouseenter', () => {
+          isHovered = true;
+          resetTimer();
         });
 
-        nextBtn?.addEventListener('click', (e) => {
-          e.stopPropagation();
-          pos = (pos + 1) % urls.length;
-          updateMedia();
+        item.addEventListener('mouseleave', () => {
+          isHovered = false;
+          resetTimer();
+        });
+
+        thumbs.forEach((thumb, idx) => {
+          thumb.addEventListener('click', (e) => {
+            e.stopPropagation();
+            pos = idx;
+            updateMedia();
+          });
         });
 
         mediaWrap?.addEventListener('click', () => {
           openScarpinLightbox(urls, pos, title);
         });
+
+        resetTimer();
       });
     };
 

@@ -583,9 +583,58 @@ if (activeProject) {
       }
     });
 
-    // (Removed: "last visited project" highlighting via localStorage. It made
-    // a second item light up alongside the current page — the only highlight
-    // now is the page you are actually on, rendered server-side.)
+    // ── Recent Projects Reordering ──────────────────────────────
+    const pPath = window.location.pathname.replace(/\/$/, '');
+    const projMatch = pPath.match(/^\/projects\/([^\/]+)$/);
+    const currentProj = projMatch ? projMatch[1] : null;
+
+    let recent = [];
+    try {
+      recent = JSON.parse(localStorage.getItem('recentProjects') || '[]');
+    } catch(e) {}
+
+    if (currentProj) {
+      recent = recent.filter((id: string) => id !== currentProj);
+      recent.unshift(currentProj);
+      if (recent.length > 50) recent = recent.slice(0, 50);
+      localStorage.setItem('recentProjects', JSON.stringify(recent));
+    }
+
+    // Reorder projects in DOM
+    const listContainer = document.getElementById('breadcrumb-pages-list');
+    if (listContainer) {
+      const allItems = Array.from(listContainer.querySelectorAll('.breadcrumb__list-item'));
+      const projItems = allItems.filter(el => {
+        const href = el.getAttribute('href');
+        return href && href.startsWith('/projects/') && href !== '/projects';
+      });
+
+      if (projItems.length > 0 && recent.length > 0) {
+        const projMap = new Map();
+        projItems.forEach(el => {
+          const href = el.getAttribute('href') || '';
+          const id = href.replace('/projects/', '');
+          projMap.set(id, el);
+        });
+
+        // Append recent items first
+        recent.forEach((id: string) => {
+          if (projMap.has(id)) {
+            listContainer.appendChild(projMap.get(id));
+            projMap.delete(id);
+          }
+        });
+
+        // Append the remaining items in their original (alphabetical) order
+        projItems.forEach(el => {
+          const href = el.getAttribute('href') || '';
+          const id = href.replace('/projects/', '');
+          if (projMap.has(id)) {
+            listContainer.appendChild(el);
+          }
+        });
+      }
+    }
 
     // ── Global arrow-key page navigation ─────────────────────
     if (!(window as any).hasKbGlobalNav) {
