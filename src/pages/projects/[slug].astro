@@ -75,7 +75,12 @@ const cardPageSlugs = [
   'sups-in-the-hinterland',
   'human-pods'
 ];
-const isCardPage = cardPageSlugs.includes(project.id);
+// Original curated AI card sets (overlay name, logo, no Design/Making)
+const isOriginalCardPage = cardPageSlugs.includes(project.id);
+// All freelancer + work pages now also get the card layout
+const isCardPage = isOriginalCardPage
+  || category?.id === 'freelancer'
+  || category?.id === 'work';
 const isScarpinPage = project.id === 'scarpin';
 
 // Levenshtein distance — used to tolerate small folder-name typos when
@@ -374,7 +379,30 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                     )}
                   </div>
                 </div>
+
+                {/* People row — shown for freelancer/work (non-original) card pages */}
+                {!isOriginalCardPage && (
+                  <div class="project-people" style="margin-top: 20px;">
+                    {people.map((person) => {
+                      const isCas = person === 'Casimir Esbach';
+                      const isFaizan = person === 'Faizan Khatri';
+                      const displayName = isCas ? `${person} (Professor)` : person;
+                      return (
+                        <>
+                          <div class="project-people__person">
+                            <div class="project-people__avatar">
+                              <img src={PEOPLE[person] ?? PEOPLE['Advaita Kelkar']} alt={person} loading="lazy" />
+                            </div>
+                            <span class="project-people__name">{displayName}</span>
+                          </div>
+                          {(isCas || isFaizan) && <div class="project-people__divider" aria-hidden="true" />}
+                        </>
+                      );
+                    })}
+                  </div>
+                )}
                 
+
                 <!-- Card Name & Pagination in left column (horizontally aligned with image bottom) -->
                 <div class="project-card-name-pagination-row">
                   <div class="page-active-logo" id="page-active-logo" aria-hidden="true"></div>
@@ -401,8 +429,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                 <div class="project-detail__active-wrap" id="page-active-wrap" style="cursor: pointer;" title="Click to open fullscreen modal">
                   <img class="project-detail__active-img" id="page-active-img" src={allImages[0]} alt={data.name} />
 
-                  <!-- Active card name on the image — one word per row, glitches on change -->
-                  <h2 class="project-card__overlay-name" id="page-overlay-name">{firstCardName}</h2>
+                  <!-- Active card name on the image — only for original curated card sets -->
+                  {isOriginalCardPage && <h2 class="project-card__overlay-name" id="page-overlay-name">{firstCardName}</h2>}
 
                   <!-- Active card's team/publisher logo — top-right (desktop) -->
                   <span class="page-active-card-logo" id="page-active-card-logo" aria-hidden="true"></span>
@@ -453,7 +481,21 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                   <div class="project-card__text-block">
                     {data.smallIntro && <p class="project-card__intro">{data.smallIntro}</p>}
                     {data.description && (
-                      <div class="project-card__desc" set:html={data.description} />
+                      <div class="project-desc-readmore" id="project-desc-readmore">
+                        <div class="project-card__desc project-desc-clip" id="project-desc-clip" set:html={data.description} />
+                        <button
+                          class="project-readmore-btn"
+                          id="project-readmore-btn"
+                          type="button"
+                          aria-expanded="false"
+                        >
+                          <span class="project-readmore-label">Read more</span>
+                          <svg class="project-readmore-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">
+                            <line x1="6" y1="18" x2="18" y2="6"></line>
+                            <polyline points="10 6 18 6 18 14"></polyline>
+                          </svg>
+                        </button>
+                      </div>
                     )}
                     {downloads.length > 0 && (
                       <div class="project-downloads">
@@ -540,8 +582,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         </>
       )}
 
-      <!-- STANDARD PAGE ONLY: chapter dropdowns (when defined) or Design & Making -->
-      {!isCardPage && !isScarpinPage && (data.chapters?.length ?? 0) > 0 && (
+      <!-- NON-ORIGINAL-CARD PAGES: chapter dropdowns (when defined) or Design & Making -->
+      {!isOriginalCardPage && !isScarpinPage && (data.chapters?.length ?? 0) > 0 && (
         <div class="project-chapters">
           {data.chapters.map((ch: { title: string; subtitle?: string; body: string }) => {
             const words = (ch.subtitle || ch.title).split(' ');
@@ -571,7 +613,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         </div>
       )}
 
-      {!isCardPage && !isScarpinPage && !(data.chapters?.length) && (
+      {!isOriginalCardPage && !isScarpinPage && !(data.chapters?.length) && (
         <div class="project-metadata-sections">
           <section class="project-design-section">
             <div class="project-header-title-row project-design-header" id="project-design-click">
@@ -1083,13 +1125,14 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   @media (min-width: 1024px) {
     .project-content-grid {
       grid-template-columns: 4.5fr 5.5fr;
-      align-items: end;
+      align-items: start;
     }
   }
 
   @media (min-width: 1200px) {
     .project-content-grid {
       grid-template-columns: 4fr 6fr;
+      align-items: start;
     }
   }
 
@@ -1680,7 +1723,9 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
   .project-detail__pagination-wrap {
     display: flex;
+    flex-direction: row;
     align-items: center;
+    flex-wrap: nowrap;
     gap: 8px;
     flex: 0 0 auto;
   }
@@ -3033,6 +3078,53 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       font-size: clamp(0.8rem, 2.8vw, 1.1rem) !important;
     }
   }
+
+  /* ── Read-more: height-clip approach (no DOM splitting) ── */
+  .project-desc-readmore {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* Clipped state: overflow hidden, max-height set by JS */
+  .project-desc-clip {
+    overflow: hidden;
+    transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .project-readmore-btn {
+    all: unset;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    align-self: flex-start;
+    font-size: var(--_tokens---type--micro);
+    font-weight: 500;
+    color: var(--_tokens---color--fg);
+    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
+    border-radius: var(--_tokens---radius--pill);
+    padding: 4px 12px;
+    white-space: nowrap;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  }
+
+  .project-readmore-btn:hover {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
+  }
+
+  .project-readmore-arrow {
+    width: 0.85em;
+    height: 0.85em;
+    transition: transform 0.35s ease;
+  }
+
+  .project-readmore-btn[aria-expanded="true"] .project-readmore-arrow {
+    transform: rotate(135deg);
+  }
 </style>
 
 <script>
@@ -3046,14 +3138,54 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     const isScarpinPage = article.getAttribute('data-is-scarpin') === 'true';
 
     if (isScarpinPage) {
-      // Scarpin has its own unique 12-slider grid — neither the card deck nor
-      // the standard single-image slider markup exists on this page.
       initScarpinSliders();
     } else if (isCardPage) {
       initCardDeck();
     } else {
       initStandardSlider();
+      initDescReadMore();
     }
+  }
+
+  /* ── Description Read-More pill (height-clip, no DOM split) ── */
+  function initDescReadMore() {
+    const clip = document.getElementById('project-desc-clip') as HTMLElement | null;
+    const btn  = document.getElementById('project-readmore-btn') as HTMLButtonElement | null;
+
+    if (!clip || !btn) return;
+
+    // Measure height of just the first child block (first <p> or first child)
+    const firstChild = clip.firstElementChild as HTMLElement | null;
+    if (!firstChild) { btn.style.display = 'none'; return; }
+
+    // If there's only one child block, no need for the button
+    if (clip.children.length < 2) { btn.style.display = 'none'; return; }
+
+    // Collapsed height = height of the first block + its margins
+    const collapsedHeight = firstChild.offsetHeight +
+      parseInt(getComputedStyle(firstChild).marginTop) +
+      parseInt(getComputedStyle(firstChild).marginBottom);
+
+    // Full scrollHeight
+    const fullHeight = clip.scrollHeight;
+
+    // Set collapsed
+    clip.style.maxHeight = collapsedHeight + 'px';
+
+    btn.addEventListener('click', () => {
+      const expanded = btn.getAttribute('aria-expanded') === 'true';
+      if (expanded) {
+        // Collapse
+        btn.setAttribute('aria-expanded', 'false');
+        btn.querySelector('.project-readmore-label')!.textContent = 'Read more';
+        clip.style.maxHeight = collapsedHeight + 'px';
+      } else {
+        // Expand
+        btn.setAttribute('aria-expanded', 'true');
+        btn.querySelector('.project-readmore-label')!.textContent = 'Read less';
+        clip.style.maxHeight = clip.scrollHeight + 'px';
+      }
+    });
   }
 
   function initCardDeck() {
