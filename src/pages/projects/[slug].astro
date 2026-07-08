@@ -295,8 +295,18 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
             <img class="lightbox-bg-ambient" id="scarpin-lightbox-ambient" src="" alt="" />
             <div class="lightbox-backdrop"></div>
             
-            <div class="lightbox-header">
-              <span class="lightbox-pagination" id="scarpin-lightbox-counter">1 / 1</span>
+            <div class="lightbox-header lightbox-header--deck">
+              <span class="lightbox-pagination lightbox-pagination--deck" id="scarpin-lightbox-counter">1 / 1</span>
+              <div class="lightbox-scrubber" id="scarpin-lightbox-scrubber" role="slider" aria-label="Scrub through cards" style="visibility: hidden;">
+                <div class="lightbox-scrubber__fill" id="scarpin-lightbox-scrubber-fill" style="width: 100%;"></div>
+              </div>
+              <div class="autoplay-timer-ring lightbox-header__ring" aria-hidden="true" style="visibility: hidden;">
+                <svg width="20" height="20" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10" class="timer-ring-bg" />
+                  <circle cx="12" cy="12" r="10" class="timer-ring-progress" />
+                  <circle cx="12" cy="2" r="2" class="timer-ring-dot" />
+                </svg>
+              </div>
               <button class="lightbox-close-btn" id="scarpin-lightbox-close" type="button" aria-label="Close lightbox">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
               </button>
@@ -677,15 +687,19 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         <div class="lightbox-backdrop"></div>
         
         <!-- Redesigned Top Action Bar: ring timer left, pagination center, close right -->
-        <div class="lightbox-header">
-          <div class="autoplay-timer-ring lightbox-header__ring" aria-hidden="true" style="visibility: hidden;">
+        <!-- Redesigned Top Action Bar: card deck style header -->
+        <div class="lightbox-header lightbox-header--deck">
+          <span class="lightbox-pagination lightbox-pagination--deck" id="lightbox-counter">1 / 35</span>
+          <div class="lightbox-scrubber" id="lightbox-scrubber" role="slider" aria-label="Scrub through cards">
+            <div class="lightbox-scrubber__fill" id="lightbox-scrubber-fill"></div>
+          </div>
+          <div class="autoplay-timer-ring lightbox-header__ring" aria-hidden="true">
             <svg width="20" height="20" viewBox="0 0 24 24">
               <circle cx="12" cy="12" r="10" class="timer-ring-bg" />
               <circle cx="12" cy="12" r="10" class="timer-ring-progress" id="lightbox-timer-progress" />
               <circle cx="12" cy="2" r="2" class="timer-ring-dot" />
             </svg>
           </div>
-          <span class="lightbox-pagination" id="lightbox-counter">1 / 35</span>
           <button class="lightbox-close-btn" id="lightbox-close" type="button" aria-label="Close lightbox">
             <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
           </button>
@@ -2781,44 +2795,118 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
 
   /* For standard and scarpin pages: Simple and clean fullscreen lightbox */
+  /* For standard and scarpin pages: 4:3 Landscape 3D cards layout matching the card page lightbox UI */
   .project-detail[data-is-card="false"] ~ #card-lightbox .lightbox-card-container,
   .project-detail[data-is-card="false"] #scarpin-lightbox .lightbox-card-container {
-    aspect-ratio: auto;
+    aspect-ratio: 4 / 3;
     width: 90vw;
-    max-width: 1200px;
-    height: 80vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transform: none !important;
-    perspective: none;
-    transform-style: flat;
+    max-width: 600px;
+    transform-style: preserve-3d;
+    transition: transform 0.15s ease-out;
   }
 
   .project-detail[data-is-card="false"] ~ #card-lightbox .lightbox-card-img,
   .project-detail[data-is-card="false"] #scarpin-lightbox .lightbox-card-img {
     max-width: 100%;
-    max-height: 80vh;
-    object-fit: contain;
-    border-radius: 4px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-  }
-
-  /* Hide card specific elements (shadow, shine, hint, name) on standard/scarpin lightboxes */
-  .project-detail[data-is-card="false"] ~ #card-lightbox .lightbox-card-shadow,
-  .project-detail[data-is-card="false"] ~ #card-lightbox .lightbox-card-shine,
-  .project-detail[data-is-card="false"] ~ #card-lightbox .lightbox-hint,
-  .project-detail[data-is-card="false"] ~ #card-lightbox .lightbox-name,
-  .project-detail[data-is-card="false"] #scarpin-lightbox .lightbox-card-shadow,
-  .project-detail[data-is-card="false"] #scarpin-lightbox .lightbox-card-shine,
-  .project-detail[data-is-card="false"] #scarpin-lightbox .lightbox-name {
-    display: none !important;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 12px;
   }
 
   /* Keep nav arrows always visible on standard/scarpin lightboxes for desktop */
   .project-detail[data-is-card="false"] ~ #card-lightbox .lightbox-nav-arrow,
   .project-detail[data-is-card="false"] #scarpin-lightbox .lightbox-nav-arrow {
     opacity: 0.75;
+  }
+
+  /* Prompt and copy styles */
+  .prompt-box {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    background: var(--_tokens---color--bg-glass);
+    border: 1px solid var(--_tokens---color--line-soft);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-top: 20px;
+    gap: 12px;
+  }
+  .prompt-text {
+    font-size: var(--_tokens---type--micro);
+    font-family: var(--_tokens---font--mono);
+    color: var(--_tokens---color--muted);
+    line-height: 1.4;
+    word-break: break-word;
+  }
+  .copy-prompt-btn {
+    all: unset;
+    cursor: pointer;
+    color: var(--_tokens---color--muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .copy-prompt-btn:hover {
+    color: var(--_tokens---color--fg);
+    background: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    border-color: var(--_tokens---color--line-soft);
+  }
+  .copied-indicator {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--_tokens---color--fg);
+  }
+
+  /* Deck logos container style */
+  .deck-logos-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--_tokens---color--line-soft);
+  }
+  .deck-logos-title {
+    font-size: var(--_tokens---type--micro);
+    font-weight: 500;
+    color: var(--_tokens---color--fg);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .deck-logos-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .deck-logo-item {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-color: var(--_tokens---color--muted);
+    mask-image: var(--logo);
+    mask-size: contain;
+    mask-position: center;
+    mask-repeat: no-repeat;
+    -webkit-mask-image: var(--logo);
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+    -webkit-mask-repeat: no-repeat;
+    opacity: 0.6;
+    transition: opacity 0.2s, background-color 0.2s;
+  }
+  .deck-logo-item:hover {
+    opacity: 1;
+    background-color: var(--_tokens---color--fg);
   }
 </style>
 
@@ -3364,6 +3452,13 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       if (headerTitle) headerTitle.textContent = `${projectName} — Photo`;
       if (counter) counter.textContent = `${currentPos + 1} / ${order.length}`;
 
+      // Update scrubber fill
+      const scrubFill = document.getElementById('lightbox-scrubber-fill');
+      if (scrubFill) {
+        const percentage = (currentPos / (order.length - 1)) * 100;
+        scrubFill.style.width = `${percentage}%`;
+      }
+
       // Lightbox name label: word-by-word spans
       const lbName = document.getElementById('lightbox-card-label');
       if (lbName) {
@@ -3476,6 +3571,27 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
     closeBtn?.addEventListener('click', closeLightbox);
     lightbox?.querySelector('.lightbox-backdrop')?.addEventListener('click', closeLightbox);
+
+    // Header scrubber: click/drag jumps through the deck instantly
+    const scrubberEl = document.getElementById('lightbox-scrubber');
+    if (scrubberEl) {
+      const scrubTo = (clientX: number) => {
+        const rect = scrubberEl.getBoundingClientRect();
+        const t = Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1);
+        const pos = Math.round(t * (order.length - 1));
+        if (pos !== currentPos) {
+          applyPos(pos);
+        }
+      };
+      scrubberEl.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        scrubberEl.setPointerCapture(e.pointerId);
+        scrubTo(e.clientX);
+      });
+      scrubberEl.addEventListener('pointermove', (e) => {
+        if (scrubberEl.hasPointerCapture && scrubberEl.hasPointerCapture(e.pointerId)) scrubTo(e.clientX);
+      });
+    }
 
     if (lightboxImg) {
       lightboxImg.addEventListener('click', (e) => {
@@ -3901,16 +4017,37 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     });
   }
 
+  function initCopyPrompt() {
+    document.addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest('.copy-prompt-btn') as HTMLElement | null;
+      if (!btn) return;
+      const box = btn.closest('.prompt-box');
+      const textEl = box?.querySelector('.prompt-text');
+      if (textEl) {
+        navigator.clipboard.writeText(textEl.textContent || '');
+        const oldContent = btn.innerHTML;
+        btn.innerHTML = '<span class="copied-indicator">Copied!</span>';
+        btn.style.borderColor = 'var(--_tokens---color--fg)';
+        setTimeout(() => {
+          btn.innerHTML = oldContent;
+          btn.style.borderColor = 'transparent';
+        }, 1500);
+      }
+    });
+  }
+
   document.addEventListener('astro:page-load', () => {
     initProjectPage();
     initHeadingScrollTop();
     initMobileFixedHead();
     initProjectPeople();
+    initCopyPrompt();
   });
   if (document.readyState !== 'loading') {
     initProjectPage();
     initHeadingScrollTop();
     initMobileFixedHead();
     initProjectPeople();
+    initCopyPrompt();
   }
 </script>
