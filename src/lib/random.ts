@@ -10,11 +10,6 @@ export function shuffle<T>(arr: T[]): T[] {
   return arr;
 }
 
-/** Random selection of up to `n` items, original array untouched. */
-export function pickRandom<T>(arr: T[], n: number): T[] {
-  return shuffle([...arr]).slice(0, n);
-}
-
 /** Reorder an element's children randomly in the DOM. */
 export function shuffleChildren(container: Element): void {
   shuffle(Array.from(container.children)).forEach(child => container.appendChild(child));

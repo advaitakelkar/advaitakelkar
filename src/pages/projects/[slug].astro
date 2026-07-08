@@ -805,6 +805,11 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       display: none;
     }
 
+    /* Bold, tight title on mobile so it reads on two lines */
+    .project-name-title {
+      font-weight: 700;
+    }
+
     /* ── Fixed head: name + metaline + people pinned to the top, opaque;
        the rest of the page scrolls beneath it ── */
     .project-top-header.is-fixed-head {
@@ -832,6 +837,12 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     /* Spacer: page content starts below the fixed head (height set by JS) */
     .project-detail.has-fixed-head {
       padding-top: calc(var(--head-h, 40vh) + 12px);
+    }
+
+    /* A chapter is open → the head un-fixes (scrolls with the page) and the
+       intro (description + image slider) collapses, so only one tab shows. */
+    .project-detail.intro-collapsed .project-content-grid {
+      display: none;
     }
   }
 
@@ -1174,6 +1185,20 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     letter-spacing: -0.03em;
     line-height: 1.05;
     color: var(--_tokens---color--fg);
+  }
+
+  /* No button chrome anywhere — just the arrow glyph */
+  .project-detail-collapse-btn {
+    background: transparent;
+    border: none;
+    padding: 0;
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+    color: var(--_tokens---color--fg);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .project-chapter__header .project-detail-collapse-btn {
@@ -2896,6 +2921,9 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         toggleBtn.querySelectorAll('.link-arrow').forEach((a) => {
           (a as HTMLElement).style.transform = `rotate(${Math.floor(Math.random() * 360)}deg)`;
         });
+        // Opening/closing a chapter changes whether the mobile head is fixed
+        // and whether the intro is collapsed.
+        refreshFixedHead();
       });
     });
   }
@@ -2907,7 +2935,43 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     const h = document.getElementById('project-top-header');
     if (h && !(h as any)._topWired) {
       (h as any)._topWired = true;
-      h.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+      h.addEventListener('click', (e) => {
+        // Don't hijack taps on links inside the header (e.g. the category link)
+        if ((e.target as HTMLElement).closest('a')) return;
+        // Tapping the head closes any open chapter → the fixed intro returns
+        collapseAllChapters();
+        refreshFixedHead();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+  }
+
+  // Collapse every chapter accordion (module-level so the header tap can call it)
+  function collapseAllChapters() {
+    document.querySelectorAll('.project-chapter.is-expanded').forEach(sect => {
+      sect.classList.remove('is-expanded');
+      const btn = sect.querySelector('.project-detail-collapse-btn');
+      btn?.setAttribute('aria-expanded', 'false');
+    });
+  }
+
+  // Recompute the mobile head: it is FIXED only while no chapter is open; when a
+  // chapter opens, the head un-fixes and the intro (grid) collapses.
+  function refreshFixedHead() {
+    const article = document.querySelector('.project-detail') as HTMLElement | null;
+    if (!article || article.getAttribute('data-is-card') === 'true') return;
+    const header = document.getElementById('project-top-header');
+    if (!header) return;
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+    const anyChapterOpen = !!document.querySelector('.project-chapter.is-expanded');
+    const fixed = isMobile && !anyChapterOpen;
+    header.classList.toggle('is-fixed-head', fixed);
+    article.classList.toggle('has-fixed-head', fixed);
+    article.classList.toggle('intro-collapsed', isMobile && anyChapterOpen);
+    if (fixed) {
+      article.style.setProperty('--head-h', `${header.offsetHeight}px`);
+    } else {
+      article.style.removeProperty('--head-h');
     }
   }
 
@@ -2927,31 +2991,28 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     const mq = window.matchMedia('(max-width: 768px)');
     const apply = () => {
       if (mq.matches) {
+        // Mobile: metaline + people live inside the (fixed) head
         if (metaline) header.appendChild(metaline);
         if (people) header.appendChild(people);
-        header.classList.add('is-fixed-head');
-        article.classList.add('has-fixed-head');
-        const setH = () => article.style.setProperty('--head-h', `${header.offsetHeight}px`);
-        setH();
-        if (!(header as any)._headRO && 'ResizeObserver' in window) {
-          (header as any)._headRO = new ResizeObserver(setH);
-          (header as any)._headRO.observe(header);
-        }
       } else {
-        header.classList.remove('is-fixed-head');
-        article.classList.remove('has-fixed-head');
-        article.style.removeProperty('--head-h');
+        // Desktop: restore them to the left column, drop all mobile-head state
         if (info) {
           const textRow = info.querySelector('.project-card__row2');
           if (metaline) info.insertBefore(metaline, textRow);
           if (people) info.insertBefore(people, textRow);
         }
+        article.classList.remove('intro-collapsed');
       }
+      refreshFixedHead();
     };
     apply();
     if (!(header as any)._mqWired) {
       (header as any)._mqWired = true;
       mq.addEventListener('change', apply);
+    }
+    if (!(header as any)._headRO && 'ResizeObserver' in window) {
+      (header as any)._headRO = new ResizeObserver(() => refreshFixedHead());
+      (header as any)._headRO.observe(header);
     }
   }
 
