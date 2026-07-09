@@ -1707,8 +1707,10 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
     .project-detail[data-category="work"] .project-card__metaline {
       /* No horizontal padding of its own — it must sit flush with the page's
-         own left/right inset, same as the description text below it. */
+         own left/right inset, same as the description text below it. It
+         previously touched the smallIntro text right below it with no gap. */
       padding: 8px 0 0;
+      margin-bottom: 16px;
     }
     /* border-top: none is set generally (all viewports) below — the tab
        header's own border-bottom is the only line above the metaline now. */
@@ -2395,9 +2397,11 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     padding-bottom: 0 !important;
   }
   /* The metaline sits right under the name tab's own border-bottom when
-     open — its own separate border-top would double that line. */
+     open — its own separate border-top would double that line. It also
+     used to touch the smallIntro text right below it with zero gap. */
   .project-detail[data-category="work"] .project-card__metaline {
     border-top: none !important;
+    margin-bottom: 16px !important;
   }
   /* Each tab's header sticks to the top of the viewport while its own
      content scrolls past underneath — only one tab is open at a time
@@ -3236,14 +3240,13 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     .project-detail[data-category="work"] .deck-grid--mobile-scrub { order: 6; }
     /* Work pages stack full-width instead of sitting in a half-width column,
        so the 2:3 aspect-ratio (meant for a narrow card) made the image fill
-       almost the whole screen. Every active image now renders at the SAME
-       fixed height (60% of viewport) regardless of whether it's portrait or
-       landscape, filling the full box width with no letterbox gaps
-       (object-fit: cover crops instead of contain leaving empty bars), and
-       no card chrome — just the image, edge to edge. */
+       almost the whole screen. The image + scrub are sized to fit within one
+       viewport alongside the header/metaline/description, so the image is
+       reduced to 40vh (was 60), filling the full box width with no letterbox
+       gaps (object-fit: cover), no card chrome — just the image, edge to edge. */
     .project-detail[data-category="work"] .project-detail__active-wrap {
-      height: 60vh !important;
-      max-height: 60vh !important;
+      height: 40vh !important;
+      max-height: 40vh !important;
       aspect-ratio: auto !important;
       display: flex;
       align-items: center;
@@ -3254,8 +3257,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       box-shadow: none !important;
     }
     .project-detail[data-category="work"] .project-detail__active-img {
-      height: 60vh !important;
-      max-height: 60vh !important;
+      height: 40vh !important;
+      max-height: 40vh !important;
       width: 100% !important;
       max-width: 100%;
       object-fit: cover !important;
@@ -3264,10 +3267,22 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       gap: 6px !important;
     }
     .project-detail[data-category="work"] .project-card__intro {
+      /* No hairline between the intro and the description below it — the
+         section header/tab borders are the only lines on this page now. */
+      border-bottom: none !important;
       padding-bottom: 8px !important;
     }
+    /* Description scrolls within its own capped box so a long summary doesn't
+       push the image + scrub below the fold — keeping the whole open tab in
+       roughly one viewport. */
     .project-detail[data-category="work"] .project-card__desc {
       line-height: 1.4 !important;
+      max-height: 14vh !important;
+      overflow-y: auto !important;
+      scrollbar-width: none;
+    }
+    .project-detail[data-category="work"] .project-card__desc::-webkit-scrollbar {
+      display: none;
     }
     .project-card__intro {
       font-size: clamp(0.7rem, 1.8vw, 0.8rem) !important;
