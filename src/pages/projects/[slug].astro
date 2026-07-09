@@ -1698,13 +1698,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     .project-detail[data-category="work"] {
       padding-top: 0 !important; /* no fixed dashboard to clear space for */
     }
-
-    .project-detail[data-category="work"] .project-header-title-row {
-      /* Sticky positioning + background live in the shared, all-viewport
-         tab-header rule below — this only adds the notch-safe top padding. */
-      padding-top: calc(12px + env(safe-area-inset-top));
-    }
-
   }
 
   /* The project name is the first toggle dropdown (same left-label + arrow
@@ -2315,6 +2308,31 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     width: 100%;
     margin-top: 16px;
   }
+  /* alt-verse-style filmstrip: every image shares the same fixed row height
+     regardless of its own aspect ratio — landscape photos render wide,
+     portraits narrow, squares in between — instead of the auto-fill grid
+     forcing every cell into the same 2:3 box (cropping landscapes tall). */
+  .project-detail[data-category="work"] .card-deck-section--work-left .deck-grid {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    grid-template-columns: none !important;
+    gap: 6px;
+  }
+  .project-detail[data-category="work"] .card-deck-section--work-left .deck-card-item {
+    width: auto !important;
+    aspect-ratio: auto !important;
+    flex: 0 0 auto;
+  }
+  .project-detail[data-category="work"] .card-deck-section--work-left .deck-card-inner {
+    width: auto;
+    height: 160px;
+  }
+  .project-detail[data-category="work"] .card-deck-section--work-left .deck-card-inner img:not(.deck-card-logo) {
+    width: auto;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
 
   /* Simple tab UI, not cards: no box-shadow/elevation anywhere — each of the
      three headers (name, Design, Making) gets exactly one border directly
@@ -2325,31 +2343,36 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
      header's own uniform 12px top/bottom padding is the only spacing. */
   .project-detail[data-category="work"] .project-design-section,
   .project-detail[data-category="work"] .project-making-section {
-    border-top: none;
-    padding-top: 0;
-    margin-top: 0;
+    border-top: none !important;
+    padding-top: 0 !important;
+    margin-top: 0 !important;
   }
   /* .project-metadata-sections (wraps Design+Making) has its own 24px
      margin-top for the standard-page look, and .project-top-header its own
      8px margin-bottom — both are extra space the Name tab's 12px gap
      doesn't have, so Design sits noticeably further from the tab above it
-     than Making sits from Design. */
+     than Making sits from Design. !important on every one of these so
+     there's no ambiguity about which declaration wins the cascade. */
   .project-detail[data-category="work"] .project-metadata-sections {
-    margin-top: 0;
+    margin-top: 0 !important;
   }
   .project-detail[data-category="work"] .project-top-header {
-    margin-bottom: 0;
+    margin: 0 !important;
+    padding: 0 !important;
   }
   /* The metaline sits right under the name tab's own border-bottom when
      open — its own separate border-top would double that line. */
   .project-detail[data-category="work"] .project-card__metaline {
-    border-top: none;
+    border-top: none !important;
   }
   /* Each tab's header sticks to the top of the viewport while its own
      content scrolls past underneath — only one tab is open at a time
      (see wireWorkAccordion), so at most one is meaningfully "stuck" at once.
      Equal 12px above and below the label on every one of the three tabs,
-     on both mobile and desktop. */
+     on both mobile and desktop — this is the ONLY place that sets this
+     padding now (a duplicate mobile-only declaration used to sit earlier
+     in the file and, being un-!important, silently lost to this one anyway,
+     but kept the notch-safe env() value out of the winning declaration). */
   .project-detail[data-category="work"] .project-header-title-row,
   .project-detail[data-category="work"] .project-design-header,
   .project-detail[data-category="work"] .project-making-header {
@@ -2358,8 +2381,9 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     z-index: 50;
     background-color: var(--_tokens---color--bg);
     border-bottom: 1px solid var(--_tokens---color--line-soft);
-    padding-top: 12px;
-    padding-bottom: 12px;
+    padding-top: calc(12px + env(safe-area-inset-top)) !important;
+    padding-bottom: 12px !important;
+    margin: 0 !important;
     box-sizing: border-box;
   }
 
@@ -2474,26 +2498,36 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
      the standard-page thumb strip's mobile height) — never rendered on
      desktop, which keeps the full #deck-grid below the image. */
   .deck-grid--mobile-scrub {
-    display: flex;
-    flex-wrap: nowrap;
+    display: flex !important;
+    flex-wrap: nowrap !important;
     grid-template-columns: none !important;
-    gap: 0;
+    gap: 0 !important;
     margin-top: 12px;
     overflow: hidden;
   }
   .deck-grid--mobile-scrub .deck-card-item {
-    flex: 1 1 0;
-    min-width: 0;
-    width: auto;
-    height: 68px;
-    aspect-ratio: auto;
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    width: auto !important;
+    height: 68px !important;
+    aspect-ratio: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
   /* Flush, no gap between thumbs and no per-card border/radius/shadow —
-     they read as one continuous filmstrip, not separate rounded cards. */
+     they read as one continuous filmstrip, not separate rounded cards.
+     !important throughout: .deck-card-inner's base rule (6px radius, 1px
+     border, drop shadow — all meant for the spaced-out desktop/tablet grid
+     cards) sits later in the stylesheet and was winning on some properties. */
   .deck-grid--mobile-scrub .deck-card-inner {
-    border-radius: 0;
-    border: none;
-    box-shadow: none;
+    border-radius: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .deck-grid--mobile-scrub .deck-card-inner img {
+    opacity: 1 !important;
   }
   @media (min-width: 1024px) {
     .deck-grid--mobile-scrub {
