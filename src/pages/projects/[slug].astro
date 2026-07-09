@@ -1392,11 +1392,21 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     }
     /* Prompt box collapses behind the "Prompt" pill on mobile; the
        publisher/character logo strip is hidden on mobile entirely. */
-    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card__desc :global(.prompt-box) {
+    /* Prompt box is hidden behind the "Prompt" pill. On mobile the JS
+       relocates it below the pagination row, where it opens as its own
+       FULL-WIDTH single-column grid row (card-info is display:contents,
+       so the box participates in the outer grid directly). */
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card-info :global(.prompt-box) {
       display: none !important; /* beats the global .prompt-box{display:flex!important} */
     }
-    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card__desc :global(.prompt-box.is-open) {
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card-info :global(.prompt-box.is-open) {
       display: flex !important; /* the box's own layout is flex-column */
+      grid-column: 1 / -1;
+      grid-row: 3;
+      width: 100% !important;
+      max-width: none !important;
+      box-sizing: border-box;
+      margin-top: 4px !important;
     }
     .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card__desc :global(.deck-logos-container) {
       display: none !important;
@@ -4533,10 +4543,12 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       wireCollapse(document.querySelector('.project-making-section'), 'project-making-click', 'project-making-toggle', 'project-making-panel');
     }
 
-    // Mobile: "Prompt" pill reveals the Midjourney prompt box inside the
-    // description (hidden when the page has no prompt box).
+    // Mobile: "Prompt" pill reveals the Midjourney prompt box (hidden when
+    // the page has no prompt box). On mobile the box is relocated below the
+    // pagination row so it opens as a full-width single-column row; on
+    // desktop it returns to its home inside the description column.
     const promptBtn = document.getElementById('project-prompt-btn');
-    const promptBox = document.querySelector('.project-card__desc .prompt-box');
+    const promptBox = document.querySelector('.project-card__desc .prompt-box') as HTMLElement | null;
     if (promptBtn) {
       if (!promptBox) {
         promptBtn.style.display = 'none';
@@ -4546,6 +4558,21 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
           promptBtn.setAttribute('aria-expanded', String(!open));
           promptBox.classList.toggle('is-open', !open);
         });
+
+        const promptHome = document.createElement('span');
+        promptHome.style.display = 'none';
+        promptBox.before(promptHome);
+        const pagRow = document.querySelector('.project-card-name-pagination-row');
+        const placePrompt = () => {
+          const mobile = window.matchMedia('(max-width: 1023px)').matches;
+          if (mobile && pagRow) {
+            if (promptBox.previousElementSibling !== pagRow) pagRow.after(promptBox);
+          } else if (promptHome.parentElement && promptBox.previousSibling !== promptHome) {
+            promptHome.after(promptBox);
+          }
+        };
+        placePrompt();
+        window.addEventListener('resize', placePrompt, { passive: true });
       }
     }
 
