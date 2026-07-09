@@ -1395,14 +1395,20 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     cursor: pointer;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
+    /* On mobile this is a direct grid item (the single-column reorder makes
+       .project-card-info's children participate in the grid directly) and
+       grid items stretch to fill their column by default — without this it
+       was rendering full-width instead of hugging the "Credits" text. */
+    width: fit-content;
+    justify-self: start;
     margin-top: 16px;
     font-size: var(--_tokens---type--micro);
     font-weight: 500;
     color: var(--_tokens---color--fg);
     border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
     border-radius: var(--_tokens---radius--pill);
-    padding: 4px 12px;
+    padding: 3px 10px;
     white-space: nowrap;
     transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
   }
@@ -1682,7 +1688,9 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     }
 
     .project-detail[data-category="work"] .project-card__metaline {
-      padding: 8px 12px 0;
+      /* No horizontal padding of its own — it must sit flush with the page's
+         own left/right inset, same as the description text below it. */
+      padding: 8px 0 0;
     }
     /* border-top: none is set generally (all viewports) below — the tab
        header's own border-bottom is the only line above the metaline now. */
@@ -1702,21 +1710,14 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   /* The project name is the first toggle dropdown (same left-label + arrow
      pattern as Design/Making below it, on every viewport, and — like them —
      collapsed by default): the header row (name + arrow) is the only thing
-     always visible; clicking it reveals the metaline (year/location/status +
-     category) plus everything else (description, people, image, pagination,
-     scrub). .project-content-grid--card is display:contents on desktop
-     (≥1024px, so its children can sit directly in the outer page grid) and
-     .project-col-left is display:contents on the mobile single-column reorder
-     — neither renders a box of its own to collapse, so every actual rendered
-     piece is targeted directly, regardless of how deep it's nested. */
+     always visible. .project-content-grid--card is a real box (display:grid)
+     at every breakpoint for work pages now — the old desktop-locked-grid
+     display:contents no longer applies here — so hiding it directly hides
+     everything nested inside it (description, people, image, pagination,
+     both scrubs) in one shot, with no residual padding/gap left behind.
+     The metaline lives in the header instead, so it needs its own rule. */
   .project-detail[data-category="work"] .project-dashboard-wrap:not(.is-expanded) .project-card__metaline,
-  .project-detail[data-category="work"] .project-dashboard-wrap:not(.is-expanded) .project-card__row2,
-  .project-detail[data-category="work"] .project-dashboard-wrap:not(.is-expanded) .project-credits-btn,
-  .project-detail[data-category="work"] .project-dashboard-wrap:not(.is-expanded) .project-people,
-  .project-detail[data-category="work"] .project-dashboard-wrap:not(.is-expanded) .project-card-name-pagination-row,
-  .project-detail[data-category="work"] .project-dashboard-wrap:not(.is-expanded) .deck-grid--mobile-scrub,
-  .project-detail[data-category="work"] .project-dashboard-wrap:not(.is-expanded) .project-col-right,
-  .project-detail[data-category="work"] .project-dashboard-wrap:not(.is-expanded) .card-deck-section {
+  .project-detail[data-category="work"] .project-dashboard-wrap:not(.is-expanded) .project-content-grid--card {
     display: none !important;
   }
 
@@ -2328,6 +2329,17 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     padding-top: 0;
     margin-top: 0;
   }
+  /* .project-metadata-sections (wraps Design+Making) has its own 24px
+     margin-top for the standard-page look, and .project-top-header its own
+     8px margin-bottom — both are extra space the Name tab's 12px gap
+     doesn't have, so Design sits noticeably further from the tab above it
+     than Making sits from Design. */
+  .project-detail[data-category="work"] .project-metadata-sections {
+    margin-top: 0;
+  }
+  .project-detail[data-category="work"] .project-top-header {
+    margin-bottom: 0;
+  }
   /* The metaline sits right under the name tab's own border-bottom when
      open — its own separate border-top would double that line. */
   .project-detail[data-category="work"] .project-card__metaline {
@@ -2465,7 +2477,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     display: flex;
     flex-wrap: nowrap;
     grid-template-columns: none !important;
-    gap: 4px;
+    gap: 0;
     margin-top: 12px;
     overflow: hidden;
   }
@@ -2475,6 +2487,13 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     width: auto;
     height: 68px;
     aspect-ratio: auto;
+  }
+  /* Flush, no gap between thumbs and no per-card border/radius/shadow —
+     they read as one continuous filmstrip, not separate rounded cards. */
+  .deck-grid--mobile-scrub .deck-card-inner {
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
   }
   @media (min-width: 1024px) {
     .deck-grid--mobile-scrub {
@@ -3147,6 +3166,23 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     .project-detail[data-category="work"] .project-col-right { order: 4; }
     .project-detail[data-category="work"] .project-card-name-pagination-row { order: 5; }
     .project-detail[data-category="work"] .deck-grid--mobile-scrub { order: 6; }
+    /* Work pages stack full-width instead of sitting in a half-width column,
+       so the 2:3 aspect-ratio (meant for a narrow card) made the image fill
+       almost the whole screen. This is a cap, not a forced size: the box
+       height follows the image's own natural (full-width) proportions and
+       only gets clamped if that would exceed 60% of the viewport — shorter
+       images stay their natural, shorter height. No cropping (object-fit:
+       contain instead of cover), since we're no longer forcing a fixed box. */
+    .project-detail[data-category="work"] .project-detail__active-wrap {
+      height: auto !important;
+      max-height: 60vh !important;
+      aspect-ratio: auto !important;
+    }
+    .project-detail[data-category="work"] .project-detail__active-img {
+      height: auto !important;
+      max-height: 60vh !important;
+      object-fit: contain !important;
+    }
     .project-detail[data-category="work"] .project-card__text-block {
       gap: 6px !important;
     }
