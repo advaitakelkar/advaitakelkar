@@ -477,9 +477,12 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                 )}
 
 
-                <!-- Work-category pages only: single-row scrub right above the pagination -->
-                {hasImages && isTabLayout && (
-                  <div class="deck-grid deck-grid--mobile-scrub" id="deck-grid" data-images={JSON.stringify(allImages)}>
+                <!-- In-column scrub. On tab (work/ARCHV) pages it IS the deck
+                     (#deck-grid); on other card pages the bottom deck section
+                     keeps #deck-grid and this becomes the parallel-wired
+                     #deck-grid-mobile-scrub (desktop column layout). -->
+                {hasImages && (
+                  <div class="deck-grid deck-grid--mobile-scrub" id={isTabLayout ? "deck-grid" : "deck-grid-mobile-scrub"} data-images={JSON.stringify(allImages)}>
                     {allImages.map((img, idx) => (
                       <button
                         type="button"
@@ -1253,24 +1256,115 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       display: none;
     }
 
-    /* Original card sets (sups, alt-verse, indian royals, future of dance…):
-       cap the description so the text row can't swallow the whole 100dvh
-       grid — the deck scrub (grid-row 3 = 1fr) keeps its height and stays
-       visible. The description scrolls internally instead of a Read more
-       pill; !important beats the JS-set inline clip height. */
-    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card__desc {
-      max-height: 12vh !important;
-      overflow-y: auto !important;
-      scrollbar-width: none; /* same UI as mobile — invisible scrollbar */
+    /* ── Original card sets (sups, alt-verse, indian royals, future of
+       dance…): same column layout as the work pages on desktop. Left column
+       spans the full height beside the image: intro on top, only the
+       description scrolls (invisible scrollbar, mobile feel), pagination
+       row, then the thumbnail scrub bottom-aligned with the image. The
+       old bottom deck section is hidden here (it still serves mobile). ── */
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .card-deck-section {
+      display: none;
     }
-    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card__desc::-webkit-scrollbar {
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-col-left {
+      grid-row: 2 / 4;
+      height: 100%;
+      min-height: 0;
+      display: flex;
+    }
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card-info {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+      width: 100%;
+    }
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card__row2 {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+    }
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card__text-block {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-desc-readmore {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    /* Only the description TEXT (first paragraph) scrolls — the prompt box
+       and the "…in this study" names stay fixed below it, always visible.
+       !important beats the JS inline clip. */
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-desc-clip {
+      max-height: none !important;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: visible;
+    }
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-desc-clip > p:first-child {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      scrollbar-width: none;
+    }
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-desc-clip > p:first-child::-webkit-scrollbar {
       display: none;
     }
     .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-readmore-btn {
       display: none;
     }
-    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .card-deck-section {
-      min-height: 110px; /* never let the scrub row collapse to zero */
+    /* Pagination row above, scrub last — bottom flush with the image */
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card-name-pagination-row {
+      order: 1;
+    }
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .deck-grid--mobile-scrub {
+      order: 2;
+      display: grid !important;
+      grid-template-columns: repeat(auto-fill, minmax(36px, 1fr)) !important;
+      gap: 4px !important;
+      margin: 12px 0 0;
+      max-height: 24vh;
+      overflow-y: auto !important;
+      scrollbar-width: none;
+    }
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .deck-grid--mobile-scrub::-webkit-scrollbar {
+      display: none;
+    }
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .deck-grid--mobile-scrub .deck-card-item {
+      height: auto !important;
+      aspect-ratio: 2/3 !important;
+    }
+  }
+
+  /* Below desktop, non-tab card pages keep their existing mobile UI: the
+     bottom deck section is the scrub, so the in-column copy stays hidden. */
+  @media (max-width: 1023px) {
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .deck-grid--mobile-scrub {
+      display: none !important;
+    }
+    /* Mobile mirrors the desktop scroll rule: only the description text
+       (first paragraph) scrolls; the prompt box, logos and the
+       "…in this study" names stay outside the scroll, always visible.
+       No Read more pill — !important beats the JS inline clip. */
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card__desc {
+      max-height: none !important;
+      overflow: visible !important;
+    }
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card__desc > p:first-child {
+      max-height: 12vh;
+      overflow-y: auto;
+      scrollbar-width: none;
+    }
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card__desc > p:first-child::-webkit-scrollbar {
+      display: none;
+    }
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-readmore-btn {
+      display: none !important;
     }
   }
 
