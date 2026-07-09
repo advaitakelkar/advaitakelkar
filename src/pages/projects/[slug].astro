@@ -90,15 +90,17 @@ const isOriginalCardPage = cardPageSlugs.includes(project.id);
 // is a tab instead of the generic Design / Making pair.
 const tabChapterSlugs = ['habersham-hall', 'scad-design-built'];
 const isTabChapterPage = tabChapterSlugs.includes(project.id);
+const isScarpinPage = project.id === 'scarpin';
 // "Tab layout" = the work-style collapsible tab UI (name tab + section tabs).
-// Work + freelancer card pages get it, plus the two chapter pages above.
-const isTabLayout = category?.id === 'work' || isTabChapterPage;
-// All freelancer + work pages now also get the card layout
-const isCardPage = isOriginalCardPage
+// Work + ARCHV pages get it, plus the two chapter pages above. Scarpin keeps
+// its own bespoke grid page even though it lives in the ARCHV category.
+const isTabLayout = (category?.id === 'work' || category?.id === 'archv' || isTabChapterPage) && !isScarpinPage;
+// All freelancer + work + ARCHV pages now also get the card layout
+const isCardPage = (isOriginalCardPage
   || category?.id === 'freelancer'
   || category?.id === 'work'
-  || isTabChapterPage;
-const isScarpinPage = project.id === 'scarpin';
+  || category?.id === 'archv'
+  || isTabChapterPage) && !isScarpinPage;
 
 // Levenshtein distance — used to tolerate small folder-name typos when
 // matching a scarpin credit against the PEOPLE registry.
@@ -264,10 +266,30 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                {data.description && <div class="project-card__desc" set:html={data.description} />}
             </div>
             
+            <!-- One tab per person's submission (same pill language as the Work category tabs) -->
+            <div class="scarpin-tabs__bar" role="tablist" aria-label="Submissions">
+              {scarpinSliders.map((slider, idx) => (
+                <button
+                  class:list={["scarpin-tab-btn", idx === 0 && "is-active"]}
+                  role="tab"
+                  aria-selected={idx === 0 ? 'true' : 'false'}
+                  data-scarpin-tab={idx}
+                  type="button"
+                >
+                  {slider.avatar ? (
+                    <img class="scarpin-tab-avatar" src={slider.avatar} alt="" loading="lazy" />
+                  ) : (
+                    <span class="scarpin-tab-avatar scarpin-tab-avatar--placeholder"></span>
+                  )}
+                  <span>{slider.personName || slider.cleanName}</span>
+                </button>
+              ))}
+            </div>
+
             <div class="scarpin-grid">
               {scarpinSliders.map((slider, idx) => {
                 return (
-                  <div class="scarpin-grid-item" data-images={JSON.stringify(slider.urls)} data-index={idx}>
+                  <div class:list={["scarpin-grid-item", idx === 0 && "is-active"]} data-images={JSON.stringify(slider.urls)} data-index={idx}>
                     <div class="scarpin-item-header">
                       <h3 class="scarpin-item-title">{slider.cleanName}</h3>
                     </div>
@@ -918,32 +940,92 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
 
   .scarpin-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 32px 24px;
+    display: block;
     width: 100%;
   }
 
-  @media (min-width: 768px) {
-    .scarpin-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-  }
-
   @media (min-width: 1024px) {
-    .scarpin-grid {
-      grid-template-columns: repeat(3, 1fr);
-      gap: 40px 32px;
-    }
     .scarpin-grid-container {
       padding: 0;
     }
   }
 
-  .scarpin-grid-item {
+  /* ── Scarpin submission tabs — one pill per person ── */
+  .scarpin-tabs__bar {
     display: flex;
+    flex-direction: row;
+    gap: 6px;
+    flex-wrap: nowrap;
+    width: 100%;
+    border-bottom: 1px solid var(--_tokens---color--line-soft);
+    padding-bottom: 12px;
+    margin-bottom: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .scarpin-tabs__bar::-webkit-scrollbar { display: none; }
+
+  .scarpin-tab-btn {
+    all: unset;
+    box-sizing: border-box;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: inherit;
+    font-size: var(--_tokens---type--micro);
+    font-weight: 500;
+    line-height: 1;
+    color: var(--_tokens---color--muted);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    border: 1px solid var(--_tokens---color--line-soft);
+    border-radius: var(--_tokens---radius--pill);
+    padding: 8px 16px 8px 10px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  }
+  .scarpin-tab-btn:hover {
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
+    color: var(--_tokens---color--fg);
+    border-color: color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
+  }
+  .scarpin-tab-btn.is-active {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
+  }
+
+  .scarpin-tab-avatar {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    filter: grayscale(1);
+    transition: filter 0.2s ease;
+  }
+  .scarpin-tab-btn.is-active .scarpin-tab-avatar,
+  .scarpin-tab-btn:hover .scarpin-tab-avatar {
+    filter: grayscale(0);
+  }
+  .scarpin-tab-avatar--placeholder {
+    display: inline-block;
+    background-color: currentColor;
+    opacity: 0.35;
+  }
+
+  /* Tabbed panels: only the active submission shows, centered */
+  .scarpin-grid-item {
+    display: none;
     flex-direction: column;
     gap: 12px;
+    width: 100%;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  .scarpin-grid-item.is-active {
+    display: flex;
   }
 
   .scarpin-item-header {
@@ -1170,6 +1252,26 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     .project-detail[data-is-card="true"] .card-deck-section::-webkit-scrollbar {
       display: none;
     }
+
+    /* Original card sets (sups, alt-verse, indian royals, future of dance…):
+       cap the description so the text row can't swallow the whole 100dvh
+       grid — the deck scrub (grid-row 3 = 1fr) keeps its height and stays
+       visible. The description scrolls internally instead of a Read more
+       pill; !important beats the JS-set inline clip height. */
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card__desc {
+      max-height: 12vh !important;
+      overflow-y: auto !important;
+      scrollbar-width: none; /* same UI as mobile — invisible scrollbar */
+    }
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card__desc::-webkit-scrollbar {
+      display: none;
+    }
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-readmore-btn {
+      display: none;
+    }
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .card-deck-section {
+      min-height: 110px; /* never let the scrub row collapse to zero */
+    }
   }
 
   /* Work-category pages opt OUT of the viewport-locked 2-column layout above:
@@ -1190,24 +1292,89 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       display: flex;
       flex-direction: column;
     }
+    /* Viewport-locked first screen: the open dashboard (header + intro +
+       image + scrub) always fits exactly 100dvh — the description scrolls
+       inside its own box instead of growing the page. Sections below
+       (Design / Making) remain reachable by normal page scroll. */
+    .project-detail[data-tab-layout="true"] .project-dashboard-wrap.is-expanded {
+      height: 100dvh;
+      overflow: hidden;
+      box-sizing: border-box;
+      padding-bottom: clamp(1rem, 3vh, 2rem);
+    }
     .project-detail[data-tab-layout="true"] .project-content-grid--card {
       display: grid; /* falls back to its own column ratio instead of bubbling into the (now-cancelled) outer grid */
+      flex: 1;
+      min-height: 0;
     }
     .project-detail[data-tab-layout="true"] .project-top-header {
       padding-top: calc(clamp(0.5rem, 1.5vh, 1rem) + 48px);
     }
+    /* Left column becomes a full-height flex stack: intro on top, the
+       description absorbs the leftover height and scrolls internally,
+       people + scrub + pagination stay pinned at the bottom. */
+    .project-detail[data-tab-layout="true"] .project-col-left {
+      height: 100%;
+      min-height: 0;
+    }
+    .project-detail[data-tab-layout="true"] .project-card-info {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+    }
+    .project-detail[data-tab-layout="true"] .project-card__row2 {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+    }
+    .project-detail[data-tab-layout="true"] .project-card__text-block {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .project-detail[data-tab-layout="true"] .project-desc-readmore {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    /* Internal scroll replaces the Read more pill on desktop (the pill
+       still works on mobile). !important beats the JS-set inline clip. */
+    .project-detail[data-tab-layout="true"] .project-desc-clip {
+      max-height: none !important;
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      scrollbar-width: thin;
+    }
+    .project-detail[data-tab-layout="true"] .project-readmore-btn {
+      display: none;
+    }
+    /* Desktop order flip: pagination row first, thumbnail scrub last —
+       the scrub is the column's final element, so its bottom edge sits
+       flush with the bottom of the right-column image. */
+    .project-detail[data-tab-layout="true"] .project-card-name-pagination-row {
+      order: 1;
+    }
+    .project-detail[data-tab-layout="true"] .deck-grid--mobile-scrub {
+      order: 2;
+      margin-top: 12px;
+      margin-bottom: 0;
+    }
     .project-detail[data-tab-layout="true"] .project-col-right {
       position: static;
-      height: auto;
+      height: 100%;
+      min-height: 0;
+      grid-row: auto;
+      align-self: stretch;
     }
-    /* Same fixed height regardless of orientation as mobile (see the
-       max-width:768px rule below) — portrait and landscape images both
-       render at 60vh, filling the full box width with no letterbox gaps
-       (object-fit: cover crops instead of contain leaving empty bars), and
-       no card chrome (background/border/radius/shadow) — just the image. */
+    /* Image fills the full right-column height beside the text — no
+       letterbox gaps (object-fit: cover), no card chrome — just the image. */
     .project-detail[data-tab-layout="true"] .project-detail__active-wrap {
-      height: 60vh !important;
-      max-height: 60vh !important;
+      height: 100% !important;
+      max-height: 100% !important;
       aspect-ratio: auto !important;
       width: 100%;
       background: none !important;
@@ -1216,8 +1383,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       box-shadow: none !important;
     }
     .project-detail[data-tab-layout="true"] .project-detail__active-img {
-      height: 60vh !important;
-      max-height: 60vh !important;
+      height: 100% !important;
+      max-height: 100% !important;
       width: 100% !important;
       max-width: 100%;
       object-fit: cover !important;
@@ -4609,6 +4776,22 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         if (e.key === 'ArrowLeft') { e.preventDefault(); e.stopImmediatePropagation(); lbPrev.click(); }
         if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); closeScarpinLightbox(); }
       }
+    });
+
+    // Submission tabs — one pill per person; clicking swaps the visible panel
+    const scarpinTabs = document.querySelectorAll('.scarpin-tab-btn');
+    scarpinTabs.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const target = btn.getAttribute('data-scarpin-tab');
+        scarpinTabs.forEach((b) => {
+          const m = b === btn;
+          b.classList.toggle('is-active', m);
+          b.setAttribute('aria-selected', String(m));
+        });
+        items.forEach((it) => {
+          it.classList.toggle('is-active', it.getAttribute('data-index') === target);
+        });
+      });
     });
 
     items.forEach(item => {
