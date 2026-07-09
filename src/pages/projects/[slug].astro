@@ -85,10 +85,19 @@ const cardPageSlugs = [
 ];
 // Original curated AI card sets (overlay name, logo, no Design/Making)
 const isOriginalCardPage = cardPageSlugs.includes(project.id);
+// Chapter-driven academic pages that use the same collapsible tab UI as work
+// pages — project name is tab 1, and each chapter (Unveil, Float, Lonely…)
+// is a tab instead of the generic Design / Making pair.
+const tabChapterSlugs = ['habersham-hall', 'scad-design-built'];
+const isTabChapterPage = tabChapterSlugs.includes(project.id);
+// "Tab layout" = the work-style collapsible tab UI (name tab + section tabs).
+// Work + freelancer card pages get it, plus the two chapter pages above.
+const isTabLayout = category?.id === 'work' || isTabChapterPage;
 // All freelancer + work pages now also get the card layout
 const isCardPage = isOriginalCardPage
   || category?.id === 'freelancer'
-  || category?.id === 'work';
+  || category?.id === 'work'
+  || isTabChapterPage;
 const isScarpinPage = project.id === 'scarpin';
 
 // Levenshtein distance — used to tolerate small folder-name typos when
@@ -222,6 +231,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       data-is-card={isCardPage ? "true" : "false"}
       data-is-scarpin={isScarpinPage ? "true" : "false"}
       data-category={category ? category.id : ''}
+      data-tab-layout={isTabLayout ? "true" : "false"}
     >
       
       {isScarpinPage ? (
@@ -353,13 +363,13 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         </>
       ) : isCardPage ? (
         /* CARD PAGES: Wrapped in Sticky Dashboard wrapper */
-        <div class:list={["project-dashboard-wrap", category?.id === 'work' && "is-expanded"]} id="project-dashboard">
+        <div class:list={["project-dashboard-wrap", isTabLayout && "is-expanded"]} id="project-dashboard">
           <header class="project-top-header" id="project-top-header">
             <div class="project-header-title-row" id="project-name-header">
               <h1 class="project-name-title" id="project-name-click">
                 <span class="project-name-main">{data.name}</span>
               </h1>
-              {category?.id === 'work' && (
+              {isTabLayout && (
                 <button class="project-detail-collapse-btn" id="project-name-toggle" type="button" aria-expanded="true" aria-label="Toggle project details">
                   <svg class="toggle-icon-minus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
                   <svg class="toggle-icon-plus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" style="display: none;"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
@@ -398,13 +408,13 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                     Work pages hide it behind a "Credits" pill instead of always showing it. */}
                 {!isOriginalCardPage && (
                   <>
-                    {category?.id === 'work' && (
+                    {isTabLayout && (
                       <button class="project-credits-btn" id="project-credits-btn" type="button" aria-expanded="false">
                         <span>Credits</span>
                         <svg class="link-arrow project-credits-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
                       </button>
                     )}
-                    <div class:list={["project-people", category?.id === 'work' && "project-people--collapsible"]} id="project-people-panel" style="margin-top: 20px;">
+                    <div class:list={["project-people", isTabLayout && "project-people--collapsible"]} id="project-people-panel" style="margin-top: 20px;">
                     {people.map((person, idx) => {
                       const isCas = person === 'Casimir Esbach';
                       const isFaizan = person === 'Faizan Khatri';
@@ -452,7 +462,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                      pagination, mobile only (desktop uses the left-column deck
                      grid below instead, matching #deck-grid so it shares its
                      click/active wiring; hidden on desktop to avoid duplicating it). -->
-                {hasImages && category?.id === 'work' && (
+                {hasImages && isTabLayout && (
                   <div class="deck-grid deck-grid--mobile-scrub" id="deck-grid-mobile-scrub">
                     {allImages.map((img, idx) => (
                       <button
@@ -472,7 +482,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                 <!-- Work-category pages only, desktop: the deck grid sits in the
                      left column beside the image (2-column, alt-verse style) —
                      hidden on mobile in favour of the compact scrub above. -->
-                {hasImages && category?.id === 'work' && (
+                {hasImages && isTabLayout && (
                   <section class="card-deck-section" id="work-deck-section">
                     <div class="deck-grid" id="deck-grid" data-images={JSON.stringify(allImages)}>
                       {allImages.map((img, idx) => {
@@ -761,10 +771,10 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         </div>
       )}
 
-      <!-- CARD DECK SECTION ONLY (visible at the bottom of the page) — work-category
+      <!-- CARD DECK SECTION ONLY (visible at the bottom of the page) — tab-layout
            pages render their own copy inside .project-col-left instead (left of the
            image, 2-column alt-verse style), so this is freelancer/original-card-set only. -->
-      {hasImages && isCardPage && category?.id !== 'work' && (
+      {hasImages && isCardPage && !isTabLayout && (
         <section class="card-deck-section">
           <div class="deck-grid" id="deck-grid" data-images={JSON.stringify(allImages)}>
             {allImages.map((img, idx) => {
@@ -1186,23 +1196,23 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
      matching mobile — the page scrolls normally instead of being locked to
      100dvh with only the deck scrolling internally. */
   @media (min-width: 1024px) {
-    .project-detail[data-category="work"] {
+    .project-detail[data-tab-layout="true"] {
       display: block;
       height: auto;
       overflow: visible;
       padding-bottom: clamp(4rem, 8vh, 8rem);
     }
-    .project-detail[data-category="work"] .project-dashboard-wrap {
+    .project-detail[data-tab-layout="true"] .project-dashboard-wrap {
       display: flex;
       flex-direction: column;
     }
-    .project-detail[data-category="work"] .project-content-grid--card {
+    .project-detail[data-tab-layout="true"] .project-content-grid--card {
       display: grid; /* falls back to its own column ratio instead of bubbling into the (now-cancelled) outer grid */
     }
-    .project-detail[data-category="work"] .project-top-header {
+    .project-detail[data-tab-layout="true"] .project-top-header {
       padding-top: calc(clamp(0.5rem, 1.5vh, 1rem) + 48px);
     }
-    .project-detail[data-category="work"] .project-col-right {
+    .project-detail[data-tab-layout="true"] .project-col-right {
       position: static;
       height: auto;
     }
@@ -1211,7 +1221,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
        render at 60vh, filling the full box width with no letterbox gaps
        (object-fit: cover crops instead of contain leaving empty bars), and
        no card chrome (background/border/radius/shadow) — just the image. */
-    .project-detail[data-category="work"] .project-detail__active-wrap {
+    .project-detail[data-tab-layout="true"] .project-detail__active-wrap {
       height: 60vh !important;
       max-height: 60vh !important;
       aspect-ratio: auto !important;
@@ -1221,14 +1231,14 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       border-radius: 0 !important;
       box-shadow: none !important;
     }
-    .project-detail[data-category="work"] .project-detail__active-img {
+    .project-detail[data-tab-layout="true"] .project-detail__active-img {
       height: 60vh !important;
       max-height: 60vh !important;
       width: 100% !important;
       max-width: 100%;
       object-fit: cover !important;
     }
-    .project-detail[data-category="work"] .card-deck-section {
+    .project-detail[data-tab-layout="true"] .card-deck-section {
       height: auto;
       overflow: visible;
     }
@@ -1698,14 +1708,14 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     /* Work-category pages: only the project NAME behaves like a pinned tab —
        the rest of the dashboard (metaline, category link) scrolls away
        normally instead of staying fixed on screen. */
-    .project-detail[data-category="work"] .project-dashboard-wrap {
+    .project-detail[data-tab-layout="true"] .project-dashboard-wrap {
       position: static;
       box-shadow: none;
       border-bottom: none;
       padding: 0 !important; /* the sticky title row below owns the top safe-area clearance instead */
     }
 
-    .project-detail[data-category="work"] .project-card__metaline {
+    .project-detail[data-tab-layout="true"] .project-card__metaline {
       /* No horizontal padding of its own — it must sit flush with the page's
          own left/right inset, same as the description text below it. It
          previously touched the smallIntro text right below it with no gap. */
@@ -1715,7 +1725,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     /* border-top: none is set generally (all viewports) below — the tab
        header's own border-bottom is the only line above the metaline now. */
 
-    .project-detail[data-category="work"] {
+    .project-detail[data-tab-layout="true"] {
       padding-top: 0 !important; /* no fixed dashboard to clear space for */
     }
   }
@@ -1729,8 +1739,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
      everything nested inside it (description, people, image, pagination,
      both scrubs) in one shot, with no residual padding/gap left behind.
      The metaline lives in the header instead, so it needs its own rule. */
-  .project-detail[data-category="work"] .project-dashboard-wrap:not(.is-expanded) .project-card__metaline,
-  .project-detail[data-category="work"] .project-dashboard-wrap:not(.is-expanded) .project-content-grid--card {
+  .project-detail[data-tab-layout="true"] .project-dashboard-wrap:not(.is-expanded) .project-card__metaline,
+  .project-detail[data-tab-layout="true"] .project-dashboard-wrap:not(.is-expanded) .project-content-grid--card {
     display: none !important;
   }
 
@@ -2298,19 +2308,19 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
 
   /* Work category projects: style Design & Making sections like chapters */
-  .project-detail[data-category="work"] .project-section-subtitle {
+  .project-detail[data-tab-layout="true"] .project-section-subtitle {
     font-size: var(--_tokens---type--big);
     font-weight: 500;
     letter-spacing: -0.03em;
     line-height: 1.05;
   }
 
-  .project-detail[data-category="work"] .project-design-header,
-  .project-detail[data-category="work"] .project-making-header {
+  .project-detail[data-tab-layout="true"] .project-design-header,
+  .project-detail[data-tab-layout="true"] .project-making-header {
     align-items: center;
   }
 
-  .project-detail[data-category="work"] .project-detail-collapse-btn {
+  .project-detail[data-tab-layout="true"] .project-detail-collapse-btn {
     width: 40px;
     height: 40px;
     flex-shrink: 0;
@@ -2322,18 +2332,18 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
      (border/radius/shadow) — reads as one strip, not separate cards. Hidden
      on mobile (the compact scrub above the pagination covers that). */
   @media (max-width: 768px) {
-    .project-detail[data-category="work"] .card-deck-section {
+    .project-detail[data-tab-layout="true"] .card-deck-section {
       display: none !important;
     }
   }
-  .project-detail[data-category="work"] .card-deck-section .deck-grid {
+  .project-detail[data-tab-layout="true"] .card-deck-section .deck-grid {
     display: flex !important;
     flex-wrap: nowrap !important;
     grid-template-columns: none !important;
     gap: 0 !important;
     overflow: hidden;
   }
-  .project-detail[data-category="work"] .card-deck-section .deck-card-item {
+  .project-detail[data-tab-layout="true"] .card-deck-section .deck-card-item {
     flex: 1 1 0 !important;
     min-width: 0 !important;
     width: auto !important;
@@ -2342,7 +2352,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     padding: 0 !important;
     margin: 0 !important;
   }
-  .project-detail[data-category="work"] .card-deck-section .deck-card-inner {
+  .project-detail[data-tab-layout="true"] .card-deck-section .deck-card-inner {
     width: 100%;
     height: 100%;
     border-radius: 0 !important;
@@ -2350,7 +2360,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     box-shadow: none !important;
     margin: 0 !important;
   }
-  .project-detail[data-category="work"] .card-deck-section .deck-card-inner img:not(.deck-card-logo) {
+  .project-detail[data-tab-layout="true"] .card-deck-section .deck-card-inner img:not(.deck-card-logo) {
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -2358,9 +2368,9 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
   /* Keep the strip flush — no 3D lift/scale on hover/active (that would open
      gaps between neighbours); the grayscale→colour reveal still happens. */
-  .project-detail[data-category="work"] .card-deck-section .deck-card-item:hover .deck-card-inner,
-  .project-detail[data-category="work"] .card-deck-section .deck-card-item:focus .deck-card-inner,
-  .project-detail[data-category="work"] .card-deck-section .deck-card-item.is-active .deck-card-inner {
+  .project-detail[data-tab-layout="true"] .card-deck-section .deck-card-item:hover .deck-card-inner,
+  .project-detail[data-tab-layout="true"] .card-deck-section .deck-card-item:focus .deck-card-inner,
+  .project-detail[data-tab-layout="true"] .card-deck-section .deck-card-item.is-active .deck-card-inner {
     transform: none !important;
     box-shadow: none !important;
   }
@@ -2371,12 +2381,12 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
      landscapes down instead of showing their real proportions. Capped at
      88vw/85vh (was touching the header/scrubber and the name label at the
      very top/bottom edges with letting width run fully free). */
-  .project-detail[data-category="work"] .lightbox-deck__item {
+  .project-detail[data-tab-layout="true"] .lightbox-deck__item {
     width: auto !important;
     max-width: 88vw;
     max-height: 85vh;
   }
-  .project-detail[data-category="work"] .lightbox-deck__item img:not(.lightbox-card-logo) {
+  .project-detail[data-tab-layout="true"] .lightbox-deck__item img:not(.lightbox-card-logo) {
     width: auto !important;
     height: 100% !important;
     max-width: 100%;
@@ -2390,8 +2400,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
      longer carry the old space-3 margin+padding either — that made the gap
      above each closed tab much bigger than the 12px gap below it; now the
      header's own uniform 12px top/bottom padding is the only spacing. */
-  .project-detail[data-category="work"] .project-design-section,
-  .project-detail[data-category="work"] .project-making-section {
+  .project-detail[data-tab-layout="true"] .project-design-section,
+  .project-detail[data-tab-layout="true"] .project-making-section {
     border-top: none !important;
     padding-top: 0 !important;
     margin-top: 0 !important;
@@ -2402,7 +2412,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
      doesn't have, so Design sits noticeably further from the tab above it
      than Making sits from Design. !important on every one of these so
      there's no ambiguity about which declaration wins the cascade. */
-  .project-detail[data-category="work"] .project-metadata-sections {
+  .project-detail[data-tab-layout="true"] .project-metadata-sections {
     margin-top: 0 !important;
   }
   /* Only margin and padding-bottom are reset here — padding-top is left
@@ -2410,14 +2420,14 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
      (set to clamp(0.5rem,1.5vh,1rem)+48px above) and the notch-safe area on
      mobile (set on .project-header-title-row itself below); zeroing it
      with !important made the title render underneath the breadcrumb. */
-  .project-detail[data-category="work"] .project-top-header {
+  .project-detail[data-tab-layout="true"] .project-top-header {
     margin: 0 !important;
     padding-bottom: 0 !important;
   }
   /* The metaline sits right under the name tab's own border-bottom when
      open — its own separate border-top would double that line. It also
      used to touch the smallIntro text right below it with zero gap. */
-  .project-detail[data-category="work"] .project-card__metaline {
+  .project-detail[data-tab-layout="true"] .project-card__metaline {
     border-top: none !important;
     margin-bottom: 16px !important;
   }
@@ -2429,9 +2439,9 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
      padding now (a duplicate mobile-only declaration used to sit earlier
      in the file and, being un-!important, silently lost to this one anyway,
      but kept the notch-safe env() value out of the winning declaration). */
-  .project-detail[data-category="work"] .project-header-title-row,
-  .project-detail[data-category="work"] .project-design-header,
-  .project-detail[data-category="work"] .project-making-header {
+  .project-detail[data-tab-layout="true"] .project-header-title-row,
+  .project-detail[data-tab-layout="true"] .project-design-header,
+  .project-detail[data-tab-layout="true"] .project-making-header {
     position: sticky;
     top: 0;
     z-index: 50;
@@ -2443,9 +2453,40 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     box-sizing: border-box;
   }
 
-  .project-detail[data-category="work"] .project-detail-collapse-btn svg {
+  .project-detail[data-tab-layout="true"] .project-detail-collapse-btn svg {
     width: 32px !important;
     height: 32px !important;
+  }
+
+  /* ── Tab-layout chapter pages (habersham / design-built) ──
+     Each chapter is a tab, exactly like Design/Making. The chapter header
+     already carries .project-header-title-row so it inherits the sticky tab
+     styling above — here we just strip the chapter's own wrapper spacing and
+     border-top (which would double the header's border / open an uneven gap),
+     and let the header be a single full-width tab. */
+  .project-detail[data-tab-layout="true"] .project-chapters {
+    margin-top: 0 !important;
+  }
+  .project-detail[data-tab-layout="true"] .project-chapter {
+    border-top: none !important;
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+  }
+  /* Title reads as a single tab label (lead + rest on one line, big weight),
+     matching the "Design"/"Making" tab labels rather than the stacked
+     two-line chapter heading used on standard pages. */
+  .project-detail[data-tab-layout="true"] .project-chapter__title {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .project-detail[data-tab-layout="true"] .project-chapter__title-lead {
+    font-size: var(--_tokens---type--big);
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    color: var(--_tokens---color--muted);
   }
 
   .project-design-content,
@@ -3242,27 +3283,27 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
        and .project-card-info are unwrapped (display:contents) so their
        children become direct items of the grid and can be reordered freely
        alongside .project-col-right without touching the markup. */
-    .project-detail[data-category="work"] .project-content-grid--card {
+    .project-detail[data-tab-layout="true"] .project-content-grid--card {
       grid-template-columns: 1fr !important;
       gap: 16px !important;
     }
-    .project-detail[data-category="work"] .project-col-left,
-    .project-detail[data-category="work"] .project-card-info {
+    .project-detail[data-tab-layout="true"] .project-col-left,
+    .project-detail[data-tab-layout="true"] .project-card-info {
       display: contents;
     }
-    .project-detail[data-category="work"] .project-card__row2 { order: 1; }
-    .project-detail[data-category="work"] .project-credits-btn { order: 2; }
-    .project-detail[data-category="work"] .project-people { order: 3; }
-    .project-detail[data-category="work"] .project-col-right { order: 4; }
-    .project-detail[data-category="work"] .project-card-name-pagination-row { order: 5; }
-    .project-detail[data-category="work"] .deck-grid--mobile-scrub { order: 6; }
+    .project-detail[data-tab-layout="true"] .project-card__row2 { order: 1; }
+    .project-detail[data-tab-layout="true"] .project-credits-btn { order: 2; }
+    .project-detail[data-tab-layout="true"] .project-people { order: 3; }
+    .project-detail[data-tab-layout="true"] .project-col-right { order: 4; }
+    .project-detail[data-tab-layout="true"] .project-card-name-pagination-row { order: 5; }
+    .project-detail[data-tab-layout="true"] .deck-grid--mobile-scrub { order: 6; }
     /* Work pages stack full-width instead of sitting in a half-width column,
        so the 2:3 aspect-ratio (meant for a narrow card) made the image fill
        almost the whole screen. The image + scrub are sized to fit within one
        viewport alongside the header/metaline/description, so the image is
        reduced to 40vh (was 60), filling the full box width with no letterbox
        gaps (object-fit: cover), no card chrome — just the image, edge to edge. */
-    .project-detail[data-category="work"] .project-detail__active-wrap {
+    .project-detail[data-tab-layout="true"] .project-detail__active-wrap {
       height: 40vh !important;
       max-height: 40vh !important;
       aspect-ratio: auto !important;
@@ -3274,17 +3315,17 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       border-radius: 0 !important;
       box-shadow: none !important;
     }
-    .project-detail[data-category="work"] .project-detail__active-img {
+    .project-detail[data-tab-layout="true"] .project-detail__active-img {
       height: 40vh !important;
       max-height: 40vh !important;
       width: 100% !important;
       max-width: 100%;
       object-fit: cover !important;
     }
-    .project-detail[data-category="work"] .project-card__text-block {
+    .project-detail[data-tab-layout="true"] .project-card__text-block {
       gap: 6px !important;
     }
-    .project-detail[data-category="work"] .project-card__intro {
+    .project-detail[data-tab-layout="true"] .project-card__intro {
       /* No hairline between the intro and the description below it — the
          section header/tab borders are the only lines on this page now. */
       border-bottom: none !important;
@@ -3293,13 +3334,13 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     /* Description scrolls within its own capped box so a long summary doesn't
        push the image + scrub below the fold — keeping the whole open tab in
        roughly one viewport. */
-    .project-detail[data-category="work"] .project-card__desc {
+    .project-detail[data-tab-layout="true"] .project-card__desc {
       line-height: 1.4 !important;
       max-height: 14vh !important;
       overflow-y: auto !important;
       scrollbar-width: none;
     }
-    .project-detail[data-category="work"] .project-card__desc::-webkit-scrollbar {
+    .project-detail[data-tab-layout="true"] .project-card__desc::-webkit-scrollbar {
       display: none;
     }
     .project-card__intro {
@@ -4139,13 +4180,14 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       new ResizeObserver(fitDeckGrid).observe(deckSection);
     }
 
-    // Design/Making collapse (card pages render these too, but initStandardSlider
-    // — where this used to be wired — never runs here). Work-category pages get
-    // the 3-way single-open accordion (name/Design/Making); other card pages
-    // (freelancer, original card sets) keep Design/Making independent, with no
-    // name toggle since that button only renders for work pages.
-    const isWorkCategory = document.querySelector('.project-detail')?.getAttribute('data-category') === 'work';
-    if (isWorkCategory) {
+    // Section collapse (card pages render Design/Making or chapters too, but
+    // initStandardSlider — where this used to be wired — never runs here).
+    // Tab-layout pages (work + the academic chapter pages) get the single-open
+    // accordion: name tab + Design/Making OR name tab + each chapter. Other card
+    // pages (freelancer, original card sets) keep Design/Making independent, with
+    // no name toggle since that button only renders for tab-layout pages.
+    const isTabLayoutPage = document.querySelector('.project-detail')?.getAttribute('data-tab-layout') === 'true';
+    if (isTabLayoutPage) {
       wireWorkAccordion();
     } else {
       wireCollapse(document.querySelector('.project-design-section'), 'project-design-click', 'project-design-toggle', 'project-design-panel');
@@ -4744,26 +4786,34 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     });
   }
 
-  // Work-category pages: the project name / Design / Making tabs act as one
-  // accordion — only one open at a time (opening one closes the other two),
-  // a single click toggles just that tab, and a double click opens or closes
-  // all three together. Each tab's own header sticks to the top of the
-  // viewport (CSS: position:sticky) while its content is being scrolled.
+  // Tab-layout pages: the project name tab plus its section tabs act as one
+  // accordion — only one open at a time (opening one closes the others), a
+  // single click toggles just that tab, and a double click opens or closes
+  // all of them together. Each tab's own header sticks to the top of the
+  // viewport (CSS: position:sticky) while its content is being scrolled. The
+  // section tabs are EITHER the generic Design / Making pair (work pages
+  // without chapters) OR one tab per chapter (the academic chapter pages) —
+  // whichever the page actually rendered.
   function wireWorkAccordion() {
-    type Entry = { sect: Element; headerId: string; toggleId: string };
-    const candidates: Entry[] = [
-      { sect: document.getElementById('project-dashboard'), headerId: 'project-name-header', toggleId: 'project-name-toggle' },
-      { sect: document.querySelector('.project-design-section'), headerId: 'project-design-click', toggleId: 'project-design-toggle' },
-      { sect: document.querySelector('.project-making-section'), headerId: 'project-making-click', toggleId: 'project-making-toggle' },
-    ].filter((e): e is Entry => !!e.sect);
+    type Entry = { sect: Element; header: Element; toggle: Element };
+    const entries: Entry[] = [];
+    const add = (sect: Element | null, headerSel: string, toggleSel: string) => {
+      if (!sect) return;
+      const header = sect.querySelector(headerSel);
+      const toggle = sect.querySelector(toggleSel);
+      if (header && toggle) entries.push({ sect, header, toggle });
+    };
+    add(document.getElementById('project-dashboard'), '#project-name-header', '#project-name-toggle');
+    add(document.querySelector('.project-design-section'), '#project-design-click', '#project-design-toggle');
+    add(document.querySelector('.project-making-section'), '#project-making-click', '#project-making-toggle');
+    document.querySelectorAll('.project-chapter').forEach(ch =>
+      add(ch, '.project-chapter__header', '.project-detail-collapse-btn'));
 
     const setExpanded = (entry: Entry, expanded: boolean) => {
       entry.sect.classList.toggle('is-expanded', expanded);
-      const toggleBtn = entry.sect.querySelector(`#${entry.toggleId}`);
-      if (!toggleBtn) return;
-      toggleBtn.setAttribute('aria-expanded', String(expanded));
-      const iconMinus = toggleBtn.querySelector('.toggle-icon-minus') as HTMLElement | null;
-      const iconPlus = toggleBtn.querySelector('.toggle-icon-plus') as HTMLElement | null;
+      entry.toggle.setAttribute('aria-expanded', String(expanded));
+      const iconMinus = entry.toggle.querySelector('.toggle-icon-minus') as HTMLElement | null;
+      const iconPlus = entry.toggle.querySelector('.toggle-icon-plus') as HTMLElement | null;
       if (iconMinus && iconPlus) {
         iconMinus.style.display = expanded ? 'block' : 'none';
         iconPlus.style.display = expanded ? 'none' : 'block';
@@ -4772,19 +4822,15 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
     // Pass null to close every tab.
     const openOnly = (target: Entry | null) => {
-      candidates.forEach(entry => setExpanded(entry, entry === target));
+      entries.forEach(entry => setExpanded(entry, entry === target));
     };
 
     const toggleAll = () => {
-      const allOpen = candidates.every(entry => entry.sect.classList.contains('is-expanded'));
-      candidates.forEach(entry => setExpanded(entry, !allOpen));
+      const allOpen = entries.every(entry => entry.sect.classList.contains('is-expanded'));
+      entries.forEach(entry => setExpanded(entry, !allOpen));
     };
 
-    candidates.forEach(entry => {
-      const header = entry.sect.querySelector(`#${entry.headerId}`);
-      const toggleBtn = entry.sect.querySelector(`#${entry.toggleId}`);
-      if (!header || !toggleBtn) return;
-
+    entries.forEach(entry => {
       // A double click fires click, click, dblclick — delay the single-click
       // action just long enough to cancel it if a second click follows.
       let clickTimer: number | null = null;
@@ -4805,10 +4851,10 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         toggleAll();
       };
 
-      header.addEventListener('click', onClick);
-      toggleBtn.addEventListener('click', onClick);
-      header.addEventListener('dblclick', onDblClick);
-      toggleBtn.addEventListener('dblclick', onDblClick);
+      entry.header.addEventListener('click', onClick);
+      entry.toggle.addEventListener('click', onClick);
+      entry.header.addEventListener('dblclick', onDblClick);
+      entry.toggle.addEventListener('dblclick', onDblClick);
     });
   }
 
