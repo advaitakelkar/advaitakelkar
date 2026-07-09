@@ -1326,6 +1326,17 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-desc-clip > :global(p:first-child)::-webkit-scrollbar {
       display: none;
     }
+    /* Prompt box + logo strip are fixed flex children below the scroll —
+       never let them shrink (a squeezed prompt box clips its own text),
+       and give them breathing room from the text above. */
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-desc-clip > :global(.prompt-box) {
+      flex-shrink: 0 !important;
+      margin-top: 14px !important;
+    }
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-desc-clip > :global(.deck-logos-container) {
+      flex-shrink: 0;
+      margin-top: 16px;
+    }
     .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-readmore-btn {
       display: none;
     }
@@ -1382,10 +1393,10 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     /* Prompt box collapses behind the "Prompt" pill on mobile; the
        publisher/character logo strip is hidden on mobile entirely. */
     .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card__desc :global(.prompt-box) {
-      display: none;
+      display: none !important; /* beats the global .prompt-box{display:flex!important} */
     }
     .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card__desc :global(.prompt-box.is-open) {
-      display: block;
+      display: flex !important; /* the box's own layout is flex-column */
     }
     .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card__desc :global(.deck-logos-container) {
       display: none !important;
