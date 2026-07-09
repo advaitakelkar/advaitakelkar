@@ -2316,35 +2316,53 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     flex-shrink: 0;
   }
 
-  /* Work-category pages don't show the deck grid at all — the main image
-     (with pagination + arrows) is the only image browser on desktop, and the
-     compact one-row scrub above the pagination covers mobile. */
-  .project-detail[data-category="work"] .card-deck-section {
-    display: none !important;
+  /* Work-category desktop scrub: ONE continuous flush filmstrip — every image
+     in a single row, no gaps, all the same fixed height (width shrinks so all
+     fit), object-fit: cover so each fills its slot, and no per-card chrome
+     (border/radius/shadow) — reads as one strip, not separate cards. Hidden
+     on mobile (the compact scrub above the pagination covers that). */
+  @media (max-width: 768px) {
+    .project-detail[data-category="work"] .card-deck-section {
+      display: none !important;
+    }
   }
-  /* (Kept in case work pages ever reintroduce the grid — every image would
-     share the same fixed row height regardless of its own aspect ratio,
-     instead of the auto-fill grid forcing every cell into the same 2:3 box.) */
   .project-detail[data-category="work"] .card-deck-section .deck-grid {
     display: flex !important;
-    flex-wrap: wrap !important;
+    flex-wrap: nowrap !important;
     grid-template-columns: none !important;
-    gap: 6px;
+    gap: 0 !important;
+    overflow: hidden;
   }
   .project-detail[data-category="work"] .card-deck-section .deck-card-item {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
     width: auto !important;
+    height: 140px !important;
     aspect-ratio: auto !important;
-    flex: 0 0 auto;
+    padding: 0 !important;
+    margin: 0 !important;
   }
   .project-detail[data-category="work"] .card-deck-section .deck-card-inner {
-    width: auto;
-    height: 160px;
+    width: 100%;
+    height: 100%;
+    border-radius: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    margin: 0 !important;
   }
   .project-detail[data-category="work"] .card-deck-section .deck-card-inner img:not(.deck-card-logo) {
-    width: auto;
+    width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
+  }
+  /* Keep the strip flush — no 3D lift/scale on hover/active (that would open
+     gaps between neighbours); the grayscale→colour reveal still happens. */
+  .project-detail[data-category="work"] .card-deck-section .deck-card-item:hover .deck-card-inner,
+  .project-detail[data-category="work"] .card-deck-section .deck-card-item:focus .deck-card-inner,
+  .project-detail[data-category="work"] .card-deck-section .deck-card-item.is-active .deck-card-inner {
+    transform: none !important;
+    box-shadow: none !important;
   }
 
   /* Fullscreen lightbox deck: same fixed-height/natural-width filmstrip fix
