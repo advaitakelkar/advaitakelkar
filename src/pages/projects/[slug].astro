@@ -468,40 +468,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                     ))}
                   </div>
                 )}
-
-                <!-- Work-category pages only, desktop: the deck grid sits in the
-                     left column beside the image, same as the alt-verse-style card
-                     pages — hidden on mobile in favour of the compact scrub above. -->
-                {hasImages && category?.id === 'work' && (
-                  <section class="card-deck-section card-deck-section--work-left">
-                    <div class="deck-grid" id="deck-grid" data-images={JSON.stringify(allImages)}>
-                      {allImages.map((img, idx) => {
-                        const filename = img.substring(img.lastIndexOf('/') + 1);
-                        const ext = filename.substring(filename.lastIndexOf('.'));
-                        let name = filename.slice(0, filename.length - ext.length);
-                        name = name.replace(/^ADVT_[A-Z_]+_/, '').replace(/^ADVT_SP_\s*/, '').trim();
-                        name = name.replace(/\s+\d+\s*$/, '').replace(/\s*\d+$/, '').trim();
-                        const logo = logoFor(img);
-                        return (
-                          <button
-                            type="button"
-                            class:list={["deck-card-item", idx === 0 && "is-active"]}
-                            data-index={idx}
-                            data-logo={logo?.src}
-                            aria-label={`Open card ${name}`}
-                          >
-                            <div class="deck-card-inner">
-                              <img src={img} alt={name} loading="lazy" />
-                              {logo && <span class="deck-card-logo" style={`--logo: url('${logo.src}')`} aria-hidden="true"></span>}
-                              <div class="deck-card-glow"></div>
-                              <div class="deck-card-label">{name}</div>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </section>
-                )}
               </div>
             </div>
 
@@ -761,10 +727,10 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         </div>
       )}
 
-      <!-- CARD DECK SECTION ONLY (visible at the bottom on mobile, inside left column on
-           desktop) — work-category pages render their own copy inside .project-col-left
-           instead (left of the image, alt-verse style), so this is freelancer/original-card-set only. -->
-      {hasImages && isCardPage && category?.id !== 'work' && (
+      <!-- CARD DECK SECTION ONLY (visible at the bottom of the page — hidden on
+           mobile for work-category pages in favour of the compact scrub above
+           the pagination instead; desktop gets the alt-verse-style filmstrip). -->
+      {hasImages && isCardPage && (
         <section class="card-deck-section">
           <div class="deck-grid" id="deck-grid" data-images={JSON.stringify(allImages)}>
             {allImages.map((img, idx) => {
@@ -1206,9 +1172,21 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       position: static;
       height: auto;
     }
+    /* Same fixed height regardless of orientation as mobile (see the
+       max-width:768px rule below) — portrait and landscape images both
+       render at 60vh, width adapting, nothing cropped. */
     .project-detail[data-category="work"] .project-detail__active-wrap {
-      height: auto;
-      max-height: none;
+      height: 60vh !important;
+      max-height: 60vh !important;
+      aspect-ratio: auto !important;
+      width: auto;
+    }
+    .project-detail[data-category="work"] .project-detail__active-img {
+      height: 60vh !important;
+      max-height: 60vh !important;
+      width: auto !important;
+      max-width: 100%;
+      object-fit: contain !important;
     }
     .project-detail[data-category="work"] .card-deck-section {
       height: auto;
@@ -2296,42 +2274,51 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     flex-shrink: 0;
   }
 
-  /* Work-category pages: the deck grid lives in .project-col-left now (left
-     of the image, alt-verse style) instead of the old locked desktop grid —
-     on mobile the compact one-row scrub above the pagination replaces it. */
+  /* Work-category pages: the deck grid stays at the bottom of the page (like
+     freelancer/original-card-set pages) — on mobile the compact one-row
+     scrub above the pagination replaces it instead. */
   @media (max-width: 768px) {
     .project-detail[data-category="work"] .card-deck-section {
       display: none !important;
     }
   }
-  .project-detail[data-category="work"] .card-deck-section--work-left {
-    width: 100%;
-    margin-top: 16px;
-  }
-  /* alt-verse-style filmstrip: every image shares the same fixed row height
-     regardless of its own aspect ratio — landscape photos render wide,
-     portraits narrow, squares in between — instead of the auto-fill grid
-     forcing every cell into the same 2:3 box (cropping landscapes tall). */
-  .project-detail[data-category="work"] .card-deck-section--work-left .deck-grid {
+  /* Desktop: alt-verse-style filmstrip — every image shares the same fixed
+     row height regardless of its own aspect ratio (landscape photos render
+     wide, portraits narrow, squares in between) instead of the auto-fill
+     grid forcing every cell into the same 2:3 box (cropping landscapes tall). */
+  .project-detail[data-category="work"] .card-deck-section .deck-grid {
     display: flex !important;
     flex-wrap: wrap !important;
     grid-template-columns: none !important;
     gap: 6px;
   }
-  .project-detail[data-category="work"] .card-deck-section--work-left .deck-card-item {
+  .project-detail[data-category="work"] .card-deck-section .deck-card-item {
     width: auto !important;
     aspect-ratio: auto !important;
     flex: 0 0 auto;
   }
-  .project-detail[data-category="work"] .card-deck-section--work-left .deck-card-inner {
+  .project-detail[data-category="work"] .card-deck-section .deck-card-inner {
     width: auto;
     height: 160px;
   }
-  .project-detail[data-category="work"] .card-deck-section--work-left .deck-card-inner img:not(.deck-card-logo) {
+  .project-detail[data-category="work"] .card-deck-section .deck-card-inner img:not(.deck-card-logo) {
     width: auto;
     height: 100%;
     object-fit: cover;
     display: block;
+  }
+
+  /* Fullscreen lightbox deck: same fixed-height/natural-width filmstrip fix
+     — the fixed 72vw/24vw WIDTH plus a fixed HEIGHT was forcing every card
+     (including landscape photos) into the same portrait-ish box, cropping
+     landscapes down instead of showing their real proportions. */
+  .project-detail[data-category="work"] .lightbox-deck__item {
+    width: auto !important;
+  }
+  .project-detail[data-category="work"] .lightbox-deck__item img:not(.lightbox-card-logo) {
+    width: auto !important;
+    height: 100% !important;
+    object-fit: contain !important;
   }
 
   /* Simple tab UI, not cards: no box-shadow/elevation anywhere — each of the
@@ -2356,9 +2343,14 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   .project-detail[data-category="work"] .project-metadata-sections {
     margin-top: 0 !important;
   }
+  /* Only margin and padding-bottom are reset here — padding-top is left
+     alone since it's what clears the fixed breadcrumb bar on desktop
+     (set to clamp(0.5rem,1.5vh,1rem)+48px above) and the notch-safe area on
+     mobile (set on .project-header-title-row itself below); zeroing it
+     with !important made the title render underneath the breadcrumb. */
   .project-detail[data-category="work"] .project-top-header {
     margin: 0 !important;
-    padding: 0 !important;
+    padding-bottom: 0 !important;
   }
   /* The metaline sits right under the name tab's own border-bottom when
      open — its own separate border-top would double that line. */
@@ -3202,19 +3194,24 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     .project-detail[data-category="work"] .deck-grid--mobile-scrub { order: 6; }
     /* Work pages stack full-width instead of sitting in a half-width column,
        so the 2:3 aspect-ratio (meant for a narrow card) made the image fill
-       almost the whole screen. This is a cap, not a forced size: the box
-       height follows the image's own natural (full-width) proportions and
-       only gets clamped if that would exceed 60% of the viewport — shorter
-       images stay their natural, shorter height. No cropping (object-fit:
-       contain instead of cover), since we're no longer forcing a fixed box. */
+       almost the whole screen. Every active image now renders at the SAME
+       fixed height (60% of viewport) regardless of whether it's portrait or
+       landscape — width adapts and centers, object-fit: contain so nothing
+       crops (it letterboxes instead) — so paging between images of
+       different orientations doesn't jump the page layout around. */
     .project-detail[data-category="work"] .project-detail__active-wrap {
-      height: auto !important;
+      height: 60vh !important;
       max-height: 60vh !important;
       aspect-ratio: auto !important;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .project-detail[data-category="work"] .project-detail__active-img {
-      height: auto !important;
+      height: 60vh !important;
       max-height: 60vh !important;
+      width: auto !important;
+      max-width: 100%;
       object-fit: contain !important;
     }
     .project-detail[data-category="work"] .project-card__text-block {
