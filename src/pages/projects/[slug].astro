@@ -441,27 +441,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                 )}
 
 
-                <!-- Card Name & Pagination in left column (horizontally aligned with image bottom) -->
-                <div class="project-card-name-pagination-row">
-                  <div class="page-active-logo" id="page-active-logo" aria-hidden="true"></div>
-                  <div class="project-detail__pagination-wrap">
-                    <div class="project-detail__pagination" id="page-pagination">
-                      1 / {allImages.length}
-                    </div>
-                    <div class="autoplay-timer-ring autoplay-timer-ring--mini" aria-hidden="true">
-                      <svg width="20" height="20" viewBox="0 0 24 24">
-                        <circle cx="12" cy="12" r="10" class="timer-ring-bg" />
-                        <circle cx="12" cy="12" r="10" class="timer-ring-progress" id="page-timer-progress-mini" />
-                        <circle cx="12" cy="2" r="2" class="timer-ring-dot" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Work-category pages only: single-row scrub right below the
-                     pagination, mobile only (desktop uses the left-column deck
-                     grid below instead, matching #deck-grid so it shares its
-                     click/active wiring; hidden on desktop to avoid duplicating it). -->
+                <!-- Work-category pages only: single-row scrub right above the pagination -->
                 {hasImages && isTabLayout && (
                   <div class="deck-grid deck-grid--mobile-scrub" id="deck-grid-mobile-scrub">
                     {allImages.map((img, idx) => (
@@ -478,6 +458,23 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                     ))}
                   </div>
                 )}
+
+                <!-- Card Name & Pagination in left column (horizontally aligned with image bottom) -->
+                <div class="project-card-name-pagination-row">
+                  <div class="page-active-logo" id="page-active-logo" aria-hidden="true"></div>
+                  <div class="project-detail__pagination-wrap">
+                    <div class="project-detail__pagination" id="page-pagination">
+                      1 / {allImages.length}
+                    </div>
+                    <div class="autoplay-timer-ring autoplay-timer-ring--mini" aria-hidden="true">
+                      <svg width="20" height="20" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" class="timer-ring-bg" />
+                        <circle cx="12" cy="12" r="10" class="timer-ring-progress" id="page-timer-progress-mini" />
+                        <circle cx="12" cy="2" r="2" class="timer-ring-dot" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
 
                 <!-- Work-category pages only, desktop: the deck grid sits in the
                      left column beside the image (2-column, alt-verse style) —
@@ -2483,16 +2480,15 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
      matching the "Design"/"Making" tab labels rather than the stacked
      two-line chapter heading used on standard pages. */
   .project-detail[data-tab-layout="true"] .project-chapter__title {
-    flex-direction: row;
-    align-items: baseline;
-    gap: 8px;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
   }
   .project-detail[data-tab-layout="true"] .project-chapter__title-lead {
-    font-size: var(--_tokens---type--ultrathin) !important;
-    font-weight: 300 !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.08em !important;
+    font-size: var(--_tokens---type--micro) !important;
+    font-weight: 400 !important;
+    text-transform: none !important;
+    letter-spacing: normal !important;
     line-height: 1.2 !important;
     color: var(--_tokens---color--muted) !important;
   }
@@ -2607,7 +2603,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     flex-wrap: nowrap !important;
     grid-template-columns: none !important;
     gap: 0 !important;
-    margin-top: 12px;
+    margin-top: 24px;
+    margin-bottom: 16px;
     overflow: hidden;
   }
   .deck-grid--mobile-scrub .deck-card-item {
@@ -2635,8 +2632,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     opacity: 1 !important;
   }
   @media (min-width: 1024px) {
-    .deck-grid--mobile-scrub {
-      display: none;
+    .card-deck-section {
+      display: none !important;
     }
   }
 
@@ -3303,8 +3300,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     .project-detail[data-tab-layout="true"] .project-credits-btn { order: 2; }
     .project-detail[data-tab-layout="true"] .project-people { order: 3; }
     .project-detail[data-tab-layout="true"] .project-col-right { order: 4; }
-    .project-detail[data-tab-layout="true"] .project-card-name-pagination-row { order: 5; }
-    .project-detail[data-tab-layout="true"] .deck-grid--mobile-scrub { order: 6; }
+    .project-detail[data-tab-layout="true"] .project-card-name-pagination-row { order: 6; }
+    .project-detail[data-tab-layout="true"] .deck-grid--mobile-scrub { order: 5; }
     /* Work pages stack full-width instead of sitting in a half-width column,
        so the 2:3 aspect-ratio (meant for a narrow card) made the image fill
        almost the whole screen. The image + scrub are sized to fit within one
@@ -4828,11 +4825,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       }
     };
 
-    // Pass null to close every tab.
-    const openOnly = (target: Entry | null) => {
-      entries.forEach(entry => setExpanded(entry, entry === target));
-    };
-
     const toggleAll = () => {
       const allOpen = entries.every(entry => entry.sect.classList.contains('is-expanded'));
       entries.forEach(entry => setExpanded(entry, !allOpen));
@@ -4849,7 +4841,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         clickTimer = window.setTimeout(() => {
           clickTimer = null;
           const wasExpanded = entry.sect.classList.contains('is-expanded');
-          openOnly(wasExpanded ? null : entry);
+          setExpanded(entry, !wasExpanded);
         }, 250);
       };
 
