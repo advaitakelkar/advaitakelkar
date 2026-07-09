@@ -437,6 +437,15 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                         </button>
                       </div>
                     )}
+                    {/* Mobile-only "Prompt" pill — reveals the Midjourney prompt box
+                        (hidden behind the pill on small screens; JS hides the pill
+                        when the description has no prompt box). */}
+                    {data.description && (
+                      <button class="project-prompt-btn" id="project-prompt-btn" type="button" aria-expanded="false">
+                        <span>Prompt</span>
+                        <svg class="link-arrow project-prompt-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -1370,6 +1379,37 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-readmore-btn {
       display: none !important;
     }
+    /* Prompt box collapses behind the "Prompt" pill on mobile; the
+       publisher/character logo strip is hidden on mobile entirely. */
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card__desc :global(.prompt-box) {
+      display: none;
+    }
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card__desc :global(.prompt-box.is-open) {
+      display: block;
+    }
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card__desc :global(.deck-logos-container) {
+      display: none !important;
+    }
+    /* Logo + pagination + timer-ring row: pulled out of the two-column
+       grid and placed below the image as its own full-width single row.
+       display:contents lets .project-card-info's children participate in
+       the outer grid directly. */
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-col-left,
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card-info {
+      display: contents;
+    }
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card__row2 {
+      grid-column: 1;
+      grid-row: 1;
+    }
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-col-right {
+      grid-column: 2;
+      grid-row: 1;
+    }
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card-name-pagination-row {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
   }
 
   /* Work-category pages opt OUT of the viewport-locked 2-column layout above:
@@ -1705,6 +1745,45 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   @media (min-width: 1024px) {
     .project-credits-btn {
       display: none; /* desktop always shows the people row, unchanged */
+    }
+  }
+
+  /* "Prompt" pill — same pill language as Credits; mobile-only (desktop
+     always shows the prompt box inline, unchanged). */
+  .project-prompt-btn {
+    all: unset;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    width: fit-content;
+    justify-self: start;
+    margin-top: 12px;
+    font-size: var(--_tokens---type--micro);
+    font-weight: 500;
+    color: var(--_tokens---color--fg);
+    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
+    border-radius: var(--_tokens---radius--pill);
+    padding: 3px 10px;
+    white-space: nowrap;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  }
+  .project-prompt-btn:hover {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
+  }
+  .project-prompt-arrow {
+    width: 0.85em;
+    height: 0.85em;
+    transition: transform 0.35s ease;
+  }
+  .project-prompt-btn[aria-expanded="true"] .project-prompt-arrow {
+    transform: rotate(135deg);
+  }
+  @media (min-width: 1024px) {
+    .project-prompt-btn {
+      display: none;
     }
   }
   @media (max-width: 768px) {
@@ -4441,6 +4520,22 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     } else {
       wireCollapse(document.querySelector('.project-design-section'), 'project-design-click', 'project-design-toggle', 'project-design-panel');
       wireCollapse(document.querySelector('.project-making-section'), 'project-making-click', 'project-making-toggle', 'project-making-panel');
+    }
+
+    // Mobile: "Prompt" pill reveals the Midjourney prompt box inside the
+    // description (hidden when the page has no prompt box).
+    const promptBtn = document.getElementById('project-prompt-btn');
+    const promptBox = document.querySelector('.project-card__desc .prompt-box');
+    if (promptBtn) {
+      if (!promptBox) {
+        promptBtn.style.display = 'none';
+      } else {
+        promptBtn.addEventListener('click', () => {
+          const open = promptBtn.getAttribute('aria-expanded') === 'true';
+          promptBtn.setAttribute('aria-expanded', String(!open));
+          promptBox.classList.toggle('is-open', !open);
+        });
+      }
     }
 
     // Work-category mobile: "Credits" pill reveals the people row
