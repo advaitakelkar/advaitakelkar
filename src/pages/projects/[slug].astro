@@ -468,6 +468,40 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                     ))}
                   </div>
                 )}
+
+                <!-- Work-category pages only, desktop: the deck grid sits in the
+                     left column beside the image (2-column, alt-verse style) —
+                     hidden on mobile in favour of the compact scrub above. -->
+                {hasImages && category?.id === 'work' && (
+                  <section class="card-deck-section" id="work-deck-section">
+                    <div class="deck-grid" id="deck-grid" data-images={JSON.stringify(allImages)}>
+                      {allImages.map((img, idx) => {
+                        const filename = img.substring(img.lastIndexOf('/') + 1);
+                        const ext = filename.substring(filename.lastIndexOf('.'));
+                        let name = filename.slice(0, filename.length - ext.length);
+                        name = name.replace(/^ADVT_[A-Z_]+_/, '').replace(/^ADVT_SP_\s*/, '').trim();
+                        name = name.replace(/\s+\d+\s*$/, '').replace(/\s*\d+$/, '').trim();
+                        const logo = logoFor(img);
+                        return (
+                          <button
+                            type="button"
+                            class:list={["deck-card-item", idx === 0 && "is-active"]}
+                            data-index={idx}
+                            data-logo={logo?.src}
+                            aria-label={`Open card ${name}`}
+                          >
+                            <div class="deck-card-inner">
+                              <img src={img} alt={name} loading="lazy" />
+                              {logo && <span class="deck-card-logo" style={`--logo: url('${logo.src}')`} aria-hidden="true"></span>}
+                              <div class="deck-card-glow"></div>
+                              <div class="deck-card-label">{name}</div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
+                )}
               </div>
             </div>
 
@@ -727,10 +761,10 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         </div>
       )}
 
-      <!-- CARD DECK SECTION ONLY (visible at the bottom of the page — hidden on
-           mobile for work-category pages in favour of the compact scrub above
-           the pagination instead; desktop gets the alt-verse-style filmstrip). -->
-      {hasImages && isCardPage && (
+      <!-- CARD DECK SECTION ONLY (visible at the bottom of the page) — work-category
+           pages render their own copy inside .project-col-left instead (left of the
+           image, 2-column alt-verse style), so this is freelancer/original-card-set only. -->
+      {hasImages && isCardPage && category?.id !== 'work' && (
         <section class="card-deck-section">
           <div class="deck-grid" id="deck-grid" data-images={JSON.stringify(allImages)}>
             {allImages.map((img, idx) => {
