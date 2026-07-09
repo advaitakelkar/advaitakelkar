@@ -443,7 +443,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
                 <!-- Work-category pages only: single-row scrub right above the pagination -->
                 {hasImages && isTabLayout && (
-                  <div class="deck-grid deck-grid--mobile-scrub" id="deck-grid-mobile-scrub">
+                  <div class="deck-grid deck-grid--mobile-scrub" id="deck-grid" data-images={JSON.stringify(allImages)}>
                     {allImages.map((img, idx) => (
                       <button
                         type="button"
@@ -475,40 +475,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                     </div>
                   </div>
                 </div>
-
-                <!-- Work-category pages only, desktop: the deck grid sits in the
-                     left column beside the image (2-column, alt-verse style) —
-                     hidden on mobile in favour of the compact scrub above. -->
-                {hasImages && isTabLayout && (
-                  <section class="card-deck-section" id="work-deck-section">
-                    <div class="deck-grid" id="deck-grid" data-images={JSON.stringify(allImages)}>
-                      {allImages.map((img, idx) => {
-                        const filename = img.substring(img.lastIndexOf('/') + 1);
-                        const ext = filename.substring(filename.lastIndexOf('.'));
-                        let name = filename.slice(0, filename.length - ext.length);
-                        name = name.replace(/^ADVT_[A-Z_]+_/, '').replace(/^ADVT_SP_\s*/, '').trim();
-                        name = name.replace(/\s+\d+\s*$/, '').replace(/\s*\d+$/, '').trim();
-                        const logo = logoFor(img);
-                        return (
-                          <button
-                            type="button"
-                            class:list={["deck-card-item", idx === 0 && "is-active"]}
-                            data-index={idx}
-                            data-logo={logo?.src}
-                            aria-label={`Open card ${name}`}
-                          >
-                            <div class="deck-card-inner">
-                              <img src={img} alt={name} loading="lazy" />
-                              {logo && <span class="deck-card-logo" style={`--logo: url('${logo.src}')`} aria-hidden="true"></span>}
-                              <div class="deck-card-glow"></div>
-                              <div class="deck-card-label">{name}</div>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </section>
-                )}
               </div>
             </div>
 
@@ -2335,10 +2301,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
      fit), object-fit: cover so each fills its slot, and no per-card chrome
      (border/radius/shadow) — reads as one strip, not separate cards. Hidden
      on mobile (the compact scrub above the pagination covers that). */
-  @media (max-width: 768px) {
-    .project-detail[data-tab-layout="true"] .card-deck-section {
-      display: none !important;
-    }
+  .project-detail[data-tab-layout="true"] .card-deck-section {
+    display: none !important;
   }
   .project-detail[data-tab-layout="true"] .card-deck-section .deck-grid {
     display: flex !important;
@@ -3732,7 +3696,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     // pagination. Its .deck-card-item buttons share the same click/active
     // wiring as the main #deck-grid below the image (see updateScrubActiveState
     // and cardButtons below).
-    const mobileScrub = document.getElementById('deck-grid-mobile-scrub');
+    const mobileScrub = document.getElementById('deck-grid-mobile-scrub') || (deck?.classList.contains('deck-grid--mobile-scrub') ? deck : null);
     const lightbox = document.getElementById('card-lightbox');
     const ambientImg = document.getElementById('lightbox-ambient-img') as HTMLImageElement | null;
     const closeBtn = document.getElementById('lightbox-close');
@@ -4022,7 +3986,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
     // ── Scrub grid listeners ─────────────────────────────────────────────────
     const cardButtons = Array.from(deck.querySelectorAll('.deck-card-item'))
-      .concat(mobileScrub ? Array.from(mobileScrub.querySelectorAll('.deck-card-item')) : []);
+      .concat((mobileScrub && mobileScrub !== deck) ? Array.from(mobileScrub.querySelectorAll('.deck-card-item')) : []);
     cardButtons.forEach(btn => {
       btn.addEventListener('click', () => {
         const idx = parseInt(btn.getAttribute('data-index') || '0', 10);
