@@ -39,6 +39,7 @@ const PEOPLE: Record<string, string> = {
   'Pankti Thakkar':  '/images/people/pankti-thakkar.jpeg',
   'Faizan Khatri':   '/images/people/faizan-khatri.jpeg',
   'Samir Raut':      '/images/people/samir-raut.jpeg',
+  'Siddhesh Kadam':  '/images/people/Siddhesh Kadam_823.jpeg',
   'Devarsh Deth':    '/images/people/devarsh-deth.jpeg',
   'Dhruv Chavan':    '/images/people/dhruv-chavan.png',
 };
@@ -46,13 +47,22 @@ const PEOPLE: Record<string, string> = {
 // Studio 823's — never default Samir onto an FKD-tagged (or untagged) work page.
 const isStudio823Tag = tags.some(t => t?.id === 'studio-823');
 const isFkdTag = tags.some(t => t?.id === 'faizan-khatri');
-const people: string[] = data.people?.length
+const rawPeople: string[] = data.people?.length
   ? data.people
   : isStudio823Tag
     ? ['Samir Raut', 'Faizan Khatri', 'Advaita Kelkar']
     : isFkdTag
       ? ['Faizan Khatri', 'Advaita Kelkar']
       : ['Advaita Kelkar'];
+
+// People row rule (same on project + category pages): professors/mentors
+// first, one divider, then students/collaborators. No professor → no divider.
+const PROFESSOR_NAMES = ['Samir Raut', 'Faizan Khatri', 'Siddhesh Kadam', 'Casimir Esbach'];
+const isProfessor = (p: string) => PROFESSOR_NAMES.includes(p);
+const people: string[] = [...rawPeople.filter(isProfessor), ...rawPeople.filter(p => !isProfessor(p))];
+const professorCount = people.filter(isProfessor).length;
+// Index after which the single divider renders; -1 = no divider
+const peopleDividerAfter = professorCount > 0 && professorCount < people.length ? professorCount - 1 : -1;
 
 // Build dynamic breadcrumbs based on category structure
 const dynamicCrumbs = [ { label: 'Home', href: '/' } ];
@@ -250,7 +260,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   ogImage={data.coverImage}
   label={data.name}
   crumbs={dynamicCrumbs}
-  showFooter={!isOriginalCardPage}
+  showFooter={true}
   activeIds={[project.id]}
 >
     <article class="project-detail"
@@ -260,17 +270,18 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       data-is-scarpin={isScarpinPage ? "true" : "false"}
       data-category={category ? category.id : ''}
       data-tab-layout={isTabLayout ? "true" : "false"}
+      data-original-card={isOriginalCardPage ? "true" : "false"}
     >
       
       {isCardPage ? (
         /* CARD PAGES: Wrapped in Sticky Dashboard wrapper */
-        <div class:list={["project-dashboard-wrap", isTabLayout && "is-expanded"]} id="project-dashboard">
+        <div class:list={["project-dashboard-wrap", (isTabLayout || isOriginalCardPage) && "is-expanded"]} id="project-dashboard">
           <header class="project-top-header" id="project-top-header">
             <div class="project-header-title-row" id="project-name-header">
               <h1 class="project-name-title" id="project-name-click">
                 <span class="project-name-main">{data.name}</span>
               </h1>
-              {isTabLayout && (
+              {(isTabLayout || isOriginalCardPage) && (
                 <button class="project-detail-collapse-btn" id="project-name-toggle" type="button" aria-expanded="true" aria-label="Toggle project details">
                   <svg class="toggle-icon-minus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
                   <svg class="toggle-icon-plus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" style="display: none;"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
@@ -341,13 +352,9 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                     <div class:list={["project-people", isTabLayout && "project-people--collapsible"]} id="project-people-panel" style="margin-top: 20px;">
                     {people.map((person, idx) => {
                       const isCas = person === 'Casimir Esbach';
-                      const isFaizan = person === 'Faizan Khatri';
                       const isDhruv = person === 'Dhruv Chavan';
                       const displayName = isCas ? `${person} (Professor)` : isDhruv ? `${person} (Mumbai Workshop)` : person;
-                      // Friends (Devarsh, Dhruv) always sit to the right of the divider,
-                      // regardless of who they follow.
-                      const isFriend = (p: string) => p === 'Devarsh Deth' || p === 'Dhruv Chavan';
-                      const showDivider = isCas || isFaizan || (!isFriend(person) && isFriend(people[idx + 1]));
+                      const showDivider = idx === peopleDividerAfter;
                       return (
                         <>
                           <div class="project-people__person">
@@ -497,13 +504,9 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                 <div class="project-people" style="margin-top: 24px;">
                   {people.map((person, idx) => {
                     const isCas = person === 'Casimir Esbach';
-                    const isFaizan = person === 'Faizan Khatri';
                     const isDhruv = person === 'Dhruv Chavan';
                     const displayName = isCas ? `${person} (Professor)` : isDhruv ? `${person} (Mumbai Workshop)` : person;
-                    // Friends (Devarsh, Dhruv) always sit to the right of the divider,
-                    // regardless of who they follow.
-                    const isFriend = (p: string) => p === 'Devarsh Deth' || p === 'Dhruv Chavan';
-                    const showDivider = isCas || isFaizan || (!isFriend(person) && isFriend(people[idx + 1]));
+                    const showDivider = idx === peopleDividerAfter;
                     return (
                       <>
                         <div class="project-people__person">
@@ -2020,6 +2023,18 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     display: none !important;
   }
 
+  /* Original card sets (Alt Verse, Indian Royals, Sups…): same collapsible
+     name tab, but closing it keeps the scrubber — only the metaline, the
+     description column, the pagination row, and the big active card fold
+     away. The in-column scrub (desktop) survives inside the grid; the bottom
+     deck (mobile scrubber) lives outside the wrap and never folds. */
+  .project-detail[data-original-card="true"] .project-dashboard-wrap:not(.is-expanded) .project-card__metaline,
+  .project-detail[data-original-card="true"] .project-dashboard-wrap:not(.is-expanded) .project-card__row2,
+  .project-detail[data-original-card="true"] .project-dashboard-wrap:not(.is-expanded) .project-card-name-pagination-row,
+  .project-detail[data-original-card="true"] .project-dashboard-wrap:not(.is-expanded) .project-col-right {
+    display: none !important;
+  }
+
 
   /* ── Right-Column Active Slider ── */
   .project-slider-wrapper {
@@ -2596,7 +2611,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     align-items: center;
   }
 
-  .project-detail[data-tab-layout="true"] .project-detail-collapse-btn {
+  .project-detail[data-tab-layout="true"] .project-detail-collapse-btn,
+  .project-detail[data-original-card="true"] .project-detail-collapse-btn {
     width: 40px;
     height: 40px;
     flex-shrink: 0;
@@ -2733,7 +2749,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     padding-top: calc(12px + env(safe-area-inset-top)) !important;
   }
 
-  .project-detail[data-tab-layout="true"] .project-detail-collapse-btn svg {
+  .project-detail[data-tab-layout="true"] .project-detail-collapse-btn svg,
+  .project-detail[data-original-card="true"] .project-detail-collapse-btn svg {
     width: 32px !important;
     height: 32px !important;
   }
@@ -4473,11 +4490,19 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     // pages (freelancer, original card sets) keep Design/Making independent, with
     // no name toggle since that button only renders for tab-layout pages.
     const isTabLayoutPage = document.querySelector('.project-detail')?.getAttribute('data-tab-layout') === 'true';
+    const isOriginalCardSet = document.querySelector('.project-detail')?.getAttribute('data-original-card') === 'true';
     if (isTabLayoutPage) {
       wireWorkAccordion();
     } else {
       wireCollapse(document.querySelector('.project-design-section'), 'project-design-click', 'project-design-toggle', 'project-design-panel');
       wireCollapse(document.querySelector('.project-making-section'), 'project-making-click', 'project-making-toggle', 'project-making-panel');
+      // Original card sets (Alt Verse, Indian Royals, Sups…): the project name
+      // is a standalone collapsible tab like the work pages — closing it folds
+      // the description and the big active card away; the scrubber stays out
+      // (CSS keeps .deck-grid--mobile-scrub / the bottom deck visible).
+      if (isOriginalCardSet) {
+        wireCollapse(document.getElementById('project-dashboard'), 'project-name-header', 'project-name-toggle', 'project-dashboard');
+      }
     }
 
     // Mobile: "Prompt" pill reveals the Midjourney prompt box (hidden when

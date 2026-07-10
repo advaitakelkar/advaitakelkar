@@ -53,6 +53,7 @@ const PEOPLE: Record<string, string> = {
   'Pankti Thakkar':  '/images/people/pankti-thakkar.jpeg',
   'Faizan Khatri':   '/images/people/faizan-khatri.jpeg',
   'Samir Raut':      '/images/people/samir-raut.jpeg',
+  'Siddhesh Kadam':  '/images/people/Siddhesh Kadam_823.jpeg',
 };
 
 const uniquePeople = new Set<string>();
@@ -68,12 +69,21 @@ const hasStudio823 = projects.some(p => (p.data.tags ?? []).some((t: any) => t.i
 const hasFaizanKhatri = projects.some(p => (p.data.tags ?? []).some((t: any) => t.id === 'faizan-khatri'));
 
 if (categoryId === 'work' || (hasStudio823 && hasFaizanKhatri)) {
-  categoryPeople = ['Advaita Kelkar', 'Samir Raut', 'Faizan Khatri'];
+  categoryPeople = ['Advaita Kelkar', 'Samir Raut', 'Faizan Khatri', 'Siddhesh Kadam'];
 } else if (hasStudio823) {
-  categoryPeople = ['Advaita Kelkar', 'Samir Raut'];
+  categoryPeople = ['Advaita Kelkar', 'Samir Raut', 'Siddhesh Kadam'];
 } else if (hasFaizanKhatri) {
   categoryPeople = ['Advaita Kelkar', 'Faizan Khatri'];
 }
+
+// People row rule (matches the project pages): professors/mentors first, one
+// divider, then students/collaborators. No professor → no divider.
+const PROFESSOR_NAMES = ['Samir Raut', 'Faizan Khatri', 'Siddhesh Kadam', 'Casimir Esbach'];
+const isProfessor = (p: string) => PROFESSOR_NAMES.includes(p);
+categoryPeople = [...categoryPeople.filter(isProfessor), ...categoryPeople.filter(p => !isProfessor(p))];
+const professorCount = categoryPeople.filter(isProfessor).length;
+// Index after which the single divider renders; -1 = no divider
+const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople.length ? professorCount - 1 : -1;
 ---
 
 <PageLayout
@@ -114,13 +124,16 @@ if (categoryId === 'work' || (hasStudio823 && hasFaizanKhatri)) {
 
       {categoryPeople.length > 0 && (
         <section class="category-people">
-          {categoryPeople.map(person => (
-            <div class="category-people__person" data-person={person}>
-              <div class="category-people__avatar">
-                <img src={PEOPLE[person] ?? PEOPLE['Advaita Kelkar']} alt={person} loading="lazy" />
+          {categoryPeople.map((person, idx) => (
+            <>
+              <div class="category-people__person" data-person={person}>
+                <div class="category-people__avatar">
+                  <img src={PEOPLE[person] ?? PEOPLE['Advaita Kelkar']} alt={person} loading="lazy" />
+                </div>
+                <span class="category-people__name">{person}</span>
               </div>
-              <span class="category-people__name">{person}</span>
-            </div>
+              {idx === peopleDividerAfter && <div class="category-people__divider" aria-hidden="true" />}
+            </>
           ))}
         </section>
       )}
@@ -481,6 +494,16 @@ if (categoryId === 'work' || (hasStudio823 && hasFaizanKhatri)) {
       gap: 8px;
       cursor: pointer;
       position: relative;
+    }
+
+    /* Hairline between professors (left) and students (right) — same family
+       divider as the project pages' people row */
+    .category-people__divider {
+      width: 1px;
+      height: 48px;
+      background-color: var(--_tokens---color--line-soft);
+      align-self: center;
+      margin-inline: 2px;
     }
 
     .category-people__avatar {
