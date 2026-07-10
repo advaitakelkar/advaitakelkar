@@ -21,8 +21,8 @@ const tags = await Promise.all((data.tags ?? []).map(t => getEntry(t)));
 const category = data.category ? await getEntry(data.category) : null;
 
 const gallery = (data.multiImage ?? []).filter(Boolean);
-const allImages = [data.coverImage, ...gallery].filter(Boolean);
-const hasImages = allImages.length > 0;
+let allImages = [data.coverImage, ...gallery].filter(Boolean);
+let hasImages = allImages.length > 0;
 
 const firstTag = tags.find(t => t);
 const yearLoc = [data.year, data.location].filter(Boolean).join(', ');
@@ -91,16 +91,34 @@ const isOriginalCardPage = cardPageSlugs.includes(project.id);
 const tabChapterSlugs = ['habersham-hall', 'scad-design-built'];
 const isTabChapterPage = tabChapterSlugs.includes(project.id);
 const isScarpinPage = project.id === 'scarpin';
+// Freelancer projects that should use the work-style tab layout UI
+// (collapsible name toggle, credits pill, accordion Design/Making, scrub in
+// left column) while staying in the freelancer category.
+const tabFreelancerSlugs = [
+  'concrt',
+  'gully',
+  'goonj',
+  'nat-geo-humans',
+  'pet-pod',
+  'roberto-burle-marx-stickers',
+  'shelf',
+  'tilak-nagar-cricket-park',
+  'xbkc',
+];
+const isTabFreelancerPage = tabFreelancerSlugs.includes(project.id);
 // "Tab layout" = the work-style collapsible tab UI (name tab + section tabs).
-// Work + ARCHV pages get it, plus the two chapter pages above. Scarpin keeps
-// its own bespoke grid page even though it lives in the ARCHV category.
-const isTabLayout = (category?.id === 'work' || category?.id === 'archv' || isTabChapterPage) && !isScarpinPage;
-// All freelancer + work + ARCHV pages now also get the card layout
+// Work + ARCHV + Academic pages get it, plus the chapter pages, opted-in
+// freelancer pages, and Scarpin (which renders person tabs instead of
+// Design/Making).
+const isTabLayout = (category?.id === 'work' || category?.id === 'archv' || category?.id === 'academic' || isTabChapterPage || isTabFreelancerPage || isScarpinPage) && true;
+// All freelancer + work + ARCHV + Academic pages now get the card layout
 const isCardPage = (isOriginalCardPage
   || category?.id === 'freelancer'
   || category?.id === 'work'
   || category?.id === 'archv'
-  || isTabChapterPage) && !isScarpinPage;
+  || category?.id === 'academic'
+  || isTabChapterPage
+  || isScarpinPage) && true;
 
 // Levenshtein distance — used to tolerate small folder-name typos when
 // matching a scarpin credit against the PEOPLE registry.
@@ -178,6 +196,13 @@ if (isScarpinPage) {
   scarpinSliders.sort((a, b) => a.folder.localeCompare(b.folder));
 }
 
+// For Scarpin, synthesize allImages from the person folder covers so the
+// tab-layout slider has something to show.
+if (isScarpinPage && !hasImages && scarpinSliders.length > 0) {
+  allImages = scarpinSliders.map(s => s.urls[0]).filter(Boolean);
+  hasImages = allImages.length > 0;
+}
+
 // Derive a display name from an image filename (same rules as the client script)
 const cardNameFromUrl = (url: string): string => {
   const filename = url.substring(url.lastIndexOf('/') + 1);
@@ -236,154 +261,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       data-tab-layout={isTabLayout ? "true" : "false"}
     >
       
-      {isScarpinPage ? (
-        /* SCARPIN PAGE: 12-slider Grid */
-        <>
-          <header class="project-top-header" id="project-top-header">
-            <div class="project-header-title-row">
-              <h1 class="project-name-title" id="project-name-click">
-                <span class="project-name-main">{data.name}</span>
-              </h1>
-            </div>
-            
-            <div class="project-card__metaline">
-              <div class="project-meta-row">
-                <span class="project-card__meta-val">
-                  {[yearLoc, data.status].filter(Boolean).join(', ')}
-                </span>
-                {category && (
-                  <a href={`/${category.id}/`} class="project-card__meta-cat-link">
-                    {category.data.displayName}
-                  </a>
-                )}
-              </div>
-            </div>
-          </header>
-          
-          <div class="scarpin-grid-container">
-            <div class="scarpin-intro">
-               {data.smallIntro && <p class="project-card__intro">{data.smallIntro}</p>}
-               {data.description && <div class="project-card__desc" set:html={data.description} />}
-            </div>
-            
-            <!-- One tab per person's submission (same pill language as the Work category tabs) -->
-            <div class="scarpin-tabs__bar" role="tablist" aria-label="Submissions">
-              {scarpinSliders.map((slider, idx) => (
-                <button
-                  class:list={["scarpin-tab-btn", idx === 0 && "is-active"]}
-                  role="tab"
-                  aria-selected={idx === 0 ? 'true' : 'false'}
-                  data-scarpin-tab={idx}
-                  type="button"
-                >
-                  {slider.avatar ? (
-                    <img class="scarpin-tab-avatar" src={slider.avatar} alt="" loading="lazy" />
-                  ) : (
-                    <span class="scarpin-tab-avatar scarpin-tab-avatar--placeholder"></span>
-                  )}
-                  <span>{slider.personName || slider.cleanName}</span>
-                </button>
-              ))}
-            </div>
-
-            <div class="scarpin-grid">
-              {scarpinSliders.map((slider, idx) => {
-                return (
-                  <div class:list={["scarpin-grid-item", idx === 0 && "is-active"]} data-images={JSON.stringify(slider.urls)} data-index={idx}>
-                    <div class="scarpin-item-header">
-                      <h3 class="scarpin-item-title">{slider.cleanName}</h3>
-                    </div>
-                    <div class="scarpin-item-media-wrap">
-                      {slider.urls[0].endsWith('.mp4') ? (
-                        <video class="scarpin-media scarpin-media--active" src={slider.urls[0]} autoplay loop muted playsinline></video>
-                      ) : (
-                        <img class="scarpin-media scarpin-media--active" src={slider.urls[0]} alt={slider.cleanName} loading="lazy" />
-                      )}
-                    </div>
-                    
-                    <div class="scarpin-thumbnails">
-                      {slider.urls.map((u, i) => (
-                        <button type="button" class={`scarpin-thumb ${i === 0 ? 'is-active' : ''}`} data-thumb-index={i} aria-label={`View media ${i + 1}`}>
-                          {u.endsWith('.mp4') ? (
-                            <video src={u} muted playsinline></video>
-                          ) : (
-                            <img src={u} alt="" loading="lazy" />
-                          )}
-                        </button>
-                      ))}
-                    </div>
-
-                    <div class="scarpin-item-footer">
-                      <div class="scarpin-person">
-                        {slider.avatar ? (
-                          <img class="scarpin-avatar" src={slider.avatar} alt={slider.personName} loading="lazy" />
-                        ) : (
-                          <div class="scarpin-avatar scarpin-avatar--placeholder"></div>
-                        )}
-                        <span class="scarpin-person-name">{slider.personName}</span>
-                      </div>
-                      
-                      <div class="scarpin-pagination-wrap">
-                        <div class="autoplay-timer-ring autoplay-timer-ring--mini">
-                          <svg width="20" height="20" viewBox="0 0 24 24">
-                            <circle cx="12" cy="12" r="10" class="timer-ring-bg" />
-                            <circle cx="12" cy="12" r="10" class="timer-ring-progress scarpin-timer-ring" />
-                            <circle cx="12" cy="2" r="2" class="timer-ring-dot" />
-                          </svg>
-                        </div>
-                        <span class="scarpin-item-counter">1 / {slider.urls.length}</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-          
-          {/* Lightbox for Scarpin */}
-          <div id="scarpin-lightbox" class="card-lightbox" aria-hidden="true" style="display: none;">
-            <img class="lightbox-bg-ambient" id="scarpin-lightbox-ambient" src="" alt="" />
-            <div class="lightbox-backdrop"></div>
-            
-            <div class="lightbox-header lightbox-header--deck">
-              <span class="lightbox-pagination lightbox-pagination--deck" id="scarpin-lightbox-counter">1 / 1</span>
-              <div class="lightbox-scrubber" id="scarpin-lightbox-scrubber" role="slider" aria-label="Scrub through cards" style="visibility: hidden;">
-                <div class="lightbox-scrubber__fill" id="scarpin-lightbox-scrubber-fill" style="width: 100%;"></div>
-              </div>
-              <div class="autoplay-timer-ring lightbox-header__ring" aria-hidden="true" style="visibility: hidden;">
-                <svg width="20" height="20" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="10" class="timer-ring-bg" />
-                  <circle cx="12" cy="12" r="10" class="timer-ring-progress" />
-                  <circle cx="12" cy="2" r="2" class="timer-ring-dot" />
-                </svg>
-              </div>
-              <button class="lightbox-close-btn" id="scarpin-lightbox-close" type="button" aria-label="Close lightbox">
-                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-              </button>
-            </div>
-            
-            <div class="lightbox-perspective-wrap">
-              <div class="lightbox-card-container scarpin-lightbox-container" id="scarpin-lightbox-container">
-                <button class="lightbox-nav-arrow lightbox-nav-arrow--prev" id="scarpin-lightbox-prev" type="button" aria-label="Previous">
-                  <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                </button>
-
-                <img class="lightbox-card-img" id="scarpin-lightbox-img" src="" alt="Active media" style="display: none;" />
-                <video class="lightbox-card-img" id="scarpin-lightbox-vid" src="" autoplay loop muted playsinline style="display: none;"></video>
-
-                <div class="lightbox-card-shadow"></div>
-                <div class="lightbox-card-shine"></div>
-
-                <button class="lightbox-nav-arrow lightbox-nav-arrow--next" id="scarpin-lightbox-next" type="button" aria-label="Next">
-                  <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                </button>
-              </div>
-            </div>
-
-            <h2 class="lightbox-name" id="scarpin-lightbox-label"></h2>
-          </div>
-        </>
-      ) : isCardPage ? (
+      {isCardPage ? (
         /* CARD PAGES: Wrapped in Sticky Dashboard wrapper */
         <div class:list={["project-dashboard-wrap", isTabLayout && "is-expanded"]} id="project-dashboard">
           <header class="project-top-header" id="project-top-header">
@@ -788,6 +666,47 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
           </section>
         </div>
       )}
+
+      {/* SCARPIN: Person-based accordion tabs (replace Design/Making) */}
+      {isScarpinPage && scarpinSliders.length > 0 && (
+        <div class="project-chapters">
+          {scarpinSliders.map((slider) => (
+            <section class="project-chapter">
+              <div class="project-header-title-row project-chapter__header">
+                <h3 class="project-chapter__title">
+                  <span class="project-chapter__title-rest">{slider.cleanName}</span>
+                </h3>
+                <button class="project-detail-collapse-btn" type="button" aria-expanded="false" aria-label={`Toggle ${slider.cleanName}`}>
+                  <svg class="toggle-icon-minus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" style="display: none;"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+                  <svg class="toggle-icon-plus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+                </button>
+              </div>
+              <div class="project-chapter__content">
+                <div class="project-chapter__body">
+                  <div class="scarpin-person-header" style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+                    {slider.avatar ? (
+                      <img style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;" src={slider.avatar} alt={slider.personName} loading="lazy" />
+                    ) : (
+                      <div style="width: 32px; height: 32px; border-radius: 50%; background: #e0e0e0;"></div>
+                    )}
+                    <span style="font-size: 14px; opacity: 0.7;">{slider.personName}</span>
+                  </div>
+                  <div class="scarpin-person-images" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px;">
+                    {slider.urls.map((u) => (
+                      u.endsWith('.mp4') ? (
+                        <video src={u} autoplay loop muted playsinline style="width: 100%; border-radius: 4px;"></video>
+                      ) : (
+                        <img src={u} alt={slider.cleanName} loading="lazy" style="width: 100%; border-radius: 4px;" />
+                      )
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
+
 
       <!-- CARD DECK SECTION ONLY (visible at the bottom of the page) — tab-layout
            pages render their own copy inside .project-col-left instead (left of the
