@@ -1,77 +1,92 @@
 ---
-// Chrome for the Virtual Gods exhibition. Deliberately NOT PageLayout: the
-// exhibition breaks the site grid (full-bleed, no side rail, no breadcrumb, no
-// footer). What it keeps is Base — fonts, the colour-scheme randomiser and the
-// global arrow/scramble scripts — so it still reads as the same site.
+// Chrome for the Virtual Gods exhibition.
 //
-// The bar is the only persistent chrome: title on the left, a breadcrumb trail
-// of where you are, and a ✕ that always lands back on the project page.
+// The site's INDEX rail stays put and stays active — the exhibition is part of
+// the site, not a detour out of it. What sits beside the rail is a lightbox
+// surface: the same frosted glass as the side nav and breadcrumb, holding the
+// exhibition on top of the page rather than replacing it.
+//
+// No Breadcrumb and no Footer: the lightbox bar carries its own trail, and a
+// pill cloud under an exhibition would be noise.
 import Base from './Base.astro';
+import SideNav from '../components/SideNav.astro';
 
 export interface Props {
   title: string;
   description?: string;
   /** Trail after "Virtual Gods", e.g. [{label:'Marx × Zaha', href:'/virtual-gods/marx-zaha'}] */
   trail?: Array<{ label: string; href?: string }>;
-  /** Quadrant hue; tints the bar rule and focus rings on the room pages. */
+  /** Quadrant hue; tints the rule, the active thumb and the step markers. */
   accent?: string;
 }
 
 const { title, description, trail = [], accent } = Astro.props;
+const currentPath = Astro.url.pathname;
 ---
 
 <Base title={title} description={description}>
-  <div class="ex" style={accent ? `--ex-accent: ${accent}` : undefined}>
-    <header class="ex-bar">
-      <nav class="ex-bar__trail" aria-label="Exhibition">
-        <a href="/virtual-gods" class="ex-bar__home">Virtual Gods</a>
-        {trail.map(t => (
-          <>
-            <span class="ex-bar__sep" aria-hidden="true">/</span>
-            {t.href
-              ? <a href={t.href} class="ex-bar__crumb">{t.label}</a>
-              : <span class="ex-bar__crumb is-current" aria-current="page">{t.label}</span>}
-          </>
-        ))}
-      </nav>
+  <div class="page-wrap">
+    <SideNav currentPath={currentPath} />
 
-      <a href="/projects/virtual-gods" class="ex-bar__exit" data-ex-exit aria-label="Leave the exhibition">
-        <span class="ex-bar__exit-text">Exit</span>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
-          <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
-      </a>
-    </header>
+    <div class="ex-lightbox" style={accent ? `--ex-accent: ${accent}; --q: ${accent}` : undefined}>
+      <header class="ex-bar">
+        <nav class="ex-bar__trail" aria-label="Exhibition">
+          <a href="/virtual-gods" class="ex-bar__home">Virtual Gods</a>
+          {trail.map(t => (
+            <>
+              <span class="ex-bar__sep" aria-hidden="true">/</span>
+              {t.href
+                ? <a href={t.href} class="ex-bar__crumb">{t.label}</a>
+                : <span class="ex-bar__crumb is-current" aria-current="page">{t.label}</span>}
+            </>
+          ))}
+        </nav>
 
-    <main class="ex-main">
-      <slot />
-    </main>
+        <a href="/projects/virtual-gods" class="ex-bar__exit" data-ex-exit aria-label="Close the exhibition">
+          <span class="ex-bar__exit-text">Close</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </a>
+      </header>
+
+      <main class="ex-main">
+        <slot />
+      </main>
+    </div>
   </div>
 </Base>
 
 <style>
-  .ex {
-    --ex-accent: var(--_tokens---color--fg);
-    min-height: 100dvh;
+  .page-wrap {
     display: flex;
-    flex-direction: column;
-    background-color: var(--_tokens---color--bg);
+    min-height: 100dvh;
+    position: relative;
+    z-index: 1;
   }
 
-  /* Fixed, frosted — same glass formula as the side nav / breadcrumb */
-  .ex-bar {
+  /* The lightbox surface — sits beside the 44px INDEX rail, never under it. */
+  .ex-lightbox {
+    --ex-accent: var(--_tokens---color--fg);
     position: fixed;
-    inset: 0 0 auto 0;
-    z-index: 100;
+    inset: 0 0 0 44px;
+    z-index: 90; /* under SideNav (200) + its panel, over page content */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background-color: color-mix(in srgb, var(--_tokens---color--bg) 88%, transparent);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .ex-bar {
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    padding: 14px clamp(16px, 3vw, 32px);
+    padding: 14px clamp(16px, 2.5vw, 32px);
     box-sizing: border-box;
-    background-color: color-mix(in srgb, var(--_tokens---color--bg) 35%, transparent);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--_tokens---color--line-soft);
   }
 
@@ -122,30 +137,31 @@ const { title, description, trail = [], accent } = Astro.props;
     color: var(--_tokens---color--bg);
   }
 
+  /* The lightbox is the scroll container — the page behind it never moves. */
+  .ex-main {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
   @media (max-width: 640px) {
     .ex-bar__exit-text { display: none; }
     .ex-bar__exit { padding: 8px; }
   }
-
-  .ex-main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    padding-top: 58px; /* clear the fixed bar */
-  }
 </style>
 
 <script>
-  // Esc walks one level out: pair → quadrant → wheel → project page.
-  // The trail in the bar is the source of truth, so this never desyncs.
+  // Esc walks one level out: pair → quadrant → wheel → project page. The trail
+  // in the bar is the source of truth, so this can never desync from the URL.
   function initExhibitionKeys() {
     if ((window as any)._exKeys) return;
     (window as any)._exKeys = true;
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
-      // Let an open lightbox/dialog handle its own Esc first.
       if (document.querySelector('[data-ex-modal].is-open')) return;
+      // Don't fight the side nav panel when it's open over the lightbox.
+      if (document.querySelector('.sn-panel.is-open')) return;
       const crumbs = Array.from(document.querySelectorAll('.ex-bar__trail a')) as HTMLAnchorElement[];
       const up = crumbs[crumbs.length - 1]; // last *link* = one level up
       if (up) window.location.href = up.href;

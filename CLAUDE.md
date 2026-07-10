@@ -265,13 +265,25 @@ exhibition" pill).
 
 ```
 src/content/exhibitions/virtual-gods.yaml   ← the whole exhibition, as data
-src/layouts/ExhibitionLayout.astro          ← full-bleed chrome; Esc walks up one level
+src/layouts/ExhibitionLayout.astro          ← SideNav + lightbox surface; Esc walks up one level
 src/components/VGWheel.astro                ← the circular diagram, redrawn as live SVG
-src/components/VGLoop.astro                 ← looping clip; plays only when in view
+src/components/VGStage.astro                ← a room: process left, active work centre, index right
 src/pages/virtual-gods/index.astro          ← the wheel
 src/pages/virtual-gods/[quadrant].astro     ← one group: modules → fusion → world
-src/pages/virtual-gods/[quadrant]/[pair].astro  ← one pair: merger, ortho scrub, sources, film
+src/pages/virtual-gods/[quadrant]/[pair].astro  ← one pair: fusion, views, steps, modules, film
 ```
+
+**Chrome:** the site's 44px INDEX rail stays visible and active (`pageName()` in
+`SideNav.astro` maps every `/virtual-gods/*` route to "Virtual Gods"). Beside it
+sits a fixed frosted **lightbox surface** (`.ex-lightbox`, z-index 90 — under the
+side nav, over the page). No Breadcrumb, no Footer; the lightbox bar carries its
+own trail and a Close that returns to `/projects/virtual-gods`.
+
+**Room layout** (`VGStage`): process column on the left (stages + the way out),
+the active work in the middle, its thumbnail index down the **right** edge — the
+mirror of the project detail pages, which put the scrub on the left. Stages with
+no surviving assets are dropped rather than rendered empty. The rail, the step
+list and the arrow keys all call one `setActive()`.
 
 **Structure:** four quadrants × (4 modules → 2 pair mergers → 1 world). The
 wheel's geometry is *derived* from the YAML — radial position encodes the stage,
