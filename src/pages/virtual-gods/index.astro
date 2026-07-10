@@ -1,101 +1,517 @@
 ---
+// The whole exhibition, on one page.
+//
+// The wheel is permanent: it never unmounts, and it is the navigation. Selecting
+// a node swaps the *scene* on the right — no route change, no reload. Deep links
+// still work because every node is a hash anchor (`#marx-zaha/advaita-yash`), so
+// the browser's own history does the routing.
+//
+// Layout mirrors the project detail pages, with one deliberate inversion: there,
+// the scrub sits in the left column beside a big image. Here the left column is
+// the process (the wheel), the centre is always the active work, and the index
+// runs down the right edge beside it.
 import { getEntry } from 'astro:content';
 import ExhibitionLayout from '../../layouts/ExhibitionLayout.astro';
 import VGWheel from '../../components/VGWheel.astro';
+import { publicFileExists, publicFilesLike } from '../../lib/content';
 
 const ex = await getEntry('exhibitions', 'virtual-gods');
 const data = ex!.data;
+
+const asset = (rel: string) => `/images/virtual-gods/vg/${rel}`;
+const vid = (rel: string, label: string, group: string) =>
+  ({ type: 'video', media: asset(`${rel}.mp4`), thumb: asset(`${rel}.jpg`), label, group });
+const img = (rel: string, label: string, group: string) =>
+  ({ type: 'image', media: asset(rel), thumb: asset(rel), label, group });
+
+const VIEWS = ['iso', 'front', 'back', 'left', 'right', 'top', 'bottom'];
+
+// ── scenes ────────────────────────────────────────────────────────────────
+// One scene per wheel node target: the overview, each quadrant, each pair.
+const scenes: Record<string, any> = {};
+
+scenes.overview = {
+  title: data.title,
+  subtitle: `${data.year} · ARCHV Collective`,
+  body: data.intro ?? [],
+  items: data.quadrants
+    .filter(q => q.film && publicFileExists(asset(`films/${q.film}.mp4`)))
+    .map(q => vid(`films/${q.film}`, q.label, 'Worlds')),
+};
+
+for (const q of data.quadrants) {
+  const members = q.pairs.flatMap((p: any) => p.members);
+  const items: any[] = [];
+
+  members.filter((m: any) => m.module)
+    .forEach((m: any) => items.push(vid(`modules/${m.module}`, `${m.name} — ${m.architect}`, 'Modules')));
+
+  q.pairs.filter((p: any) => publicFileExists(asset(`mergers/${p.slug}.mp4`)))
+    .forEach((p: any) => items.push(vid(`mergers/${p.slug}`, p.label, 'Fusion')));
+
+  if (q.film && publicFileExists(asset(`films/${q.film}.mp4`))) {
+    items.push(vid(`films/${q.film}`, `${q.label} — the world`, 'World'));
+  }
+
+  // Only the Marx × Zaha group kept its methodology sheets and final renders.
+  (q.methodology ?? []).filter((m: string) => publicFileExists(asset(`posters/${m}.webp`)))
+    .forEach((m: string) => items.push(img(`posters/${m}.webp`, 'Methodology sheet', 'Methodology')));
+
+  (q.renders ?? []).filter((r: string) => publicFileExists(asset(`posters/${r}.webp`)))
+    .forEach((r: string, i: number) => items.push(img(`posters/${r}.webp`, `Render ${i + 1}`, 'Renders')));
+
+  scenes[q.slug] = {
+    title: q.label,
+    subtitle: members.map((m: any) => m.name).join(' · '),
+    color: q.color,
+    items,
+  };
+
+  for (const p of q.pairs) {
+    const pItems: any[] = [];
+
+    if (publicFileExists(asset(`mergers/${p.slug}.mp4`))) {
+      pItems.push(vid(`mergers/${p.slug}`, `${p.label} — the fused form`, 'Fusion'));
+    }
+
+    VIEWS.filter(v => publicFileExists(asset(`mergers/${p.slug}/${v}.webp`)))
+      .forEach(v => pItems.push(img(`mergers/${p.slug}/${v}.webp`, `${v} view`, 'Views')));
+
+    // The source folders number fusion steps inconsistently (A–F for one pair,
+    // 01–12 for another), so read whatever the pipeline produced.
+    publicFilesLike(`/images/virtual-gods/vg/mergers/${p.slug}`, 'module-', '.mp4')
+      .forEach((s, i) => pItems.push(vid(`mergers/${p.slug}/${s}`, `Fusion step ${i + 1}`, 'Steps')));
+
+    p.members.filter((m: any) => m.module)
+      .forEach((m: any) => pItems.push(vid(`modules/${m.module}`, `${m.name} — ${m.architect}`, 'Modules')));
+
+    if (p.film && publicFileExists(asset(`films/${p.film}.mp4`))) {
+      pItems.push(vid(`films/${p.film}`, `${p.label} — film`, 'Film'));
+    }
+
+    const lost = p.members.filter((m: any) => !m.module).map((m: any) => m.name);
+    scenes[`${q.slug}/${p.slug}`] = {
+      title: p.label,
+      subtitle: p.members.map((m: any) => m.architect).join(' × '),
+      color: q.color,
+      lost,
+      items: pItems,
+    };
+  }
+}
+
+const first = scenes.overview.items[0];
 ---
 
 <ExhibitionLayout
   title="Virtual Gods"
   description="India's first online group art exhibition. Sixteen participants, sixteen architects, four surreal worlds — ARCHV, 2020."
 >
-  <section class="vg-home">
-    <header class="vg-home__head">
-      <h1 class="vg-home__title" data-scramble>{data.title}</h1>
-      <p class="vg-home__meta">{data.year} · ARCHV Collective · {data.tagline}</p>
-      <div class="vg-home__intro">
-        {data.intro?.map(p => <p>{p}</p>)}
+  <div class="vg" data-vg>
+    <!-- LEFT — the process. Always on, always the navigation. -->
+    <div class="vg__process">
+      <VGWheel quadrants={data.quadrants} />
+    </div>
+
+    <!-- CENTRE — the active work -->
+    <div class="vg__active">
+      <header class="vg__head">
+        <h1 class="vg__title" data-vg-title>{scenes.overview.title}</h1>
+        <p class="vg__subtitle" data-vg-subtitle>{scenes.overview.subtitle}</p>
+      </header>
+
+      <div class="vg__body" data-vg-body>
+        {scenes.overview.body.map((p: string) => <p>{p}</p>)}
       </div>
-    </header>
 
-    <VGWheel quadrants={data.quadrants} />
+      <div class="vg__frame">
+        <video class="vg__video" data-vg-video src={first.media} poster={first.thumb} preload="metadata" loop muted playsinline></video>
+        <img class="vg__img" data-vg-img src="" alt="" hidden />
+      </div>
 
-    <p class="vg-home__hint">
-      Hover a form to trace it back to its maker. Click any node to step inside:
-      the outer ring holds the sixteen modules, the middle ring their fusions,
-      the center each group's finished world.
-    </p>
-  </section>
+      <div class="vg__meta">
+        <span class="vg__caption" data-vg-caption>{first.label}</span>
+        <span class="vg__pos"><span data-vg-pos>1</span> / <span data-vg-total>{scenes.overview.items.length}</span></span>
+      </div>
+
+      <div class="vg__groups" data-vg-groups role="tablist" aria-label="Stages"></div>
+
+      <p class="vg__lost" data-vg-lost hidden></p>
+    </div>
+
+    <!-- RIGHT — the index of the active work -->
+    <nav class="vg__index" data-vg-index aria-label="Index"></nav>
+  </div>
+
+  <script type="application/json" data-vg-scenes set:html={JSON.stringify(scenes)}></script>
 </ExhibitionLayout>
 
 <style>
-  .vg-home {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: clamp(1.5rem, 4vh, 3rem);
-    padding: clamp(1.5rem, 4vh, 3rem) clamp(16px, 3vw, 32px) clamp(3rem, 8vh, 6rem);
+  .vg {
+    display: grid;
+    grid-template-columns: minmax(320px, 0.95fr) minmax(0, 1.15fr) auto;
+    gap: clamp(20px, 2.5vw, 44px);
+    align-items: start;
+    padding: clamp(16px, 3vh, 32px) clamp(16px, 2.5vw, 32px) clamp(24px, 5vh, 48px);
     box-sizing: border-box;
   }
 
-  .vg-home__head {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
-    gap: clamp(1rem, 3vw, 3rem);
-    align-items: end;
-    max-width: 1100px;
-    width: 100%;
-    margin: 0 auto;
-  }
+  .vg__process { min-width: 0; }
 
-  .vg-home__title {
-    grid-column: 1;
-    font-size: var(--_tokens---type--big);
-    font-weight: 500;
-    letter-spacing: -0.03em;
-    line-height: 0.95;
+  /* ── centre ── */
+  .vg__active { display: flex; flex-direction: column; gap: 12px; min-width: 0; position: sticky; top: 0; }
+
+  .vg__head { display: flex; flex-direction: column; gap: 4px; }
+
+  .vg__title {
     margin: 0;
+    font-size: var(--_tokens---type--small);
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
     color: var(--_tokens---color--fg);
   }
 
-  .vg-home__meta {
-    grid-column: 1;
-    grid-row: 2;
-    font-size: var(--_tokens---type--micro);
-    color: var(--_tokens---color--muted);
-    margin: 8px 0 0;
-  }
+  .vg__subtitle { margin: 0; font-size: var(--_tokens---type--ultrathin); color: var(--vg-q, var(--_tokens---color--muted)); }
 
-  .vg-home__intro {
-    grid-column: 2;
-    grid-row: 1 / span 2;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75em;
-  }
-
-  .vg-home__intro :global(p) {
-    font-size: var(--_tokens---type--micro);
-    line-height: 1.55;
-    color: var(--_tokens---color--muted);
+  .vg__body { display: flex; flex-direction: column; gap: 0.6em; }
+  .vg__body:empty { display: none; }
+  .vg__body p {
     margin: 0;
-    max-width: 62ch;
-  }
-
-  .vg-home__hint {
-    max-width: 62ch;
-    margin: 0 auto;
-    text-align: center;
     font-size: var(--_tokens---type--ultrathin);
     line-height: 1.6;
     color: var(--_tokens---color--muted);
+    max-width: 66ch;
   }
 
-  @media (max-width: 860px) {
-    .vg-home__head { grid-template-columns: 1fr; }
-    .vg-home__title, .vg-home__meta, .vg-home__intro { grid-column: 1; }
-    .vg-home__intro { grid-row: auto; margin-top: 12px; }
+  .vg__frame {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: min(58vh, 620px);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 3%, transparent);
+    border: 1px solid var(--_tokens---color--line-soft);
+    border-radius: var(--_tokens---radius--small);
+    box-sizing: border-box;
+    padding: clamp(10px, 1.6vw, 24px);
+    overflow: hidden;
+  }
+
+  .vg__video, .vg__img {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    display: block;
+    object-fit: contain;
+  }
+  .vg__video[hidden], .vg__img[hidden] { display: none; }
+
+  .vg__meta {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    font-size: var(--_tokens---type--ultrathin);
+    color: var(--_tokens---color--muted);
+  }
+  .vg__caption { color: var(--_tokens---color--fg); }
+
+  /* Stage pills — the site's pill language (see .tag-picker-item). */
+  .vg__groups { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  .vg__group {
+    all: unset;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    font-size: var(--_tokens---type--ultrathin);
+    letter-spacing: 0.04em;
+    color: var(--_tokens---color--muted);
+    border: 1px solid var(--_tokens---color--line-soft);
+    border-radius: var(--_tokens---radius--pill);
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  }
+  .vg__group:hover,
+  .vg__group.is-active {
+    background-color: var(--vg-q, var(--_tokens---color--fg));
+    border-color: var(--vg-q, var(--_tokens---color--fg));
+    color: var(--_tokens---color--bg);
+  }
+  .vg__group:focus-visible { outline: 2px solid var(--_tokens---color--fg); outline-offset: 2px; }
+  .vg__group-count { opacity: 0.65; }
+
+  .vg__lost {
+    margin: 0;
+    font-size: var(--_tokens---type--ultrathin);
+    color: var(--_tokens---color--muted);
+  }
+  .vg__lost[hidden] { display: none; }
+
+  /* ── right: the index rail ── */
+  .vg__index {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: min(78vh, 820px);
+    overflow-y: auto;
+    padding-right: 2px;
+    scrollbar-width: thin;
+    position: sticky;
+    top: 0;
+  }
+  .vg__index::-webkit-scrollbar { width: 3px; }
+  .vg__index::-webkit-scrollbar-thumb { background: var(--_tokens---color--line-soft); }
+
+  /* Same square, grayscale-until-active thumbnail as the project card strips. */
+  .vg__thumb {
+    all: unset;
+    width: 54px;
+    height: 54px;
+    flex: 0 0 auto;
+    cursor: pointer;
+    overflow: hidden;
+    border-radius: var(--_tokens---radius--small);
+    border: 1px solid transparent;
+    box-sizing: border-box;
+    opacity: 0.5;
+    transition: border-color 0.2s ease, opacity 0.2s ease;
+  }
+  .vg__thumb img { width: 100%; height: 100%; object-fit: cover; display: block; filter: grayscale(1); transition: filter 0.2s ease; }
+  .vg__thumb:hover { opacity: 1; }
+  .vg__thumb:hover img { filter: grayscale(0); }
+  .vg__thumb.is-active { opacity: 1; border-color: var(--vg-q, var(--_tokens---color--fg)); }
+  .vg__thumb.is-active img { filter: grayscale(0); }
+  .vg__thumb:focus-visible { outline: 2px solid var(--_tokens---color--fg); outline-offset: 2px; }
+
+  @media (max-width: 1100px) {
+    .vg { grid-template-columns: 1fr; }
+    .vg__active, .vg__index { position: static; }
+    .vg__frame { height: 52vh; }
+    .vg__index {
+      flex-direction: row;
+      max-height: none;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding-bottom: 4px;
+    }
+    .vg__thumb { width: 48px; height: 48px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .vg__thumb, .vg__thumb img, .vg__group { transition: none; }
   }
 </style>
+
+<script>
+  // One scene at a time. The wheel, the legends, the stage pills, the index rail
+  // and the arrow keys all funnel into setScene()/setItem(), so nothing can
+  // disagree about what's on screen. The hash is the single source of truth.
+  function initVG() {
+    const root = document.querySelector('[data-vg]') as HTMLElement | null;
+    if (!root || (root as any)._wired) return;
+    (root as any)._wired = true;
+
+    const scenes = JSON.parse(document.querySelector('[data-vg-scenes]')!.textContent!);
+    const wheel = document.querySelector('.vgw') as HTMLElement;
+
+    const els = {
+      title: root.querySelector('[data-vg-title]') as HTMLElement,
+      subtitle: root.querySelector('[data-vg-subtitle]') as HTMLElement,
+      body: root.querySelector('[data-vg-body]') as HTMLElement,
+      video: root.querySelector('[data-vg-video]') as HTMLVideoElement,
+      img: root.querySelector('[data-vg-img]') as HTMLImageElement,
+      caption: root.querySelector('[data-vg-caption]') as HTMLElement,
+      pos: root.querySelector('[data-vg-pos]') as HTMLElement,
+      total: root.querySelector('[data-vg-total]') as HTMLElement,
+      groups: root.querySelector('[data-vg-groups]') as HTMLElement,
+      index: root.querySelector('[data-vg-index]') as HTMLElement,
+      lost: root.querySelector('[data-vg-lost]') as HTMLElement,
+    };
+
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let scene: any = null;
+    let sceneId = '';
+
+    const setItem = (i: number, scroll = true) => {
+      const it = scene.items[i];
+      if (!it) return;
+
+      Array.from(els.index.children).forEach((c, ci) => c.classList.toggle('is-active', ci === i));
+
+      if (it.type === 'video') {
+        els.img.hidden = true;
+        els.video.hidden = false;
+        // Only swap src when it actually changes — reassigning it on a playing
+        // video restarts the decoder and flashes the poster frame.
+        if (!els.video.src.endsWith(it.media)) {
+          els.video.src = it.media;
+          els.video.poster = it.thumb;
+        }
+        if (!reduced) els.video.play().catch(() => {});
+      } else {
+        els.video.pause();
+        els.video.hidden = true;
+        els.img.hidden = false;
+        els.img.src = it.media;
+        els.img.alt = it.label;
+      }
+
+      els.caption.textContent = it.label;
+      els.pos.textContent = String(i + 1);
+
+      Array.from(els.groups.children).forEach(g =>
+        g.classList.toggle('is-active', (g as HTMLElement).dataset.group === it.group));
+
+      if (scroll) els.index.children[i]?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+    };
+
+    const setScene = (id: string, focus?: string) => {
+      const s = scenes[id] ?? scenes.overview;
+      if (!s) return;
+      scene = s;
+      sceneId = scenes[id] ? id : 'overview';
+
+      root.style.setProperty('--vg-q', s.color ?? 'var(--_tokens---color--fg)');
+      els.title.textContent = s.title;
+      els.subtitle.textContent = s.subtitle ?? '';
+      els.total.textContent = String(s.items.length);
+
+      els.body.innerHTML = '';
+      (s.body ?? []).forEach((t: string) => {
+        const p = document.createElement('p');
+        p.textContent = t;
+        els.body.appendChild(p);
+      });
+
+      if (s.lost?.length) {
+        const was = s.lost.length > 1 ? "'s modules were" : "'s module was";
+        els.lost.textContent = `${s.lost.join(' and ')}${was} never archived.`;
+        els.lost.hidden = false;
+      } else {
+        els.lost.hidden = true;
+      }
+
+      // Stage pills, one per group, in scene order.
+      els.groups.innerHTML = '';
+      const seen: string[] = [];
+      s.items.forEach((it: any) => { if (!seen.includes(it.group)) seen.push(it.group); });
+      seen.forEach(g => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'vg__group';
+        b.dataset.group = g;
+        const n = s.items.filter((it: any) => it.group === g).length;
+        b.innerHTML = `${g} <span class="vg__group-count">${n}</span>`;
+        b.addEventListener('click', () => setItem(s.items.findIndex((it: any) => it.group === g)));
+        els.groups.appendChild(b);
+      });
+
+      // Index rail.
+      els.index.innerHTML = '';
+      s.items.forEach((it: any, i: number) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'vg__thumb';
+        b.title = it.label;
+        b.setAttribute('aria-label', it.label);
+        const im = document.createElement('img');
+        im.src = it.thumb; im.alt = ''; im.loading = 'lazy'; im.decoding = 'async';
+        b.appendChild(im);
+        b.addEventListener('click', () => setItem(i, false));
+        els.index.appendChild(b);
+      });
+
+      // Mark the wheel: which quadrant is live, which node is current.
+      const qSlug = sceneId.split('/')[0];
+      wheel?.querySelectorAll('.vgw__q').forEach(g =>
+        g.classList.toggle('is-active', (g as HTMLElement).dataset.q === qSlug));
+      wheel?.classList.toggle('has-focus', sceneId !== 'overview');
+      wheel?.querySelectorAll('.vgw__legend').forEach(l =>
+        l.classList.toggle('is-active', (l as HTMLElement).dataset.legend === qSlug));
+      wheel?.querySelectorAll('[data-scene]').forEach(n => {
+        const el = n as HTMLElement;
+        el.classList.toggle('is-current', el.dataset.scene === sceneId && !el.dataset.focus);
+      });
+
+      // A module node focuses its own clip inside the pair scene.
+      const at = focus ? s.items.findIndex((it: any) => it.media.includes(`${focus}.mp4`)) : 0;
+      setItem(at >= 0 ? at : 0, false);
+    };
+
+    // Hash is the router. Nodes are plain anchors, so back/forward just work.
+    //
+    // But a pair's two module nodes share that pair's hash, and the hash can't
+    // say WHICH module you clicked. So the click hands its focus target to the
+    // hashchange that follows, and the handoff is consumed exactly once —
+    // otherwise a later back/forward would silently reuse a stale focus.
+    let pendingFocus: string | undefined;
+
+    const fromHash = () => {
+      const id = decodeURIComponent(location.hash.replace(/^#/, ''));
+      const focus = pendingFocus;
+      pendingFocus = undefined;
+      setScene(id || 'overview', focus);
+    };
+
+    wheel?.querySelectorAll('[data-scene]').forEach(n => {
+      n.addEventListener('click', (e) => {
+        const el = e.currentTarget as HTMLElement;
+        const id = el.dataset.scene!;
+        pendingFocus = el.dataset.focus;
+        // Same hash → no hashchange fires, so drive the swap directly.
+        if (location.hash.replace(/^#/, '') === id) {
+          e.preventDefault();
+          fromHash();
+        }
+      });
+    });
+
+    // Hover cross-lighting between the wheel and its legends (unchanged).
+    const lit = (qSlug: string, personKey?: string) => {
+      wheel?.classList.add('has-focus');
+      wheel?.querySelectorAll('.vgw__q').forEach(g => g.classList.toggle('is-active', (g as HTMLElement).dataset.q === qSlug));
+      wheel?.querySelectorAll('.vgw__legend').forEach(l => l.classList.toggle('is-active', (l as HTMLElement).dataset.legend === qSlug));
+      wheel?.querySelectorAll('.is-lit').forEach(el => el.classList.remove('is-lit'));
+      if (!personKey) return;
+      wheel?.querySelector(`[data-person-link="${personKey}"]`)?.classList.add('is-lit');
+      wheel?.querySelector(`[data-person="${personKey}"]`)?.classList.add('is-lit');
+    };
+    const unlit = () => {
+      wheel?.querySelectorAll('.is-lit').forEach(el => el.classList.remove('is-lit'));
+      const qSlug = sceneId.split('/')[0];
+      wheel?.classList.toggle('has-focus', sceneId !== 'overview');
+      wheel?.querySelectorAll('.vgw__q').forEach(g => g.classList.toggle('is-active', (g as HTMLElement).dataset.q === qSlug));
+      wheel?.querySelectorAll('.vgw__legend').forEach(l => l.classList.toggle('is-active', (l as HTMLElement).dataset.legend === qSlug));
+    };
+
+    wheel?.querySelectorAll('[data-q]').forEach(n => {
+      const el = n as HTMLElement;
+      const on = () => lit(el.dataset.q!, el.dataset.person ?? el.dataset.personLink);
+      el.addEventListener('pointerenter', on);
+      el.addEventListener('focus', on);
+      el.addEventListener('pointerleave', unlit);
+      el.addEventListener('blur', unlit);
+    });
+
+    // Arrow keys walk the index of whatever scene is open.
+    document.addEventListener('keydown', (e) => {
+      if (!['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight'].includes(e.key)) return;
+      const tag = (document.activeElement as HTMLElement | null)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      e.preventDefault();
+      const cur = Array.from(els.index.children).findIndex(c => c.classList.contains('is-active'));
+      const fwd = e.key === 'ArrowDown' || e.key === 'ArrowRight';
+      setItem((cur + (fwd ? 1 : -1) + scene.items.length) % scene.items.length);
+    });
+
+    window.addEventListener('hashchange', fromHash);
+    fromHash();
+  }
+
+  initVG();
+  document.addEventListener('astro:after-swap', initVG);
+</script>
