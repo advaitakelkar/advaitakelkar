@@ -1435,16 +1435,18 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     .project-detail[data-tab-layout="true"] .project-readmore-btn {
       display: none;
     }
-    /* Desktop order flip: pagination row first, thumbnail scrub last —
-       the scrub is the column's final element, so its bottom edge sits
-       flush with the bottom of the right-column image. */
+    /* Desktop order flip: thumbnail scrub first, pagination row last —
+       the pagination is the column's final element. */
     .project-detail[data-tab-layout="true"] .project-card-name-pagination-row {
-      order: 1;
+      order: 2;
     }
     .project-detail[data-tab-layout="true"] .deck-grid--mobile-scrub {
-      order: 2;
+      order: 1;
       margin-top: 12px;
       margin-bottom: 0;
+    }
+    .project-detail[data-tab-layout="true"] .deck-grid--mobile-scrub .deck-card-item {
+      height: 72px !important; /* same height as people circle (72px) */
     }
     .project-detail[data-tab-layout="true"] .project-col-right {
       position: static;
@@ -2710,18 +2712,24 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
      padding now (a duplicate mobile-only declaration used to sit earlier
      in the file and, being un-!important, silently lost to this one anyway,
      but kept the notch-safe env() value out of the winning declaration). */
-  .project-detail[data-tab-layout="true"] .project-header-title-row,
+   .project-detail[data-tab-layout="true"] .project-header-title-row,
   .project-detail[data-tab-layout="true"] .project-design-header,
-  .project-detail[data-tab-layout="true"] .project-making-header {
+  .project-detail[data-tab-layout="true"] .project-making-header,
+  .project-detail[data-tab-layout="true"] .project-chapter__header {
     position: sticky;
     top: 0;
     z-index: 50;
     background-color: var(--_tokens---color--bg);
     border-bottom: 1px solid var(--_tokens---color--line-soft);
-    padding-top: calc(12px + env(safe-area-inset-top)) !important;
+    padding-top: 12px !important;
     padding-bottom: 12px !important;
     margin: 0 !important;
     box-sizing: border-box;
+  }
+
+  /* Only the main top-header gets the safe-area padding-top to clear status bar/notch on mobile */
+  .project-detail[data-tab-layout="true"] .project-top-header .project-header-title-row {
+    padding-top: calc(12px + env(safe-area-inset-top)) !important;
   }
 
   .project-detail[data-tab-layout="true"] .project-detail-collapse-btn svg {
@@ -3569,6 +3577,10 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     .project-detail[data-tab-layout="true"] .project-col-right { order: 4; }
     .project-detail[data-tab-layout="true"] .project-card-name-pagination-row { order: 6; }
     .project-detail[data-tab-layout="true"] .deck-grid--mobile-scrub { order: 5; }
+    /* Hide the Read more button completely on mobile for tab layout pages as description is on scroll */
+    .project-detail[data-tab-layout="true"] .project-readmore-btn {
+      display: none !important;
+    }
     /* Work pages stack full-width instead of sitting in a half-width column,
        so the 2:3 aspect-ratio (meant for a narrow card) made the image fill
        almost the whole screen. The image + scrub are sized to fit within one
