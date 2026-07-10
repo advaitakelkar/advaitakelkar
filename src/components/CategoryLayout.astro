@@ -54,6 +54,9 @@ const PEOPLE: Record<string, string> = {
   'Faizan Khatri':   '/images/people/faizan-khatri.jpeg',
   'Samir Raut':      '/images/people/samir-raut.jpeg',
   'Siddhesh Kadam':  '/images/people/Siddhesh Kadam_823.jpeg',
+  'Aaron Wilner':    '/images/people/Aaron-Wilner.webp',
+  'Michael Hill':    '/images/people/Architecture-Michael-Hill-Fall-2019-HS_003_JJ_v1.webp',
+  'Catalina Pesea-Ogletree': '/images/people/Catalina-Pesea-Ogletree.webp',
 };
 
 const uniquePeople = new Set<string>();
@@ -77,9 +80,13 @@ if (categoryId === 'work' || (hasStudio823 && hasFaizanKhatri)) {
 }
 
 // People row rule (matches the project pages): professors/mentors first, one
-// divider, then students/collaborators. No professor → no divider.
-const PROFESSOR_NAMES = ['Samir Raut', 'Faizan Khatri', 'Siddhesh Kadam', 'Casimir Esbach'];
-const isProfessor = (p: string) => PROFESSOR_NAMES.includes(p);
+// divider, then students/collaborators. No professor → no divider. Besides
+// the global always-professor list, anyone named in a project's `professors:`
+// field within this category groups left too.
+const PROFESSOR_NAMES = ['Samir Raut', 'Faizan Khatri', 'Siddhesh Kadam', 'Casimir Esbach', 'Aaron Wilner', 'Michael Hill', 'Catalina Pesea-Ogletree'];
+const perProjectProfessors = new Set<string>();
+projects.forEach(p => (p.data.professors ?? []).forEach((n: string) => perProjectProfessors.add(n)));
+const isProfessor = (p: string) => PROFESSOR_NAMES.includes(p) || perProjectProfessors.has(p);
 categoryPeople = [...categoryPeople.filter(isProfessor), ...categoryPeople.filter(p => !isProfessor(p))];
 const professorCount = categoryPeople.filter(isProfessor).length;
 // Index after which the single divider renders; -1 = no divider

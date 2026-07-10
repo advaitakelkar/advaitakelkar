@@ -60,6 +60,10 @@ const projects = defineCollection({
     // Names must match the PEOPLE registry in projects/[slug].astro.
     // Defaults to Advaita only when omitted.
     people: z.array(z.string()).optional(),
+    // Names from `people` who act as professor/mentor ON THIS PROJECT — they
+    // sit left of the divider. Augments the global always-professor list
+    // (Samir, Faizan, Siddhesh, and the SCAD professors).
+    professors: z.array(z.string()).optional(),
     // Long-form chapter dropdowns rendered below the summary on the project
     // page (replaces the Design/Making sections). body is raw HTML.
     chapters: z.array(z.object({

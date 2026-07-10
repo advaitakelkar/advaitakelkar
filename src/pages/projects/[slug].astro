@@ -40,6 +40,9 @@ const PEOPLE: Record<string, string> = {
   'Faizan Khatri':   '/images/people/faizan-khatri.jpeg',
   'Samir Raut':      '/images/people/samir-raut.jpeg',
   'Siddhesh Kadam':  '/images/people/Siddhesh Kadam_823.jpeg',
+  'Aaron Wilner':    '/images/people/Aaron-Wilner.webp',
+  'Michael Hill':    '/images/people/Architecture-Michael-Hill-Fall-2019-HS_003_JJ_v1.webp',
+  'Catalina Pesea-Ogletree': '/images/people/Catalina-Pesea-Ogletree.webp',
   'Devarsh Deth':    '/images/people/devarsh-deth.jpeg',
   'Dhruv Chavan':    '/images/people/dhruv-chavan.png',
 };
@@ -57,8 +60,11 @@ const rawPeople: string[] = data.people?.length
 
 // People row rule (same on project + category pages): professors/mentors
 // first, one divider, then students/collaborators. No professor → no divider.
-const PROFESSOR_NAMES = ['Samir Raut', 'Faizan Khatri', 'Siddhesh Kadam', 'Casimir Esbach'];
-const isProfessor = (p: string) => PROFESSOR_NAMES.includes(p);
+// The global list = always-professors; a project's own `professors:` field
+// adds per-project mentors (e.g. Nayan on SHELF, Varun on Tilak Nagar).
+const PROFESSOR_NAMES = ['Samir Raut', 'Faizan Khatri', 'Siddhesh Kadam', 'Casimir Esbach', 'Aaron Wilner', 'Michael Hill', 'Catalina Pesea-Ogletree'];
+const projectProfessors: string[] = data.professors ?? [];
+const isProfessor = (p: string) => PROFESSOR_NAMES.includes(p) || projectProfessors.includes(p);
 const people: string[] = [...rawPeople.filter(isProfessor), ...rawPeople.filter(p => !isProfessor(p))];
 const professorCount = people.filter(isProfessor).length;
 // Index after which the single divider renders; -1 = no divider
@@ -351,9 +357,9 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                     )}
                     <div class:list={["project-people", isTabLayout && "project-people--collapsible"]} id="project-people-panel" style="margin-top: 20px;">
                     {people.map((person, idx) => {
-                      const isCas = person === 'Casimir Esbach';
+                      const isScadProf = ['Casimir Esbach', 'Aaron Wilner', 'Michael Hill', 'Catalina Pesea-Ogletree'].includes(person);
                       const isDhruv = person === 'Dhruv Chavan';
-                      const displayName = isCas ? `${person} (Professor)` : isDhruv ? `${person} (Mumbai Workshop)` : person;
+                      const displayName = isScadProf ? `${person} (Professor)` : isDhruv ? `${person} (Mumbai Workshop)` : person;
                       const showDivider = idx === peopleDividerAfter;
                       return (
                         <>
@@ -503,9 +509,9 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                 <!-- Collaborator circles (people) below the description -->
                 <div class="project-people" style="margin-top: 24px;">
                   {people.map((person, idx) => {
-                    const isCas = person === 'Casimir Esbach';
+                    const isScadProf = ['Casimir Esbach', 'Aaron Wilner', 'Michael Hill', 'Catalina Pesea-Ogletree'].includes(person);
                     const isDhruv = person === 'Dhruv Chavan';
-                    const displayName = isCas ? `${person} (Professor)` : isDhruv ? `${person} (Mumbai Workshop)` : person;
+                    const displayName = isScadProf ? `${person} (Professor)` : isDhruv ? `${person} (Mumbai Workshop)` : person;
                     const showDivider = idx === peopleDividerAfter;
                     return (
                       <>
