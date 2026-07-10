@@ -1,0 +1,157 @@
+---
+// Chrome for the Virtual Gods exhibition. Deliberately NOT PageLayout: the
+// exhibition breaks the site grid (full-bleed, no side rail, no breadcrumb, no
+// footer). What it keeps is Base — fonts, the colour-scheme randomiser and the
+// global arrow/scramble scripts — so it still reads as the same site.
+//
+// The bar is the only persistent chrome: title on the left, a breadcrumb trail
+// of where you are, and a ✕ that always lands back on the project page.
+import Base from './Base.astro';
+
+export interface Props {
+  title: string;
+  description?: string;
+  /** Trail after "Virtual Gods", e.g. [{label:'Marx × Zaha', href:'/virtual-gods/marx-zaha'}] */
+  trail?: Array<{ label: string; href?: string }>;
+  /** Quadrant hue; tints the bar rule and focus rings on the room pages. */
+  accent?: string;
+}
+
+const { title, description, trail = [], accent } = Astro.props;
+---
+
+<Base title={title} description={description}>
+  <div class="ex" style={accent ? `--ex-accent: ${accent}` : undefined}>
+    <header class="ex-bar">
+      <nav class="ex-bar__trail" aria-label="Exhibition">
+        <a href="/virtual-gods" class="ex-bar__home">Virtual Gods</a>
+        {trail.map(t => (
+          <>
+            <span class="ex-bar__sep" aria-hidden="true">/</span>
+            {t.href
+              ? <a href={t.href} class="ex-bar__crumb">{t.label}</a>
+              : <span class="ex-bar__crumb is-current" aria-current="page">{t.label}</span>}
+          </>
+        ))}
+      </nav>
+
+      <a href="/projects/virtual-gods" class="ex-bar__exit" data-ex-exit aria-label="Leave the exhibition">
+        <span class="ex-bar__exit-text">Exit</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </a>
+    </header>
+
+    <main class="ex-main">
+      <slot />
+    </main>
+  </div>
+</Base>
+
+<style>
+  .ex {
+    --ex-accent: var(--_tokens---color--fg);
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--_tokens---color--bg);
+  }
+
+  /* Fixed, frosted — same glass formula as the side nav / breadcrumb */
+  .ex-bar {
+    position: fixed;
+    inset: 0 0 auto 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px clamp(16px, 3vw, 32px);
+    box-sizing: border-box;
+    background-color: color-mix(in srgb, var(--_tokens---color--bg) 35%, transparent);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--_tokens---color--line-soft);
+  }
+
+  .ex-bar__trail {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    font-size: var(--_tokens---type--micro);
+  }
+
+  .ex-bar__home,
+  .ex-bar__crumb {
+    color: var(--_tokens---color--muted);
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color 0.2s ease;
+  }
+
+  .ex-bar__home { font-weight: 500; color: var(--_tokens---color--fg); }
+  .ex-bar__home:hover,
+  .ex-bar__crumb:hover { color: var(--ex-accent); }
+
+  .ex-bar__crumb.is-current { color: var(--_tokens---color--fg); }
+  .ex-bar__sep { color: var(--_tokens---color--muted); opacity: 0.5; }
+
+  .ex-bar__exit {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    flex-shrink: 0;
+    padding: 6px 12px;
+    font-size: var(--_tokens---type--ultrathin);
+    color: var(--_tokens---color--muted);
+    text-decoration: none;
+    border: 1px solid var(--_tokens---color--line-soft);
+    border-radius: var(--_tokens---radius--pill);
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .ex-bar__exit svg { width: 0.9em; height: 0.9em; }
+
+  .ex-bar__exit:hover {
+    background-color: var(--_tokens---color--fg);
+    border-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+  }
+
+  @media (max-width: 640px) {
+    .ex-bar__exit-text { display: none; }
+    .ex-bar__exit { padding: 8px; }
+  }
+
+  .ex-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding-top: 58px; /* clear the fixed bar */
+  }
+</style>
+
+<script>
+  // Esc walks one level out: pair → quadrant → wheel → project page.
+  // The trail in the bar is the source of truth, so this never desyncs.
+  function initExhibitionKeys() {
+    if ((window as any)._exKeys) return;
+    (window as any)._exKeys = true;
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      // Let an open lightbox/dialog handle its own Esc first.
+      if (document.querySelector('[data-ex-modal].is-open')) return;
+      const crumbs = Array.from(document.querySelectorAll('.ex-bar__trail a')) as HTMLAnchorElement[];
+      const up = crumbs[crumbs.length - 1]; // last *link* = one level up
+      if (up) window.location.href = up.href;
+      else (document.querySelector('[data-ex-exit]') as HTMLAnchorElement | null)?.click();
+    });
+  }
+  initExhibitionKeys();
+  document.addEventListener('astro:after-swap', initExhibitionKeys);
+</script>

@@ -342,6 +342,15 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                         <svg class="link-arrow project-prompt-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
                       </button>
                     )}
+
+                    {/* Virtual Gods keeps the standard ARCHV page; the interactive
+                        exhibition lives at its own full-bleed route. */}
+                    {project.id === 'virtual-gods' && (
+                      <a class="project-exhibition-pill" href="/virtual-gods">
+                        <span>Enter the exhibition</span>
+                        <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+                      </a>
+                    )}
                   </div>
                 </div>
 
@@ -355,7 +364,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                         <svg class="link-arrow project-credits-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
                       </button>
                     )}
-                    <div class:list={["project-people", isTabLayout && "project-people--collapsible"]} id="project-people-panel" style="margin-top: 20px;">
+                    <div class:list={["project-people", isTabLayout && "project-people--collapsible"]} id="project-people-panel" style="margin-top: 40px;">
                     {people.map((person, idx) => {
                       const isScadProf = ['Casimir Esbach', 'Aaron Wilner', 'Michael Hill', 'Catalina Pesea-Ogletree'].includes(person);
                       const isDhruv = person === 'Dhruv Chavan';
@@ -507,7 +516,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                 </div>
 
                 <!-- Collaborator circles (people) below the description -->
-                <div class="project-people" style="margin-top: 24px;">
+                <div class="project-people" style="margin-top: 40px;">
                   {people.map((person, idx) => {
                     const isScadProf = ['Casimir Esbach', 'Aaron Wilner', 'Michael Hill', 'Catalina Pesea-Ogletree'].includes(person);
                     const isDhruv = person === 'Dhruv Chavan';
@@ -1599,6 +1608,31 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
 
   /* ── Download pills (Summary / Book) ── */
+  /* Inverted by default — it's the one call to action on the page. */
+  .project-exhibition-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    align-self: flex-start;
+    margin-top: 18px;
+    padding: 10px 18px;
+    font-size: var(--_tokens---type--micro);
+    font-weight: 500;
+    text-decoration: none;
+    color: var(--_tokens---color--bg);
+    background-color: var(--_tokens---color--fg);
+    border: 1px solid var(--_tokens---color--fg);
+    border-radius: var(--_tokens---radius--pill);
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  .project-exhibition-pill svg { width: 0.9em; height: 0.9em; }
+
+  .project-exhibition-pill:hover {
+    background-color: transparent;
+    color: var(--_tokens---color--fg);
+  }
+
   .project-downloads {
     display: flex;
     flex-wrap: wrap;
@@ -1755,7 +1789,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     .project-people--collapsible.is-expanded {
       max-height: 300px;
       opacity: 1;
-      margin-top: 12px !important;
+      margin-top: 40px !important; /* headroom for the name pill above the avatar */
       margin-bottom: 12px !important;
       overflow: visible;
     }
@@ -1769,7 +1803,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     gap: 8px;
     width: 100%;
     margin-top: 24px;
-    margin-bottom: 44px; /* room for the name that drops below on hover/click */
+    margin-bottom: 12px; /* the name pill floats ABOVE the avatar now */
   }
 
   .project-people__person {
@@ -1800,13 +1834,18 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
 
   /* Name is hidden by default; drops in below the circle on hover or click */
+  /* Name tooltip pill — floats above the avatar. Identical to the category
+     page's .category-people__name so both people rows read as one component. */
   .project-people__name {
     position: absolute;
-    top: calc(100% + 8px);
+    bottom: calc(100% + 8px);
     left: 50%;
-    transform: translate(-50%, -4px);
+    transform: translateX(-50%) translateY(4px);
     font-size: var(--_tokens---type--micro);
-    color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    background-color: var(--_tokens---color--fg);
+    padding: 4px 10px;
+    border-radius: var(--_tokens---radius--pill);
     text-align: center;
     line-height: 1.15;
     white-space: nowrap;
@@ -1852,7 +1891,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       gap: 12px;
       max-width: none;
       width: 100%;
-      margin-bottom: 28px;
+      margin-bottom: 12px; /* the name pill floats above, not below */
     }
 
     .project-people__divider {
@@ -1872,13 +1911,19 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       aspect-ratio: 1;
     }
 
+    /* Same tooltip pill as desktop — floats above the avatar so it clears the
+       5-column grid's neighbours instead of pushing the row taller. */
     .project-people__name {
       position: absolute;
-      top: calc(100% + 6px);
+      bottom: calc(100% + 6px);
+      top: auto;
       left: 50%;
-      transform: translate(-50%, -4px);
+      transform: translateX(-50%) translateY(4px);
       font-size: var(--_tokens---type--micro);
-      color: var(--_tokens---color--fg);
+      color: var(--_tokens---color--bg);
+      background-color: var(--_tokens---color--fg);
+      padding: 4px 10px;
+      border-radius: var(--_tokens---radius--pill);
       text-align: center;
       line-height: 1.15;
       opacity: 0;
@@ -3979,6 +4024,12 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     const isCardPage = article.getAttribute('data-is-card') === 'true';
     const isScarpinPage = article.getAttribute('data-is-scarpin') === 'true';
 
+    // Wire the collapsible tabs FIRST and unconditionally. This used to live
+    // inside initCardDeck(), which bails early on projects that have no images
+    // (`if (!deck || !lightbox) return`) — so image-less pages (ARCHV: Dhal Ni
+    // Pol, VANDLS, T4D, ARCHV itself) shipped tabs that could never open.
+    initSectionTabs();
+
     if (isScarpinPage) {
       initScarpinSliders();
     } else if (isCardPage) {
@@ -3987,6 +4038,34 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     } else {
       initStandardSlider();
       initDescReadMore();
+    }
+  }
+
+  // Collapsible section tabs. Tab-layout pages (work + ARCHV + academic +
+  // chapter pages) get the single-open accordion: name tab + Design/Making, or
+  // name tab + one tab per chapter. Other card pages (freelancer, original card
+  // sets) keep Design/Making independent; original card sets additionally get
+  // the standalone name tab.
+  function initSectionTabs() {
+    const article = document.querySelector('.project-detail');
+    if (!article || (article as any)._tabsWired) return;
+    (article as any)._tabsWired = true;
+
+    const isTabLayoutPage = article.getAttribute('data-tab-layout') === 'true';
+    const isOriginalCardSet = article.getAttribute('data-original-card') === 'true';
+
+    if (isTabLayoutPage) {
+      wireWorkAccordion();
+      return;
+    }
+    wireCollapse(document.querySelector('.project-design-section'), 'project-design-click', 'project-design-toggle', 'project-design-panel');
+    wireCollapse(document.querySelector('.project-making-section'), 'project-making-click', 'project-making-toggle', 'project-making-panel');
+    // Original card sets (Alt Verse, Indian Royals, Sups…): the project name is
+    // a standalone collapsible tab like the work pages — closing it folds the
+    // description and the big active card away; the scrubber stays out
+    // (CSS keeps .deck-grid--mobile-scrub / the bottom deck visible).
+    if (isOriginalCardSet) {
+      wireCollapse(document.getElementById('project-dashboard'), 'project-name-header', 'project-name-toggle', 'project-dashboard');
     }
   }
 
@@ -4488,28 +4567,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     window.addEventListener('resize', fitDeckGrid, { passive: true });
     if ('ResizeObserver' in window && deckSection) {
       new ResizeObserver(fitDeckGrid).observe(deckSection);
-    }
-
-    // Section collapse (card pages render Design/Making or chapters too, but
-    // initStandardSlider — where this used to be wired — never runs here).
-    // Tab-layout pages (work + the academic chapter pages) get the single-open
-    // accordion: name tab + Design/Making OR name tab + each chapter. Other card
-    // pages (freelancer, original card sets) keep Design/Making independent, with
-    // no name toggle since that button only renders for tab-layout pages.
-    const isTabLayoutPage = document.querySelector('.project-detail')?.getAttribute('data-tab-layout') === 'true';
-    const isOriginalCardSet = document.querySelector('.project-detail')?.getAttribute('data-original-card') === 'true';
-    if (isTabLayoutPage) {
-      wireWorkAccordion();
-    } else {
-      wireCollapse(document.querySelector('.project-design-section'), 'project-design-click', 'project-design-toggle', 'project-design-panel');
-      wireCollapse(document.querySelector('.project-making-section'), 'project-making-click', 'project-making-toggle', 'project-making-panel');
-      // Original card sets (Alt Verse, Indian Royals, Sups…): the project name
-      // is a standalone collapsible tab like the work pages — closing it folds
-      // the description and the big active card away; the scrubber stays out
-      // (CSS keeps .deck-grid--mobile-scrub / the bottom deck visible).
-      if (isOriginalCardSet) {
-        wireCollapse(document.getElementById('project-dashboard'), 'project-name-header', 'project-name-toggle', 'project-dashboard');
-      }
     }
 
     // Mobile: "Prompt" pill reveals the Midjourney prompt box (hidden when
@@ -5290,20 +5347,33 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     }
   }
 
+  // People avatars: tapping one opens its name pill, tapping it again closes
+  // it, and an open pill auto-closes after 10s. Only one is open at a time.
+  // (Same behavior as the category page's people row.)
+  const PEOPLE_PILL_TIMEOUT = 10000;
   function initProjectPeople() {
     const peopleEls = document.querySelectorAll('.project-people__person');
+    let hideTimer: number | null = null;
+    const closeAll = () => {
+      if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+      peopleEls.forEach(p => p.classList.remove('is-active'));
+    };
+
     peopleEls.forEach(el => {
       el.addEventListener('click', (e) => {
         e.stopPropagation();
         const wasActive = el.classList.contains('is-active');
-        peopleEls.forEach(p => p.classList.remove('is-active'));
-        if (!wasActive) el.classList.add('is-active');
+        closeAll();
+        if (wasActive) return; // second tap on the open one → just close
+        el.classList.add('is-active');
+        hideTimer = window.setTimeout(() => {
+          el.classList.remove('is-active');
+          hideTimer = null;
+        }, PEOPLE_PILL_TIMEOUT);
       });
     });
 
-    document.addEventListener('click', () => {
-      peopleEls.forEach(p => p.classList.remove('is-active'));
-    });
+    document.addEventListener('click', closeAll);
   }
 
   function initCopyPrompt() {

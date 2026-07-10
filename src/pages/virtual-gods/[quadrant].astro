@@ -1,0 +1,259 @@
+---
+// A quadrant room: the fusion sequence for one group of four.
+// Reads left to right exactly as the methodology strips do —
+// four modules → two mergers → one world.
+import { getEntry } from 'astro:content';
+import ExhibitionLayout from '../../layouts/ExhibitionLayout.astro';
+import VGLoop from '../../components/VGLoop.astro';
+import { publicFileExists } from '../../lib/content';
+
+export async function getStaticPaths() {
+  const ex = await getEntry('exhibitions', 'virtual-gods');
+  return ex!.data.quadrants.map(q => ({ params: { quadrant: q.slug }, props: { q, all: ex!.data.quadrants } }));
+}
+
+const { q, all } = Astro.props;
+const idx = all.findIndex((x: any) => x.slug === q.slug);
+const prev = all[(idx - 1 + all.length) % all.length];
+const next = all[(idx + 1) % all.length];
+
+const members = q.pairs.flatMap((p: any) => p.members);
+const hasFilm = q.film && publicFileExists(`/images/virtual-gods/vg/films/${q.film}.mp4`);
+// Only the Marx × Zaha quadrant kept its methodology strips and final renders.
+const methodology = (q.methodology ?? []).filter((m: string) => publicFileExists(`/images/virtual-gods/vg/posters/${m}.webp`));
+const renders = (q.renders ?? []).filter((r: string) => publicFileExists(`/images/virtual-gods/vg/posters/${r}.webp`));
+---
+
+<ExhibitionLayout
+  title={`${q.label} — Virtual Gods`}
+  description={`${q.label}. Four modules fused into one world, ARCHV's Virtual Gods, 2020.`}
+  trail={[{ label: q.architects.slice(0, 2).join(' & ') }]}
+  accent={q.color}
+>
+  <article class="vgq" style={`--q: ${q.color}`}>
+    <header class="vgq__head">
+      <h1 class="vgq__title">{q.label}</h1>
+      <p class="vgq__people">{members.map((m: any) => m.name).join(' · ')}</p>
+    </header>
+
+    <!-- Stage 1 — the four individual modules -->
+    <section class="vgq__stage">
+      <h2 class="vgq__stage-label"><span class="vgq__step">01</span> Modules</h2>
+      <p class="vgq__stage-note">Each maker distilled one architect into a single form.</p>
+      <div class="vgq__grid vgq__grid--4">
+        {members.map((m: any) => (
+          <div class="vgq__cell">
+            {m.module
+              ? <VGLoop src={`modules/${m.module}`} label={`${m.name} — ${m.architect}`} />
+              : (
+                <div class="vgq__lost">
+                  <span class="vgq__lost-mark" aria-hidden="true">—</span>
+                  <p class="vgq__lost-text">{m.name}<br /><span>{m.architect}</span></p>
+                  <p class="vgq__lost-note">module not archived</p>
+                </div>
+              )}
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <!-- Stage 2 — the two pair fusions -->
+    <section class="vgq__stage">
+      <h2 class="vgq__stage-label"><span class="vgq__step">02</span> Fusion</h2>
+      <p class="vgq__stage-note">Two forms merged into one, each ideology left intact.</p>
+      <div class="vgq__grid vgq__grid--2">
+        {q.pairs.map((p: any) => (
+          <a class="vgq__cell vgq__cell--link" href={`/virtual-gods/${q.slug}/${p.slug}`}>
+            <VGLoop src={`mergers/${p.slug}`} label={p.label} />
+            <span class="vgq__enter">
+              Enter the pair
+              <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+            </span>
+          </a>
+        ))}
+      </div>
+    </section>
+
+    <!-- Stage 3 — the world -->
+    {hasFilm && (
+      <section class="vgq__stage">
+        <h2 class="vgq__stage-label"><span class="vgq__step">03</span> World</h2>
+        <p class="vgq__stage-note">The merged forms assembled into one surreal 3D world.</p>
+        <div class="vgq__film">
+          <VGLoop src={`films/${q.film}`} label={`${q.label} — the world`} ratio="16 / 9" film={true} />
+        </div>
+      </section>
+    )}
+
+    {methodology.length > 0 && (
+      <section class="vgq__stage">
+        <h2 class="vgq__stage-label"><span class="vgq__step">04</span> Methodology</h2>
+        <p class="vgq__stage-note">The original process sheets, drawn during the lockdown.</p>
+        <div class="vgq__strips">
+          {methodology.map((m: string) => (
+            <img class="vgq__strip" src={`/images/virtual-gods/vg/posters/${m}.webp`} alt={`${q.label} methodology sheet`} loading="lazy" decoding="async" />
+          ))}
+        </div>
+      </section>
+    )}
+
+    {renders.length > 0 && (
+      <section class="vgq__stage">
+        <h2 class="vgq__stage-label"><span class="vgq__step">05</span> Renders</h2>
+        <div class="vgq__grid vgq__grid--4">
+          {renders.map((r: string) => (
+            <img class="vgq__render" src={`/images/virtual-gods/vg/posters/${r}.webp`} alt={`${q.label} final render`} loading="lazy" decoding="async" />
+          ))}
+        </div>
+      </section>
+    )}
+
+    <nav class="vgq__nav" aria-label="Other groups">
+      <a class="vgq__nav-link" href={`/virtual-gods/${prev.slug}`} style={`--q: ${prev.color}`}>
+        <span class="vgq__nav-dir">← Previous</span>
+        <span class="vgq__nav-name">{prev.architects.slice(0, 2).join(' & ')}</span>
+      </a>
+      <a class="vgq__nav-link vgq__nav-link--wheel" href="/virtual-gods">Back to the wheel</a>
+      <a class="vgq__nav-link vgq__nav-link--next" href={`/virtual-gods/${next.slug}`} style={`--q: ${next.color}`}>
+        <span class="vgq__nav-dir">Next →</span>
+        <span class="vgq__nav-name">{next.architects.slice(0, 2).join(' & ')}</span>
+      </a>
+    </nav>
+  </article>
+</ExhibitionLayout>
+
+<style>
+  .vgq {
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: clamp(1.5rem, 4vh, 3rem) clamp(16px, 3vw, 32px) clamp(3rem, 8vh, 6rem);
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(2.5rem, 7vh, 5rem);
+  }
+
+  .vgq__head { display: flex; flex-direction: column; gap: 10px; }
+
+  .vgq__title {
+    font-size: var(--_tokens---type--medium);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin: 0;
+    color: var(--q);
+    max-width: 24ch;
+  }
+
+  .vgq__people { margin: 0; font-size: var(--_tokens---type--micro); color: var(--_tokens---color--muted); }
+
+  .vgq__stage { display: flex; flex-direction: column; gap: 4px; }
+
+  .vgq__stage-label {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    font-size: var(--_tokens---type--small);
+    font-weight: 600;
+    margin: 0;
+    color: var(--_tokens---color--fg);
+  }
+
+  .vgq__step {
+    font-family: var(--_tokens---font--mono, monospace);
+    font-size: var(--_tokens---type--ultrathin);
+    color: var(--q);
+    letter-spacing: 0.1em;
+  }
+
+  .vgq__stage-note {
+    margin: 0 0 20px;
+    font-size: var(--_tokens---type--micro);
+    color: var(--_tokens---color--muted);
+    max-width: 62ch;
+  }
+
+  .vgq__grid { display: grid; gap: 16px; }
+  .vgq__grid--4 { grid-template-columns: repeat(4, 1fr); }
+  .vgq__grid--2 { grid-template-columns: repeat(2, 1fr); }
+
+  .vgq__cell { min-width: 0; }
+
+  .vgq__cell--link { text-decoration: none; color: inherit; display: flex; flex-direction: column; }
+
+  .vgq__enter {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    font-size: var(--_tokens---type--ultrathin);
+    color: var(--_tokens---color--muted);
+    transition: color 0.2s ease;
+  }
+  .vgq__enter svg { width: 0.9em; height: 0.9em; }
+  .vgq__cell--link:hover .vgq__enter { color: var(--q); }
+
+  /* Participants whose module never made it into the archive. */
+  .vgq__lost {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    text-align: center;
+    border: 1px dashed var(--_tokens---color--line-soft);
+    border-radius: var(--_tokens---radius--small);
+    color: var(--_tokens---color--muted);
+  }
+  .vgq__lost-mark { font-size: var(--_tokens---type--medium); opacity: 0.35; line-height: 1; }
+  .vgq__lost-text { margin: 0; font-size: var(--_tokens---type--micro); color: var(--_tokens---color--fg); }
+  .vgq__lost-text span { color: var(--_tokens---color--muted); }
+  .vgq__lost-note { margin: 0; font-size: var(--_tokens---type--ultrathin); opacity: 0.7; }
+
+  .vgq__film { max-width: 100%; }
+
+  .vgq__strips { display: flex; flex-direction: column; gap: 16px; }
+  .vgq__strip,
+  .vgq__render {
+    width: 100%;
+    height: auto;
+    display: block;
+    border: 1px solid var(--_tokens---color--line-soft);
+    border-radius: var(--_tokens---radius--small);
+    box-sizing: border-box;
+  }
+
+  .vgq__nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-top: 24px;
+    border-top: 1px solid var(--_tokens---color--line-soft);
+  }
+
+  .vgq__nav-link {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    text-decoration: none;
+    font-size: var(--_tokens---type--micro);
+    color: var(--_tokens---color--muted);
+    transition: color 0.2s ease;
+  }
+  .vgq__nav-link--next { text-align: right; }
+  .vgq__nav-dir { font-size: var(--_tokens---type--ultrathin); }
+  .vgq__nav-name { color: var(--_tokens---color--fg); }
+  .vgq__nav-link:hover .vgq__nav-name { color: var(--q); }
+  .vgq__nav-link--wheel { align-self: center; }
+  .vgq__nav-link--wheel:hover { color: var(--_tokens---color--fg); }
+
+  @media (max-width: 860px) {
+    .vgq__grid--4 { grid-template-columns: repeat(2, 1fr); }
+    .vgq__grid--2 { grid-template-columns: 1fr; }
+    .vgq__nav { flex-direction: column; align-items: flex-start; gap: 20px; }
+    .vgq__nav-link--next { text-align: left; }
+  }
+</style>

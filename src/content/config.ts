@@ -82,4 +82,43 @@ const projects = defineCollection({
   }),
 });
 
-export const collections = { projects, tags, categories, pages };
+// Interactive exhibitions (currently only Virtual Gods). The wheel, the
+// quadrant rooms and the pair rooms all render from this one file — asset
+// slugs here map to public/images/virtual-gods/vg/ (built by
+// scripts/build-vg-assets.sh). An empty `module` means that participant's
+// individual GIF was never archived; the UI degrades to name + architect.
+const exhibitionMember = z.object({
+  name: z.string(),
+  module: z.string().default(''),
+  architect: z.string(),
+});
+
+const exhibitionPair = z.object({
+  slug: z.string(),
+  label: z.string(),
+  film: z.string().default(''),
+  members: z.array(exhibitionMember),
+});
+
+const exhibitions = defineCollection({
+  type: 'data',
+  schema: z.object({
+    title: z.string(),
+    year: z.string().optional(),
+    tagline: z.string().optional(),
+    intro: z.array(z.string()).optional(),
+    quadrants: z.array(z.object({
+      slug: z.string(),
+      position: z.enum(['tl', 'tr', 'bl', 'br']),
+      color: z.string(),
+      label: z.string(),
+      architects: z.array(z.string()),
+      film: z.string().default(''),
+      methodology: z.array(z.string()).optional(),
+      renders: z.array(z.string()).optional(),
+      pairs: z.array(exhibitionPair),
+    })),
+  }),
+});
+
+export const collections = { projects, tags, categories, pages, exhibitions };

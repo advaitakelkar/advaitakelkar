@@ -842,27 +842,31 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
         });
       }
       
-      // People avatar interactions — click/tap reveals the name tooltip,
-      // which auto-dismisses after 0.5s (works alongside :hover on desktop;
-      // it's the only trigger on touch).
+      // People avatars: tapping one opens its name pill, tapping it again
+      // closes it, and an open pill auto-closes after 10s. Only one is open
+      // at a time. (Same behavior as the project pages' people row.)
+      const PEOPLE_PILL_TIMEOUT = 10000;
       const peopleEls = document.querySelectorAll('.category-people__person');
       let peopleHideTimer: number | null = null;
+      const closeAllPeople = () => {
+        if (peopleHideTimer) { clearTimeout(peopleHideTimer); peopleHideTimer = null; }
+        peopleEls.forEach(p => p.classList.remove('is-active'));
+      };
+
       peopleEls.forEach(el => {
         el.addEventListener('click', (e) => {
           e.stopPropagation();
-          if (peopleHideTimer) clearTimeout(peopleHideTimer);
-          peopleEls.forEach(p => p.classList.remove('is-active'));
+          const wasActive = el.classList.contains('is-active');
+          closeAllPeople();
+          if (wasActive) return; // second tap on the open one → just close
           el.classList.add('is-active');
           peopleHideTimer = window.setTimeout(() => {
             el.classList.remove('is-active');
             peopleHideTimer = null;
-          }, 500);
+          }, PEOPLE_PILL_TIMEOUT);
         });
       });
-      document.addEventListener('click', () => {
-        if (peopleHideTimer) { clearTimeout(peopleHideTimer); peopleHideTimer = null; }
-        peopleEls.forEach(p => p.classList.remove('is-active'));
-      });
+      document.addEventListener('click', closeAllPeople);
     }
 
     // Page heading: tap scrolls back to top (same as home/about)

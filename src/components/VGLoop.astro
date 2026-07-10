@@ -1,0 +1,132 @@
+---
+// A looping, silent exhibition clip (a converted GIF or film).
+//
+// Nothing autoplays until it scrolls into view, and nothing autoplays at all
+// under prefers-reduced-motion — the poster frame stands in, and a play control
+// hands motion back to the reader. Both behaviours live in the script below.
+export interface Props {
+  /** Path under /images/virtual-gods/vg/, without extension. e.g. "mergers/nayan-sneha" */
+  src: string;
+  label: string;
+  /** Films are 16:9-ish; module/merger loops are square. */
+  ratio?: string;
+  class?: string;
+  /** Films are heavier — never preload them. */
+  film?: boolean;
+}
+const { src, label, ratio = '1 / 1', class: className, film = false } = Astro.props;
+const base = `/images/virtual-gods/vg/${src}`;
+---
+
+<figure class:list={["vgl", className]} style={`--vgl-ratio: ${ratio}`}>
+  {/* MP4/H.264 only. VP9 came out consistently LARGER than x264 on this
+      material (flat-shaded line art and renders), so a WebM source would only
+      cost bandwidth — browsers pick the first playable source, not the
+      smallest. H.264 is supported everywhere we care about. */}
+  <video
+    class="vgl__video"
+    data-vgl
+    src={`${base}.mp4`}
+    poster={`${base}.jpg`}
+    preload={film ? 'none' : 'metadata'}
+    loop
+    muted
+    playsinline
+    aria-label={label}
+  ></video>
+
+  <button class="vgl__play" type="button" data-vgl-play aria-label={`Play ${label}`} hidden>
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+  </button>
+
+  <figcaption class="vgl__cap">{label}</figcaption>
+</figure>
+
+<style>
+  .vgl {
+    position: relative;
+    margin: 0;
+    width: 100%;
+  }
+
+  .vgl__video {
+    display: block;
+    width: 100%;
+    aspect-ratio: var(--vgl-ratio);
+    object-fit: cover;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 4%, transparent);
+    border: 1px solid var(--_tokens---color--line-soft);
+    border-radius: var(--_tokens---radius--small);
+    box-sizing: border-box;
+  }
+
+  .vgl__play {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    cursor: pointer;
+    color: var(--_tokens---color--bg);
+    background-color: var(--_tokens---color--fg);
+    border: none;
+    border-radius: 50%;
+    transition: transform 0.2s ease;
+  }
+
+  .vgl__play[hidden] { display: none; }
+  .vgl__play:hover { transform: scale(1.08); }
+  .vgl__play svg { width: 24px; height: 24px; margin-left: 2px; }
+
+  .vgl__cap {
+    margin-top: 8px;
+    font-size: var(--_tokens---type--ultrathin);
+    color: var(--_tokens---color--muted);
+    letter-spacing: 0.02em;
+  }
+</style>
+
+<script>
+  function initVGLoops() {
+    const vids = Array.from(document.querySelectorAll('video[data-vgl]')) as HTMLVideoElement[];
+    if (!vids.length) return;
+
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (reduced) {
+      // Poster only. The play button becomes the opt-in.
+      vids.forEach(v => {
+        const btn = v.parentElement?.querySelector('[data-vgl-play]') as HTMLButtonElement | null;
+        if (!btn) return;
+        btn.hidden = false;
+        btn.addEventListener('click', () => {
+          if (v.paused) { v.play(); btn.hidden = true; }
+        });
+      });
+      return;
+    }
+
+    // Play only what's on screen; pause the rest so a room full of loops
+    // doesn't melt the decoder (or the battery).
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        const v = entry.target as HTMLVideoElement;
+        if (entry.isIntersecting) {
+          if (v.preload === 'none') v.preload = 'metadata';
+          v.play().catch(() => {});
+        } else {
+          v.pause();
+        }
+      });
+    }, { rootMargin: '200px' });
+
+    vids.forEach(v => io.observe(v));
+  }
+
+  initVGLoops();
+  document.addEventListener('astro:after-swap', initVGLoops);
+</script>

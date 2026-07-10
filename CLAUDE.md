@@ -236,13 +236,61 @@ program: "Program Type"
 coverImage: "/images/projects/slug/cover.webp"
 multiImage:
   - "/images/projects/slug/img2.webp"
+people:                   # avatar circles; names must match the PEOPLE registry
+  - "Nayan Mote"
+  - "Advaita Kelkar"
+professors:               # who from `people` is a mentor ON THIS PROJECT
+  - "Nayan Mote"
 tags:
   - architecture
   - interior
 category: studio-823      # must match a category slug in src/content/categories/
 ```
 
+**People row rule:** professors render first, then one hairline divider, then
+students. No professor → no divider. Samir Raut, Faizan Khatri, Siddhesh Kadam,
+Casimir Esbach, Aaron Wilner, Michael Hill, and Catalina Pesea-Ogletree are
+*always* professors (`PROFESSOR_NAMES`, duplicated in `projects/[slug].astro`
+and `CategoryLayout.astro`). Everyone else is a student unless a project's
+`professors:` field names them — that's how Nayan is a mentor on SHELF but a
+collaborator on SOCIAL Wadala.
+
 ---
+
+## Virtual Gods exhibition
+
+An interactive exhibition at `/virtual-gods`, separate from the ARCHV project
+page at `/projects/virtual-gods` (which links to it with an "Enter the
+exhibition" pill).
+
+```
+src/content/exhibitions/virtual-gods.yaml   ← the whole exhibition, as data
+src/layouts/ExhibitionLayout.astro          ← full-bleed chrome; Esc walks up one level
+src/components/VGWheel.astro                ← the circular diagram, redrawn as live SVG
+src/components/VGLoop.astro                 ← looping clip; plays only when in view
+src/pages/virtual-gods/index.astro          ← the wheel
+src/pages/virtual-gods/[quadrant].astro     ← one group: modules → fusion → world
+src/pages/virtual-gods/[quadrant]/[pair].astro  ← one pair: merger, ortho scrub, sources, film
+```
+
+**Structure:** four quadrants × (4 modules → 2 pair mergers → 1 world). The
+wheel's geometry is *derived* from the YAML — radial position encodes the stage,
+so never hardcode node coordinates.
+
+**Assets.** Masters live in `source-files/virtual-gods/` (gitignored, ~1.3 GB,
+Drive-synced). Run `bash scripts/build-vg-assets.sh` to regenerate the web assets
+into `public/images/virtual-gods/vg/` (GIFs and .mov → mp4 + webm + poster;
+stills → webp). Needs `brew install ffmpeg webp`. The script is idempotent —
+delete `vg/` to force a full rebuild, and re-run it after changing CRF settings.
+
+**Never put media masters in `public/`** — Astro copies `public/` into `dist/`
+verbatim, so anything there is uploaded to Firebase whether or not a page
+references it. That's how `dist/` once reached 1.7 GB.
+
+**Missing by design:** Yash, Sohil and Jinal have no archived module GIF; the UI
+renders them as dashed outlines rather than faking one. `publicFileExists()`
+gates every film, methodology sheet and render, so absent assets drop their
+whole section instead of 404-ing.
 
 ## Visual Verification
 

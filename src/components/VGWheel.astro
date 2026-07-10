@@ -1,0 +1,441 @@
+---
+// The Virtual Gods wheel — a live redraw of VG_Process.jpg.
+//
+// Geometry is derived, never hardcoded: each quadrant owns a 70° sector, and
+// within it the four modules sit on the outer ring, their two mergers on the
+// middle ring, and the quadrant's world at the center. That radial order IS the
+// exhibition's argument (individual → fusion → world), so the layout carries
+// the meaning rather than decorating it.
+//
+// Labels live in the four corner blocks (as on the poster) instead of floating
+// beside the nodes: SVG has no text layout, and 28 collision-avoiding labels
+// would be a losing fight. Hovering a node lights its name in the corner, and
+// hovering a name lights the node.
+
+export interface Props {
+  quadrants: any[];
+}
+const { quadrants } = Astro.props;
+
+const CX = 500, CY = 500;
+const R_MODULE = 400, R_MERGER = 268, R_WORLD = 132;
+const RAD_MODULE = 34, RAD_MERGER = 46, RAD_WORLD = 62;
+
+// Sectors leave a gap at each diagonal so the four arcs read as separate arms.
+const SECTORS: Record<string, [number, number]> = {
+  tl: [192, 258],
+  tr: [282, 348],
+  bl: [102, 168],
+  br: [12, 78],
+};
+
+const pt = (deg: number, r: number) => {
+  const t = (deg * Math.PI) / 180;
+  return { x: CX + r * Math.cos(t), y: CY + r * Math.sin(t) };
+};
+
+// Curve pulled slightly toward the center — straight spokes look mechanical.
+const link = (a: {x:number;y:number}, b: {x:number;y:number}) => {
+  const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+  const qx = CX + (mx - CX) * 0.86, qy = CY + (my - CY) * 0.86;
+  return `M${a.x.toFixed(1)},${a.y.toFixed(1)} Q${qx.toFixed(1)},${qy.toFixed(1)} ${b.x.toFixed(1)},${b.y.toFixed(1)}`;
+};
+
+const arc = (from: number, to: number, r: number) => {
+  const a = pt(from, r), b = pt(to, r);
+  return `M${a.x.toFixed(1)},${a.y.toFixed(1)} A${r},${r} 0 0 1 ${b.x.toFixed(1)},${b.y.toFixed(1)}`;
+};
+
+const personSlug = (name: string) =>
+  name.toLowerCase().split(/\s+/)[0].replace(/[^a-z]/g, '');
+
+const initials = (name: string) =>
+  name.split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+
+// Build every node up front so the markup below is a flat, boring map().
+const built = quadrants.map((q) => {
+  const [s, e] = SECTORS[q.position];
+  const span = e - s;
+  const members = q.pairs.flatMap((p: any) => p.members);
+
+  const modules = members.map((m: any, i: number) => {
+    const deg = s + (span * (i + 0.5)) / members.length;
+    const pair = q.pairs[Math.floor(i / 2)];
+    return { ...m, deg, ...pt(deg, R_MODULE), pair, slug: personSlug(m.name) };
+  });
+
+  const mergers = q.pairs.map((p: any, j: number) => {
+    const deg = s + (span * (j + 0.5)) / q.pairs.length;
+    return { ...p, deg, ...pt(deg, R_MERGER) };
+  });
+
+  const world = { ...pt(s + span / 2, R_WORLD), film: q.film };
+
+  return { ...q, modules, mergers, world, arcPath: arc(s - 4, e + 4, R_MODULE + 56) };
+});
+---
+
+<div class="vgw">
+  <div class="vgw__stage">
+    <svg
+      class="vgw__svg"
+      viewBox="0 0 1000 1000"
+      role="group"
+      aria-label="Virtual Gods process wheel: four groups, each fusing four modules into two mergers into one world"
+    >
+      <defs>
+        {built.map(q => (
+          <>
+            {q.modules.map((m: any) => (
+              <clipPath id={`clip-${q.slug}-${m.slug}`}><circle cx={m.x} cy={m.y} r={RAD_MODULE} /></clipPath>
+            ))}
+            {q.mergers.map((p: any) => (
+              <clipPath id={`clip-${q.slug}-${p.slug}`}><circle cx={p.x} cy={p.y} r={RAD_MERGER} /></clipPath>
+            ))}
+            <clipPath id={`clip-${q.slug}-world`}><circle cx={q.world.x} cy={q.world.y} r={RAD_WORLD} /></clipPath>
+          </>
+        ))}
+      </defs>
+
+      {built.map(q => (
+        <g class="vgw__q" data-q={q.slug} style={`--q: ${q.color}`}>
+          <path class="vgw__arc" d={q.arcPath} />
+
+          {/* connectors: module → its merger, merger → world */}
+          {q.modules.map((m: any, i: number) => (
+            <path class="vgw__link" d={link(m, q.mergers[Math.floor(i / 2)])} />
+          ))}
+          {q.mergers.map((p: any) => (
+            <path class="vgw__link" d={link(p, q.world)} />
+          ))}
+
+          {/* the quadrant's world */}
+          <a
+            class="vgw__node vgw__node--world"
+            href={`/virtual-gods/${q.slug}`}
+            data-node={`${q.slug}:world`}
+            aria-label={`${q.label} — enter this world`}
+          >
+            <circle class="vgw__halo" cx={q.world.x} cy={q.world.y} r={RAD_WORLD} />
+            {q.film && (
+              <image
+                href={`/images/virtual-gods/vg/films/${q.film}.jpg`}
+                x={q.world.x - RAD_WORLD} y={q.world.y - RAD_WORLD}
+                width={RAD_WORLD * 2} height={RAD_WORLD * 2}
+                preserveAspectRatio="xMidYMid slice"
+                clip-path={`url(#clip-${q.slug}-world)`}
+                loading="lazy" decoding="async"
+              />
+            )}
+            <circle class="vgw__ring" cx={q.world.x} cy={q.world.y} r={RAD_WORLD} />
+          </a>
+
+          {/* the two pair mergers */}
+          {q.mergers.map((p: any) => (
+            <a
+              class="vgw__node vgw__node--merger"
+              href={`/virtual-gods/${q.slug}/${p.slug}`}
+              data-node={`${q.slug}:${p.slug}`}
+              aria-label={`${p.label} — fusion`}
+            >
+              <circle class="vgw__halo" cx={p.x} cy={p.y} r={RAD_MERGER} />
+              <image
+                href={`/images/virtual-gods/vg/mergers/${p.slug}.jpg`}
+                x={p.x - RAD_MERGER} y={p.y - RAD_MERGER}
+                width={RAD_MERGER * 2} height={RAD_MERGER * 2}
+                preserveAspectRatio="xMidYMid slice"
+                clip-path={`url(#clip-${q.slug}-${p.slug})`}
+                loading="lazy" decoding="async"
+              />
+              <circle class="vgw__ring" cx={p.x} cy={p.y} r={RAD_MERGER} />
+            </a>
+          ))}
+
+          {/* the four individual modules */}
+          {q.modules.map((m: any) => (
+            <a
+              class:list={["vgw__node", "vgw__node--module", !m.module && "is-lost"]}
+              href={`/virtual-gods/${q.slug}/${m.pair.slug}`}
+              data-node={`${q.slug}:${m.slug}`}
+              data-person={`${q.slug}:${m.slug}`}
+              aria-label={`${m.name} — ${m.architect}`}
+            >
+              <circle class="vgw__halo" cx={m.x} cy={m.y} r={RAD_MODULE} />
+              {m.module ? (
+                <image
+                  href={`/images/virtual-gods/vg/modules/${m.module}.jpg`}
+                  x={m.x - RAD_MODULE} y={m.y - RAD_MODULE}
+                  width={RAD_MODULE * 2} height={RAD_MODULE * 2}
+                  preserveAspectRatio="xMidYMid slice"
+                  clip-path={`url(#clip-${q.slug}-${m.slug})`}
+                  loading="lazy" decoding="async"
+                />
+              ) : (
+                <text class="vgw__initials" x={m.x} y={m.y} text-anchor="middle" dominant-baseline="central">{initials(m.name)}</text>
+              )}
+              <circle class="vgw__ring" cx={m.x} cy={m.y} r={RAD_MODULE} />
+            </a>
+          ))}
+        </g>
+      ))}
+    </svg>
+
+    {/* Corner blocks — the poster's four legends. */}
+    {built.map(q => (
+      <div class={`vgw__legend vgw__legend--${q.position}`} data-legend={q.slug} style={`--q: ${q.color}`}>
+        <a class="vgw__legend-title" href={`/virtual-gods/${q.slug}`}>{q.label}</a>
+        <ul class="vgw__legend-people">
+          {q.modules.map((m: any) => (
+            <li>
+              <a
+                class="vgw__legend-person"
+                href={`/virtual-gods/${q.slug}/${m.pair.slug}`}
+                data-person-link={`${q.slug}:${m.slug}`}
+              >
+                <span class="vgw__legend-name">{m.name}</span>
+                <span class="vgw__legend-arch">{m.architect}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ))}
+  </div>
+</div>
+
+<style>
+  .vgw { width: 100%; }
+
+  .vgw__stage {
+    position: relative;
+    width: 100%;
+    max-width: min(1100px, 92vw);
+    margin: 0 auto;
+  }
+
+  .vgw__svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  /* ── wheel geometry ── */
+  .vgw__arc {
+    fill: none;
+    stroke: var(--q);
+    stroke-width: 2;
+    stroke-dasharray: 6 9;
+    stroke-linecap: round;
+    opacity: 0.55;
+    transition: opacity 0.25s ease;
+  }
+
+  .vgw__link {
+    fill: none;
+    stroke: var(--q);
+    stroke-width: 2;
+    opacity: 0.35;
+    transition: opacity 0.25s ease, stroke-width 0.25s ease;
+  }
+
+  /* ── nodes ── */
+  .vgw__node { cursor: pointer; }
+
+  .vgw__halo {
+    fill: var(--_tokens---color--bg);
+    stroke: none;
+  }
+
+  .vgw__ring {
+    fill: none;
+    stroke: var(--q);
+    stroke-width: 2;
+    opacity: 0.75;
+    transition: stroke-width 0.2s ease, opacity 0.2s ease;
+  }
+
+  .vgw__node image {
+    filter: grayscale(1);
+    opacity: 0.72;
+    transition: filter 0.25s ease, opacity 0.25s ease;
+  }
+
+  .vgw__node--world image { opacity: 0.8; }
+
+  .vgw__initials {
+    fill: var(--_tokens---color--muted);
+    font-family: var(--_tokens---font--body);
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+  }
+
+  /* Participants whose module was never archived read as an outline only. */
+  .vgw__node.is-lost .vgw__ring { stroke-dasharray: 3 5; opacity: 0.5; }
+
+  /* Hover / focus: the node blooms into colour, its quadrant stays lit,
+     the other three recede. Driven by classes the script sets on .vgw. */
+  .vgw__node:hover image,
+  .vgw__node:focus-visible image,
+  .vgw__node.is-lit image {
+    filter: grayscale(0);
+    opacity: 1;
+  }
+
+  .vgw__node:hover .vgw__ring,
+  .vgw__node:focus-visible .vgw__ring,
+  .vgw__node.is-lit .vgw__ring {
+    stroke-width: 4;
+    opacity: 1;
+  }
+
+  .vgw__node:focus-visible { outline: none; }
+  .vgw__node:focus-visible .vgw__ring { stroke: var(--_tokens---color--fg); stroke-width: 4; }
+
+  .vgw.has-focus .vgw__q:not(.is-active) { opacity: 0.22; }
+  .vgw.has-focus .vgw__q.is-active .vgw__link { opacity: 0.7; stroke-width: 2.5; }
+  .vgw.has-focus .vgw__q.is-active .vgw__arc { opacity: 0.9; }
+  .vgw__q { transition: opacity 0.3s ease; }
+
+  /* ── corner legends ── */
+  .vgw__legend {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 30%;
+    transition: opacity 0.3s ease;
+  }
+
+  .vgw__legend--tl { top: 0;    left: 0;  align-items: flex-start; text-align: left; }
+  .vgw__legend--tr { top: 0;    right: 0; align-items: flex-end;   text-align: right; }
+  .vgw__legend--bl { bottom: 0; left: 0;  align-items: flex-start; text-align: left; }
+  .vgw__legend--br { bottom: 0; right: 0; align-items: flex-end;   text-align: right; }
+
+  .vgw__legend-title {
+    font-size: var(--_tokens---type--micro);
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--q);
+    text-decoration: none;
+    letter-spacing: -0.01em;
+  }
+
+  .vgw__legend-title:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+  .vgw__legend-people { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+
+  .vgw__legend-person {
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    padding: 2px 0;
+  }
+
+  .vgw__legend-name {
+    font-size: var(--_tokens---type--micro);
+    color: var(--_tokens---color--fg);
+    transition: color 0.2s ease;
+  }
+
+  .vgw__legend-arch {
+    font-size: var(--_tokens---type--ultrathin);
+    color: var(--_tokens---color--muted);
+    opacity: 0;
+    max-height: 0;
+    transition: opacity 0.2s ease, max-height 0.2s ease;
+  }
+
+  .vgw__legend-person:hover .vgw__legend-name,
+  .vgw__legend-person.is-lit .vgw__legend-name { color: var(--q); }
+
+  .vgw__legend-person:hover .vgw__legend-arch,
+  .vgw__legend-person.is-lit .vgw__legend-arch,
+  .vgw__legend-person:focus-visible .vgw__legend-arch { opacity: 1; max-height: 2em; }
+
+  .vgw.has-focus .vgw__legend:not(.is-active) { opacity: 0.3; }
+
+  /* ── mobile: the wheel keeps the stage, legends stack beneath it ── */
+  @media (max-width: 860px) {
+    .vgw__stage { max-width: 100%; }
+    .vgw__legend {
+      position: static;
+      max-width: none;
+      align-items: flex-start;
+      text-align: left;
+      padding: 16px 0;
+      border-top: 1px solid var(--_tokens---color--line-soft);
+    }
+    .vgw__legend-arch { opacity: 1; max-height: 2em; }
+    .vgw__legend-people { gap: 6px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .vgw__q, .vgw__legend, .vgw__node image, .vgw__ring, .vgw__link, .vgw__arc,
+    .vgw__legend-name, .vgw__legend-arch { transition: none; }
+  }
+</style>
+
+<script>
+  // Cross-highlighting between the wheel and the corner legends. Pointer and
+  // keyboard share one path, so tabbing through the nodes tells the same story
+  // as hovering them.
+  function initVGWheel() {
+    const root = document.querySelector('.vgw') as HTMLElement | null;
+    if (!root || (root as any)._wired) return;
+    (root as any)._wired = true;
+
+    const quadrants = Array.from(root.querySelectorAll('.vgw__q')) as SVGGElement[];
+    const legends = Array.from(root.querySelectorAll('.vgw__legend')) as HTMLElement[];
+
+    const clear = () => {
+      root.classList.remove('has-focus');
+      quadrants.forEach(q => q.classList.remove('is-active'));
+      legends.forEach(l => l.classList.remove('is-active'));
+      root.querySelectorAll('.is-lit').forEach(el => el.classList.remove('is-lit'));
+    };
+
+    // Light one quadrant, and optionally one person within it.
+    const light = (qSlug: string, personKey?: string) => {
+      root.classList.add('has-focus');
+      quadrants.forEach(q => q.classList.toggle('is-active', q.dataset.q === qSlug));
+      legends.forEach(l => l.classList.toggle('is-active', l.dataset.legend === qSlug));
+      root.querySelectorAll('.is-lit').forEach(el => el.classList.remove('is-lit'));
+      if (!personKey) return;
+      root.querySelector(`[data-person-link="${personKey}"]`)?.classList.add('is-lit');
+      root.querySelector(`[data-person="${personKey}"]`)?.classList.add('is-lit');
+    };
+
+    // Nodes drive the legends.
+    root.querySelectorAll('[data-node]').forEach(node => {
+      const key = (node as HTMLElement).dataset.node!;
+      const qSlug = key.split(':')[0];
+      const person = (node as HTMLElement).dataset.person;
+      const on = () => light(qSlug, person);
+      node.addEventListener('pointerenter', on);
+      node.addEventListener('focus', on);
+      node.addEventListener('pointerleave', clear);
+      node.addEventListener('blur', clear);
+    });
+
+    // Legends drive the nodes.
+    root.querySelectorAll('[data-person-link]').forEach(el => {
+      const key = (el as HTMLElement).dataset.personLink!;
+      const on = () => light(key.split(':')[0], key);
+      el.addEventListener('pointerenter', on);
+      el.addEventListener('focus', on);
+      el.addEventListener('pointerleave', clear);
+      el.addEventListener('blur', clear);
+    });
+
+    legends.forEach(l => {
+      const qSlug = l.dataset.legend!;
+      l.querySelector('.vgw__legend-title')?.addEventListener('pointerenter', () => light(qSlug));
+      l.addEventListener('pointerleave', clear);
+    });
+  }
+
+  initVGWheel();
+  document.addEventListener('astro:after-swap', initVGWheel);
+</script>
