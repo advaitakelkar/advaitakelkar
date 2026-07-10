@@ -4,9 +4,13 @@ import { getCollection } from 'astro:content';
 export interface Props {
   isEmbedded?: boolean;
   categoryId?: string;
+  /** Highlight exactly these project ids (e.g. the featured set on Home,
+      or the single current project on a detail page). Others dim. */
+  activeIds?: string[];
 }
 
-const { isEmbedded = false, categoryId } = Astro.props;
+const { isEmbedded = false, categoryId, activeIds } = Astro.props;
+const hasActiveFilter = Boolean(categoryId || (activeIds && activeIds.length));
 
 // Fetch projects, categories, and tags
 const allProjects = await getCollection('projects');
@@ -32,7 +36,7 @@ const sorted = [...allProjects].sort((a, b) => {
 });
 ---
 
-<footer class:list={["home-search-footer", isEmbedded && "home-search-footer--embedded", categoryId && "is-category-filter"]} id="home-search-footer" data-category={categoryId}>
+<footer class:list={["home-search-footer", isEmbedded && "home-search-footer--embedded", hasActiveFilter && "is-category-filter"]} id="home-search-footer" data-category={categoryId}>
   <div class="home-search__bar">
     <input
       type="search"
@@ -59,7 +63,7 @@ const sorted = [...allProjects].sort((a, b) => {
       return (
         <a
           href={`/projects/${p.id}`}
-          class="proj-bubble"
+          class:list={["proj-bubble", activeIds?.includes(p.id) && "is-category-match"]}
           data-name={p.data.name}
           data-tags={tagsArr.join(',')}
           data-cat={p.data.category ? (catMap[p.data.category.id] || p.data.category.id) : ''}
@@ -112,7 +116,9 @@ const sorted = [...allProjects].sort((a, b) => {
       <svg class="link-arrow proj-bubble__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
     </a>
     
-    <!-- Admin CMS Quick Links (also filterable via Quick Search) -->
+    <!-- Admin CMS Quick Links — dev only: Keystatic doesn't exist on the live
+         static build, so these pills would 404 in production -->
+    {import.meta.env.DEV && (<>
     <a
       href="/keystatic/singleton/home"
       class="proj-bubble admin-bubble"
@@ -170,6 +176,7 @@ const sorted = [...allProjects].sort((a, b) => {
         <polyline points="10 6 18 6 18 14"></polyline>
       </svg>
     </a>
+    </>)}
   </div>
 </footer>
 
@@ -385,12 +392,12 @@ const sorted = [...allProjects].sort((a, b) => {
     opacity: 1;
   }
 
-  /* Matching state: switches to full contrast during active search */
+  /* Matching state: switches to full contrast during active search
+     (no glow — pills use flat contrast everywhere for consistency) */
   .proj-bubble.is-match {
     background-color: var(--_tokens---color--fg);
     color: var(--_tokens---color--bg);
     border-color: var(--_tokens---color--fg);
-    box-shadow: 0 0 8px color-mix(in srgb, var(--_tokens---color--fg) 40%, transparent);
   }
 
   .proj-bubble.is-match:hover {

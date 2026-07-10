@@ -73,7 +73,7 @@ function getWords(name: string): string[] {
             </svg>
           </button>
           <p class="home-intro__desc">
-            This is the living archive of my design work — an ecosystem bringing together everything I design, draw, research and make.
+            This is the living archive of my design work: everything I design, draw, research, and make, gathered in one place.
           </p>
           <p class="home-intro__desc home-intro__desc--follow">
             Reach me at <span class="intro-email-row"><a href="mailto:advaitakelkar@gmail.com" class="intro-inline-link">advaitakelkar@gmail.com</a><button class="intro-copy-email" id="intro-copy-email" title="Copy email" aria-label="Copy email address"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="intro-copy-icon"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="intro-check-icon"><polyline points="20 6 9 17 4 12"></polyline></svg></button></span>
@@ -237,7 +237,7 @@ function getWords(name: string): string[] {
     </nav>
 
     <!-- Quick Search footer element -->
-    <Footer isEmbedded={true} />
+    <Footer isEmbedded={true} activeIds={featured.map(p => p.id)} />
   </section>
 
 </PageLayout>
@@ -479,7 +479,14 @@ function getWords(name: string): string[] {
       cap.style.clipPath = `inset(${top}px ${right}px ${bottom}px ${left}px)`;
     });
   }
-  function scheduleFit() { requestAnimationFrame(fitKnockouts); }
+  // Coalesce to one fit per frame — scroll fires many times per frame and
+  // fitKnockouts reads layout for every slide, so uncoalesced calls jank.
+  let fitPending = false;
+  function scheduleFit() {
+    if (fitPending) return;
+    fitPending = true;
+    requestAnimationFrame(() => { fitPending = false; fitKnockouts(); });
+  }
   window.addEventListener('load', scheduleFit);
   window.addEventListener('resize', scheduleFit);
   document.querySelectorAll('.home-slider__image-wrap img').forEach(img => {
