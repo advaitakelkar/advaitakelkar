@@ -1,0 +1,934 @@
+---
+// Virtual Gods, as a one-page scroll. Embedded at the bottom of the
+// /projects/virtual-gods page: every stage of the exhibition is a full-height
+// section with a scroll-snap point, walked top to bottom in the same order as
+// the wheel — intro, then per group: modules → fusion → world — closing with
+// the one group whose methodology sheets survived.
+//
+// Interactive on three levels:
+//  · the live process wheel is the entrance — clicking any node flies to that
+//    group's section (module → modules, merger → fusion, centre → world);
+//  · every work opens in a fullscreen viewer, where a fusion also carries its
+//    view angles, step clips and pair film, walked with arrows or the strip;
+//  · videos autoplay only while their section is on screen, never under
+//    prefers-reduced-motion, and the right-edge dot rail is both progress
+//    and navigation.
+import { getEntry } from 'astro:content';
+import VGWheel from './VGWheel.astro';
+import { publicFileExists, publicFilesLike } from '../lib/content';
+
+const ex = await getEntry('exhibitions', 'virtual-gods');
+const data = ex!.data;
+
+const asset = (rel: string) => `/images/virtual-gods/vg/${rel}`;
+
+const VIEWS = ['iso', 'front', 'back', 'left', 'right', 'top', 'bottom'];
+
+type Tile = {
+  video?: string; poster?: string; image?: string;
+  name: string; sub?: string; lost?: boolean; lb?: number;
+};
+type LbItem = { type: 'video' | 'image'; media: string; thumb: string; label: string; sub?: string };
+type Section = {
+  id: string; kind: 'intro' | 'modules' | 'fusion' | 'world' | 'posters';
+  stage: string; color?: string; heading: string; sub?: string;
+  tiles: Tile[]; note?: string;
+};
+
+const sections: Section[] = [];
+// One viewer playlist per section: clicking a tile opens the section's wall of
+// media at that tile, and the arrows walk the whole wall.
+const playlists: Record<string, LbItem[]> = {};
+
+sections.push({
+  id: 'vg-intro',
+  kind: 'intro',
+  stage: 'Overview',
+  heading: data.title,
+  sub: `${data.year} · ARCHV Collective`,
+  tiles: [],
+});
+
+data.quadrants.forEach((q: any, qi: number) => {
+  const num = String(qi + 1).padStart(2, '0');
+  const members = q.pairs.flatMap((p: any) => p.members);
+  const lost = members.filter((m: any) => !m.module).map((m: any) => m.name);
+
+  // ── modules ──
+  {
+    const tiles: Tile[] = [];
+    const items: LbItem[] = [];
+    members.forEach((m: any) => {
+      if (m.module) {
+        const media = asset(`modules/${m.module}.mp4`);
+        const thumb = asset(`modules/${m.module}.jpg`);
+        tiles.push({ video: media, poster: thumb, name: m.name, sub: m.architect, lb: items.length });
+        items.push({ type: 'video', media, thumb, label: m.name, sub: m.architect });
+      } else {
+        tiles.push({ lost: true, name: m.name, sub: m.architect });
+      }
+    });
+    sections.push({
+      id: q.slug, kind: 'modules', stage: 'Modules', color: q.color,
+      heading: q.label,
+      sub: `Group ${num} · one architect, one module each`,
+      tiles,
+      note: lost.length
+        ? `${lost.join(' and ')}${lost.length > 1 ? "'s modules were" : "'s module was"} never archived.`
+        : undefined,
+    });
+    playlists[q.slug] = items;
+  }
+
+  // ── fusion ──
+  {
+    const tiles: Tile[] = [];
+    const items: LbItem[] = [];
+    q.pairs
+      .filter((p: any) => publicFileExists(asset(`mergers/${p.slug}.mp4`)))
+      .forEach((p: any) => {
+        const archs = p.members.map((m: any) => m.architect).join(' × ');
+        const media = asset(`mergers/${p.slug}.mp4`);
+        const thumb = asset(`mergers/${p.slug}.jpg`);
+        tiles.push({ video: media, poster: thumb, name: p.label, sub: archs, lb: items.length });
+        items.push({ type: 'video', media, thumb, label: `${p.label} · the fused form`, sub: archs });
+
+        VIEWS.filter(v => publicFileExists(asset(`mergers/${p.slug}/${v}.webp`)))
+          .forEach(v => items.push({
+            type: 'image', media: asset(`mergers/${p.slug}/${v}.webp`), thumb: asset(`mergers/${p.slug}/${v}.webp`),
+            label: `${v} view`, sub: p.label,
+          }));
+
+        publicFilesLike(`/images/virtual-gods/vg/mergers/${p.slug}`, 'module-', '.mp4')
+          .forEach((s, i) => items.push({
+            type: 'video', media: asset(`mergers/${p.slug}/${s}.mp4`), thumb: asset(`mergers/${p.slug}/${s}.jpg`),
+            label: `Fusion step ${i + 1}`, sub: p.label,
+          }));
+
+        if (p.film && publicFileExists(asset(`films/${p.film}.mp4`))) {
+          items.push({
+            type: 'video', media: asset(`films/${p.film}.mp4`), thumb: asset(`films/${p.film}.jpg`),
+            label: `${p.label} · film`, sub: archs,
+          });
+        }
+      });
+    sections.push({
+      id: `${q.slug}-fusion`, kind: 'fusion', stage: 'Fusion', color: q.color,
+      heading: q.label,
+      sub: `Group ${num} · two modules merged into one form, both ideologies intact`,
+      tiles,
+    });
+    playlists[`${q.slug}-fusion`] = items;
+  }
+
+  // ── world ──
+  if (q.film && publicFileExists(asset(`films/${q.film}.mp4`))) {
+    const media = asset(`films/${q.film}.mp4`);
+    const thumb = asset(`films/${q.film}.jpg`);
+    sections.push({
+      id: `${q.slug}-world`, kind: 'world', stage: 'World', color: q.color,
+      heading: q.label,
+      sub: `Group ${num} · the pairs resolve into one surreal world`,
+      tiles: [{ video: media, poster: thumb, name: 'The world', lb: 0 }],
+    });
+    playlists[`${q.slug}-world`] = [{ type: 'video', media, thumb, label: `${q.label} · the world` }];
+  }
+
+  // ── surviving methodology sheets and renders ──
+  const posters = [...(q.methodology ?? []), ...(q.renders ?? [])]
+    .filter((m: string) => publicFileExists(asset(`posters/${m}.webp`)));
+  if (posters.length) {
+    const items: LbItem[] = posters.map((m: string, i: number) => ({
+      type: 'image', media: asset(`posters/${m}.webp`), thumb: asset(`posters/${m}.webp`),
+      label: m.startsWith('methodology') ? 'Methodology sheet' : `Render ${i + 1}`, sub: q.label,
+    }));
+    sections.push({
+      id: `${q.slug}-posters`, kind: 'posters', stage: 'Methodology', color: q.color,
+      heading: q.label,
+      sub: `Group ${num} · the only group whose methodology sheets and final renders survived`,
+      tiles: items.map((it, i) => ({ image: it.media, name: it.label, lb: i })),
+    });
+    playlists[`${q.slug}-posters`] = items;
+  }
+});
+
+const total = sections.length;
+const pad = (n: number) => String(n).padStart(2, '0');
+---
+
+<section class="vgx" id="exhibition" data-vgx aria-label="Virtual Gods exhibition">
+  {sections.map((s, i) => (
+    <section
+      class:list={['vgx-sec', `vgx-sec--${s.kind}`]}
+      id={s.id}
+      style={s.color ? `--vgx-q:${s.color}` : undefined}
+    >
+      {s.kind === 'intro' ? (
+        <div class="vgx-intro">
+          <div class="vgx-intro__text">
+            <p class="vgx-kicker">{s.sub}</p>
+            <h2 class="vgx-intro__title">{s.heading}</h2>
+            <p class="vgx-intro__tagline">{data.tagline}</p>
+            {(data.intro ?? []).map((p: string) => <p class="vgx-intro__p">{p}</p>)}
+            <p class="vgx-intro__p vgx-intro__use">The wheel is the map. Click any circle to fly to it, click any work below to see it up close.</p>
+          </div>
+          <div class="vgx-intro__wheel">
+            <VGWheel quadrants={data.quadrants} />
+          </div>
+          <div class="vgx-hint" aria-hidden="true">
+            <span>Scroll to enter</span>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"><line x1="12" y1="4" x2="12" y2="20"></line><polyline points="5 13 12 20 19 13"></polyline></svg>
+          </div>
+        </div>
+      ) : (
+        <>
+          <header class="vgx-head">
+            <div class="vgx-head__row">
+              <span class="vgx-stage">{s.stage}</span>
+              <span class="vgx-count">{pad(i + 1)} / {pad(total)}</span>
+            </div>
+            <h3 class="vgx-heading">{s.heading}</h3>
+            {s.sub && <p class="vgx-sub">{s.sub}</p>}
+          </header>
+
+          {s.kind === 'posters' ? (
+            <div class="vgx-strip">
+              {s.tiles.map(t => (
+                <figure class="vgx-poster">
+                  <button type="button" class="vgx-open" data-lb-sec={s.id} data-lb-i={t.lb} aria-label={`Open ${t.name}`}>
+                    <img src={t.image} alt={t.name} loading="lazy" decoding="async" />
+                    <span class="vgx-open__chip" aria-hidden="true">
+                      <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+                    </span>
+                  </button>
+                </figure>
+              ))}
+            </div>
+          ) : (
+            <div class:list={['vgx-grid', `vgx-grid--${s.kind}`]}>
+              {s.tiles.map(t => (
+                <figure class:list={['vgx-tile', t.lost && 'vgx-tile--lost']}>
+                  {t.lost ? (
+                    <div class="vgx-tile__frame">
+                      <span class="vgx-tile__lost-note">Never archived</span>
+                    </div>
+                  ) : (
+                    <button type="button" class="vgx-open vgx-tile__frame" data-lb-sec={s.id} data-lb-i={t.lb} aria-label={`Open ${t.name}`}>
+                      <video src={t.video} poster={t.poster} preload="none" muted loop playsinline></video>
+                      <span class="vgx-open__chip" aria-hidden="true">
+                        <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+                      </span>
+                    </button>
+                  )}
+                  <figcaption class="vgx-tile__caption">
+                    <span class="vgx-tile__name">{t.name}</span>
+                    {t.sub && <span class="vgx-tile__sub">{t.sub}</span>}
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+          )}
+
+          {s.note && <p class="vgx-note">{s.note}</p>}
+        </>
+      )}
+    </section>
+  ))}
+
+  <nav class="vgx-rail" aria-label="Exhibition sections">
+    {sections.map((s, i) => (
+      <a
+        href={`#${s.id}`}
+        style={s.color ? `--vgx-q:${s.color}` : undefined}
+        title={s.kind === 'intro' ? s.heading : `${s.stage} · ${s.heading}`}
+        aria-label={`Section ${i + 1}: ${s.stage}`}
+      ></a>
+    ))}
+  </nav>
+
+  <!-- Fullscreen viewer: one wall of media per section, walked with the strip,
+       the arrows, or the keyboard. -->
+  <div class="vgx-lb" data-vgx-lb hidden role="dialog" aria-modal="true" aria-label="Work viewer">
+    <button type="button" class="vgx-lb__backdrop" data-lb-close aria-label="Close viewer"></button>
+
+    <figure class="vgx-lb__stage">
+      <video data-lb-video preload="metadata" muted loop playsinline hidden></video>
+      <img data-lb-img src="" alt="" hidden />
+    </figure>
+
+    <div class="vgx-lb__bar">
+      <div class="vgx-lb__cap">
+        <span class="vgx-lb__name" data-lb-name></span>
+        <span class="vgx-lb__sub" data-lb-sub></span>
+      </div>
+      <div class="vgx-lb__ctrl">
+        <span class="vgx-lb__pos" data-lb-pos></span>
+        <button type="button" class="vgx-lb__btn" data-lb-mute aria-pressed="false">Sound</button>
+        <button type="button" class="vgx-lb__btn" data-lb-prev aria-label="Previous work">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        <button type="button" class="vgx-lb__btn" data-lb-next aria-label="Next work">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+        <button type="button" class="vgx-lb__btn" data-lb-close aria-label="Close viewer">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="vgx-lb__thumbs" data-lb-thumbs role="listbox" aria-label="All works in this section"></div>
+  </div>
+
+  <script type="application/json" data-vgx-playlists set:html={JSON.stringify(playlists)}></script>
+</section>
+
+<style>
+  /* The page's own scroller does the snapping; proximity keeps the project
+     content above the exhibition free-scrolling. Base.astro force-disables
+     snap on html/body site-wide, so this opt-in must out-specify that rule —
+     it only matches while this component is on the page. */
+  :global(html:has([data-vgx])) {
+    scroll-snap-type: y proximity !important;
+  }
+
+  .vgx {
+    position: relative;
+    margin-top: var(--_tokens---space--medium);
+    border-top: 1px solid var(--_tokens---color--line-soft);
+  }
+
+  .vgx-sec {
+    min-height: 100svh;
+    scroll-snap-align: start;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: clamp(16px, 3vh, 32px);
+    padding: clamp(24px, 6vh, 72px) clamp(4px, 1.5vw, 24px);
+    box-sizing: border-box;
+  }
+
+  /* ── intro ── */
+  .vgx-intro {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    gap: clamp(24px, 4vw, 64px);
+    align-items: center;
+    min-height: inherit;
+  }
+
+  .vgx-kicker {
+    margin: 0 0 8px;
+    font-size: var(--_tokens---type--ultrathin);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--_tokens---color--muted);
+  }
+
+  .vgx-intro__title {
+    margin: 0;
+    font-size: var(--_tokens---type--big);
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--_tokens---color--fg);
+  }
+
+  .vgx-intro__tagline {
+    margin: 12px 0 20px;
+    font-size: var(--_tokens---type--small);
+    color: var(--_tokens---color--fg);
+  }
+
+  .vgx-intro__p {
+    margin: 0 0 0.8em;
+    font-size: var(--_tokens---type--ultrathin);
+    line-height: 1.65;
+    color: var(--_tokens---color--muted);
+    max-width: 58ch;
+  }
+  .vgx-intro__use { color: var(--_tokens---color--fg); }
+
+  .vgx-intro__wheel { min-width: 0; }
+
+  .vgx-hint {
+    position: absolute;
+    left: 50%;
+    bottom: clamp(4px, 2vh, 20px);
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--_tokens---type--ultrathin);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--_tokens---color--muted);
+  }
+  .vgx-hint svg { animation: vgx-bob 1.6s ease-in-out infinite; }
+  @keyframes vgx-bob {
+    0%, 100% { transform: translateY(-2px); }
+    50% { transform: translateY(3px); }
+  }
+
+  /* ── section header ── */
+  .vgx-head { display: flex; flex-direction: column; gap: 6px; }
+
+  .vgx-head__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  /* Stage pill, in the site's pill language. */
+  .vgx-stage {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 12px;
+    font-size: var(--_tokens---type--ultrathin);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--_tokens---color--bg);
+    background-color: var(--vgx-q, var(--_tokens---color--fg));
+    border-radius: var(--_tokens---radius--pill);
+  }
+
+  .vgx-count {
+    font-size: var(--_tokens---type--ultrathin);
+    color: var(--_tokens---color--muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .vgx-heading {
+    margin: 0;
+    font-size: var(--_tokens---type--medium);
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    color: var(--_tokens---color--fg);
+    max-width: 26ch;
+  }
+
+  .vgx-sub {
+    margin: 0;
+    font-size: var(--_tokens---type--ultrathin);
+    color: var(--vgx-q, var(--_tokens---color--muted));
+  }
+
+  /* ── tiles ── */
+  .vgx-grid { display: grid; gap: clamp(10px, 1.5vw, 20px); }
+  .vgx-grid--modules { grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); }
+  .vgx-grid--fusion { grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr)); }
+  .vgx-grid--world { grid-template-columns: 1fr; }
+
+  .vgx-tile { margin: 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+
+  /* Anything clickable is a plain button so focus and keyboard come free. */
+  .vgx-open {
+    all: unset;
+    position: relative;
+    cursor: zoom-in;
+    box-sizing: border-box;
+  }
+  .vgx-open:focus-visible { outline: 2px solid var(--_tokens---color--fg); outline-offset: 2px; }
+
+  .vgx-open__chip {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background-color: color-mix(in srgb, var(--_tokens---color--bg) 75%, transparent);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    color: var(--_tokens---color--fg);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+  }
+  .vgx-open__chip svg { width: 13px; height: 13px; }
+  .vgx-open:hover .vgx-open__chip,
+  .vgx-open:focus-visible .vgx-open__chip { opacity: 1; }
+
+  /* Same frame as the exhibition stage: faint fill, hairline, small radius. */
+  .vgx-tile__frame {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 3%, transparent);
+    border: 1px solid var(--_tokens---color--line-soft);
+    border-radius: var(--_tokens---radius--small);
+    box-sizing: border-box;
+    padding: clamp(8px, 1.2vw, 18px);
+    overflow: hidden;
+    aspect-ratio: 1 / 1;
+    transition: border-color 0.2s ease;
+  }
+  .vgx-tile:hover .vgx-tile__frame { border-color: var(--vgx-q, var(--_tokens---color--fg)); }
+
+  .vgx-grid--fusion .vgx-tile__frame { aspect-ratio: 4 / 3; }
+  .vgx-grid--world .vgx-tile__frame {
+    aspect-ratio: auto;
+    height: min(62svh, 640px);
+  }
+
+  .vgx-tile__frame video {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    display: block;
+    object-fit: contain;
+  }
+
+  /* Missing by design: dashed outline instead of a faked module. */
+  .vgx-tile--lost .vgx-tile__frame {
+    background: none;
+    border-style: dashed;
+  }
+  .vgx-tile__lost-note {
+    font-size: var(--_tokens---type--ultrathin);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--_tokens---color--muted);
+  }
+
+  .vgx-tile__caption {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: var(--_tokens---type--ultrathin);
+  }
+  .vgx-tile__name { color: var(--_tokens---color--fg); }
+  .vgx-tile__sub { color: var(--_tokens---color--muted); }
+
+  .vgx-note {
+    margin: 0;
+    font-size: var(--_tokens---type--ultrathin);
+    color: var(--_tokens---color--muted);
+  }
+
+  /* ── methodology strip ── */
+  .vgx-strip {
+    display: flex;
+    gap: clamp(10px, 1.5vw, 20px);
+    overflow-x: auto;
+    padding-bottom: 8px;
+    scrollbar-width: thin;
+    scroll-snap-type: x proximity;
+  }
+  .vgx-strip::-webkit-scrollbar { height: 3px; }
+  .vgx-strip::-webkit-scrollbar-thumb { background: var(--_tokens---color--line-soft); }
+
+  .vgx-poster {
+    margin: 0;
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+  }
+  .vgx-poster .vgx-open { display: block; }
+  .vgx-poster img {
+    height: min(58svh, 560px);
+    width: auto;
+    display: block;
+    border: 1px solid var(--_tokens---color--line-soft);
+    border-radius: var(--_tokens---radius--small);
+    transition: border-color 0.2s ease;
+  }
+  .vgx-poster .vgx-open:hover img { border-color: var(--vgx-q, var(--_tokens---color--fg)); }
+
+  /* ── dot rail ── */
+  .vgx-rail {
+    position: fixed;
+    right: clamp(10px, 1.4vw, 22px);
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    z-index: 40;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  .vgx-rail.is-on { opacity: 1; pointer-events: auto; }
+
+  .vgx-rail a {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 1px solid var(--_tokens---color--muted);
+    box-sizing: border-box;
+    transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  }
+  .vgx-rail a:hover {
+    border-color: var(--vgx-q, var(--_tokens---color--fg));
+    transform: scale(1.25);
+  }
+  .vgx-rail a.is-active {
+    background-color: var(--vgx-q, var(--_tokens---color--fg));
+    border-color: var(--vgx-q, var(--_tokens---color--fg));
+    transform: scale(1.25);
+  }
+  .vgx-rail a:focus-visible { outline: 2px solid var(--_tokens---color--fg); outline-offset: 2px; }
+
+  /* ── fullscreen viewer ── */
+  .vgx-lb {
+    position: fixed;
+    inset: 0;
+    z-index: 95; /* over the page, under nothing that matters here */
+    display: flex;
+    flex-direction: column;
+    padding: clamp(12px, 2.5vh, 28px) clamp(12px, 2.5vw, 28px);
+    box-sizing: border-box;
+  }
+  .vgx-lb[hidden] { display: none; }
+
+  /* The site's frosted glass, at full strength. */
+  .vgx-lb__backdrop {
+    all: unset;
+    position: absolute;
+    inset: 0;
+    background-color: var(--_tokens---color--bg-overlay);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    cursor: pointer;
+  }
+
+  .vgx-lb__stage {
+    position: relative;
+    margin: 0;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+  .vgx-lb__stage video,
+  .vgx-lb__stage img {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: var(--_tokens---radius--small);
+    pointer-events: auto;
+  }
+  .vgx-lb__stage video[hidden],
+  .vgx-lb__stage img[hidden] { display: none; }
+
+  .vgx-lb__bar {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 2px 10px;
+  }
+
+  .vgx-lb__cap { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .vgx-lb__name { font-size: var(--_tokens---type--ultrathin); color: var(--_tokens---color--fg); }
+  .vgx-lb__sub { font-size: var(--_tokens---type--ultrathin); color: var(--_tokens---color--muted); }
+
+  .vgx-lb__ctrl { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+
+  .vgx-lb__pos {
+    font-size: var(--_tokens---type--ultrathin);
+    color: var(--_tokens---color--muted);
+    font-variant-numeric: tabular-nums;
+    margin-right: 4px;
+  }
+
+  .vgx-lb__btn {
+    all: unset;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 30px;
+    height: 30px;
+    padding: 0 10px;
+    font-size: var(--_tokens---type--ultrathin);
+    color: var(--_tokens---color--fg);
+    border: 1px solid var(--_tokens---color--line-soft);
+    border-radius: var(--_tokens---radius--pill);
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  }
+  .vgx-lb__btn:hover {
+    background-color: var(--_tokens---color--fg);
+    border-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+  }
+  .vgx-lb__btn:focus-visible { outline: 2px solid var(--_tokens---color--fg); outline-offset: 2px; }
+  .vgx-lb__btn[aria-pressed="true"] {
+    background-color: var(--_tokens---color--fg);
+    border-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+  }
+  .vgx-lb__btn[hidden] { display: none; }
+
+  /* The wall: every work in the open section, grayscale until active. */
+  .vgx-lb__thumbs {
+    position: relative;
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 2px 2px 4px;
+    scrollbar-width: thin;
+  }
+  .vgx-lb__thumbs::-webkit-scrollbar { height: 3px; }
+  .vgx-lb__thumbs::-webkit-scrollbar-thumb { background: var(--_tokens---color--line-soft); }
+
+  .vgx-lb__thumbs button {
+    all: unset;
+    width: 46px;
+    height: 46px;
+    flex: 0 0 auto;
+    cursor: pointer;
+    overflow: hidden;
+    border-radius: var(--_tokens---radius--small);
+    border: 1px solid transparent;
+    box-sizing: border-box;
+    opacity: 0.5;
+    transition: border-color 0.2s ease, opacity 0.2s ease;
+  }
+  .vgx-lb__thumbs button img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    filter: grayscale(1);
+    transition: filter 0.2s ease;
+  }
+  .vgx-lb__thumbs button:hover { opacity: 1; }
+  .vgx-lb__thumbs button:hover img { filter: grayscale(0); }
+  .vgx-lb__thumbs button.is-active { opacity: 1; border-color: var(--vgx-q, var(--_tokens---color--fg)); }
+  .vgx-lb__thumbs button.is-active img { filter: grayscale(0); }
+  .vgx-lb__thumbs button:focus-visible { outline: 2px solid var(--_tokens---color--fg); outline-offset: 1px; }
+
+  @media (max-width: 900px) {
+    .vgx-intro { grid-template-columns: 1fr; }
+    .vgx-grid--modules { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .vgx-rail { display: none; }
+    .vgx-lb__bar { flex-wrap: wrap; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .vgx-hint svg { animation: none; }
+    .vgx-rail a, .vgx-tile__frame, .vgx-open__chip,
+    .vgx-lb__btn, .vgx-lb__thumbs button, .vgx-lb__thumbs button img { transition: none; }
+  }
+</style>
+
+<script>
+  // Three wired layers: sections (autoplay + dots), the wheel (fly-to-section),
+  // and the viewer (fullscreen walk of a section's wall).
+  function initVGX() {
+    const root = document.querySelector('[data-vgx]') as HTMLElement | null;
+    if (!root || (root as any)._wired) return;
+    (root as any)._wired = true;
+
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const rail = root.querySelector('.vgx-rail') as HTMLElement | null;
+    const dots = rail ? Array.from(rail.querySelectorAll('a')) : [];
+    const playlists = JSON.parse(root.querySelector('[data-vgx-playlists]')!.textContent!);
+
+    let activeSectionId = '';
+
+    // ── sections: autoplay in view, light the dot ──
+    const sectionIO = new IntersectionObserver((entries) => {
+      entries.forEach((en) => {
+        const videos = en.target.querySelectorAll('video');
+        if (en.isIntersecting) {
+          activeSectionId = en.target.id;
+          if (!reduced && lb.hidden) videos.forEach(v => v.play().catch(() => {}));
+          dots.forEach(d =>
+            d.classList.toggle('is-active', d.getAttribute('href') === `#${en.target.id}`));
+        } else {
+          videos.forEach(v => v.pause());
+        }
+      });
+    }, { threshold: 0.45 });
+
+    root.querySelectorAll('.vgx-sec').forEach(s => sectionIO.observe(s));
+
+    // The rail only exists while the exhibition itself is on screen.
+    const railIO = new IntersectionObserver(([en]) => {
+      rail?.classList.toggle('is-on', en.isIntersecting);
+    }, { threshold: 0.05 });
+    railIO.observe(root);
+
+    // ── the wheel: every node flies to its section ──
+    const wheel = root.querySelector('.vgw') as HTMLElement | null;
+
+    wheel?.querySelectorAll('[data-scene]').forEach(n => {
+      n.addEventListener('click', (e) => {
+        e.preventDefault();
+        const el = e.currentTarget as HTMLElement;
+        const [qs, ps] = el.dataset.scene!.split('/');
+        const isPerson = el.dataset.person || el.dataset.personLink;
+        const target = isPerson ? qs
+          : ps ? `${qs}-fusion`
+          : el.classList.contains('vgw__node--world') ? `${qs}-world`
+          : qs;
+        document.getElementById(target)?.scrollIntoView({ behavior: 'smooth' });
+      });
+    });
+
+    // Hover cross-lighting between the wheel and its legends, same as the
+    // full exhibition page.
+    const unlit = () => {
+      wheel?.classList.remove('has-focus');
+      wheel?.querySelectorAll('.is-active, .is-lit').forEach(el =>
+        el.classList.remove('is-active', 'is-lit'));
+    };
+    wheel?.querySelectorAll('[data-q]').forEach(n => {
+      const el = n as HTMLElement;
+      const on = () => {
+        wheel.classList.add('has-focus');
+        wheel.querySelectorAll('.vgw__q').forEach(g =>
+          g.classList.toggle('is-active', (g as HTMLElement).dataset.q === el.dataset.q));
+        wheel.querySelectorAll('.vgw__legend').forEach(l =>
+          l.classList.toggle('is-active', (l as HTMLElement).dataset.legend === el.dataset.q));
+        wheel.querySelectorAll('.is-lit').forEach(x => x.classList.remove('is-lit'));
+        const key = el.dataset.person ?? el.dataset.personLink;
+        if (key) {
+          wheel.querySelector(`[data-person-link="${key}"]`)?.classList.add('is-lit');
+          wheel.querySelector(`[data-person="${key}"]`)?.classList.add('is-lit');
+        }
+      };
+      el.addEventListener('pointerenter', on);
+      el.addEventListener('focus', on);
+      el.addEventListener('pointerleave', unlit);
+      el.addEventListener('blur', unlit);
+    });
+
+    // ── the viewer ──
+    const lb = root.querySelector('[data-vgx-lb]') as HTMLElement;
+    const lbVideo = lb.querySelector('[data-lb-video]') as HTMLVideoElement;
+    const lbImg = lb.querySelector('[data-lb-img]') as HTMLImageElement;
+    const lbName = lb.querySelector('[data-lb-name]') as HTMLElement;
+    const lbSub = lb.querySelector('[data-lb-sub]') as HTMLElement;
+    const lbPos = lb.querySelector('[data-lb-pos]') as HTMLElement;
+    const lbMute = lb.querySelector('[data-lb-mute]') as HTMLButtonElement;
+    const lbThumbs = lb.querySelector('[data-lb-thumbs]') as HTMLElement;
+
+    let items: any[] = [];
+    let at = 0;
+    let opener: HTMLElement | null = null;
+
+    const render = () => {
+      const it = items[at];
+      if (!it) return;
+
+      if (it.type === 'video') {
+        lbImg.hidden = true;
+        lbVideo.hidden = false;
+        if (!lbVideo.src.endsWith(it.media)) {
+          lbVideo.src = it.media;
+          lbVideo.poster = it.thumb;
+        }
+        lbVideo.play().catch(() => {});
+        lbMute.hidden = false;
+      } else {
+        lbVideo.pause();
+        lbVideo.hidden = true;
+        lbImg.hidden = false;
+        lbImg.src = it.media;
+        lbImg.alt = it.label;
+        lbMute.hidden = true;
+      }
+
+      lbName.textContent = it.label;
+      lbSub.textContent = it.sub ?? '';
+      lbPos.textContent = `${at + 1} / ${items.length}`;
+
+      Array.from(lbThumbs.children).forEach((c, ci) => {
+        c.classList.toggle('is-active', ci === at);
+        if (ci === at) c.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      });
+    };
+
+    const open = (secId: string, i: number, from: HTMLElement) => {
+      items = playlists[secId] ?? [];
+      if (!items.length) return;
+      at = Math.min(Math.max(i, 0), items.length - 1);
+      opener = from;
+
+      // The viewer inherits the section's accent.
+      const sec = document.getElementById(secId);
+      const q = sec ? getComputedStyle(sec).getPropertyValue('--vgx-q') : '';
+      lb.style.setProperty('--vgx-q', q || 'var(--_tokens---color--fg)');
+
+      lbThumbs.innerHTML = '';
+      items.forEach((it: any, ti: number) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.title = it.label;
+        b.setAttribute('role', 'option');
+        b.setAttribute('aria-label', it.label);
+        const im = document.createElement('img');
+        im.src = it.thumb; im.alt = ''; im.loading = 'lazy'; im.decoding = 'async';
+        b.appendChild(im);
+        b.addEventListener('click', () => { at = ti; render(); });
+        lbThumbs.appendChild(b);
+      });
+
+      root.querySelectorAll('.vgx-sec video').forEach(v => (v as HTMLVideoElement).pause());
+      lbVideo.muted = true;
+      lbMute.setAttribute('aria-pressed', 'false');
+      lb.hidden = false;
+      document.documentElement.style.overflow = 'hidden';
+      render();
+      (lb.querySelector('.vgx-lb__ctrl [data-lb-close]') as HTMLElement)?.focus();
+    };
+
+    const close = () => {
+      lb.hidden = true;
+      lbVideo.pause();
+      lbVideo.muted = true;
+      document.documentElement.style.overflow = '';
+      if (!reduced && activeSectionId) {
+        document.getElementById(activeSectionId)?.querySelectorAll('video')
+          .forEach(v => (v as HTMLVideoElement).play().catch(() => {}));
+      }
+      opener?.focus();
+      opener = null;
+    };
+
+    const step = (d: number) => { at = (at + d + items.length) % items.length; render(); };
+
+    root.querySelectorAll('.vgx-open').forEach(b => {
+      b.addEventListener('click', () => {
+        const el = b as HTMLElement;
+        open(el.dataset.lbSec!, Number(el.dataset.lbI ?? 0), el);
+      });
+    });
+
+    lb.querySelectorAll('[data-lb-close]').forEach(b => b.addEventListener('click', close));
+    lb.querySelector('[data-lb-prev]')?.addEventListener('click', () => step(-1));
+    lb.querySelector('[data-lb-next]')?.addEventListener('click', () => step(1));
+    lbMute.addEventListener('click', () => {
+      lbVideo.muted = !lbVideo.muted;
+      lbMute.setAttribute('aria-pressed', String(!lbVideo.muted));
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (lb.hidden) return;
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); }
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); e.stopPropagation(); step(1); }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); e.stopPropagation(); step(-1); }
+    }, true);
+  }
+
+  initVGX();
+  document.addEventListener('astro:after-swap', initVGX);
+</script>
