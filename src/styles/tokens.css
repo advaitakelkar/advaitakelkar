@@ -8,20 +8,22 @@
   /* --font--mono is an intentional alias of the body family (Inter). It tags
      "technical" UI — metadata, breadcrumb pills, wayfinding labels — as a single
      semantic slot, so a true monospace can be swapped in here in one place later
-     without touching components. (Fira Code was imported but never rendered.) */
+     without touching components. */
   --_tokens---font--mono: 'Inter', sans-serif;
 
   /* ── Type scale — 5-level hierarchy, fluid via clamp() ──────
      Level 1  display  | big       : 48px → 96px   hero, page titles
      Level 2  heading  | medium    : 22px → 40px   section heads, major CTAs
      Level 3  body     | small     : 18px → 18px   paragraphs, card titles
-     Level 4  caption  | micro     : 12px → 16px   dates, roles, metadata
+     Level 4  caption  | micro     : 12px → 14px   dates, roles, metadata
      Level 5  tag      | ultrathin : 10px → 11.5px  skill pills, fine print
   ── */
   --_tokens---type--big:       clamp(3rem, 2rem + 5vw, 6rem);
   --_tokens---type--medium:    clamp(1.375rem, 0.75rem + 2vw, 2.5rem);
   --_tokens---type--small:     1.125rem;
-  --_tokens---type--micro:     clamp(0.75rem, 0.4rem + 0.8vw, 1rem);
+  /* micro caps at 14px (was 16px) so metadata stays a clear step below the
+     18px body size instead of colliding with it. */
+  --_tokens---type--micro:     clamp(0.75rem, 0.5rem + 0.6vw, 0.875rem);
   --_tokens---type--ultrathin: clamp(0.625rem, 0.58rem + 0.15vw, 0.72rem);
 
   /* Display — oversized headings (project detail title + "Design" header).
@@ -38,6 +40,10 @@
      Components previously hard-coded these px values; the scale names them so
      padding/gaps stay on a 4px grid everywhere. (Values equal the old literals,
      so adopting them changes nothing visually.) ─────────────────────────── */
+  /* 2px sub-step: the one blessed half-grid value, for optical nudges inside
+     pills and dense rows. Use this instead of stray 5/6/7/9/10/14px so the grid
+     reads as 4px with a documented 2px exception, not as noise. */
+  --_tokens---space-0-5: 2px;
   --_tokens---space-1: 4px;
   --_tokens---space-2: 8px;
   --_tokens---space-3: 12px;
@@ -56,6 +62,10 @@
   /* Layout */
   --_tokens---layout--container: 72rem;
   --_tokens---layout--measure:   38rem;
+  /* The house horizontal gutter — the generous page inset used on the project
+     and content pages. Promoted to one token so every page starts at the same
+     left edge instead of the old mix of clamp/space--small/16px/20px. */
+  --_tokens---layout--gutter:    clamp(6rem, 12vw, 16rem);
 
   /* Default color scheme: Void light */
   --_tokens---color--bg:         #ffffff;
@@ -86,7 +96,10 @@ html.mode-dark {
 
 /*
   Colors derived from the two primary colors (bg + fg).
-  - muted     : foreground at 60% — secondary text
+  - muted     : foreground at 75% — secondary text. Raised from 60% so metadata,
+                breadcrumbs and captions clear WCAG AA-large in every colour
+                scheme (at 60% the tinted schemes — Moss, Dusk, Ember, Nomad —
+                dropped below the 3:1 floor). See the audit.
   - line      : full-strength foreground hairline
   - line-soft : foreground at 8% — the faint hairline repeated across cards,
                 bars, pills and dropdowns (was hand-written dozens of times)
@@ -97,7 +110,7 @@ html.mode-dark {
                 the token now matches that real value.)
 */
 :root, html {
-  --_tokens---color--muted:      color-mix(in srgb, var(--_tokens---color--fg) 60%, transparent);
+  --_tokens---color--muted:      color-mix(in srgb, var(--_tokens---color--fg) 75%, transparent);
   --_tokens---color--line:       var(--_tokens---color--fg);
   --_tokens---color--line-soft:  color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
   --_tokens---color--bg-overlay: color-mix(in srgb, var(--_tokens---color--bg) 75%, transparent);
@@ -113,9 +126,9 @@ html.mode-dark {
 /* Persisted in sessionStorage key 'aks'                     */
 
 /* sch1 — Moss */
-html.sch1 { --_tokens---color--bg: #ECE7E2; --_tokens---color--fg: #4A7766; }
+html.sch1 { --_tokens---color--bg: #ECE7E2; --_tokens---color--fg: #3D6355; }
 @media (prefers-color-scheme: dark) {
-  html:not(.mode-light).sch1 { --_tokens---color--bg: #4A7766; --_tokens---color--fg: #ECE7E2; }
+  html:not(.mode-light).sch1 { --_tokens---color--bg: #3D6355; --_tokens---color--fg: #ECE7E2; }
 }
 
 /* sch2 — Clay */
@@ -143,20 +156,20 @@ html.sch6 { --_tokens---color--bg: #ffe4a1; --_tokens---color--fg: #97322D; }
 }
 
 /* sch7 — Nomad */
-html.sch7 { --_tokens---color--bg: #edcdc2; --_tokens---color--fg: #0093AF; }
+html.sch7 { --_tokens---color--bg: #edcdc2; --_tokens---color--fg: #006076; }
 @media (prefers-color-scheme: dark) {
-  html:not(.mode-light).sch7 { --_tokens---color--bg: #0093AF; --_tokens---color--fg: #edcdc2; }
+  html:not(.mode-light).sch7 { --_tokens---color--bg: #006076; --_tokens---color--fg: #edcdc2; }
 }
 
 
 /* ─── Manual dark overrides (html.mode-dark) ────────────────────── */
 /* Higher specificity than @media — user choice wins over OS         */
-html.mode-dark.sch1 { --_tokens---color--bg: #4A7766; --_tokens---color--fg: #ECE7E2; }
+html.mode-dark.sch1 { --_tokens---color--bg: #3D6355; --_tokens---color--fg: #ECE7E2; }
 html.mode-dark.sch2 { --_tokens---color--bg: #4b3935; --_tokens---color--fg: #fee7d5; }
 html.mode-dark.sch3 { --_tokens---color--bg: #6C5383; --_tokens---color--fg: #D7E7C3; }
 html.mode-dark.sch4 { --_tokens---color--bg: #0B1A35; --_tokens---color--fg: #D2B96A; }
 html.mode-dark.sch6 { --_tokens---color--bg: #97322D; --_tokens---color--fg: #ffe4a1; }
-html.mode-dark.sch7 { --_tokens---color--bg: #0093AF; --_tokens---color--fg: #edcdc2; }
+html.mode-dark.sch7 { --_tokens---color--bg: #006076; --_tokens---color--fg: #edcdc2; }
 
 /* ─── Base Reset ─────────────────────────────────────────── */
 
@@ -271,43 +284,7 @@ html {
   background-color: color-mix(in srgb, var(--_tokens---color--fg) 38%, transparent);
 }
 
-/* ─── Typography Combo Classes ───────────────────────────── */
-/* Reference: "big", "medium", "small", "micro"               */
-/* Use these classes directly on elements. Override weight,    */
-/* tracking, or line-height with modifier classes below.       */
-
-.t-big {
-  font-size: var(--_tokens---type--big);
-  font-weight: 500;
-  line-height: 0.95;
-  letter-spacing: -0.03em;
-}
-
-.t-medium {
-  font-size: var(--_tokens---type--medium);
-  font-weight: 500;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
-}
-
-.t-small {
-  font-size: var(--_tokens---type--small);
-  font-weight: 400;
-  line-height: 1.65;
-  letter-spacing: -0.01em;
-}
-
-.t-micro {
-  font-size: var(--_tokens---type--micro);
-  font-weight: 400;
-  line-height: 1.5;
-  letter-spacing: 0.04em;
-}
-
-.t-ultrathin {
-  font-size: var(--_tokens---type--ultrathin);
-  font-weight: 300;
-  line-height: 1.4;
-  letter-spacing: 0.05em;
-}
+/* Typography combo classes (.t-big … .t-ultrathin) were removed — they were
+   never applied in markup; components reference the var(--_tokens---type--*)
+   tokens (and their own weight/tracking) directly. */
 
