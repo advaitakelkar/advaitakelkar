@@ -374,35 +374,11 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     pointer-events: auto; /* restore clickability for search input and filter controls */
   }
 
+  /* The header scrolls in-flow now, so the old fixed blur overlay and the
+     0–64px breadcrumb mask strip are gone — the fixed breadcrumb bar has its
+     own opaque background. */
   .projects-header-blur-overlay {
-    position: fixed;
-    top: 0;
-    left: 44px;
-    right: 0;
-    height: 180px; /* fallback desktop height */
-    z-index: 80; /* behind search/filters (90-110), in front of cards */
-    pointer-events: none;
-    background: linear-gradient(
-      to bottom,
-      var(--_tokens---color--bg) 50%,
-      transparent 100%
-    );
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
-    -webkit-mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
-  }
-
-  /* Masks the 0–64px breadcrumb strip so cards never peek above the stuck bar */
-  .projects-sticky-header::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 44px;
-    right: 0;
-    height: 64px;
-    background-color: var(--_tokens---color--bg);
-    z-index: -1;
+    display: none;
   }
 
   .projects-header {
@@ -1019,15 +995,11 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
      Clearance is measured by script (same mechanism as mobile). ── */
   @media (min-width: 769px) {
     .projects-fixed-wrapper {
+      /* In-flow now — the title + filters scroll with the cards (was fixed).
+         Horizontal inset comes from .page-main. */
       display: block;
-      position: fixed;
-      top: 0;     /* runs up BEHIND the breadcrumb bar — no see-through slit */
-      left: 44px; /* clear the side INDEX bar */
-      right: 0;
-      z-index: 90;
-      background-color: var(--_tokens---color--bg);
       border-bottom: 1px solid var(--_tokens---color--line-soft);
-      padding: 76px var(--_tokens---space--small) 0; /* 64px breadcrumb + 12px */
+      padding: 56px 0 0; /* clear the fixed breadcrumb bar */
       box-sizing: border-box;
     }
     .projects-page {
@@ -1192,19 +1164,13 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       position: static;
     }
     .projects-fixed-wrapper {
+      /* In-flow — scrolls with the cards (was fixed). */
       display: block;
-      position: fixed;
-      top: 0;
-      left: 44px;
-      right: 0;
-      z-index: 110;
-      background-color: var(--_tokens---color--bg) !important; /* opaque — no glass */
       border-bottom: 1px solid var(--_tokens---color--line-soft) !important;
       padding-top: 16px;
       padding-bottom: 12px;
-      padding-inline: var(--_tokens---space--small);
+      padding-inline: 0;
       box-sizing: border-box;
-      pointer-events: auto !important;
     }
     .projects-header-blur-overlay {
       display: none !important;
@@ -1230,10 +1196,9 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     .projects-sticky-header::before {
       display: none;
     }
-    /* Fallback space above the cards before the script measures the exact
-       fixed-bar height (avoids a flash of cards hidden underneath) */
+    /* Header scrolls in-flow above the cards now — no big offset needed. */
     .project-cards-container {
-      padding-top: 190px;
+      padding-top: 8px;
     }
 
     .projects-search-bar {
@@ -1978,14 +1943,11 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     if (!fixedWrapper || !cards) return;
 
     const isMobile = window.innerWidth <= 768;
-    const wrapperHeight = fixedWrapper.offsetHeight;
-    // Mobile: wrapper is pinned at top:0. Desktop: pinned at top:64px
-    // (below the breadcrumb), so add that offset plus a small gap.
-    cards.style.paddingTop = isMobile
-      ? `${wrapperHeight}px`
-      : `${wrapperHeight + 16}px`;
+    // The header/filters now scroll in-flow above the cards (no longer fixed),
+    // so the cards need no measured top offset.
+    cards.style.paddingTop = '0px';
     if (overlay) {
-      overlay.style.height = isMobile ? `${wrapperHeight + 40}px` : '';
+      overlay.style.height = '';
     }
   }
 
