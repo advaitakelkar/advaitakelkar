@@ -83,10 +83,15 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       <div class="projects-fixed-wrapper">
         <!-- Title scrolls away with the page; only the bar below stays stuck -->
         <header class="projects-header">
-        <h1 class="projects-title">{title}</h1>
+        <div class="projects-title-row">
+          <h1 class="projects-title">{title}</h1>
+          <button class="page-toggle-btn" data-page-toggle="projects-filter-panel" aria-expanded="true" aria-label="Toggle search and filters" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+        </div>
         <p class="projects-count text-muted">{projects.length} of {projects.length} works</p>
       </header>
-      <div class="projects-sticky-header">
+      <div class="projects-sticky-header page-toggle-panel" id="projects-filter-panel">
 
       <!-- Search bar matching home UI -->
       <div class="projects-search-bar">
@@ -412,20 +417,25 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
   /* Title — H1 big on desktop; family small style on mobile */
   .projects-title {
-    font-size: var(--_tokens---type--big);
+    font-size: var(--_tokens---type--medium);
     font-weight: 500;
     color: var(--_tokens---color--fg);
-    letter-spacing: -0.03em;
-    line-height: 0.95;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
     margin: 0;
+  }
+  .projects-title-row {
+    display: flex;
+    align-items: center;
+    gap: var(--_tokens---space-3);
   }
 
   @media (max-width: 768px) {
     .projects-title {
-      font-size: var(--_tokens---type--small) !important;
-      font-weight: 600 !important;
-      letter-spacing: 0.01em !important;
-      line-height: 1.2 !important;
+      font-size: var(--_tokens---type--medium) !important;
+      font-weight: 500 !important;
+      letter-spacing: -0.02em !important;
+      line-height: 1.1 !important;
       text-transform: none !important;
       color: var(--_tokens---color--fg) !important;
     }
@@ -1035,6 +1045,18 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     }
     .projects-sticky-header::before {
       display: none;
+    }
+    /* Drop the "Category" label on desktop (the dropdown reads for itself) and
+       let the tag scroller stretch across the whole remaining row out to the
+       right edge instead of capping at 420px — mirrors the mobile treatment. */
+    .filter-label {
+      display: none;
+    }
+    .filter-group {
+      gap: 0;
+    }
+    .tag-picker-container {
+      max-width: none;
     }
   }
   @media (min-width: 1200px) {

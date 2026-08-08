@@ -233,6 +233,13 @@ const shareImage = new URL(ogImage ?? '/images/people/advaita-kelkar.jpg', Astro
           // 2. Headings (h1-h6)
           const heading = target.closest('h1, h2, h3, h4, h5, h6');
           if (heading) {
+            // A page-toggle heading wraps an arrow button; scrambling the whole
+            // heading replaces its textContent and would destroy that button.
+            // Scramble the inner [data-scramble] text span instead (or skip).
+            if (heading.querySelector('.page-toggle-btn')) {
+              const inner = heading.querySelector('[data-scramble]');
+              return inner ? (inner as HTMLElement) : null;
+            }
             candidate = heading as HTMLElement;
           } else {
             // 3. Links and navigation items
@@ -337,5 +344,46 @@ const shareImage = new URL(ogImage ?? '/images/people/advaita-kelkar.jpg', Astro
           }
         }
       });
-    </script>  </body>
+    </script>
+
+    <script>
+      // Page-title collapse toggles (Home / About / Projects). A button marked
+      // [data-page-toggle="panelId"] collapses/expands the element with that id.
+      // Default open; click collapses. Mirrors the project-detail title toggle.
+      function initPageToggles() {
+        document.querySelectorAll('[data-page-toggle]').forEach((btn) => {
+          const panel = document.getElementById(btn.getAttribute('data-page-toggle'));
+          if (!panel || btn.dataset.toggleWired) return;
+          btn.dataset.toggleWired = '1';
+          let open = btn.getAttribute('aria-expanded') !== 'false';
+
+          const collapse = () => {
+            panel.style.maxHeight = panel.scrollHeight + 'px';
+            panel.getBoundingClientRect();          // force reflow so 0 animates
+            panel.style.maxHeight = '0px';
+            panel.style.opacity = '0';
+            btn.setAttribute('aria-expanded', 'false');
+            open = false;
+          };
+          const expand = () => {
+            panel.style.maxHeight = panel.scrollHeight + 'px';
+            panel.style.opacity = '1';
+            btn.setAttribute('aria-expanded', 'true');
+            open = true;
+            const onEnd = (e) => {
+              if (e.propertyName !== 'max-height') return;
+              if (btn.getAttribute('aria-expanded') === 'true') panel.style.maxHeight = 'none';
+              panel.removeEventListener('transitionend', onEnd);
+              window.dispatchEvent(new Event('resize')); // let measured layouts recompute
+            };
+            panel.addEventListener('transitionend', onEnd);
+          };
+
+          btn.addEventListener('click', () => (open ? collapse() : expand()));
+        });
+      }
+      initPageToggles();
+      document.addEventListener('astro:after-swap', initPageToggles);
+    </script>
+  </body>
 </html>
