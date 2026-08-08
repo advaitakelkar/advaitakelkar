@@ -304,6 +304,134 @@ renders them as dashed outlines rather than faking one. `publicFileExists()`
 gates every film, methodology sheet and render, so absent assets drop their
 whole section instead of 404-ing.
 
+## Notion / Drive / Website sync
+
+Three systems hold this work. They **nest** rather than mirror — `Drive ⊂ Website ⊂ Notion` — so a project missing from Drive is normal, not drift.
+
+| System | Holds | Scope |
+|---|---|---|
+| Website (this repo) | 52 YAML files in `src/content/projects/` | What's published |
+| Notion — *Master Projects Database* | 150 rows | Full archive, published or not |
+| Google Drive — `HUB/00 Projects` | 60 `STUDIO_Project` folders | Heavy source files only |
+
+### Drive layout
+
+```
+HUB/
+  00 Projects/          ← the project database (heavy source files)
+    Website/            ← 45 folders: projects live on the site
+    ALL/                ← 15 folders: everything else
+    _DELETE/            ← quarantine: 01_Confirmed_Duplicates, 02_Old_Working_Folders,
+                          03_Superseeded, 04_Backup_Files
+    Project-PDFs/
+  01 Websites/          ← the GitHub repos (this one included)
+```
+
+Every project folder lives in **exactly one** of `Website/` or `ALL/` — they are
+mutually exclusive, never copies. Nothing sits loose at the top level.
+Membership is decided by Notion's `Category` (filled = published), which is
+itself written from this repo's YAML, so the split is derived, not hand-kept.
+
+Project folder *names* repeat between `00 Projects/` and `01 Websites/` — that's
+expected: Drive holds the source files, the repo holds the web-sized images
+under `public/images/projects/<slug>/`.
+
+Re-sort after publishing or unpublishing a project:
+
+```bash
+node scripts/drive_reorg.cjs            # plan only
+node scripts/drive_reorg.cjs --execute  # move folders
+```
+
+It reads the **live filesystem**, not the Drive API, and moves rather than
+copies, so folder IDs (and therefore the `Drive Folder` links in Notion)
+survive untouched.
+
+**Trust the filesystem, not the Drive API.** `search_files` with `parentId =`
+returns trashed folders as though they were live; the mounted Drive folder is
+the truth. All 60 links in `notion_tidy.cjs` were verified against it.
+
+**The website is the source of truth for published project data.**
+
+### Scripts
+
+```bash
+pnpm sync-to-notion     # website -> Notion   (scripts/sync_to_notion.cjs)
+pnpm sync-notion        # Notion  -> website  (scripts/sync_from_notion.cjs)
+```
+
+`sync-to-notion` pushes properties + rewrites each Notion page body below a
+`Website Sync` heading. It never deletes rows. It is idempotent (hashes each
+YAML file in `scripts/.notion-sync-state.json`) and resumable:
+
+- `--dry-run` report only  · `--force` re-push everything
+- `--only=<slug>` one project · `--no-body` properties only
+- `--budget=<seconds>` stop cleanly and resume on the next run
+
+**Never run both scripts in one session** — they point in opposite directions.
+`sync_from_notion.cjs` can overwrite YAML and *deletes* local files with no
+matching Notion row.
+
+### The two groupings
+
+Every Notion row carries both, so neither hierarchy is lost:
+
+- **`Studio`** — original studio / Drive folder: `823`, `ADVT`, `ANLA`, `ARCHV`,
+  `BARCH`, `FKD Workshop`, `FREE`, `Pragrup`, `SCAD`, `Studio Mumbai`. Matches
+  the `STUDIO_Project` folder names in Drive.
+- **`Category`** — this site's four buckets: `academic`, `ARCHV`, `freelancer`, `work`.
+
+| Studio | Site category |
+|---|---|
+| SCAD, BARCH | `academic` |
+| 823, FKD Workshop | `work` |
+| FREE, ADVT, ANLA | `freelancer` |
+| ARCHV | `ARCHV` |
+| Pragrup, Studio Mumbai | *not published* |
+
+**`ARCHV` is capitalised on purpose.** Notion compares select-option names
+case-insensitively and refuses case-only renames, so the site's `archv` reuses
+the existing `ARCHV` option. `CATEGORY_ALIASES` in `sync_to_notion.cjs` handles
+the translation — don't "fix" it.
+
+### Column contract
+
+One job per column — if two columns say the same thing, one is wrong.
+
+| Column | Job | Filled when |
+|---|---|---|
+| `Studio` | The spine; mirrors the Drive folder prefix | Always |
+| `Category` | The website's bucket | Published only — **blank means not on the site** |
+| `Drive Folder` | URL to where the files live | When a Drive folder exists (12 today) |
+| `Slug` | YAML filename; how rows are matched | Published only, machine-written |
+| `Website` / `Portfolio` | Intent flags | Manual |
+| `Review` | Flags duplicates/placeholders instead of deleting | Only rows needing attention |
+
+`Studio` answers *whose work is it*; `Category` answers *is it published*. The
+one-off `scripts/notion_tidy.cjs` enforced this: it cleared `Category` on the 97
+unpublished rows where it merely repeated `Studio`, flagged 6 duplicate and
+placeholder rows via `Review`, linked 12 Drive folders, and dropped three unused
+misspelled `Type` options. It is idempotent and safe to re-run.
+
+**Nothing is ever deleted** — duplicates are flagged, not removed.
+
+### Views
+
+`All Projects by Studio` (board) · `On the Website` (the 52) ·
+`Website flag mismatch` (ticked but not live) · `Review Queue` (parked rows).
+
+The old `⚠️ OLD Website Selected — safe to delete` tab keeps a broken
+`Category = SCAD` filter that the API cannot clear; delete it by hand in Notion.
+
+### Notion conventions
+
+- `Slug` matches the YAML filename and is how rows are matched. Machine-written.
+- Anything below the `Website Sync` heading on a project page is regenerated
+  every sync. Notes written *above* it are preserved.
+- The nav bar on every page is one synced block whose original lives on **Home**
+  (`scripts/notion_nav.cjs` propagates it; `--refresh` rebuilds the page list).
+- Reference: the **Sync Map** page in Notion, under HUB.
+
 ## Visual Verification
 
 **Cannot use Chrome MCP or Firecrawl** to verify this site — both block the live domain and localhost. The only reliable way to check visual changes is: deploy → ask Advaita for a real-browser screenshot.
