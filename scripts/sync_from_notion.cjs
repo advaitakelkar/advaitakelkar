@@ -36,7 +36,6 @@ const categoriesDir = path.join(rootDir, 'src/content/categories');
 const tagsDir = path.join(rootDir, 'src/content/tags');
 
 const manualMatches = {
-  "37e365b8-0755-8159-aebb-f709aa6e5f37": "mumbai-airport-foodcourt.yaml",
   "37e365b8-0755-81b3-9ae9-d1a97e4f175e": "social-city-mall.yaml",
   "37e365b8-0755-81df-8d91-c13d0a9898ad": "unplugged-jamshedpur.yaml",
   "37e365b8-0755-8126-bd5f-fd2a2df6be93": "episodeone-powai.yaml",

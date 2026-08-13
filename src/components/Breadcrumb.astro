@@ -191,7 +191,7 @@ if (activeProject) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 5px 8px; /* tight symmetric padding for icon-only state */
+    padding: 5px 12px;
     border-radius: var(--_tokens---radius--pill);
     border: 1px solid var(--_tokens---color--line-soft);
     background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
@@ -201,7 +201,7 @@ if (activeProject) {
     font-size: var(--_tokens---type--micro);
     letter-spacing: 0.05em;
     white-space: nowrap;
-    opacity: 0.8;
+    opacity: 0.45; /* muted when not in use */
     transition: background-color 0.15s, color 0.15s, border-color 0.15s, opacity 0.15s, padding 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
@@ -212,8 +212,6 @@ if (activeProject) {
     border-color: var(--_tokens---color--fg);
     opacity: 1;
     outline: none;
-    padding-left: 10px;
-    padding-right: 14px;
   }
 
   .breadcrumb__link.is-active {
@@ -222,8 +220,6 @@ if (activeProject) {
     border-color: color-mix(in srgb, var(--_tokens---color--fg) 30%, transparent);
     opacity: 1;
     font-weight: 500;
-    padding-left: 10px;
-    padding-right: 14px;
   }
 
   /* Icon is always visible and static on the left */
@@ -231,7 +227,7 @@ if (activeProject) {
     display: inline-block;
     width: 12px;
     height: 12px;
-    opacity: 0.55;
+    opacity: 0.65;
     flex-shrink: 0;
     vertical-align: middle;
     transition: opacity 0.2s ease;
@@ -242,24 +238,40 @@ if (activeProject) {
     opacity: 1;
   }
 
-  /* Text grows to the right and shrinks back to the left */
+  /* Both icon and title visible on desktop */
   .crumb-full {
     display: inline-block;
-    max-width: 0;
-    opacity: 0;
+    max-width: 100px;
+    opacity: 1;
     overflow: hidden;
     white-space: nowrap;
-    margin-left: 0;
+    margin-left: 6px;
     transition: max-width 0.3s cubic-bezier(0.16, 1, 0.3, 1),
                 opacity 0.2s ease,
                 margin-left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  .breadcrumb__link.is-active .crumb-full,
-  .breadcrumb__link:hover .crumb-full {
-    max-width: 80px;
-    opacity: 1;
-    margin-left: 6px;
+  /* Drop title where space is limited on smaller viewports */
+  @media (max-width: 640px) {
+    .breadcrumb__link {
+      padding: 5px 8px;
+    }
+    .crumb-full {
+      max-width: 0;
+      opacity: 0;
+      margin-left: 0;
+    }
+    .breadcrumb__link.is-active .crumb-full,
+    .breadcrumb__link:hover .crumb-full {
+      max-width: 80px;
+      opacity: 1;
+      margin-left: 6px;
+    }
+    .breadcrumb__link.is-active,
+    .breadcrumb__link:hover {
+      padding-left: 10px;
+      padding-right: 14px;
+    }
   }
 
   /* ── Dropdown trigger ───────────────────────────────────────── */
