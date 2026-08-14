@@ -379,7 +379,20 @@ const shareImage = new URL(ogImage ?? '/images/people/advaita-kelkar.jpg', Astro
             panel.addEventListener('transitionend', onEnd);
           };
 
-          btn.addEventListener('click', () => (open ? collapse() : expand()));
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            open ? collapse() : expand();
+          });
+
+          const header = btn.closest('.page-toggle-header');
+          if (header) {
+            (header as HTMLElement).style.cursor = 'pointer';
+            header.addEventListener('click', (e) => {
+              if (e.target === btn || btn.contains(e.target as Node)) return;
+              if ((e.target as HTMLElement).closest('a, button, input')) return;
+              open ? collapse() : expand();
+            });
+          }
         });
       }
       initPageToggles();
