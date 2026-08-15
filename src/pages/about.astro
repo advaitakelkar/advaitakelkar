@@ -326,20 +326,16 @@ const skillsets = [
         <div class="about-top-right">
           <div class="about-education__list">
             <!-- Education pill 1: SCAD -->
-            <div class="education-pill" data-pill="edu-scad">
-              <button class="education-pill__trigger" aria-expanded="false" aria-controls="edu-scad-content" type="button">
+            <div class="education-pill is-open" data-pill="edu-scad">
+              <div class="education-pill__header">
                 <span class="education-pill__name">
                   Master of Architecture
                   <span class="active-status-text">ACTIVE</span>
                 </span>
                 <div class="education-pill__trigger-right">
                   <span class="education-pill__years">2024 – 2027</span>
-                  <svg class="edu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">
-                    <line x1="6" y1="18" x2="18" y2="6"></line>
-                    <polyline points="10 6 18 6 18 14"></polyline>
-                  </svg>
                 </div>
-              </button>
+              </div>
               <div class="education-pill__content" id="edu-scad-content">
                 <div class="education-pill__content-inner">
                   <p class="education-pill__degree">
@@ -350,17 +346,13 @@ const skillsets = [
             </div>
 
             <!-- Education pill 2: University of Mumbai -->
-            <div class="education-pill" data-pill="edu-mumbai">
-              <button class="education-pill__trigger" aria-expanded="false" aria-controls="edu-mumbai-content" type="button">
+            <div class="education-pill is-open" data-pill="edu-mumbai">
+              <div class="education-pill__header">
                 <span class="education-pill__name">Bachelor of Architecture</span>
                 <div class="education-pill__trigger-right">
                   <span class="education-pill__years">2012 – 2019</span>
-                  <svg class="edu-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">
-                    <line x1="6" y1="18" x2="18" y2="6"></line>
-                    <polyline points="10 6 18 6 18 14"></polyline>
-                  </svg>
                 </div>
-              </button>
+              </div>
               <div class="education-pill__content" id="edu-mumbai-content">
                 <div class="education-pill__content-inner">
                   <p class="education-pill__degree">
@@ -664,6 +656,11 @@ const skillsets = [
     margin-top: clamp(2rem, 5vh, 3.5rem);
     margin-bottom: 0;
     border-top: none;
+    border-bottom: none; /* No bottom border when open */
+  }
+
+  .career-header:has(.page-toggle-btn[aria-expanded="false"]),
+  .career-header.is-closed {
     border-bottom: 1px solid var(--_tokens---color--line-soft);
   }
 
@@ -1522,24 +1519,20 @@ const skillsets = [
     opacity: 0.85;
   }
 
-  /* ── Education accordion (same pattern as career cards) ── */
+  /* ── Education items — permanently open, border below ── */
   .education-pill {
-    border-top: 1px solid var(--_tokens---color--line-soft);
-  }
-
-  .education-pill:last-of-type {
+    border-top: none;
     border-bottom: 1px solid var(--_tokens---color--line-soft);
   }
 
-  .education-pill__trigger {
+  .education-pill__header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     width: 100%;
     background: none;
     border: none;
-    padding: 18px 0;
-    cursor: pointer;
+    padding: 18px 0 8px;
     text-align: left;
     gap: 16px;
   }
@@ -1579,39 +1572,13 @@ const skillsets = [
     white-space: nowrap;
   }
 
-  .edu-arrow {
-    width: 16px;
-    height: 16px;
-    flex-shrink: 0;
-    color: var(--_tokens---color--muted);
-    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s ease;
-  }
-
-  .education-pill.is-open .edu-arrow {
-    transform: rotate(90deg);
-    color: var(--_tokens---color--fg);
-  }
-
-  /* Collapsible content — grid trick */
+  /* Content permanently open */
   .education-pill__content {
-    display: grid;
-    grid-template-rows: 0fr;
-    transition: grid-template-rows 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-    overflow: hidden;
-  }
-
-  .education-pill.is-open .education-pill__content {
-    grid-template-rows: 1fr;
+    display: block;
+    overflow: visible;
   }
 
   .education-pill__content-inner {
-    min-height: 0;
-    overflow: hidden;
-    padding-bottom: 0;
-    transition: padding-bottom 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .education-pill.is-open .education-pill__content-inner {
     padding-bottom: 16px;
   }
 
@@ -1632,17 +1599,6 @@ const skillsets = [
       // Prevent toggling if clicking a link or button inside the card
       if ((e.target as HTMLElement).closest('a, button')) return;
       el.classList.toggle('is-open');
-    });
-  });
-
-  // --- Education Pills: click opens/closes ---
-  document.querySelectorAll('.education-pill__trigger').forEach((trigger) => {
-    trigger.addEventListener('click', () => {
-      const btn = trigger as HTMLButtonElement;
-      const pill = btn.closest('.education-pill') as HTMLElement | null;
-      if (pill) pill.classList.toggle('is-open');
-      const isExpanded = btn.getAttribute('aria-expanded') === 'true';
-      btn.setAttribute('aria-expanded', String(!isExpanded));
     });
   });
 

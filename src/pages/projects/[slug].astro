@@ -227,6 +227,7 @@ const cardNameFromUrl = (url: string): string => {
   let name = filename.slice(0, filename.length - ext.length);
   name = name.replace(/^ADVT_[A-Z_]+_/, '').replace(/^ADVT_SP_\s*/, '').trim();
   name = name.replace(/\s+\d+\s*$/, '').replace(/\s*\d+$/, '').trim();
+  name = name.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2').replace(/[_-]+/g, ' ').trim();
   return name || data.name;
 };
 const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
@@ -3184,18 +3185,18 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(10, 10, 10, 0.5);
+    background-color: var(--_tokens---color--bg);
     transition: opacity 0.4s ease;
     z-index: 1;
   }
 
-  /* Deck variant: solid black window, 90% opaque, no blurred ambient photo */
+  /* Deck variant: matches index bar background */
   .card-lightbox--deck .lightbox-bg-ambient {
     display: none;
   }
 
   .card-lightbox--deck .lightbox-backdrop {
-    background-color: rgba(0, 0, 0, 0.97);
+    background-color: var(--_tokens---color--bg);
   }
 
   /* ── Top row: ring (left) | pagination (center) | X (right) ── */
@@ -3226,8 +3227,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   .lightbox-pagination {
     font-family: var(--_tokens---font--mono);
     font-size: var(--_tokens---type--micro);
-    color: #ffffff;
-    opacity: 0.6;
+    color: var(--_tokens---color--fg);
+    opacity: 0.7;
     letter-spacing: 0.05em;
   }
 
@@ -3283,7 +3284,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     transform: translateY(-50%);
     height: 2px;
     border-radius: 1px;
-    background-color: rgba(255, 255, 255, 0.18);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 20%, transparent);
   }
 
   .lightbox-scrubber__fill {
@@ -3294,7 +3295,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     height: 2px;
     width: 0%;
     border-radius: 1px;
-    background-color: rgba(255, 255, 255, 0.75);
+    background-color: var(--_tokens---color--fg);
     transition: width 0.15s ease;
   }
 
@@ -3307,14 +3308,14 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background-color: #ffffff;
+    background-color: var(--_tokens---color--fg);
   }
 
   .lightbox-close-btn {
     all: unset;
     cursor: pointer;
-    color: #ffffff;
-    opacity: 0.6;
+    color: var(--_tokens---color--fg);
+    opacity: 0.7;
     transition: opacity 0.2s ease, transform 0.2s ease;
     pointer-events: auto;
     width: 44px;
@@ -3432,13 +3433,14 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     font-size: clamp(1.4rem, 4vw, 2.2rem);
     font-weight: 700;
     line-height: 1;
-    color: var(--_tokens---color--bg);
+    color: var(--_tokens---color--fg);
     text-transform: none;
     pointer-events: none;
   }
 
   .lightbox-name span {
-    display: block;
+    display: inline-block;
+    margin-right: 0.3em;
   }
 
   @media (min-width: 900px) {
@@ -3457,6 +3459,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     line-height: 1.05;
     padding: 12px 0 24px;
     text-align: center;
+    color: var(--_tokens---color--fg);
   }
 
   /* ── Standard (non-card) lightbox: single centred image ── */
@@ -4203,6 +4206,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       let name = filename.slice(0, filename.length - ext.length);
       name = name.replace(/^ADVT_[A-Z_]+_/, '').replace(/^ADVT_SP_\s*/, '').trim();
       name = name.replace(/\s+\d+\s*$/, '').replace(/\s*\d+$/, '').trim();
+      name = name.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2').replace(/[_-]+/g, ' ').trim();
       if (!name || /^\d+$/.test(name) || name.length <= 1) return projectName;
       if (name.toLowerCase() === 'winter soildier') return 'Winter Soldier';
       if (name.toLowerCase() === 'wonder women') return 'Wonder Woman';
@@ -4287,7 +4291,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     const nameLabel = document.getElementById('lightbox-card-label') as HTMLElement | null;
     const setNameLabel = (name: string) => {
       if (!nameLabel) return;
-      nameLabel.innerHTML = name.split(' ').map(w => `<span>${w}</span>`).join('');
+      nameLabel.innerHTML = name.split(' ').filter(Boolean).map(w => `<span>${w}</span>`).join(' ');
     };
 
     // ── updateDisplay ───────────────────────────────────────────────────────
