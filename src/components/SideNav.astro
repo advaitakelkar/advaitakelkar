@@ -1,6 +1,6 @@
 ---
 import { getCollection } from 'astro:content';
-import { publicFileExists } from '../lib/content';
+import { publicFileExists, isProjectLocked } from '../lib/content';
 
 export interface Props {
   currentPath?: string;
@@ -229,12 +229,15 @@ const schemes = [
              script clones two more on first open. Shipping all three copies
              on every page cost ~150 links + SVGs of dead-weight DOM. -->
         <div class="sn-wheel__track" id="sn-wheel-track" data-copies="1">
-          {wheelItems.map(item => (
+          {wheelItems.map(item => {
+            const isLocked = !item.isPage && isProjectLocked(item.id);
+            return (
             <a
               href={item.href}
               class:list={[
                 'sn-wheel__item',
                 item.isPage && 'sn-wheel__item--page',
+                isLocked && 'is-locked',
                 (normPath === (item.href.replace(/\/$/, '') || '/')) && 'is-active'
               ]}
               data-item-id={item.id}
@@ -247,7 +250,8 @@ const schemes = [
                 </svg>
               </span>
             </a>
-          ))}
+          );
+        })}
         </div>
       </div>
     </div>
@@ -745,6 +749,10 @@ const schemes = [
                 transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
                 opacity 0.2s ease;
     scroll-snap-align: center;
+  }
+
+  .sn-wheel__item.is-locked {
+    opacity: 0.45;
   }
 
   .sn-wheel__item:hover {

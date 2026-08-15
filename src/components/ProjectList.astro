@@ -3,6 +3,7 @@ import { getCollection } from 'astro:content';
 import PageLayout from '../layouts/PageLayout.astro';
 import fs from 'node:fs';
 import path from 'node:path';
+import { isProjectLocked } from '../lib/content';
 
 export interface Props {
   projects: any[];
@@ -184,6 +185,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
         const scrubImgs: string[] = (p.data.scrubImages as string[] | undefined)?.length
           ? (p.data.scrubImages as string[])
           : allImgs;
+        const isLocked = isProjectLocked(p.id, p.data?.passcode);
         return (
         <div
           class="project-card"
@@ -201,7 +203,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
         >
           <!-- Header -->
           <div class="project-card__header">
-            <h2 class="project-card__stack-name">{p.data.name}</h2>
+            <h2 class:list={["project-card__stack-name", isLocked && "is-locked"]}>{p.data.name}</h2>
             <span class="project-card__stack-right">
               <a href={`/projects/${p.id}`} class="project-card__pill">
                 <span>Go to project</span>
@@ -735,8 +737,12 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     margin: 0;
   }
 
-  .project-card:hover .project-card__stack-name {
-    opacity: 1;
+  .project-card__stack-name.is-locked {
+    opacity: 0.45;
+  }
+
+  .project-card:hover .project-card__stack-name.is-locked {
+    opacity: 0.65;
   }
 
   .project-card__stack-right {

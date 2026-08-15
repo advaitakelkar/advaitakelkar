@@ -33,3 +33,22 @@ export function publicFilesLike(publicDir: string, prefix: string, ext: string):
     .map(f => f.slice(0, -ext.length))
     .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 }
+
+// Slugs for public/unlocked projects that do not require site-lock password
+export const BYPASS_SLUGS = [
+  'alt-verse',
+  'architect-x-architects',
+  'carlo',
+  'concrt',
+  'dhal-ni-pol',
+  'future-of-dance',
+  'human-pods',
+  'indian-royals',
+  'sups-cards',
+  'sups-in-the-hinterland',
+];
+
+export function isProjectLocked(slug: string, passcode?: string): boolean {
+  if (passcode) return true;
+  return !BYPASS_SLUGS.includes(slug);
+}

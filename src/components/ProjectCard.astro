@@ -10,7 +10,9 @@ export interface Props {
   showDescription?: boolean;
 }
 const { project: p, tagMap, catMap = {}, showDescription = true } = Astro.props;
-import { realText } from '../lib/content';
+import { realText, isProjectLocked } from '../lib/content';
+
+const isLocked = isProjectLocked(p.id, p.data?.passcode);
 
 // Placeholder copy from the initial import never renders on cards
 const intro = realText(p.data.smallIntro);
@@ -58,7 +60,7 @@ if (p.id === 'ai-works') {
 
 <a href={`/projects/${p.id}`} class="pcard" data-name={p.data.name}>
   <div class="pcard__row-first">
-    <h2 class="pcard__name">{p.data.name}</h2>
+    <h2 class:list={["pcard__name", isLocked && "is-locked"]}>{p.data.name}</h2>
     <div class="pcard__right-wrap">
       {allImgs.length > 0 && (
       <div class="pcard__image-col">
@@ -117,6 +119,11 @@ if (p.id === 'ai-works') {
     text-overflow: ellipsis;
     flex-shrink: 1;
     min-width: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  .pcard__name.is-locked {
+    opacity: 0.45;
   }
 
   .pcard__right-wrap {
