@@ -1,5 +1,6 @@
 ---
 import '../styles/tokens.css';
+import { BORROWED_FAMILIES, BORROWED_TEXT, GLYPH_FONT_STACK } from '../lib/glyphs';
 
 export interface Props {
   title: string;
@@ -12,6 +13,16 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 // Absolute share image (per-page override → site default). Crawlers need an
 // absolute URL, so resolve against the canonical site origin.
 const shareImage = new URL(ogImage ?? '/images/people/advaita-kelkar.jpg', Astro.site).href;
+
+/* Font URL for the scramble alphabet's non-Latin glyphs. Derived from
+   src/lib/glyphs.ts, never hand-written: `text=` subsets each Noto family to
+   exactly the characters the effect uses, which is what keeps twelve writing
+   systems down to ~22 KB in total. Editing the alphabet updates this on the
+   next build. */
+const glyphFontHref =
+  'https://fonts.googleapis.com/css2?' +
+  BORROWED_FAMILIES.map((f) => `family=${f.replace(/ /g, '+')}`).join('&') +
+  `&text=${encodeURIComponent(BORROWED_TEXT)}&display=swap`;
 ---
 
 <!doctype html>
@@ -28,6 +39,20 @@ const shareImage = new URL(ogImage ?? '/images/people/advaita-kelkar.jpg', Astro
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100..900&display=swap" />
+
+    <!-- Scramble glyphs only. Subsetted to the exact characters used, so all
+         twelve non-Latin scripts together cost about 22 KB. Nothing on the
+         page is set in these — they appear mid-animation and vanish. -->
+    <link rel="stylesheet" href={glyphFontHref} />
+    <style define:vars={{ glyphFontStack: GLYPH_FONT_STACK }}>
+      /* Applied only while an element is mid-scramble. The font stack lets the
+         borrowed glyphs resolve; the bidi isolation stops Hebrew and Arabic
+         reordering the line and flinging characters to the wrong side. */
+      :global(.is-scrambling) {
+        font-family: var(--glyphFontStack);
+        unicode-bidi: isolate;
+      }
+    </style>
 
     <title>{title} — AK</title>
     <meta name="description" content={description} />
@@ -131,8 +156,10 @@ const shareImage = new URL(ogImage ?? '/images/people/advaita-kelkar.jpg', Astro
       });
     </script>
     <script>
+  import { GLYPHS as SCRAMBLE_GLYPHS } from '../lib/glyphs';
+
       // Global Text Scramble (Matrix Decode) Hover Effect
-      const GLYPHS = '01XYZ%$#@?*+=#-_[]{}<>/';
+      const GLYPHS = SCRAMBLE_GLYPHS;
 
       class TextScrambler {
         el: HTMLElement;
@@ -150,10 +177,39 @@ const shareImage = new URL(ogImage ?? '/images/people/advaita-kelkar.jpg', Astro
           }
         }
 
+        /* Hold the line's geometry for the duration.
+           The alphabet now spans twelve writing systems whose advance widths
+           range from ~0.3em (a bracket) to 1em (kana, hangul) and 1.6em
+           (Malayalam), so an unlocked heading can re-wrap mid-animation and
+           shove the page around. min-width stops it collapsing, nowrap stops
+           it breaking to a second line; it may still breathe a few pixels
+           wider, which reads as part of the effect rather than as a bug. */
+        lock() {
+          if (this.el.dataset.scrambleLocked) return;
+          const w = this.el.getBoundingClientRect().width;
+          this.el.dataset.scrambleLocked = '1';
+          this.el.dataset.scramblePrevWs = this.el.style.whiteSpace || '';
+          this.el.dataset.scramblePrevMw = this.el.style.minWidth || '';
+          if (w > 0) this.el.style.minWidth = w + 'px';
+          this.el.style.whiteSpace = 'nowrap';
+          this.el.classList.add('is-scrambling');
+        }
+
+        unlock() {
+          if (!this.el.dataset.scrambleLocked) return;
+          this.el.style.whiteSpace = this.el.dataset.scramblePrevWs || '';
+          this.el.style.minWidth = this.el.dataset.scramblePrevMw || '';
+          delete this.el.dataset.scrambleLocked;
+          delete this.el.dataset.scramblePrevWs;
+          delete this.el.dataset.scramblePrevMw;
+          this.el.classList.remove('is-scrambling');
+        }
+
         scramble() {
           const currentText = this.el.textContent || '';
           const length = Math.max(this.originalText.length, currentText.length);
           this.queue = [];
+          this.lock();
           
           for (let i = 0; i < length; i++) {
             const from = currentText[i] || '';
@@ -195,6 +251,7 @@ const shareImage = new URL(ogImage ?? '/images/people/advaita-kelkar.jpg', Astro
           this.el.textContent = output;
 
           if (complete === this.queue.length) {
+            this.unlock();
             this.resolveQueue();
           } else {
             this.frame++;

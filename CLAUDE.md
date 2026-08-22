@@ -213,6 +213,43 @@ and a contextual one like `.page-toggle-btn .link-arrow` have equal
 specificity, so emitting the default would win on source order and freeze every
 arrow pointing north-east.
 
+### The scramble alphabet
+
+`src/lib/glyphs.ts` is the only place the glitch-text characters are defined —
+they used to be a literal pasted into Base, SideNav and about.astro. **190
+characters across 20 groups**, in two tiers:
+
+- **Native (91)** — symbols, Greek, Cyrillic (incl. Old Church Slavonic),
+  polytonic Greek, IPA, Latin Extended. Already inside Inter, so they cost
+  nothing but an extra subset fetch on first use.
+- **Borrowed (99)** — Devanagari, Bengali, Gujarati, Tamil, Telugu, Kannada,
+  Malayalam, Japanese, Korean, Thai, Hebrew, Arabic. Inter has none of these;
+  they come from twelve Noto families that Google subsets to *exactly* these
+  characters via `text=`. All twelve together are **~22 KB**.
+
+The `<link>` in `Base.astro` is **derived** from `BORROWED_TEXT` — never edit
+the URL by hand. Add a character to the module and the font request updates on
+the next build.
+
+Three things keep it from breaking, all learned the hard way:
+
+- **Base characters only.** Combining marks (Unicode Mn/Mc/Me) attach to the
+  preceding glyph and render as a broken cluster. `pnpm lint:glyphs` rejects
+  them, rejects cross-group duplicates, and fails if any file hard-codes the
+  alphabet again.
+- **`unicode-bidi: isolate`** on `.is-scrambling`. Hebrew and Arabic are RTL —
+  without isolation they reorder the whole line mid-animation and characters
+  fly to the wrong side.
+- **Width lock.** Advance widths run from ~0.3em (a bracket) to 1em (kana,
+  hangul) to 1.6em (Malayalam). `TextScrambler.lock()` pins `min-width` and
+  sets `white-space: nowrap` for the duration, so a heading cannot collapse or
+  re-wrap. It still breathes — measured peak is **1.4× the resting width** —
+  but produces no horizontal page overflow at any tested viewport.
+
+**`/glyphs`** renders every group and the effect on real headings. Not linked
+from anywhere and not in the sitemap; it uses `Base` rather than `PageLayout`
+so the nav chrome stays out of the way.
+
 ### Interaction
 
 - Every `:hover` rule sits inside `@media (hover: hover)`. On a touch tablet an

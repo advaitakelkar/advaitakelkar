@@ -1,0 +1,140 @@
+---
+/**
+ * Scramble alphabet preview — dev reference, not linked from anywhere.
+ * Visit /glyphs to see every group and watch the effect on real headings.
+ */
+import Base from '../layouts/Base.astro';
+import { GLYPH_GROUPS, GLYPHS, BORROWED_FAMILIES } from '../lib/glyphs';
+
+const NATIVE_KEYS = ['symbols', 'greek', 'cyrillic', 'cyrArchaic', 'greekPoly', 'ipa', 'latinAdd', 'latinExtCD'];
+const groups = Object.entries(GLYPH_GROUPS).map(([name, chars]) => ({
+  name,
+  chars: [...chars],
+  native: NATIVE_KEYS.includes(name),
+}));
+const nativeCount = groups.filter((g) => g.native).reduce((n, g) => n + g.chars.length, 0);
+const borrowedCount = GLYPHS.length - nativeCount;
+---
+
+<Base title="Glyphs">
+  <main class="gp">
+    <header class="gp__head">
+      <h1 class="gp__title" data-scramble>Scramble Alphabet</h1>
+      <p class="gp__lede">
+        {GLYPHS.length} characters across {groups.length} groups.
+        {nativeCount} come from Inter itself; {borrowedCount} are borrowed from
+        {BORROWED_FAMILIES.length} subsetted Noto families (~22&nbsp;KB total).
+        Hover anything below to scramble it.
+      </p>
+    </header>
+
+    <section class="gp__demo">
+      <h2 class="gp__sub">On real headings</h2>
+      <p class="gp__hint">Hover each line.</p>
+      <div class="gp__lines">
+        <p class="gp__line gp__line--xl" data-scramble>Architectural Designer</p>
+        <p class="gp__line gp__line--lg" data-scramble>Professional Journey</p>
+        <p class="gp__line gp__line--md" data-scramble>Advaita Kelkar</p>
+        <p class="gp__line gp__line--sm" data-scramble>Master of Architecture · SCAD '27 · Mumbai</p>
+      </div>
+    </section>
+
+    <section class="gp__demo">
+      <h2 class="gp__sub">The alphabet</h2>
+      <div class="gp__groups">
+        {groups.map((g) => (
+          <div class="gp__group">
+            <div class="gp__group-head">
+              <span class="gp__group-name">{g.name}</span>
+              <span class="gp__group-meta">
+                {g.chars.length} · {g.native ? 'Inter' : 'Noto'}
+              </span>
+            </div>
+            <div class="gp__cells">
+              {g.chars.map((c) => (
+                <span class="gp__cell is-scrambling" title={`U+${c.codePointAt(0)!.toString(16).toUpperCase().padStart(4, '0')}`}>{c}</span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  </main>
+</Base>
+
+<style>
+  .gp {
+    padding-block: 40px 120px;
+    display: flex;
+    flex-direction: column;
+    gap: 56px;
+  }
+  .gp__head { display: flex; flex-direction: column; gap: 12px; }
+  .gp__title { font-size: var(--_tokens---type--big); font-weight: 500; letter-spacing: -0.03em; margin: 0; }
+  .gp__lede {
+    font-size: var(--_tokens---type--micro);
+    color: var(--_tokens---color--muted);
+    max-width: 46rem;
+    margin: 0;
+    line-height: 1.6;
+  }
+  .gp__sub {
+    font-size: var(--_tokens---type--micro);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--_tokens---color--muted);
+    font-weight: 500;
+    margin: 0 0 4px;
+  }
+  .gp__hint {
+    font-size: var(--_tokens---type--ultrathin);
+    color: var(--_tokens---color--muted);
+    margin: 0 0 20px;
+  }
+
+  .gp__lines { display: flex; flex-direction: column; gap: 20px; }
+  .gp__line { margin: 0; cursor: default; letter-spacing: -0.02em; }
+  .gp__line--xl { font-size: var(--_tokens---type--big); font-weight: 500; }
+  .gp__line--lg { font-size: var(--_tokens---type--medium); font-weight: 500; }
+  .gp__line--md { font-size: var(--_tokens---type--small); }
+  .gp__line--sm { font-size: var(--_tokens---type--micro); color: var(--_tokens---color--muted); }
+
+  .gp__groups {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+    gap: 28px 32px;
+  }
+  .gp__group { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .gp__group-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--_tokens---color--line-soft);
+  }
+  .gp__group-name {
+    font-size: var(--_tokens---type--ultrathin);
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--_tokens---color--fg);
+  }
+  .gp__group-meta {
+    font-size: var(--_tokens---type--ultrathin);
+    color: var(--_tokens---color--muted);
+    white-space: nowrap;
+  }
+  .gp__cells { display: flex; flex-wrap: wrap; gap: 4px; }
+  .gp__cell {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    height: 34px;
+    padding-inline: 4px;
+    border: 1px solid var(--_tokens---color--line-soft);
+    border-radius: var(--_tokens---radius--small);
+    font-size: 17px;
+    line-height: 1;
+  }
+</style>
