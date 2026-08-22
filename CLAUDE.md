@@ -198,6 +198,12 @@ Two traps, both of which have already bitten:
   matches every arrow on that page. One in `about.astro` was harmless only
   while each arrow also carried its own explicit width; the moment those moved
   to `--arrow-size` it took over and blew arrows up to 400px.
+- **Not every "arrow" is an `Arrow`.** `.pill-arrow` (tab pills) and
+  `.filter-select-arrow` (the category chevron) are plain `<svg>` elements with
+  no `link-arrow` class, so `--arrow-size` does nothing for them — they need
+  real `width`/`height`. The tab-pill arrows are also deliberately **off** the
+  em scale at a fixed 14px/20px: their label is display-sized, so an arrow
+  tracking it would be 32px and dwarf the pill.
 - **`getBoundingClientRect()` lies about arrow size.** The glyph is rotated, so
   a 40px arrow at 45° measures 56.6px (40 × √2). Measure `getComputedStyle().width`
   when auditing, or you will chase inconsistencies that do not exist.
