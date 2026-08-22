@@ -179,6 +179,29 @@ Direction is a prop, because it is genuinely contextual:
 <Arrow dir="s" />    <!-- ↓ disclosure, open        -->
 ```
 
+**Size comes from `--arrow-size`, never from raw `width`/`height`.** Three
+steps, all in `em`, so an arrow always tracks the text beside it:
+
+| token | value | used beside |
+|---|---|---|
+| `--arrow--sm` | `0.8em` | micro/ultrathin text — pills, tags, bubbles, inline links |
+| `--arrow--md` | `1em` | body and heading text (the default) |
+| `--arrow--lg` | `1.35em` | standalone rows, where the arrow is the affordance |
+
+Set the step on the container: `--arrow-size: var(--_tokens---arrow--sm);`.
+Fifteen rules used to size the same glyph with `0.75 / 0.78 / 0.8 / 0.85em`
+and `14 / 16 / 20 / 24px` — four spellings of one intent, and four of another.
+
+Two traps, both of which have already bitten:
+
+- **Never write a bare `.link-arrow { width: … }` in a page's style block.** It
+  matches every arrow on that page. One in `about.astro` was harmless only
+  while each arrow also carried its own explicit width; the moment those moved
+  to `--arrow-size` it took over and blew arrows up to 400px.
+- **`getBoundingClientRect()` lies about arrow size.** The glyph is rotated, so
+  a 40px arrow at 45° measures 56.6px (40 × √2). Measure `getComputedStyle().width`
+  when auditing, or you will chase inconsistencies that do not exist.
+
 `dir="ne"` deliberately emits **no** `data-dir` attribute — a `[data-dir]` rule
 and a contextual one like `.page-toggle-btn .link-arrow` have equal
 specificity, so emitting the default would win on source order and freeze every
