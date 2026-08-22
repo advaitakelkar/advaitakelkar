@@ -30,11 +30,23 @@
      Bigger than --type--big; tracked here so the two stay in lockstep. */
   --_tokens---type--display:   clamp(4rem, 4rem + 5vw, 8rem);
 
-  /* ── Layout spacing — page rhythm (section gaps, page insets) ──────────── */
+  /* ── Layout spacing — page rhythm (section gaps, page insets) ───────────
+     Fluid, exactly like the type scale above. These used to be fixed rem
+     values with a hard swap to px at 768px, so one pixel of viewport change
+     quadrupled the vertical rhythm and the tablet band got desktop spacing
+     inside a phone-width column. Each clamp now interpolates between the old
+     mobile value at 375px and the old desktop value at 1600px, so there is no
+     step anywhere on the ladder.
+
+       token    375px    834px    1024px   1366px   1600px
+       small     12       26       31       41       48
+       medium    24       51       62       82       96
+       big       48       96       116      151      176
+     ──────────────────────────────────────────────────────────────────────── */
   --_tokens---space--micro:  0.75rem;
-  --_tokens---space--small:  3rem;
-  --_tokens---space--medium: 6rem;
-  --_tokens---space--big:    11rem;
+  --_tokens---space--small:  clamp(0.75rem, 0.0625rem + 2.94vw, 3rem);
+  --_tokens---space--medium: clamp(1.5rem,  0.125rem  + 5.88vw, 6rem);
+  --_tokens---space--big:    clamp(3rem,    0.55rem   + 10.45vw, 11rem);
 
   /* ── Component spacing — the fine step used inside cards, bars, pills.
      Components previously hard-coded these px values; the scale names them so
@@ -53,6 +65,11 @@
 
   /* Fixed left nav bar width — referenced by sticky offsets, overlays, insets */
   --_tokens---layout--nav: 44px;
+  /* Height of the fixed breadcrumb bar. It sits at the TOP from 700px up, and
+     docks to the BOTTOM below that, so page content only needs to clear it in
+     the medium band and above. Pages used to hard-code 48/56/68px guesses for
+     this, which is how the About heading ended up under the bar on tablets. */
+  --_tokens---layout--bar: 52px;
 
   /* Radius */
   --_tokens---radius--small:  0.5rem;
@@ -62,10 +79,16 @@
   /* Layout */
   --_tokens---layout--container: 72rem;
   --_tokens---layout--measure:   38rem;
-  /* The house horizontal gutter — the generous page inset used on the project
-     and content pages. Promoted to one token so every page starts at the same
-     left edge instead of the old mix of clamp/space--small/16px/20px. */
-  --_tokens---layout--gutter:    clamp(6rem, 12vw, 16rem);
+  /* The house horizontal gutter — the page inset every route starts from.
+     Also fluid. It used to floor at 6rem and was therefore only safe to apply
+     above 1200px, which meant the gutter jumped from 48px to 154px across one
+     breakpoint. The curve below is tight enough to apply at every width, so
+     .page-main and .page-breadcrumb can use it unconditionally and the jump
+     disappears. Desktop values are unchanged from the old 12vw curve.
+
+       375px    700px    834px    1024px   1280px   1600px   1900px+
+        12       12       32       72       125      192      256 (cap) */
+  --_tokens---layout--gutter:    clamp(0.75rem, 20.9vw - 8.875rem, 16rem);
 
   /* Default color scheme: Void light */
   --_tokens---color--bg:         #ffffff;
@@ -86,13 +109,6 @@ html.mode-dark {
   --_tokens---color--fg:         #ffffff;
 }
 
-@media (max-width: 768px) {
-  :root {
-    --_tokens---space--small:  12px;
-    --_tokens---space--medium: 24px;
-    --_tokens---space--big:    48px;
-  }
-}
 
 /*
   Colors derived from the two primary colors (bg + fg).
@@ -280,8 +296,10 @@ html {
   transition: background-color 0.2s ease;
 }
 
-::-webkit-scrollbar-thumb:hover {
+@media (hover: hover) {
+  ::-webkit-scrollbar-thumb:hover {
   background-color: color-mix(in srgb, var(--_tokens---color--fg) 38%, transparent);
+}
 }
 
 /* Typography combo classes (.t-big … .t-ultrathin) were removed — they were
@@ -305,8 +323,10 @@ html {
   padding-block: 18px 20px;
   transition: opacity 0.2s ease;
 }
-.page-toggle-header:hover {
+@media (hover: hover) {
+  .page-toggle-header:hover {
   opacity: 0.85;
+}
 }
 .page-toggle-btn {
   appearance: none;
@@ -325,23 +345,22 @@ html {
   opacity: 0.55;
   transition: opacity 0.2s ease;
 }
-.page-toggle-btn:hover,
 .page-toggle-btn:focus-visible {
   opacity: 1;
 }
-.page-toggle-btn svg,
-.page-toggle-btn .link-arrow {
-  width: 1em !important;
-  height: 1em !important;
-  max-width: 1em !important;
-  max-height: 1em !important;
-  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-  transform: rotate(135deg); /* Open / expanded state: points straight down ↓ */
+@media (hover: hover) {
+  .page-toggle-btn:hover {
+  opacity: 1;
 }
-/* Arrow points top-right (↗) like standard site-wide link-arrow when collapsed. */
-.page-toggle-btn[aria-expanded="false"] svg,
+}
+.page-toggle-btn .link-arrow {
+  /* A disclosure arrow points down when open, and back to the site's default
+     north-east when closed. Both states go through --arrow-rot so there is one
+     rotation mechanism, not a transform here and a data-dir there. */
+  --arrow-rot: 135deg;
+}
 .page-toggle-btn[aria-expanded="false"] .link-arrow {
-  transform: rotate(0deg);
+  --arrow-rot: 0deg;
 }
 .page-toggle-panel {
   overflow: hidden;
@@ -353,6 +372,69 @@ html {
 .page-toggle-btn[aria-expanded="false"] + .page-toggle-panel,
 .page-toggle-header + .page-toggle-panel[aria-hidden="true"],
 .page-toggle-header + .page-toggle-panel:not(.is-open)[style*="max-height: 0px"] {
-  margin-top: 3px;
+  margin-top: 4px;
 }
 
+/* ── The site arrow ──────────────────────────────────────────────────────
+   Markup comes from src/components/Arrow.astro; this is its only style block.
+   The glyph is drawn pointing north-east, so --arrow-rot is measured from ↗:
+   0 = ↗, 45 = →, 90 = ↘, 135 = ↓, 180 = ↙, 225 = ←, 270 = ↖, 315 = ↑.
+   Size tracks the parent font size unless a call site overrides it. */
+.link-arrow {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+  transform: rotate(var(--arrow-rot, 0deg));
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.link-arrow[data-dir="ne"] { --arrow-rot:   0deg; }
+.link-arrow[data-dir="e"]  { --arrow-rot:  45deg; }
+.link-arrow[data-dir="se"] { --arrow-rot:  90deg; }
+.link-arrow[data-dir="s"]  { --arrow-rot: 135deg; }
+.link-arrow[data-dir="sw"] { --arrow-rot: 180deg; }
+.link-arrow[data-dir="w"]  { --arrow-rot: 225deg; }
+.link-arrow[data-dir="nw"] { --arrow-rot: 270deg; }
+.link-arrow[data-dir="n"]  { --arrow-rot: 315deg; }
+
+@media (prefers-reduced-motion: reduce) {
+  .link-arrow { transition: none; }
+}
+
+/* ── Touch targets ───────────────────────────────────────────────────────
+   Pointer-sized controls are fine with a mouse and too small with a finger.
+   `.tap-44` grows the *hit area* to the 44px minimum with a centred
+   pseudo-element, leaving the control's visual size exactly as designed —
+   so the dense pill and swatch UI keeps its density on desktop and stops
+   being a coin-toss to tap on a tablet.
+
+   Only applied on coarse pointers, and only to controls that opt in. Do not
+   blanket-apply: several components already use ::after for arrows and
+   underlines, and a global rule would collide with them. */
+@media (pointer: coarse) {
+  .tap-44 {
+    position: relative;
+  }
+  .tap-44::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+    /* Purely a hit area — never paints, never intercepts layout. */
+    background: transparent;
+    pointer-events: auto;
+  }
+}
+
+/* ── Scroll-fade affordance ──────────────────────────────────────────────
+   Several regions scroll with the scrollbar hidden (project descriptions,
+   slider blurbs, the nav wheel). Without a signal, text simply stops
+   mid-sentence — worst in the medium band, where those regions collapse to a
+   few lines. The fade script in Base.astro sets data-more on any hidden-
+   scrollbar region that still has unread content, and clears it at the end. */
+[data-more="true"] {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 2.5rem), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 2.5rem), transparent);
+}

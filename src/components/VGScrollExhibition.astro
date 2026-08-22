@@ -16,6 +16,7 @@
 import { getEntry } from 'astro:content';
 import VGWheel from './VGWheel.astro';
 import { publicFileExists, publicFilesLike } from '../lib/content';
+import Arrow from './Arrow.astro';
 
 const ex = await getEntry('exhibitions', 'virtual-gods');
 const data = ex!.data;
@@ -198,7 +199,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
                   <button type="button" class="vgx-open" data-lb-sec={s.id} data-lb-i={t.lb} aria-label={`Open ${t.name}`}>
                     <img src={t.image} alt={t.name} loading="lazy" decoding="async" />
                     <span class="vgx-open__chip" aria-hidden="true">
-                      <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+                      <Arrow />
                     </span>
                   </button>
                 </figure>
@@ -216,7 +217,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
                     <button type="button" class="vgx-open vgx-tile__frame" data-lb-sec={s.id} data-lb-i={t.lb} aria-label={`Open ${t.name}`}>
                       <video src={t.video} poster={t.poster} preload="none" muted loop playsinline></video>
                       <span class="vgx-open__chip" aria-hidden="true">
-                        <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+                        <Arrow />
                       </span>
                     </button>
                   )}
@@ -385,7 +386,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
   .vgx-stage {
     display: inline-flex;
     align-items: center;
-    padding: 5px 12px;
+    padding: 4px 12px;
     font-size: var(--_tokens---type--ultrathin);
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -452,8 +453,10 @@ const pad = (n: number) => String(n).padStart(2, '0');
     pointer-events: none;
   }
   .vgx-open__chip svg { width: 13px; height: 13px; }
-  .vgx-open:hover .vgx-open__chip,
   .vgx-open:focus-visible .vgx-open__chip { opacity: 1; }
+  @media (hover: hover) {
+    .vgx-open:hover .vgx-open__chip { opacity: 1; }
+  }
 
   /* Same frame as the exhibition stage: faint fill, hairline, small radius. */
   .vgx-tile__frame {
@@ -470,7 +473,9 @@ const pad = (n: number) => String(n).padStart(2, '0');
     aspect-ratio: 1 / 1;
     transition: border-color 0.2s ease;
   }
-  .vgx-tile:hover .vgx-tile__frame { border-color: var(--vgx-q, var(--_tokens---color--fg)); }
+  @media (hover: hover) {
+    .vgx-tile:hover .vgx-tile__frame { border-color: var(--vgx-q, var(--_tokens---color--fg)); }
+  }
 
   .vgx-grid--fusion .vgx-tile__frame { aspect-ratio: 4 / 3; }
   .vgx-grid--world .vgx-tile__frame {
@@ -540,7 +545,9 @@ const pad = (n: number) => String(n).padStart(2, '0');
     border-radius: var(--_tokens---radius--small);
     transition: border-color 0.2s ease;
   }
-  .vgx-poster .vgx-open:hover img { border-color: var(--vgx-q, var(--_tokens---color--fg)); }
+  @media (hover: hover) {
+    .vgx-poster .vgx-open:hover img { border-color: var(--vgx-q, var(--_tokens---color--fg)); }
+  }
 
   /* ── dot rail ── */
   .vgx-rail {
@@ -550,7 +557,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
     transform: translateY(-50%);
     display: flex;
     flex-direction: column;
-    gap: 9px;
+    gap: 8px;
     z-index: 40;
     opacity: 0;
     pointer-events: none;
@@ -566,9 +573,11 @@ const pad = (n: number) => String(n).padStart(2, '0');
     box-sizing: border-box;
     transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
   }
-  .vgx-rail a:hover {
+  @media (hover: hover) {
+    .vgx-rail a:hover {
     border-color: var(--vgx-q, var(--_tokens---color--fg));
     transform: scale(1.25);
+  }
   }
   .vgx-rail a.is-active {
     background-color: var(--vgx-q, var(--_tokens---color--fg));
@@ -662,10 +671,12 @@ const pad = (n: number) => String(n).padStart(2, '0');
     box-sizing: border-box;
     transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
   }
-  .vgx-lb__btn:hover {
+  @media (hover: hover) {
+    .vgx-lb__btn:hover {
     background-color: var(--_tokens---color--fg);
     border-color: var(--_tokens---color--fg);
     color: var(--_tokens---color--bg);
+  }
   }
   .vgx-lb__btn:focus-visible { outline: 2px solid var(--_tokens---color--fg); outline-offset: 2px; }
   .vgx-lb__btn[aria-pressed="true"] {
@@ -708,13 +719,17 @@ const pad = (n: number) => String(n).padStart(2, '0');
     filter: grayscale(1);
     transition: filter 0.2s ease;
   }
-  .vgx-lb__thumbs button:hover { opacity: 1; }
-  .vgx-lb__thumbs button:hover img { filter: grayscale(0); }
+  @media (hover: hover) {
+    .vgx-lb__thumbs button:hover { opacity: 1; }
+  }
+  @media (hover: hover) {
+    .vgx-lb__thumbs button:hover img { filter: grayscale(0); }
+  }
   .vgx-lb__thumbs button.is-active { opacity: 1; border-color: var(--vgx-q, var(--_tokens---color--fg)); }
   .vgx-lb__thumbs button.is-active img { filter: grayscale(0); }
   .vgx-lb__thumbs button:focus-visible { outline: 2px solid var(--_tokens---color--fg); outline-offset: 1px; }
 
-  @media (max-width: 900px) {
+  @media (max-width: 1023.98px) {
     .vgx-intro { grid-template-columns: 1fr; }
     .vgx-grid--modules { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .vgx-rail { display: none; }

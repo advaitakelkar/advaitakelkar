@@ -54,19 +54,28 @@ const currentPath = Astro.url.pathname;
     min-width: 0; /* allow flex child to shrink; prevents slider min-content from blowing out page width */
     margin-left: 44px; /* Offset adjusted for 44px wide sidebar */
     padding: 0;
-    padding-inline: var(--_tokens---space--small);
+    /* The gutter is fluid at every width now, so it applies unconditionally.
+       It used to be space--small here and layout--gutter only above 1200px,
+       which is what made the page inset jump 48px -> 154px in one step. */
+    padding-inline: var(--_tokens---layout--gutter);
     transition: padding 0.3s ease;
   }
 
-  @media (min-width: 768px) and (max-width: 1199px) {
+  @media (min-width: 700px) and (max-width: 1365.98px) {
     .page-main--has-wayfinding {
       padding-right: 2rem;
     }
   }
 
-  @media (min-width: 1200px) {
+  /* Clear the fixed breadcrumb bar in the medium band.
+     Below 700px the bar docks to the bottom, so nothing is needed; from
+     1024px up each page's own desktop rules already allow for it. In between
+     neither applied, and every page title sat underneath the bar — the
+     ladder made that gap visible on six routes at once, so the clearance
+     belongs here rather than being re-guessed per page. */
+  @media (min-width: 700px) and (max-width: 1023.98px) {
     .page-main {
-      padding-inline: var(--_tokens---layout--gutter);
+      padding-top: var(--_tokens---layout--bar);
     }
   }
 
@@ -80,21 +89,19 @@ const currentPath = Astro.url.pathname;
     background-color: var(--_tokens---color--bg);
     /* Match the content gutter below (.page-main) so the nav pills line up with
        the page text at every breakpoint, instead of hugging closer at 16px. */
-    padding-inline: var(--_tokens---space--small);
+    padding-inline: var(--_tokens---layout--gutter);
     padding-block: 14px 12px;
     transition: background-color 0.3s ease;
   }
 
-  /* Padding for really big screens (above laptop screens, >= 1200px) */
-  @media (min-width: 1200px) {
+  @media (min-width: 1366px) {
     .page-breadcrumb {
-      padding-inline: var(--_tokens---layout--gutter);
       padding-top: 14px;
     }
   }
  
   /* Mobile Portrait docking on bottom */
-  @media (max-width: 767px) and (orientation: portrait) {
+  @media (max-width: 699.98px) {
     .page-breadcrumb {
       position: fixed !important;
       bottom: 0 !important;

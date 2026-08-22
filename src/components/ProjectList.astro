@@ -4,6 +4,7 @@ import PageLayout from '../layouts/PageLayout.astro';
 import fs from 'node:fs';
 import path from 'node:path';
 import { isProjectLocked } from '../lib/content';
+import Arrow from './Arrow.astro';
 
 export interface Props {
   projects: any[];
@@ -88,10 +89,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
           <div class="projects-header__right">
             <span class="projects-count text-muted">{projects.length} of {projects.length} works</span>
             <button class="page-toggle-btn" data-page-toggle="projects-filter-panel" aria-expanded="true" aria-label="Toggle search and filters" type="button">
-              <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">
-                <line x1="6" y1="18" x2="18" y2="6"></line>
-                <polyline points="10 6 18 6 18 14"></polyline>
-              </svg>
+              <Arrow />
             </button>
           </div>
         </header>
@@ -292,10 +290,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
             >
               <span class="proj-bubble__name" data-short={p.data.shortName || abbrevName(p.data.name)} data-full={p.data.name}>{p.data.shortName || abbrevName(p.data.name)}</span>
               <span class="proj-bubble__tag">{tagsArr[0] || (p.data.category ? catMap[p.data.category.id] : 'Design')}</span>
-              <svg class="link-arrow proj-bubble__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter">
-                <line x1="6" y1="18" x2="18" y2="6"></line>
-                <polyline points="10 6 18 6 18 14"></polyline>
-              </svg>
+              <Arrow class="proj-bubble__arrow" />
             </a>
           );
         })}
@@ -334,7 +329,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     scroll-padding-top: 64px; /* any anchored/jumped heading lands clear of the fixed top breadcrumb */
   }
 
-  @media (max-width: 767px) and (orientation: portrait) {
+  @media (max-width: 699.98px) {
     :global(html) {
       scroll-padding-top: 12px; /* breadcrumb docks to the bottom on mobile */
     }
@@ -348,13 +343,13 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     position: relative;
   }
 
-  @media (max-width: 768px) {
+  @media (max-width: 1023.98px) {
     .projects-page {
       padding-top: 0;
     }
   }
 
-  @media (max-width: 767px) and (orientation: portrait) {
+  @media (max-width: 699.98px) {
     .projects-page {
       padding-bottom: 80px; /* space for mobile bottom docked breadcrumbs */
     }
@@ -415,7 +410,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     margin: 0;
   }
 
-  @media (max-width: 768px) {
+  @media (max-width: 1023.98px) {
     .projects-title {
       font-size: var(--_tokens---type--medium) !important;
       font-weight: 500 !important;
@@ -493,9 +488,11 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     flex-shrink: 0;
   }
 
-  .projects-search-clear:hover {
+  @media (hover: hover) {
+    .projects-search-clear:hover {
     background-color: var(--_tokens---color--fg);
     color: var(--_tokens---color--bg);
+  }
   }
 
   /* Filters (Dropdown Category + Scrollable Tag Picker) */
@@ -523,10 +520,13 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     transition: opacity 0.3s ease;
   }
 
-  .filter-group--tags:hover,
-  .filter-group--tags:focus-within,
-  .filter-group--tags.is-active {
+  .filter-group--tags:focus-within, .filter-group--tags.is-active {
     opacity: 1; /* activated */
+  }
+  @media (hover: hover) {
+    .filter-group--tags:hover {
+    opacity: 1; /* activated */
+  }
   }
 
   .filter-label {
@@ -546,10 +546,13 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     transition: opacity 0.3s ease;
   }
 
-  .filter-select-wrap:hover,
-  .filter-select-wrap:focus-within,
-  .filter-select-wrap.is-active {
+  .filter-select-wrap:focus-within, .filter-select-wrap.is-active {
     opacity: 1; /* activated */
+  }
+  @media (hover: hover) {
+    .filter-select-wrap:hover {
+    opacity: 1; /* activated */
+  }
   }
 
   .filter-select {
@@ -571,8 +574,10 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     transition: background-color 0.2s;
   }
 
-  .filter-select:hover {
+  @media (hover: hover) {
+    .filter-select:hover {
     background-color: color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
+  }
   }
 
   .filter-select option {
@@ -634,9 +639,11 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     opacity: 0.8;
   }
 
-  .tag-scroll-arrow:hover {
+  @media (hover: hover) {
+    .tag-scroll-arrow:hover {
     background-color: color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
     opacity: 1;
+  }
   }
 
   .tag-scroll-arrow:disabled {
@@ -686,11 +693,17 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
   }
 
-  .tag-picker-item:hover,
   .tag-picker-item.is-active {
     background-color: var(--_tokens---color--fg);
     color: var(--_tokens---color--bg);
     border-color: var(--_tokens---color--fg);
+  }
+  @media (hover: hover) {
+    .tag-picker-item:hover {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
+  }
   }
 
   /* ── Accordion Card List ── */
@@ -746,8 +759,10 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     opacity: 0.45;
   }
 
-  .project-card:hover .project-card__stack-name.is-locked {
+  @media (hover: hover) {
+    .project-card:hover .project-card__stack-name.is-locked {
     opacity: 0.65;
+  }
   }
 
   .project-card__stack-right {
@@ -769,14 +784,14 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   .project-card__pill {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
+    gap: 8px;
     font-size: var(--_tokens---type--micro);
     font-weight: 500;
     color: var(--_tokens---color--fg);
     text-decoration: none;
     border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
     border-radius: var(--_tokens---radius--pill);
-    padding: 7px 14px;
+    padding: 8px 14px;
     white-space: nowrap;
     flex-shrink: 0;
     transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
@@ -784,13 +799,17 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
   .project-card__pill svg { width: 0.85em; height: 0.85em; transition: transform 0.25s ease; }
 
-  .project-card__pill:hover {
+  @media (hover: hover) {
+    .project-card__pill:hover {
     background-color: var(--_tokens---color--fg);
     color: var(--_tokens---color--bg);
     border-color: var(--_tokens---color--fg);
   }
+  }
 
-  .project-card__pill:hover svg { transform: translate(2px, -2px); }
+  @media (hover: hover) {
+    .project-card__pill:hover svg { transform: translate(2px, -2px); }
+  }
 
   /* Cards are always open — no accordion, no clipping */
   .project-card__body {
@@ -984,11 +1003,11 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     text-overflow: ellipsis;
   }
 
-  .project-card__meta-item { display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; }
+  .project-card__meta-item { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; }
   .project-card__meta-sep { color: color-mix(in srgb, var(--_tokens---color--fg) 25%, transparent); margin-right: 4px; }
   .project-card__meta-val { color: var(--_tokens---color--muted); font-weight: 400; }
 
-  @media (max-width: 768px) {
+  @media (max-width: 1023.98px) {
     .project-card__meta-item:not(:first-child),
     .project-card__meta-sep {
       display: none;
@@ -996,7 +1015,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   }
 
   .project-card__pill--cta {
-    padding: 9px 16px;
+    padding: 8px 16px;
     font-size: var(--_tokens---type--small);
   }
 
@@ -1012,7 +1031,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   /* ── Desktop: title + search + filters stay fixed while scrolling,
      parked below the top breadcrumb bar; cards scroll underneath.
      Clearance is measured by script (same mechanism as mobile). ── */
-  @media (min-width: 769px) {
+  @media (min-width: 1024px) {
     .projects-fixed-wrapper {
       /* In-flow now — the title + filters scroll with the cards (was fixed).
          Horizontal inset comes from .page-main. */
@@ -1050,7 +1069,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       max-width: none;
     }
   }
-  @media (min-width: 1200px) {
+  @media (min-width: 1366px) {
     .projects-fixed-wrapper {
       padding-inline: var(--_tokens---layout--gutter); /* align with page content */
     }
@@ -1081,7 +1100,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
-    gap: 5px;
+    gap: 4px;
     transition: opacity 0.25s ease;
   }
 
@@ -1089,7 +1108,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   .proj-bubble {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
+    gap: 8px;
     font-size: var(--_tokens---type--ultrathin);
     font-weight: 300;
     color: var(--_tokens---color--muted);
@@ -1119,7 +1138,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     letter-spacing: 0.04em;
     opacity: 0;
     max-width: 0;
-    margin-left: -7px;
+    margin-left: -8px;
     overflow: hidden;
     white-space: nowrap;
     transition: max-width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
@@ -1127,10 +1146,12 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
                 margin-left 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  .proj-bubble:hover .proj-bubble__tag {
+  @media (hover: hover) {
+    .proj-bubble:hover .proj-bubble__tag {
     max-width: 160px;
     opacity: 0.6;
     margin-left: 0;
+  }
   }
 
   .proj-bubble__arrow {
@@ -1141,15 +1162,19 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     transition: transform 0.2s ease, opacity 0.2s ease;
   }
 
-  .proj-bubble:hover {
+  @media (hover: hover) {
+    .proj-bubble:hover {
     background-color: var(--_tokens---color--fg);
     color: var(--_tokens---color--bg);
     border-color: var(--_tokens---color--fg);
     transform: translateY(-1px);
   }
+  }
 
-  .proj-bubble:hover .proj-bubble__arrow {
+  @media (hover: hover) {
+    .proj-bubble:hover .proj-bubble__arrow {
     opacity: 1;
+  }
   }
 
   /* Search match state */
@@ -1159,8 +1184,10 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     border-color: var(--_tokens---color--fg);
   }
 
-  .proj-bubble.is-match:hover {
+  @media (hover: hover) {
+    .proj-bubble.is-match:hover {
     transform: translateY(-1px);
+  }
   }
 
   /* Active search: dim non-matching bubbles */
@@ -1168,11 +1195,13 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     opacity: 0.2;
   }
 
-  .proj-bubbles.has-search .proj-bubble:not(.is-match):hover {
+  @media (hover: hover) {
+    .proj-bubbles.has-search .proj-bubble:not(.is-match):hover {
     opacity: 1;
   }
+  }
 
-  @media (max-width: 768px) {
+  @media (max-width: 1023.98px) {
     /* Fixed header stack: title, search bar, and filter bar all pin to the
        top of the viewport; only the project cards scroll underneath. The
        entire top section is fixed with a frosted glass backdrop filter. */
@@ -1249,7 +1278,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     }
     .filter-select {
       min-width: 0;
-      padding: 9px 32px 9px 14px;
+      padding: 8px 32px 8px 14px;
     }
     /* Tags fill the rest of the row */
     .filter-group--tags,
@@ -1455,7 +1484,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-right: -9px;
+    margin-right: -8px;
   }
 
   .project-lightbox__close svg { width: 22px; height: 22px; }
@@ -1931,7 +1960,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   });
 
   // Mobile space-savers: shorter placeholder + abbreviated "All Categories"
-  if (window.matchMedia('(max-width: 768px)').matches) {
+  if (window.matchMedia('(max-width: 1023.98px)').matches) {
     if (searchInput) searchInput.placeholder = 'Search projects';
     const allCatOpt = catSelect?.querySelector('option[value=""]');
     if (allCatOpt) allCatOpt.textContent = 'CTGRY';
@@ -1961,7 +1990,6 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     const cards = document.getElementById('project-cards-container');
     if (!fixedWrapper || !cards) return;
 
-    const isMobile = window.innerWidth <= 768;
     // The header/filters now scroll in-flow above the cards (no longer fixed),
     // so the cards need no measured top offset.
     cards.style.paddingTop = '0px';

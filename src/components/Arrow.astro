@@ -1,0 +1,53 @@
+---
+/**
+ * The site arrow. One shape, one stroke spec, one size rule.
+ *
+ * This markup used to be pasted inline 55 times across 10 files, each copy
+ * free to drift in stroke-width (2.5 / 2 / 1.3), linecap (square / round) and
+ * explicit width/height. Everything visual now lives here and in the
+ * `.link-arrow` block in tokens.css.
+ *
+ * The glyph is drawn pointing north-east (↗), the site's "goes somewhere"
+ * arrow. `dir` rotates it; direction is genuinely contextual — a disclosure
+ * arrow points down, a link arrow points out — so it stays a prop rather than
+ * being hard-coded per call site.
+ *
+ *   <Arrow />                    ↗  outbound link (default)
+ *   <Arrow dir="s" />            ↓  disclosure, open
+ *   <Arrow dir="e" class="x" />  →  next
+ *
+ * `dir="ne"` emits no attribute at all. A `[data-dir]` rule and a contextual
+ * one like `.page-toggle-btn .link-arrow` have equal specificity, so emitting
+ * the default would win on source order and freeze every arrow at ↗.
+ *
+ * Size follows the font size of the parent (1em) unless the call site says
+ * otherwise. Hover behaviour is global — see the arrow script in Base.astro.
+ */
+
+/** Compass point the arrow should aim at. */
+export type ArrowDir = 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'nw';
+
+interface Props {
+  dir?: ArrowDir;
+  class?: string;
+  [key: string]: unknown;
+}
+
+const { dir = 'ne', class: className, ...rest } = Astro.props as Props;
+---
+
+<svg
+  class:list={['link-arrow', className]}
+  data-dir={dir === 'ne' ? undefined : dir}
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2.5"
+  stroke-linecap="square"
+  stroke-linejoin="miter"
+  aria-hidden="true"
+  {...rest}
+>
+  <line x1="6" y1="18" x2="18" y2="6"></line>
+  <polyline points="10 6 18 6 18 14"></polyline>
+</svg>

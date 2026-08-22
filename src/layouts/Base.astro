@@ -397,6 +397,78 @@ const shareImage = new URL(ogImage ?? '/images/people/advaita-kelkar.jpg', Astro
       }
       initPageToggles();
       document.addEventListener('astro:after-swap', initPageToggles);
+
+      /* ── Scroll-fade affordance ──────────────────────────────────────
+         Regions that scroll with the scrollbar hidden give the reader no
+         sign that text continues below. Rather than maintain a list of
+         which components do that, find them: any element that actually
+         overflows, scrolls, and hides its scrollbar. Elements that already
+         carry their own mask (the nav wheel) are left alone.
+
+         Marked with data-more; the fade itself lives in tokens.css. */
+      function initScrollFades() {
+        const regions: HTMLElement[] = [];
+
+        const clipped: HTMLElement[] = [];
+
+        document.querySelectorAll<HTMLElement>('main *, .sn-panel *').forEach((el) => {
+          if (el.scrollHeight <= el.clientHeight + 2) return;
+          const cs = getComputedStyle(el);
+          // Don't fight a mask the component set for itself.
+          if (cs.maskImage !== 'none' && !el.hasAttribute('data-more')) return;
+
+          if (cs.overflowY === 'auto' || cs.overflowY === 'scroll') {
+            // A visible scrollbar is already the affordance.
+            if (cs.scrollbarWidth !== 'none') return;
+            regions.push(el);
+            return;
+          }
+
+          /* overflow:hidden with no scroll — the text is not merely out of
+             view, it is unreachable. Fade it so it reads as deliberately
+             trimmed rather than broken. Only for real prose, and only when
+             enough is missing to notice. */
+          if (cs.overflowY !== 'hidden') return;
+          if (el.scrollHeight - el.clientHeight < 24) return;
+          if ((el.textContent || '').trim().length < 80) return;
+          /* Skip picture-led boxes, but not prose that merely contains an
+             inline arrow — a small icon is not a reason to leave the text
+             looking severed. */
+          const media = el.querySelector('img, video, canvas, svg');
+          if (media) {
+            const mr = media.getBoundingClientRect();
+            if (mr.width > 64 || mr.height > 64) return;
+          }
+          clipped.push(el);
+        });
+
+        // Permanently clipped: set once, never cleared — it cannot scroll.
+        clipped.forEach((el) => el.setAttribute('data-more', 'true'));
+
+        if (!regions.length) return;
+
+        const update = (el: HTMLElement) => {
+          const more = el.scrollHeight > el.clientHeight + 2
+            && el.scrollTop + el.clientHeight < el.scrollHeight - 2;
+          if (more) el.setAttribute('data-more', 'true');
+          else el.removeAttribute('data-more');
+        };
+
+        regions.forEach((el) => {
+          update(el);
+          el.addEventListener('scroll', () => update(el), { passive: true });
+        });
+
+        const all = () => regions.forEach(update);
+        window.addEventListener('resize', all, { passive: true });
+        window.addEventListener('load', all);
+        if ('ResizeObserver' in window) {
+          const ro = new ResizeObserver(all);
+          regions.forEach((el) => ro.observe(el));
+        }
+      }
+      initScrollFades();
+      document.addEventListener('astro:after-swap', initScrollFades);
     </script>
   </body>
 </html>

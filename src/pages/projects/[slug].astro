@@ -5,6 +5,7 @@ import { getCollection, getEntry } from 'astro:content';
 import PageLayout from '../../layouts/PageLayout.astro';
 import VGScrollExhibition from '../../components/VGScrollExhibition.astro';
 import { isPlaceholder, realText, publicFileExists } from '../../lib/content';
+import Arrow from '../../components/Arrow.astro';
 
 export async function getStaticPaths() {
   const projects = await getCollection('projects');
@@ -290,9 +291,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                 <span class="project-name-main">{data.name}</span>
               </h1>
               {(isTabLayout || isOriginalCardPage) && (
-                <button class="project-detail-collapse-btn" id="project-name-toggle" type="button" aria-expanded="true" aria-label="Toggle project details">
-                  <svg class="toggle-icon-minus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
-                  <svg class="toggle-icon-plus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" style="display: none;"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+                <button class="page-toggle-btn project-detail-collapse-btn" id="project-name-toggle" type="button" aria-expanded="true" aria-label="Toggle project details">
+                  <Arrow />
                 </button>
               )}
             </div>
@@ -341,7 +341,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                     {data.description && (
                       <button class="project-prompt-btn" id="project-prompt-btn" type="button" aria-expanded="false">
                         <span>Prompt</span>
-                        <svg class="link-arrow project-prompt-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+                        <Arrow class="project-prompt-arrow" />
                       </button>
                     )}
 
@@ -350,7 +350,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                     {project.id === 'virtual-gods' && (
                       <a class="project-exhibition-pill" href="#exhibition">
                         <span>Enter the exhibition</span>
-                        <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+                        <Arrow />
                       </a>
                     )}
                   </div>
@@ -363,7 +363,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                     {isTabLayout && (
                       <button class="project-credits-btn" id="project-credits-btn" type="button" aria-expanded="false">
                         <span>Credits</span>
-                        <svg class="link-arrow project-credits-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+                        <Arrow class="project-credits-arrow" />
                       </button>
                     )}
                     <div class:list={["project-people", isTabLayout && "project-people--collapsible"]} id="project-people-panel" style="margin-top: 40px;">
@@ -426,6 +426,15 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                     </div>
                   </div>
                 </div>
+                <!-- Bottom border + Gallery View Button -->
+                {hasImages && (
+                  <div class="gallery-view-row">
+                    <button class="gallery-view-btn" id="gallery-view-btn" type="button" aria-label="Open gallery view modal">
+                      <span class="gallery-view-text">Gallery View</span>
+                      <Arrow />
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -455,6 +464,40 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
             </div>
             )}
           </div>
+
+          <!-- CARD DECK SECTION: INSIDE the dropdown container so when closed it collapses completely inside -->
+          {hasImages && isCardPage && !isTabLayout && (
+            <section class="card-deck-section">
+              <div class="deck-grid" id="deck-grid" data-images={JSON.stringify(allImages)}>
+                {allImages.map((img, idx) => {
+                  const filename = img.substring(img.lastIndexOf('/') + 1);
+                  const ext = filename.substring(filename.lastIndexOf('.'));
+                  let name = filename.slice(0, filename.length - ext.length);
+                  name = name.replace(/^ADVT_[A-Z_]+_/, '').replace(/^ADVT_SP_\s*/, '').trim();
+                  name = name.replace(/\s+\d+\s*$/, '').replace(/\s*\d+$/, '').trim();
+                  name = name.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2').replace(/[_-]+/g, ' ').trim();
+                  
+                  const logo = logoFor(img);
+                  return (
+                    <button
+                      type="button"
+                      class:list={["deck-card-item", idx === 0 && "is-active"]}
+                      data-index={idx}
+                      data-logo={logo?.src}
+                      aria-label={`Open card ${name}`}
+                    >
+                      <div class="deck-card-inner">
+                        <img src={img} alt={name} loading="lazy" />
+                        {logo && <span class="deck-card-logo" style={`--logo: url('${logo.src}')`} aria-hidden="true"></span>}
+                        <div class="deck-card-glow"></div>
+                        <div class="deck-card-label">{name}</div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          )}
         </div>
       ) : (
         /* STANDARD PROJECTS: Normal Stacked Flow */
@@ -509,7 +552,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                         {downloads.map(d => (
                           <a class="project-download-pill" href={d.href} download target="_blank" rel="noopener">
                             <span>{d.label}</span>
-                            <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+                            <Arrow />
                           </a>
                         ))}
                       </div>
@@ -611,11 +654,11 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                 <button class="project-detail-collapse-btn" type="button" aria-expanded="false" aria-label={`Toggle ${ch.title}`}>
                   {isTabLayout ? (
                     <>
-                      <svg class="toggle-icon-minus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" style="display: none;"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
-                      <svg class="toggle-icon-plus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+                      <Arrow class="toggle-icon-minus" style="display: none;" />
+                      <Arrow class="toggle-icon-plus" />
                     </>
                   ) : (
-                    <svg class="link-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+                    <Arrow />
                   )}
                 </button>
               </div>
@@ -634,8 +677,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
             <div class="project-header-title-row project-design-header" id="project-design-click">
               <h3 class="project-section-subtitle">Design</h3>
               <button class="project-detail-collapse-btn" id="project-design-toggle" type="button" aria-expanded="false" aria-label="Toggle design details">
-                <svg class="toggle-icon-minus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" style="display: none;"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
-                <svg class="toggle-icon-plus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+                <Arrow class="toggle-icon-minus" style="display: none;" />
+                <Arrow class="toggle-icon-plus" />
               </button>
             </div>
             
@@ -663,8 +706,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
             <div class="project-header-title-row project-making-header" id="project-making-click">
               <h3 class="project-section-subtitle">Making</h3>
               <button class="project-detail-collapse-btn" id="project-making-toggle" type="button" aria-expanded="false" aria-label="Toggle making details">
-                <svg class="toggle-icon-minus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" style="display: none;"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
-                <svg class="toggle-icon-plus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+                <Arrow class="toggle-icon-minus" style="display: none;" />
+                <Arrow class="toggle-icon-plus" />
               </button>
             </div>
             
@@ -698,8 +741,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                   <span class="project-chapter__title-rest">{slider.cleanName}</span>
                 </h3>
                 <button class="project-detail-collapse-btn" type="button" aria-expanded="false" aria-label={`Toggle ${slider.cleanName}`}>
-                  <svg class="toggle-icon-minus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" style="display: none;"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
-                  <svg class="toggle-icon-plus link-arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><line x1="6" y1="18" x2="18" y2="6"></line><polyline points="10 6 18 6 18 14"></polyline></svg>
+                  <Arrow class="toggle-icon-minus" style="display: none;" />
+                  <Arrow class="toggle-icon-plus" />
                 </button>
               </div>
               <div class="project-chapter__content">
@@ -729,41 +772,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       )}
 
 
-      <!-- CARD DECK SECTION ONLY (visible at the bottom of the page) — tab-layout
-           pages render their own copy inside .project-col-left instead (left of the
-           image, 2-column alt-verse style), so this is freelancer/original-card-set only. -->
-      {hasImages && isCardPage && !isTabLayout && (
-        <section class="card-deck-section">
-          <div class="deck-grid" id="deck-grid" data-images={JSON.stringify(allImages)}>
-            {allImages.map((img, idx) => {
-              // Extract name from filename dynamically
-              const filename = img.substring(img.lastIndexOf('/') + 1);
-              const ext = filename.substring(filename.lastIndexOf('.'));
-              let name = filename.slice(0, filename.length - ext.length);
-              name = name.replace(/^ADVT_[A-Z_]+_/, '').replace(/^ADVT_SP_\s*/, '').trim();
-              name = name.replace(/\s+\d+\s*$/, '').replace(/\s*\d+$/, '').trim();
-              
-              const logo = logoFor(img);
-              return (
-                <button
-                  type="button"
-                  class:list={["deck-card-item", idx === 0 && "is-active"]}
-                  data-index={idx}
-                  data-logo={logo?.src}
-                  aria-label={`Open card ${name}`}
-                >
-                  <div class="deck-card-inner">
-                    <img src={img} alt={name} loading="lazy" />
-                    {logo && <span class="deck-card-logo" style={`--logo: url('${logo.src}')`} aria-hidden="true"></span>}
-                    <div class="deck-card-glow"></div>
-                    <div class="deck-card-label">{name}</div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-      )}
+
 
       <!-- Fullscreen Lightbox: card pages get a horizontally scrolling deck -->
       {isCardPage && (
@@ -939,10 +948,12 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     white-space: nowrap;
     transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
   }
-  .scarpin-tab-btn:hover {
+  @media (hover: hover) {
+    .scarpin-tab-btn:hover {
     background-color: color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
     color: var(--_tokens---color--fg);
     border-color: color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
+  }
   }
   .scarpin-tab-btn.is-active {
     background-color: var(--_tokens---color--fg);
@@ -959,9 +970,13 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     filter: grayscale(1);
     transition: filter 0.2s ease;
   }
-  .scarpin-tab-btn.is-active .scarpin-tab-avatar,
-  .scarpin-tab-btn:hover .scarpin-tab-avatar {
+  .scarpin-tab-btn.is-active .scarpin-tab-avatar {
     filter: grayscale(0);
+  }
+  @media (hover: hover) {
+    .scarpin-tab-btn:hover .scarpin-tab-avatar {
+    filter: grayscale(0);
+  }
   }
   .scarpin-tab-avatar--placeholder {
     display: inline-block;
@@ -1011,9 +1026,11 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     transition: transform 0.3s ease, box-shadow 0.3s ease;
   }
   
-  .scarpin-item-media-wrap:hover {
+  @media (hover: hover) {
+    .scarpin-item-media-wrap:hover {
     transform: translateY(-4px);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  }
   }
 
   .scarpin-media {
@@ -1026,10 +1043,12 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     transition: filter 0.3s ease, opacity 0.3s ease, transform 0.4s ease;
   }
 
-  .scarpin-item-media-wrap:hover .scarpin-media {
+  @media (hover: hover) {
+    .scarpin-item-media-wrap:hover .scarpin-media {
     filter: grayscale(0);
     opacity: 1;
     transform: scale(1.03);
+  }
   }
 
   .scarpin-thumbnails {
@@ -1060,8 +1079,10 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     transition: border-color 0.2s ease, transform 0.2s ease;
   }
   
-  .scarpin-thumb:hover {
+  @media (hover: hover) {
+    .scarpin-thumb:hover {
     transform: translateY(-2px);
+  }
   }
 
   .scarpin-thumb img, 
@@ -1074,12 +1095,15 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     transition: filter 0.2s ease, opacity 0.2s ease;
   }
 
-  .scarpin-thumb:hover img, 
-  .scarpin-thumb:hover video,
-  .scarpin-thumb.is-active img, 
-  .scarpin-thumb.is-active video {
+  .scarpin-thumb.is-active img, .scarpin-thumb.is-active video {
     filter: grayscale(0);
     opacity: 1;
+  }
+  @media (hover: hover) {
+    .scarpin-thumb:hover img, .scarpin-thumb:hover video {
+    filter: grayscale(0);
+    opacity: 1;
+  }
   }
 
   .scarpin-thumb.is-active {
@@ -1268,6 +1292,11 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-desc-clip > :global(p:first-child)::-webkit-scrollbar {
       display: none;
     }
+    /* Keep an inner scroll from chaining to the page on touch. */
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-desc-clip > :global(.desc-scroll),
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-desc-clip > :global(p:first-child) {
+      overscroll-behavior: contain;
+    }
     /* Prompt box + logo strip are fixed flex children below the scroll —
        never let them shrink (a squeezed prompt box clips its own text),
        and give them breathing room from the text above. */
@@ -1307,7 +1336,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
   /* Below desktop, non-tab card pages keep their existing mobile UI: the
      bottom deck section is the scrub, so the in-column copy stays hidden. */
-  @media (max-width: 1023px) {
+  @media (max-width: 1023.98px) {
     .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .deck-grid--mobile-scrub {
       display: none !important;
     }
@@ -1544,7 +1573,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     }
   }
 
-  @media (min-width: 1200px) {
+  @media (min-width: 1366px) {
     .project-content-grid {
       grid-template-columns: 4fr 6fr;
       align-items: start;
@@ -1558,7 +1587,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     align-items: end !important; /* Align left row exactly with the bottom of the card image */
   }
 
-  @media (min-width: 1200px) {
+  @media (min-width: 1366px) {
     .project-content-grid--card {
       grid-template-columns: 4.5fr 5.5fr !important;
       gap: var(--_tokens---space-6) !important;
@@ -1632,9 +1661,11 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
   .project-exhibition-pill svg { width: 0.9em; height: 0.9em; }
 
-  .project-exhibition-pill:hover {
+  @media (hover: hover) {
+    .project-exhibition-pill:hover {
     background-color: transparent;
     color: var(--_tokens---color--fg);
+  }
   }
 
   .project-downloads {
@@ -1665,14 +1696,18 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     transition: transform 0.25s ease;
   }
 
-  .project-download-pill:hover {
+  @media (hover: hover) {
+    .project-download-pill:hover {
     background-color: var(--_tokens---color--fg);
     color: var(--_tokens---color--bg);
     border-color: var(--_tokens---color--fg);
   }
+  }
 
-  .project-download-pill:hover svg {
+  @media (hover: hover) {
+    .project-download-pill:hover svg {
     transform: translate(2px, -2px);
+  }
   }
 
   .project-card__desc :global(p) {
@@ -1720,14 +1755,16 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     color: var(--_tokens---color--fg);
     border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
     border-radius: var(--_tokens---radius--pill);
-    padding: 3px 10px;
+    padding: 4px 10px;
     white-space: nowrap;
     transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
   }
-  .project-credits-btn:hover {
+  @media (hover: hover) {
+    .project-credits-btn:hover {
     background-color: var(--_tokens---color--fg);
     color: var(--_tokens---color--bg);
     border-color: var(--_tokens---color--fg);
+  }
   }
   .project-credits-arrow {
     width: 0.85em;
@@ -1759,14 +1796,16 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     color: var(--_tokens---color--fg);
     border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
     border-radius: var(--_tokens---radius--pill);
-    padding: 3px 10px;
+    padding: 4px 10px;
     white-space: nowrap;
     transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
   }
-  .project-prompt-btn:hover {
+  @media (hover: hover) {
+    .project-prompt-btn:hover {
     background-color: var(--_tokens---color--fg);
     color: var(--_tokens---color--bg);
     border-color: var(--_tokens---color--fg);
+  }
   }
   .project-prompt-arrow {
     width: 0.85em;
@@ -1781,7 +1820,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       display: none;
     }
   }
-  @media (max-width: 768px) {
+  @media (max-width: 1023.98px) {
     .project-people--collapsible {
       max-height: 0;
       opacity: 0;
@@ -1888,7 +1927,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     margin-inline: 2px;
   }
 
-  @media (max-width: 768px) {
+  @media (max-width: 1023.98px) {
     .project-people {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
@@ -2009,14 +2048,20 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     transition: color 0.2s ease;
   }
 
-  .category-link:hover {
+  @media (hover: hover) {
+    .category-link:hover {
     color: var(--_tokens---color--fg);
+  }
   }
 
   /* ── Fixed Dashboard Wrapper (Card Pages on Mobile) — always on screen, never scrolls ── */
-  @media (max-width: 768px) {
+  @media (max-width: 1023.98px) {
     .project-dashboard-wrap {
       position: fixed;
+      /* Below 700px the breadcrumb docks to the bottom, so the dashboard can
+         start at the very top. From 700px up the bar is top-docked and this
+         is fixed-position, so page padding cannot clear it — it has to offset
+         itself or the project title sits underneath the bar. */
       top: 0;
       left: 44px; /* clears the INDEX rail */
       right: 0;
@@ -2026,6 +2071,11 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       padding: calc(12px + env(safe-area-inset-top)) 12px 8px !important; /* 12px matches page-main mobile padding */
       box-sizing: border-box;
       box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+    }
+    @media (min-width: 700px) {
+      .project-dashboard-wrap {
+        top: var(--_tokens---layout--bar);
+      }
     }
 
     /* The wrapper above already clears the top safe area — the header inside
@@ -2155,13 +2205,17 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     color: var(--_tokens---color--fg) !important;
   }
 
-  .project-detail__active-wrap:hover .project-detail__nav-arrow {
+  @media (hover: hover) {
+    .project-detail__active-wrap:hover .project-detail__nav-arrow {
     opacity: 0.6;
   }
+  }
 
-  .project-detail__nav-arrow:hover {
+  @media (hover: hover) {
+    .project-detail__nav-arrow:hover {
     opacity: 1 !important;
     transform: translateY(-50%) scale(1.15);
+  }
   }
 
   .project-detail__nav-arrow--prev {
@@ -2208,7 +2262,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     text-shadow: 0 2px 24px rgba(0, 0, 0, 0.55);
   }
 
-  @media (max-width: 768px) {
+  @media (max-width: 1023.98px) {
     .project-card__overlay-name {
       left: 10px;
       bottom: 8px;
@@ -2251,13 +2305,13 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
   .timer-ring-bg {
     fill: none;
-    stroke: rgba(255, 255, 255, 0.15);
+    stroke: color-mix(in srgb, var(--_tokens---color--fg) 20%, transparent);
     stroke-width: 1.5;
   }
 
   .timer-ring-progress {
     fill: none;
-    stroke: #ffffff;
+    stroke: var(--_tokens---color--fg);
     stroke-width: 1.5;
     stroke-linecap: round;
     transform: rotate(-90deg);
@@ -2267,7 +2321,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
 
   .timer-ring-dot {
-    fill: #ffffff;
+    fill: var(--_tokens---color--fg);
     transform-origin: 12px 12px;
     transform: rotate(0deg);
   }
@@ -2712,13 +2766,17 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     object-fit: cover;
     display: block;
   }
-  /* Keep the strip flush — no 3D lift/scale on hover/active (that would open
-     gaps between neighbours); the grayscale→colour reveal still happens. */
-  .project-detail[data-tab-layout="true"] .card-deck-section .deck-card-item:hover .deck-card-inner,
-  .project-detail[data-tab-layout="true"] .card-deck-section .deck-card-item:focus .deck-card-inner,
-  .project-detail[data-tab-layout="true"] .card-deck-section .deck-card-item.is-active .deck-card-inner {
+  .project-detail[data-tab-layout="true"] .card-deck-section .deck-card-item:focus .deck-card-inner, .project-detail[data-tab-layout="true"] .card-deck-section .deck-card-item.is-active .deck-card-inner {
     transform: none !important;
     box-shadow: none !important;
+  }
+  @media (hover: hover) {
+    /* Keep the strip flush — no 3D lift/scale on hover/active (that would open
+     gaps between neighbours); the grayscale→colour reveal still happens. */
+  .project-detail[data-tab-layout="true"] .card-deck-section .deck-card-item:hover .deck-card-inner {
+    transform: none !important;
+    box-shadow: none !important;
+  }
   }
 
   /* Fullscreen lightbox deck: same fixed-height/natural-width filmstrip fix
@@ -2922,10 +2980,15 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     transition: filter 0.2s ease, opacity 0.2s ease;
   }
 
-  .project-detail__thumb-item.is-active img,
-  .project-detail__thumb-item:hover img {
+  .project-detail__thumb-item.is-active img {
     filter: grayscale(0);
     opacity: 1;
+  }
+  @media (hover: hover) {
+    .project-detail__thumb-item:hover img {
+    filter: grayscale(0);
+    opacity: 1;
+  }
   }
 
   /* ── Card Deck Grid (remains 3 columns on both desktop & mobile) ── */
@@ -3038,12 +3101,18 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     transition: filter 0.3s ease, opacity 0.3s ease, transform 0.4s ease;
   }
 
-  /* Hover & Active Card Effects */
-  .deck-card-item:hover .deck-card-inner,
   .deck-card-item:focus .deck-card-inner {
     transform: translateY(-8px) rotateY(5deg) scale(1.03);
     box-shadow: 0 16px 32px rgba(0, 0, 0, 0.25);
     border-color: var(--_tokens---color--fg);
+  }
+  @media (hover: hover) {
+    /* Hover & Active Card Effects */
+  .deck-card-item:hover .deck-card-inner {
+    transform: translateY(-8px) rotateY(5deg) scale(1.03);
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.25);
+    border-color: var(--_tokens---color--fg);
+  }
   }
 
   /* ACTIVE CARD: remains colored, highlighted and outlined */
@@ -3058,11 +3127,17 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     opacity: 1 !important;
   }
 
-  .deck-card-item:hover img:not(.deck-card-logo),
   .deck-card-item:focus img:not(.deck-card-logo) {
     filter: grayscale(0);
     opacity: 1;
     transform: scale(1.02);
+  }
+  @media (hover: hover) {
+    .deck-card-item:hover img:not(.deck-card-logo) {
+    filter: grayscale(0);
+    opacity: 1;
+    transform: scale(1.02);
+  }
   }
 
   .deck-card-glow {
@@ -3078,8 +3153,10 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     z-index: 2;
   }
 
-  .deck-card-item:hover .deck-card-glow {
+  @media (hover: hover) {
+    .deck-card-item:hover .deck-card-glow {
     opacity: 1;
+  }
   }
 
   /* ── Publisher/team logo on the muted scrub cards ──
@@ -3101,11 +3178,15 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     transition: opacity 0.3s ease, transform 0.3s ease;
   }
 
-  .deck-card-item.is-active .deck-card-logo,
-  .deck-card-item:hover .deck-card-logo,
-  .deck-card-item:focus .deck-card-logo {
+  .deck-card-item.is-active .deck-card-logo, .deck-card-item:focus .deck-card-logo {
     opacity: 0;
     transform: translate(-50%, -50%) scale(1.25);
+  }
+  @media (hover: hover) {
+    .deck-card-item:hover .deck-card-logo {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.25);
+  }
   }
 
   /* Micro text label overlay on each card */
@@ -3133,11 +3214,17 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     transition: opacity 0.3s ease, color 0.3s ease;
   }
 
-  .deck-card-item:hover .deck-card-label,
   .deck-card-item:focus .deck-card-label {
     opacity: 1;
     color: var(--_tokens---color--bg);
     background: linear-gradient(to top, var(--_tokens---color--fg) 0%, rgba(0, 0, 0, 0) 100%);
+  }
+  @media (hover: hover) {
+    .deck-card-item:hover .deck-card-label {
+    opacity: 1;
+    color: var(--_tokens---color--bg);
+    background: linear-gradient(to top, var(--_tokens---color--fg) 0%, rgba(0, 0, 0, 0) 100%);
+  }
   }
 
   /* ── Immersive Lightbox Modal ── */
@@ -3238,7 +3325,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     padding: 20px var(--_tokens---space--small) 0;
   }
 
-  @media (min-width: 1200px) {
+  @media (min-width: 1366px) {
     .lightbox-header--deck {
       padding-inline: var(--_tokens---layout--gutter);
     }
@@ -3325,9 +3412,11 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     justify-content: center;
   }
 
-  .lightbox-close-btn:hover {
+  @media (hover: hover) {
+    .lightbox-close-btn:hover {
     opacity: 1;
     transform: scale(1.1);
+  }
   }
 
   /* ── Horizontal scroll-snap card deck ── */
@@ -3384,7 +3473,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
 
   /* Desktop: 7 cards visible, H1 name */
-  @media (min-width: 900px) {
+  @media (min-width: 1024px) {
     .lightbox-deck {
       /* Desktop card ~24vw wide → pad = 50% - 12vw = 38vw */
       padding-inline: calc(50% - 12vw);
@@ -3430,9 +3519,9 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     margin: 0;
     padding: 12px 0 16px 20px;
     font-family: var(--_tokens---font--display, var(--_tokens---font--body));
-    font-size: clamp(1.4rem, 4vw, 2.2rem);
-    font-weight: 700;
-    line-height: 1;
+    font-size: var(--_tokens---type--medium);
+    font-weight: 500;
+    line-height: 1.1;
     color: var(--_tokens---color--fg);
     text-transform: none;
     pointer-events: none;
@@ -3443,9 +3532,9 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     margin-right: 0.3em;
   }
 
-  @media (min-width: 900px) {
+  @media (min-width: 1024px) {
     .lightbox-name {
-      font-size: clamp(2.4rem, 5vw, 4rem);
+      font-size: clamp(1.5rem, 3vw, 2.2rem);
       padding-left: 32px;
     }
   }
@@ -3453,10 +3542,10 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   /* Deck variant: H1 styling at medium weight, centred directly below the active card */
   .card-lightbox--deck .lightbox-name {
     font-family: var(--_tokens---font--body);
-    font-size: var(--_tokens---type--big);
+    font-size: var(--_tokens---type--medium);
     font-weight: 500;
-    letter-spacing: -0.03em;
-    line-height: 1.05;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
     padding: 12px 0 24px;
     text-align: center;
     color: var(--_tokens---color--fg);
@@ -3539,14 +3628,18 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     transition: opacity 0.25s ease, transform 0.2s ease, background 0.2s ease;
   }
 
-  .lightbox-card-container:hover .lightbox-nav-arrow {
+  @media (hover: hover) {
+    .lightbox-card-container:hover .lightbox-nav-arrow {
     opacity: 0.7;
   }
+  }
 
-  .lightbox-nav-arrow:hover {
+  @media (hover: hover) {
+    .lightbox-nav-arrow:hover {
     opacity: 1 !important;
     background: rgba(10, 10, 10, 0.7);
     transform: translateY(-50%) scale(1.1);
+  }
   }
 
   .lightbox-nav-arrow--prev {
@@ -3597,7 +3690,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
 
   /* ── Compact responsive styles for Card Pages on mobile ── */
-  @media (max-width: 768px) {
+  @media (max-width: 1023.98px) {
     .project-content-grid--card {
       grid-template-columns: 1fr 1fr !important; /* card always takes half the screen */
       gap: 12px !important;
@@ -3883,9 +3976,11 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     text-decoration: none;
     transition: color 0.2s ease;
   }
-  .project-card__meta-cat-link:hover {
+  @media (hover: hover) {
+    .project-card__meta-cat-link:hover {
     color: var(--_tokens---color--fg);
     text-decoration: underline;
+  }
   }
 
   /* Prompt code block styling with global scoping for set:html support */
@@ -3893,25 +3988,27 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     display: flex !important;
     flex-direction: column !important;
     background: transparent !important;
-    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent) !important;
-    border-radius: 6px !important;
-    margin-top: 20px !important;
-    overflow: hidden !important;
+    border: none !important;
+    border-radius: 0 !important;
+    margin-top: 24px !important;
+    overflow: visible !important;
+    padding: 0 !important;
   }
   :global(.prompt-header) {
     display: flex !important;
     justify-content: space-between !important;
     align-items: center !important;
     background: transparent !important;
-    padding: 6px 12px !important;
-    border-bottom: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent) !important;
+    padding: 0 0 10px 0 !important;
+    border-bottom: 1px solid var(--_tokens---color--line-soft) !important;
+    margin-bottom: 12px !important;
   }
   :global(.prompt-header-title) {
-    font-size: 11px !important;
-    font-weight: 600 !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.05em !important;
-    color: var(--_tokens---color--muted) !important;
+    font-size: var(--_tokens---type--small) !important;
+    font-weight: 500 !important;
+    text-transform: none !important;
+    letter-spacing: -0.015em !important;
+    color: var(--_tokens---color--fg) !important;
   }
   :global(.copy-prompt-btn) {
     all: unset !important;
@@ -3919,33 +4016,58 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     display: inline-flex !important;
     align-items: center !important;
     gap: 6px !important;
-    font-size: 11px !important;
+    font-size: var(--_tokens---type--micro) !important;
     font-weight: 500 !important;
     color: var(--_tokens---color--muted) !important;
-    padding: 4px 8px !important;
-    border-radius: 4px !important;
-    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 15%, transparent) !important;
+    padding: 4px 10px !important;
+    border-radius: var(--_tokens---radius--pill) !important;
+    border: 1px solid var(--_tokens---color--line-soft) !important;
     background: transparent !important;
     transition: all 0.2s ease !important;
     flex-shrink: 0 !important;
     box-shadow: none !important;
   }
-  :global(.copy-prompt-btn:hover) {
+  @media (hover: hover) {
+    :global(.copy-prompt-btn:hover) {
     color: var(--_tokens---color--fg) !important;
     background: color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent) !important;
     border-color: var(--_tokens---color--fg) !important;
   }
+  }
   :global(.prompt-body) {
-    padding: 12px !important;
+    padding: 0 !important;
   }
   :global(.prompt-text) {
     font-size: var(--_tokens---type--micro) !important;
-    font-style: italic !important; /* Italics! */
-    font-family: var(--_tokens---font--mono) !important;
-    color: var(--_tokens---color--fg) !important;
-    line-height: 1.5 !important;
+    font-style: italic !important;
+    color: var(--_tokens---color--muted) !important;
+    line-height: 1.55 !important;
     word-break: break-word !important;
   }
+
+  /* ── Gallery View Button & Bottom Row ── */
+  .gallery-view-row {
+    border-top: 1px solid var(--_tokens---color--line-soft);
+    margin-top: 20px;
+    padding-top: 16px;
+  }
+  .gallery-view-btn {
+    all: unset;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--_tokens---type--small);
+    font-weight: 500;
+    color: var(--_tokens---color--fg);
+    transition: opacity 0.2s ease;
+  }
+  @media (hover: hover) {
+    .gallery-view-btn:hover {
+    opacity: 0.75;
+  }
+  }
+
   :global(.copied-indicator) {
     font-size: 11px !important;
     font-weight: 500 !important;
@@ -3963,7 +4085,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     line-height: 1.1 !important;
   }
 
-  @media (max-width: 768px) {
+  @media (max-width: 1023.98px) {
     [data-project-id="architect-x-architects"] .project-card__overlay-name {
       font-size: clamp(0.8rem, 2.5vw, 1rem) !important;
     }
@@ -4003,10 +4125,12 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
   }
 
-  .project-readmore-btn:hover {
+  @media (hover: hover) {
+    .project-readmore-btn:hover {
     background-color: var(--_tokens---color--fg);
     color: var(--_tokens---color--bg);
     border-color: var(--_tokens---color--fg);
+  }
   }
 
   .project-readmore-arrow {
@@ -4546,7 +4670,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     // we just need enough columns that the rows fill it, not scroll it) ──
     const deckSection = deck.closest('.card-deck-section') as HTMLElement | null;
     const fitDeckGrid = () => {
-      if (!deckSection || window.innerWidth < 1024) {
+      if (!deckSection || window.matchMedia('(max-width: 1023.98px)').matches) {
         deck.style.removeProperty('grid-template-columns');
         return;
       }
@@ -4597,7 +4721,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         promptBox.before(promptHome);
         const pagRow = document.querySelector('.project-card-name-pagination-row');
         const placePrompt = () => {
-          const mobile = window.matchMedia('(max-width: 1023px)').matches;
+          const mobile = window.matchMedia('(max-width: 1023.98px)').matches;
           if (mobile && pagRow) {
             if (promptBox.previousElementSibling !== pagRow) pagRow.after(promptBox);
           } else if (promptHome.parentElement && promptBox.previousSibling !== promptHome) {
@@ -5300,7 +5424,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     if (!article || article.getAttribute('data-is-card') === 'true') return;
     const header = document.getElementById('project-top-header');
     if (!header) return;
-    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+    const isMobile = window.matchMedia('(max-width: 1023.98px)').matches;
     const anyChapterOpen = !!document.querySelector('.project-chapter.is-expanded');
     const fixed = isMobile && !anyChapterOpen;
     header.classList.toggle('is-fixed-head', fixed);
@@ -5326,7 +5450,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     const info = document.querySelector('.project-card-info') as HTMLElement | null;
     if (!header) return;
 
-    const mq = window.matchMedia('(max-width: 768px)');
+    const mq = window.matchMedia('(max-width: 1023.98px)');
     const apply = () => {
       if (mq.matches) {
         // Mobile: metaline + people live inside the (fixed) head

@@ -18,7 +18,7 @@ Everything an AI agent needs to work on this repo cold.
 | Layer | Tool | Notes |
 |---|---|---|
 | Framework | Astro 5 (static) | No SSR, pure SSG |
-| Package manager | **pnpm only** — `npm` errors on this repo (arborist version-parsing bug) |
+| Package manager | **pnpm only** — `npm install` hits an arborist version-parsing bug. (`npm run <script>` does work, but stick to pnpm so the lockfile stays single-source.) |
 | Hosting | Firebase Hosting, project `advaitakelkar-site` |
 | CI/CD | GitHub Actions `.github/workflows/deploy.yml` — fires on every push to `main` |
 | CMS | Keystatic (local, dev-only, YAML-backed) — available at `localhost:4321/keystatic` when running `pnpm dev` |
@@ -114,6 +114,95 @@ firebase.json           ← Firebase Hosting config (public: dist, rewrites: /40
 keystatic.config.ts     ← Keystatic CMS schema
 package.json            ← pnpm scripts: dev, build, preview, sync, sync-notion
 ```
+
+---
+
+## The Design System
+
+Three rules carry most of it. Breaking any of them is how the site drifted into
+eleven breakpoints and 28 kinds of arrow in the first place.
+
+### 1. One breakpoint ladder
+
+Defined in `src/lib/breakpoints.ts`. **Three stops, six strings, nothing else.**
+
+| Band | Range | Devices | Layout |
+|---|---|---|---|
+| compact | `< 700` | phones | one column; breadcrumb docks to the **bottom** |
+| medium | `700–1023` | tablet portrait, phone landscape | one wide column, touch sizing |
+| expanded | `1024–1365` | tablet landscape, small laptops | two column |
+| wide | `>= 1366` | desktop | full editorial layout |
+
+```css
+@media (max-width: 699.98px)  { }   /* compact only     */
+@media (min-width: 700px)     { }   /* medium and up    */
+@media (max-width: 1023.98px) { }   /* compact + medium */
+@media (min-width: 1024px)    { }   /* expanded and up  */
+@media (max-width: 1365.98px) { }   /* everything below wide */
+@media (min-width: 1366px)    { }   /* wide only        */
+```
+
+The `.98` complements make each min/max pair exhaustive and mutually exclusive.
+That is the point: the old code mixed `max-width: 767px` with `min-width: 769px`,
+so a viewport of exactly **768px — a 9.7" iPad in portrait —** matched neither.
+
+`pnpm lint:bp` fails on any off-ladder query, and on any raw
+`innerWidth < 900` comparison in JS (those drift from the CSS silently and do
+not re-evaluate on rotate — use `matchMedia`, or `watch()` from the module).
+
+**Prefer no breakpoint at all.** The home intro grid is
+`repeat(auto-fit, minmax(18rem, 1fr))`, which lands on 1 / 2 / 3 columns at
+exactly the widths the old hard-coded 1199px rule did — and keeps working at
+widths nobody tested.
+
+### 2. Spacing is fluid, never stepped
+
+`--space--small|medium|big` and `--layout--gutter` are `clamp()` curves that
+interpolate from the phone value to the desktop value, the same way the type
+scale already did. They used to hard-swap at 768px, so one pixel of viewport
+quadrupled the vertical rhythm.
+
+Measured across 320–1700px, the largest single-step change is now **1.12×**.
+If a change pushes that above ~1.5×, a cliff has been reintroduced.
+
+The grid is **4px with a documented 2px sub-step**. Even values are legal;
+odd ones are noise.
+
+### 3. Components own their behaviour
+
+`src/components/Arrow.astro` is the only arrow. The markup used to be pasted
+inline 55 times across 10 files, each free to drift in stroke-width and cap.
+Direction is a prop, because it is genuinely contextual:
+
+```astro
+<Arrow />            <!-- ↗ outbound link (default) -->
+<Arrow dir="s" />    <!-- ↓ disclosure, open        -->
+```
+
+`dir="ne"` deliberately emits **no** `data-dir` attribute — a `[data-dir]` rule
+and a contextual one like `.page-toggle-btn .link-arrow` have equal
+specificity, so emitting the default would win on source order and freeze every
+arrow pointing north-east.
+
+### Interaction
+
+- Every `:hover` rule sits inside `@media (hover: hover)`. On a touch tablet an
+  unguarded hover state sticks after a tap. Rules that combined `:hover` with
+  `:focus-visible` were **split**, so keyboard focus still works everywhere.
+- `.tap-44` grows a control's *hit area* to 44px on coarse pointers using a
+  centred pseudo-element, leaving its visual size untouched. Opt in per
+  control; do not blanket-apply, several components already use `::after`.
+- Regions that scroll with a hidden scrollbar get a fade. `initScrollFades()`
+  in `Base.astro` finds them by inspection rather than by a maintained list,
+  and marks them `data-more`; the fade itself is in `tokens.css`.
+
+### Fixed-bar clearance
+
+`--layout--bar` (52px) is the breadcrumb height. From 700px up the bar is
+top-docked and `PageLayout` pads `.page-main` to clear it — **once, for every
+route**. Below 700px the bar docks to the bottom and no clearance is needed.
+Anything `position: fixed` has to offset itself (see `.project-dashboard-wrap`),
+because page padding cannot move it.
 
 ---
 
@@ -434,7 +523,32 @@ The old `⚠️ OLD Website Selected — safe to delete` tab keeps a broken
 
 ## Visual Verification
 
-**Cannot use Chrome MCP or Firecrawl** to verify this site — both block the live domain and localhost. The only reliable way to check visual changes is: deploy → ask Advaita for a real-browser screenshot.
+Run the responsive harness — do not deploy just to look at something.
+
+```bash
+pnpm dev                       # in one shell
+pnpm shoot before              # reference set
+# ...make changes...
+pnpm shoot after
+pnpm shoot --diff before after
+```
+
+`scripts/shoot.mjs` drives headless Chromium (Playwright) over every route at
+the nine widths that bracket the ladder, and writes two things to `review/`
+(gitignored): full-page PNGs, and a **layout fingerprint** per route/width.
+
+The fingerprint is the half that matters. Byte-comparing PNGs during a token
+change reports "everything moved" and tells you nothing; the fingerprint diffs
+as `home@834 gutter 100 → 32`. It also reports three standing checks on every
+run, each of which has already caught a real bug:
+
+- **horizontal overflow** — any width where the document scrolls sideways
+- **clipped, no fade** — text cut off with no affordance saying more exists
+- **content under fixed bar** — page content hidden behind the breadcrumb
+
+Firecrawl still cannot reach this site. The older note here also claimed Chrome
+MCP could not — that is no longer true; localhost and the live domain both load
+fine in the in-app browser.
 
 ---
 
