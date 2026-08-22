@@ -104,11 +104,17 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
 >
   <article class="category-detail">
     <div class="category-sticky-header">
-      <!-- Top Full Width Header -->
-      <header class="project-top-header category-hero-header" id="project-top-header">
+      <!-- Title row doubles as the disclosure header, same as Home / About /
+           Projects: arrow on the right, everything above the project cards
+           collapses beneath it. -->
+      <header class="project-top-header category-hero-header page-toggle-header" id="project-top-header">
         <h1 class="project-card__title category-hero-title">{title}</h1>
+        <button class="page-toggle-btn" data-page-toggle="category-intro-panel" aria-expanded="true" aria-label={`Toggle ${title} details`} type="button">
+          <Arrow />
+        </button>
       </header>
 
+      <div class="category-intro-panel page-toggle-panel" id="category-intro-panel">
       <!-- 3-Column Intro (mirrors the home page) -->
       <section class="category-intro">
         <p class="category-intro__tagline" data-edit={editable ? `categories/${categoryId}/tagline` : undefined}>{introTagline}</p>
@@ -142,6 +148,7 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
           ))}
         </section>
       )}
+      </div>
 
       <!-- Project groups — tabbed (Studio 823 / FKD Workshop) on Work, else a flat card list -->
       {showTabs && (
@@ -278,10 +285,14 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
       letter-spacing: 0.01em;
     }
 
-    /* ── Category Header with border below ── */
+    /* ── Category Header ──
+       No border here. This block breaks out of the page gutter so its
+       background can span edge to edge, which meant its border-bottom did too
+       — a full-bleed rule where every other separator on the site is inset to
+       the content column. The rules now come from .page-toggle-header and
+       .page-toggle-panel, which sit inside the padding. */
     .category-sticky-header {
       width: auto;
-      border-bottom: 1px solid var(--_tokens---color--line-soft);
       padding-bottom: 24px;
       margin-bottom: 32px;
       margin-inline: calc(-1 * var(--_tokens---space--small));
@@ -295,6 +306,23 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
     .category-sticky-header {
       margin-inline: calc(-1 * var(--_tokens---layout--gutter));
       padding-inline: var(--_tokens---layout--gutter);
+    }
+
+    /* The disclosure header is a flex row; the title keeps its own size and
+       simply sits opposite the arrow. */
+    .category-hero-header.page-toggle-header {
+      align-items: center;
+    }
+    .category-hero-title {
+      margin-block: 0;
+      min-width: 0;
+    }
+    .category-intro-panel {
+      /* The panel owns the rule under the collapsed block. */
+      padding-top: 20px;
+    }
+    .category-hero-header:has(.page-toggle-btn[aria-expanded="false"]) + .category-intro-panel {
+      padding-top: 0;
     }
 
     /* Same voice as the home three-column text: micro, muted */
@@ -593,10 +621,7 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
     @media (max-width: 1023.98px) {
       .category-hero-header.project-top-header {
         position: static !important;
-        padding: 0 !important;
-        border-bottom: none !important;
         background-color: transparent !important;
-        margin-bottom: 8px !important;
         width: auto !important;
       }
 
