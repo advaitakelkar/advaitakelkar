@@ -1,0 +1,627 @@
+---
+/**
+ * ADMIN — the visitor console.
+ *
+ * One password field, real Firebase Auth behind it. The password is checked by
+ * Google's servers and never ships in this bundle; firestore.rules is what
+ * keeps the visit log private. See src/lib/firebase-config.ts.
+ *
+ * Charts here carry no categorical colour on purpose. The site is monochrome
+ * across seven schemes, so every panel encodes its value with length or
+ * position and a single uniform fill; the only ramp is the hour strip, where
+ * darkness genuinely encodes magnitude. Every bar is direct-labelled, and a
+ * table view of the same numbers sits under each panel group.
+ */
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="Admin" description="Private visitor console." noindex>
+  <main class="ad" id="ad-root" data-state="loading">
+
+    <!-- Gate -->
+    <section class="ad__gate" id="ad-gate" hidden>
+      <div class="ad__gate-inner">
+        <h1 class="ad__gate-title">Admin</h1>
+        <p class="ad__gate-sub" id="ad-gate-sub">Enter the password.</p>
+        <form class="ad__gate-form" id="ad-gate-form">
+          <input class="ad__gate-input" id="ad-pass" type="password"
+                 placeholder="Password" autocomplete="current-password" aria-label="Password" />
+          <button class="ad__gate-btn" type="submit">Enter</button>
+        </form>
+        <p class="ad__gate-error" id="ad-error" role="alert"></p>
+      </div>
+    </section>
+
+    <!-- Console -->
+    <section class="ad__console" id="ad-console" hidden>
+      <header class="ad__head">
+        <div>
+          <h1 class="ad__title">Console</h1>
+          <p class="ad__sub" id="ad-window">—</p>
+        </div>
+        <div class="ad__controls">
+          <div class="ad__range" role="group" aria-label="Date range">
+            <button class="ad__range-btn is-active" data-days="7" type="button">7d</button>
+            <button class="ad__range-btn" data-days="30" type="button">30d</button>
+            <button class="ad__range-btn" data-days="90" type="button">90d</button>
+            <button class="ad__range-btn" data-days="365" type="button">1y</button>
+          </div>
+          <button class="ad__ghost" id="ad-ignore" type="button" aria-pressed="false">Exclude this device</button>
+          <button class="ad__ghost" id="ad-csv" type="button">Export CSV</button>
+          <button class="ad__ghost" id="ad-out" type="button">Sign out</button>
+        </div>
+      </header>
+
+      <div id="ad-empty" class="ad__empty" hidden>
+        <p><strong>No visits recorded yet.</strong></p>
+        <p>The collector starts writing on the next deploy. Nothing is backfilled —
+           this console shows data from the moment it goes live, not before.</p>
+      </div>
+
+      <div id="ad-body" hidden>
+        <!-- Headline -->
+        <section class="ad__stats" id="ad-stats"></section>
+
+        <!-- Peer read -->
+        <section class="ad__panel">
+          <div class="ad__panel-head">
+            <h2 class="ad__h2">Who's reading</h2>
+            <p class="ad__note">
+              Behavioural, not demographic — a browser cannot report age. A
+              session counts as a likely peer when it arrives from an academic
+              or portfolio source <em>and</em> actually reads something.
+            </p>
+          </div>
+          <div id="ad-audience"></div>
+        </section>
+
+        <div class="ad__grid">
+          <section class="ad__panel">
+            <div class="ad__panel-head">
+              <h2 class="ad__h2">Visits over time</h2>
+              <p class="ad__note">Unique visitors per day.</p>
+            </div>
+            <div id="ad-trend"></div>
+          </section>
+
+          <section class="ad__panel">
+            <div class="ad__panel-head">
+              <h2 class="ad__h2">Where they came from</h2>
+              <p class="ad__note">Referrer, classified.</p>
+            </div>
+            <div id="ad-refs"></div>
+          </section>
+
+          <section class="ad__panel">
+            <div class="ad__panel-head">
+              <h2 class="ad__h2">How deeply they read</h2>
+              <p class="ad__note">Dwell time and scroll depth per view.</p>
+            </div>
+            <div id="ad-depth"></div>
+          </section>
+
+          <section class="ad__panel">
+            <div class="ad__panel-head">
+              <h2 class="ad__h2">Which work they open</h2>
+              <p class="ad__note">Most-viewed pages.</p>
+            </div>
+            <div id="ad-pages"></div>
+          </section>
+
+          <section class="ad__panel ad__panel--wide">
+            <div class="ad__panel-head">
+              <h2 class="ad__h2">When they visit</h2>
+              <p class="ad__note">
+                Hour of day in the visitor's own timezone — studio hours read
+                differently from student hours.
+              </p>
+            </div>
+            <div id="ad-hours"></div>
+          </section>
+
+          <section class="ad__panel">
+            <div class="ad__panel-head">
+              <h2 class="ad__h2">On what</h2>
+              <p class="ad__note">Device class.</p>
+            </div>
+            <div id="ad-devices"></div>
+          </section>
+
+          <section class="ad__panel">
+            <div class="ad__panel-head">
+              <h2 class="ad__h2">From where</h2>
+              <p class="ad__note">Timezone, as a rough location proxy.</p>
+            </div>
+            <div id="ad-places"></div>
+          </section>
+        </div>
+
+        <details class="ad__table-wrap">
+          <summary class="ad__summary">Table view — every number above, as text</summary>
+          <div id="ad-tables"></div>
+        </details>
+
+        <p class="ad__foot" id="ad-foot"></p>
+      </div>
+    </section>
+
+    <section class="ad__setup" id="ad-setup" hidden>
+      <h1 class="ad__gate-title">Admin</h1>
+      <p class="ad__gate-sub">Firebase isn't configured yet.</p>
+      <ol class="ad__steps">
+        <li>Firebase console → <strong>Firestore Database</strong> → Create database (production mode).</li>
+        <li>Firebase console → <strong>Authentication</strong> → enable <strong>Email/Password</strong>, then Users → Add user (your email + a strong password). Leave sign-up disabled.</li>
+        <li>Project settings → General → Your apps → Web app → copy the config values.</li>
+        <li>Put them in <code>.env</code> — see <code>.env.example</code>.</li>
+        <li><code>firebase deploy --only firestore:rules,firestore:indexes</code></li>
+        <li><code>pnpm build &amp;&amp; firebase deploy --only hosting</code></li>
+      </ol>
+    </section>
+  </main>
+</Base>
+
+<script>
+  import { initializeApp } from 'firebase/app';
+  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth';
+  import { getFirestore, collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
+  import { firebaseConfig, ADMIN_EMAIL, isConfigured } from '../lib/firebase-config';
+  import { readIgnoreFlag, setIgnoreFlag } from '../lib/analytics';
+  import {
+    headline, rank, daily, byHour, depthMix, audienceRead, REFERRER_MEANING,
+    type Ev,
+  } from '../lib/analytics-summary';
+
+  const $ = (id: string) => document.getElementById(id)!;
+  const root = $('ad-root');
+
+  /* Whatever the console last rendered — the CSV export reads from here so it
+     always matches what is on screen. */
+  let current: { events: Ev[]; days: number } = { events: [], days: 7 };
+
+
+  const isLocal = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+  const wantsDemo = new URLSearchParams(location.search).has('demo');
+
+
+  function demo() {
+    const paths = ['/', '/about', '/projects', '/projects/shelf', '/projects/alt-verse',
+                   '/projects/habersham-hall', '/academic', '/archv', '/virtual-gods'];
+    const refs: [string, string][] = [
+      ['academic', 'scad.edu'], ['academic', 'archinect.com'], ['social', 'instagram.com'],
+      ['social', 'linkedin.com'], ['search', 'google.com'], ['direct', ''],
+      ['ai', 'chatgpt.com'], ['portfolio', 'cargo.site'],
+    ];
+    const devices = ['desktop', 'phone', 'laptop-small', 'tablet', 'desktop-large'];
+    const zones = ['Asia/Kolkata', 'America/New_York', 'Europe/London', 'America/Chicago', 'Asia/Tokyo'];
+    const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
+
+    const evs: Ev[] = [];
+    for (let d = 29; d >= 0; d--) {
+      const sessions = 3 + Math.floor(Math.random() * 12);
+      for (let i = 0; i < sessions; i++) {
+        const day = new Date();
+        day.setDate(day.getDate() - d);
+        const [rc, r] = pick(refs);
+        const sid = `s${d}_${i}`;
+        const vid = `v${d}_${Math.floor(i / 1.3)}`;
+        const tz = pick(zones);
+        const dev = pick(devices);
+        const hr = Math.floor(Math.random() * 24);
+        for (let pv = 0; pv < 1 + Math.floor(Math.random() * 4); pv++) {
+          const dur = Math.floor(Math.random() * 240);
+          evs.push({
+            t: day.toISOString(), p: pick(paths), cat: 'project', rc, r, v: vid, s: sid,
+            d: dev, w: 1440, lang: 'en-US', tz, hr, dur, scroll: Math.floor(Math.random() * 100),
+            depth: dur < 5 ? 'bounce' : dur < 30 ? 'skim' : dur < 120 ? 'read' : 'deep',
+          });
+        }
+      }
+    }
+
+    $('ad-console').hidden = false;
+    root.dataset.state = 'demo';
+    $('ad-body').hidden = false;
+    $('ad-window').textContent =
+      `DEMO — ${evs.length} synthetic views over 30 days. Not real data.`;
+    renderAll(evs, 30);
+    document.querySelectorAll<HTMLButtonElement>('.ad__range-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.ad__range-btn').forEach((b) => b.classList.remove('is-active'));
+        btn.classList.add('is-active');
+        renderAll(evs, Number(btn.dataset.days));
+      });
+    });
+    $('ad-out').addEventListener('click', () => { location.search = ''; });
+  }
+
+  function boot() {
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    let days = 7;
+    let events: Ev[] = [];
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        $('ad-gate').hidden = true;
+        $('ad-console').hidden = false;
+        root.dataset.state = 'in';
+        load();
+      } else {
+        $('ad-gate').hidden = false;
+        $('ad-console').hidden = true;
+        root.dataset.state = 'out';
+      }
+    });
+
+    $('ad-gate-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = $('ad-pass') as HTMLInputElement;
+      const err = $('ad-error');
+      err.textContent = '';
+      try {
+        await signInWithEmailAndPassword(auth, ADMIN_EMAIL, input.value);
+        input.value = '';
+      } catch (ex: any) {
+        /* Deliberately vague: never confirm whether the account exists. */
+        err.textContent = ex?.code === 'auth/too-many-requests'
+          ? 'Too many attempts. Wait a minute.'
+          : 'Incorrect password.';
+        input.select();
+      }
+    });
+
+    $('ad-out').addEventListener('click', () => signOut(auth));
+
+    document.querySelectorAll<HTMLButtonElement>('.ad__range-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.ad__range-btn').forEach((b) => b.classList.remove('is-active'));
+        btn.classList.add('is-active');
+        days = Number(btn.dataset.days);
+        load();
+      });
+    });
+
+    async function load() {
+      const since = new Date();
+      since.setDate(since.getDate() - days);
+      const sinceIso = since.toISOString();
+      $('ad-window').textContent = `Loading last ${days} days…`;
+
+      try {
+        const snap = await getDocs(query(
+          collection(db, 'events'),
+          where('t', '>=', sinceIso),
+          orderBy('t', 'desc'),
+          limit(20000),
+        ));
+        events = snap.docs.map((d) => d.data() as Ev);
+      } catch (ex: any) {
+        $('ad-window').textContent = `Could not read events — ${ex?.code ?? 'error'}`;
+        return;
+      }
+
+      const empty = events.length === 0;
+      $('ad-empty').hidden = !empty;
+      $('ad-body').hidden = empty;
+      $('ad-window').textContent =
+        `Last ${days} days · ${events.length.toLocaleString()} views recorded`;
+      if (!empty) renderAll(events, days);
+    }
+  }
+
+  /* ── rendering ─────────────────────────────────────────────── */
+
+  const esc = (s: unknown) =>
+    String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+
+  /** Ranked horizontal bars. Length carries the value; every bar is labelled. */
+  function bars(rows: { label: string; n: number }[], note?: (l: string) => string) {
+    if (!rows.length) return '<p class="ad__none">Nothing yet.</p>';
+    const max = Math.max(...rows.map((r) => r.n), 1);
+    const total = rows.reduce((s, r) => s + r.n, 0) || 1;
+    return `<div class="ad__bars">${rows.map((r) => `
+      <div class="ad__bar-row">
+        <div class="ad__bar-label">
+          <span class="ad__bar-name">${esc(r.label)}</span>
+          ${note && note(r.label) ? `<span class="ad__bar-note">${esc(note(r.label))}</span>` : ''}
+        </div>
+        <div class="ad__bar-track">
+          <div class="ad__bar-fill" style="width:${(r.n / max) * 100}%"></div>
+        </div>
+        <div class="ad__bar-val"><b>${r.n.toLocaleString()}</b><span>${Math.round((r.n / total) * 100)}%</span></div>
+      </div>`).join('')}</div>`;
+  }
+
+  /** Sparkline-style day series. One series, so no legend. */
+  function trend(rows: { day: string; visitors: number; views: number }[]) {
+    const max = Math.max(...rows.map((r) => r.visitors), 1);
+    const w = 100, h = 34;
+    const pts = rows.map((r, i) => {
+      const x = rows.length > 1 ? (i / (rows.length - 1)) * w : 0;
+      const y = h - (r.visitors / max) * h;
+      return `${x.toFixed(2)},${y.toFixed(2)}`;
+    });
+    const area = `0,${h} ${pts.join(' ')} ${w},${h}`;
+    const peak = rows.reduce((a, b) => (b.visitors > a.visitors ? b : a), rows[0]);
+    return `
+      <svg class="ad__spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"
+           role="img" aria-label="Unique visitors per day">
+        <polygon points="${area}" class="ad__spark-area"></polygon>
+        <polyline points="${pts.join(' ')}" class="ad__spark-line"></polyline>
+      </svg>
+      <div class="ad__spark-foot">
+        <span>${esc(rows[0]?.day ?? '')}</span>
+        <span class="ad__spark-peak">peak ${peak?.visitors ?? 0} on ${esc(peak?.day ?? '')}</span>
+        <span>${esc(rows[rows.length - 1]?.day ?? '')}</span>
+      </div>`;
+  }
+
+  /** Hour strip — the one place a ramp is used, because darkness = volume. */
+  function hourStrip(rows: { hour: number; n: number }[]) {
+    const max = Math.max(...rows.map((r) => r.n), 1);
+    return `<div class="ad__hours">${rows.map((r) => {
+      const pct = r.n / max;
+      const step = r.n === 0 ? 0 : pct > 0.75 ? 93 : pct > 0.5 ? 78 : pct > 0.25 ? 63 : 48;
+      return `<div class="ad__hour" title="${r.hour}:00 — ${r.n} views">
+        <div class="ad__hour-cell" style="--step:${step}%"></div>
+        <span class="ad__hour-lab">${r.hour % 6 === 0 ? String(r.hour).padStart(2, '0') : ''}</span>
+      </div>`;
+    }).join('')}</div>`;
+  }
+
+  function statTiles(h: ReturnType<typeof headline>) {
+    const mins = h.medianDwell >= 60
+      ? `${Math.floor(h.medianDwell / 60)}m ${h.medianDwell % 60}s`
+      : `${h.medianDwell}s`;
+    const tiles = [
+      ['Unique visitors', h.visitors.toLocaleString(), 'distinct people per day'],
+      ['Sessions', h.sessions.toLocaleString(), 'visits'],
+      ['Pageviews', h.views.toLocaleString(), 'pages opened'],
+      ['Median time', mins, 'on a page'],
+      ['Read or deeper', `${h.engagedShare}%`, 'of views'],
+    ];
+    return tiles.map(([k, v, sub]) => `
+      <div class="ad__stat">
+        <span class="ad__stat-k">${esc(k)}</span>
+        <span class="ad__stat-v">${esc(v)}</span>
+        <span class="ad__stat-sub">${esc(sub)}</span>
+      </div>`).join('');
+  }
+
+  function renderAll(events: Ev[], days: number) {
+  current = { events, days };
+    const h = headline(events);
+    $('ad-stats').innerHTML = statTiles(h);
+
+    const a = audienceRead(events);
+    $('ad-audience').innerHTML = `
+      <div class="ad__audience">
+        <div class="ad__audience-num">
+          <span class="ad__stat-v">${a.peerShare}%</span>
+          <span class="ad__stat-sub">of ${a.sessions} sessions look like peers</span>
+        </div>
+        ${bars([
+          { label: 'likely peers', n: a.peer },
+          { label: 'browsing', n: a.browsing },
+          { label: 'passing through', n: a.passing },
+        ], (l) => ({
+          'likely peers': 'from the field, and read',
+          'browsing': 'read or went deep in the site',
+          'passing through': 'one page, brief',
+        }[l] ?? ''))}
+      </div>`;
+
+    $('ad-trend').innerHTML = trend(daily(events, days));
+    $('ad-refs').innerHTML = bars(
+      rank(events, (e) => e.rc || 'direct'),
+      (l) => REFERRER_MEANING[l] ?? '',
+    );
+    $('ad-depth').innerHTML = bars(depthMix(events), (l) => ({
+      bounce: 'under 5s', skim: '5–30s', read: '30s–2m', deep: 'over 2m',
+    }[l] ?? ''));
+    $('ad-pages').innerHTML = bars(rank(events, (e) => e.p, 10));
+    $('ad-hours').innerHTML = hourStrip(byHour(events));
+    $('ad-devices').innerHTML = bars(rank(events, (e) => e.d, 6));
+    $('ad-places').innerHTML = bars(rank(events, (e) => e.tz, 8));
+
+    /* Table view — the accessibility fallback for every panel above. */
+    const tbl = (title: string, rows: { label: string; n: number }[]) => `
+      <table class="ad__table"><caption>${esc(title)}</caption>
+        <thead><tr><th>Item</th><th>Views</th></tr></thead>
+        <tbody>${rows.map((r) => `<tr><td>${esc(r.label)}</td><td>${r.n}</td></tr>`).join('')}</tbody>
+      </table>`;
+    $('ad-tables').innerHTML = [
+      tbl('Referrers', rank(events, (e) => e.rc || 'direct')),
+      tbl('Depth', depthMix(events)),
+      tbl('Pages', rank(events, (e) => e.p, 10)),
+      tbl('Devices', rank(events, (e) => e.d, 6)),
+      tbl('Timezones', rank(events, (e) => e.tz, 8)),
+      tbl('Hour of day', byHour(events).map((r) => ({ label: `${r.hour}:00`, n: r.n }))),
+    ].join('');
+
+    $('ad-foot').textContent =
+      `Cookieless. Unique visitors are counted with a daily-rotating hash, so the same ` +
+      `person on two different days counts twice and cannot be followed between them. ` +
+      `Ad blockers suppress some visits — treat these as directional.`;
+  }
+
+  // CSV export uses whatever the console last rendered.
+$('ad-csv').addEventListener('click', () => {
+    const cols = ['t', 'p', 'cat', 'rc', 'r', 'd', 'lang', 'tz', 'hr', 'dur', 'scroll', 'depth'];
+    const { events, days } = current;
+      const csv = [cols.join(',')]
+      .concat(events.map((e) => cols.map((c) => {
+        const v = (e as Record<string, unknown>)[c];
+        return v == null ? '' : `"${String(v).replace(/"/g, '""')}"`;
+      }).join(',')))
+      .join('\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `visits-${days}d-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  /* Self-exclusion for the device the console is open on. Has to be set once
+     per device and per browser — there is deliberately nothing linking them. */
+  const ignoreBtn = $('ad-ignore') as HTMLButtonElement;
+  const paintIgnore = () => {
+    const on = readIgnoreFlag();
+    ignoreBtn.textContent = on ? 'This device excluded' : 'Exclude this device';
+    ignoreBtn.setAttribute('aria-pressed', String(on));
+    ignoreBtn.classList.toggle('is-active', on);
+  };
+  ignoreBtn.addEventListener('click', () => { setIgnoreFlag(!readIgnoreFlag()); paintIgnore(); });
+  paintIgnore();
+
+  /* Dispatch last: every helper below is a const, so calling into the render
+     path any earlier hits the temporal dead zone.
+     Localhost-only preview with synthetic events, so the console's layout can
+     be checked before a single real visit exists. Gated on hostname, so it can
+     never render anything on the deployed site. */
+  if (isLocal && wantsDemo) {
+    demo();
+  } else if (!isConfigured()) {
+    $('ad-setup').hidden = false;
+    root.dataset.state = 'setup';
+  } else {
+    boot();
+  }
+
+</script>
+
+<!-- is:global is required, not incidental: every panel's contents are injected
+     with innerHTML from the script below, and injected nodes never receive
+     Astro's scoping attribute — so scoped rules would not match them and the
+     whole console would render as unstyled text. Every selector here is
+     .ad-prefixed, so nothing escapes this page. -->
+<style is:global>
+  .ad {
+    padding-block: 32px 120px;
+    /* Standalone console — it does not use PageLayout, so it carries the house
+       gutter itself rather than sitting flush against the viewport edge. */
+    padding-inline: var(--_tokens---layout--gutter);
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+  }
+
+  /* `hidden` must beat the display rules below it. Without this the gate and
+     the setup panel both render at once, because a class with `display: flex`
+     outranks the attribute's default `display: none`. */
+  .ad [hidden] { display: none !important; }
+
+  /* ── gate ── */
+  .ad__gate, .ad__setup { min-height: 60vh; display: flex; align-items: center; }
+  .ad__setup { flex-direction: column; align-items: flex-start; justify-content: center; gap: 16px; }
+  .ad__gate-inner { display: flex; flex-direction: column; gap: 12px; max-width: 22rem; }
+  .ad__gate-title { font-size: var(--_tokens---type--big); font-weight: 500; letter-spacing: -0.03em; margin: 0; }
+  .ad__gate-sub { font-size: var(--_tokens---type--micro); color: var(--_tokens---color--muted); margin: 0; }
+  .ad__gate-form { display: flex; gap: 8px; margin-top: 8px; }
+  .ad__gate-input {
+    flex: 1; min-width: 0;
+    font: inherit; font-size: var(--_tokens---type--micro);
+    padding: 10px 14px;
+    border: 1px solid var(--_tokens---color--line-soft);
+    border-radius: var(--_tokens---radius--pill);
+    background: transparent; color: var(--_tokens---color--fg);
+  }
+  .ad__gate-btn {
+    font: inherit; font-size: var(--_tokens---type--micro);
+    padding: 10px 20px; cursor: pointer;
+    border: 1px solid var(--_tokens---color--fg);
+    border-radius: var(--_tokens---radius--pill);
+    background: var(--_tokens---color--fg); color: var(--_tokens---color--bg);
+  }
+  .ad__gate-error { font-size: var(--_tokens---type--ultrathin); color: var(--_tokens---color--muted); margin: 0; min-height: 1em; }
+  .ad__steps { font-size: var(--_tokens---type--micro); color: var(--_tokens---color--muted); line-height: 2; padding-left: 1.2rem; max-width: 44rem; }
+  .ad__steps code { font-size: 0.92em; background: color-mix(in srgb, var(--_tokens---color--fg) 7%, transparent); padding: 2px 6px; border-radius: 4px; }
+
+  /* ── head ── */
+  .ad__head { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap;
+              border-bottom: 1px solid var(--_tokens---color--line-soft); padding-bottom: 16px; }
+  .ad__title { font-size: var(--_tokens---type--medium); font-weight: 500; letter-spacing: -0.02em; margin: 0; }
+  .ad__sub { font-size: var(--_tokens---type--ultrathin); color: var(--_tokens---color--muted); margin: 4px 0 0; }
+  .ad__controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .ad__range { display: flex; gap: 4px; }
+  .ad__range-btn, .ad__ghost {
+    font: inherit; font-size: var(--_tokens---type--ultrathin);
+    padding: 6px 14px; cursor: pointer;
+    border: 1px solid var(--_tokens---color--line-soft);
+    border-radius: var(--_tokens---radius--pill);
+    background: transparent; color: var(--_tokens---color--muted);
+  }
+  .ad__ghost.is-active { background: var(--_tokens---color--fg); color: var(--_tokens---color--bg); border-color: var(--_tokens---color--fg); }
+  .ad__range-btn.is-active { background: var(--_tokens---color--fg); color: var(--_tokens---color--bg); border-color: var(--_tokens---color--fg); }
+  @media (hover: hover) {
+    .ad__range-btn:hover, .ad__ghost:hover { color: var(--_tokens---color--fg); }
+  }
+
+  /* The console body is the rhythm container — without it the stat row and the
+     first panel butt straight into each other. */
+  #ad-body { display: flex; flex-direction: column; gap: 44px; }
+  .ad__console { display: flex; flex-direction: column; gap: 32px; }
+
+  /* ── stats ── */
+  .ad__stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: 20px 28px; }
+  .ad__stat { display: flex; flex-direction: column; gap: 2px; }
+  .ad__stat-k { font-size: var(--_tokens---type--ultrathin); text-transform: uppercase; letter-spacing: 0.09em; color: var(--_tokens---color--muted); }
+  .ad__stat-v { font-size: clamp(1.75rem, 1rem + 2vw, 2.75rem); font-weight: 500; letter-spacing: -0.03em; line-height: 1.05; font-variant-numeric: tabular-nums; }
+  .ad__stat-sub { font-size: var(--_tokens---type--ultrathin); color: var(--_tokens---color--muted); }
+
+  /* ── panels ── */
+  .ad__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr)); gap: 36px 40px; }
+  .ad__panel { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .ad__panel--wide { grid-column: 1 / -1; }
+  .ad__panel-head { border-bottom: 1px solid var(--_tokens---color--line-soft); padding-bottom: 10px; }
+  .ad__h2 { font-size: var(--_tokens---type--small); font-weight: 500; letter-spacing: -0.01em; margin: 0; }
+  .ad__note { font-size: var(--_tokens---type--ultrathin); color: var(--_tokens---color--muted); margin: 4px 0 0; line-height: 1.5; max-width: 34rem; }
+  .ad__none { font-size: var(--_tokens---type--ultrathin); color: var(--_tokens---color--muted); }
+
+  /* ── bars ── */
+  .ad__bars { display: flex; flex-direction: column; gap: 10px; }
+  .ad__bar-row { display: grid; grid-template-columns: minmax(6rem, 11rem) 1fr auto; gap: 12px; align-items: center; }
+  .ad__bar-label { display: flex; flex-direction: column; min-width: 0; }
+  .ad__bar-name { font-size: var(--_tokens---type--ultrathin); color: var(--_tokens---color--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ad__bar-note { font-size: 0.62rem; color: var(--_tokens---color--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ad__bar-track { height: 10px; background: color-mix(in srgb, var(--_tokens---color--fg) 7%, transparent); border-radius: 3px; overflow: hidden; }
+  .ad__bar-fill { height: 100%; background: color-mix(in srgb, var(--_tokens---color--fg) 78%, var(--_tokens---color--bg)); border-radius: 3px; min-width: 2px; }
+  .ad__bar-val { display: flex; align-items: baseline; gap: 6px; font-variant-numeric: tabular-nums; }
+  .ad__bar-val b { font-size: var(--_tokens---type--ultrathin); font-weight: 600; }
+  .ad__bar-val span { font-size: 0.62rem; color: var(--_tokens---color--muted); }
+
+  /* ── trend ── */
+  .ad__spark { width: 100%; height: 120px; display: block; overflow: visible; }
+  .ad__spark-area { fill: color-mix(in srgb, var(--_tokens---color--fg) 9%, transparent); }
+  .ad__spark-line { fill: none; stroke: var(--_tokens---color--fg); stroke-width: 2; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+  .ad__spark-foot { display: flex; justify-content: space-between; gap: 10px; font-size: 0.62rem; color: var(--_tokens---color--muted); margin-top: 8px; font-variant-numeric: tabular-nums; }
+  .ad__spark-peak { color: var(--_tokens---color--fg); }
+
+  /* ── hours ── */
+  .ad__hours { display: grid; grid-template-columns: repeat(24, 1fr); gap: 3px; }
+  .ad__hour { display: flex; flex-direction: column; gap: 5px; align-items: center; min-width: 0; }
+  .ad__hour-cell { width: 100%; height: 42px; border-radius: 3px;
+    background: color-mix(in srgb, var(--_tokens---color--fg) var(--step, 0%), var(--_tokens---color--bg));
+    border: 1px solid var(--_tokens---color--line-soft); }
+  .ad__hour-lab { font-size: 0.58rem; color: var(--_tokens---color--muted); font-variant-numeric: tabular-nums; }
+
+  /* ── audience ── */
+  .ad__audience { display: grid; grid-template-columns: minmax(9rem, 14rem) 1fr; gap: 32px; align-items: center; }
+  .ad__audience-num { display: flex; flex-direction: column; gap: 2px; }
+  @media (max-width: 699.98px) { .ad__audience { grid-template-columns: 1fr; gap: 20px; } }
+
+  /* ── tables ── */
+  .ad__table-wrap { border-top: 1px solid var(--_tokens---color--line-soft); padding-top: 16px; }
+  .ad__summary { font-size: var(--_tokens---type--ultrathin); color: var(--_tokens---color--muted); cursor: pointer; }
+  .ad__table { border-collapse: collapse; width: 100%; max-width: 34rem; margin: 20px 0; font-size: var(--_tokens---type--ultrathin); }
+  .ad__table caption { text-align: left; font-weight: 600; padding-bottom: 6px; }
+  .ad__table th, .ad__table td { text-align: left; padding: 5px 10px 5px 0; border-bottom: 1px solid var(--_tokens---color--line-soft); }
+  .ad__table td:last-child, .ad__table th:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+
+  .ad__empty { font-size: var(--_tokens---type--micro); color: var(--_tokens---color--muted); line-height: 1.7; max-width: 34rem; }
+  .ad__empty strong { color: var(--_tokens---color--fg); }
+  .ad__foot { font-size: 0.62rem; color: var(--_tokens---color--muted); line-height: 1.7; max-width: 44rem; border-top: 1px solid var(--_tokens---color--line-soft); padding-top: 16px; margin-top: 8px; }
+</style>

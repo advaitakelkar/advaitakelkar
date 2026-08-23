@@ -1,6 +1,7 @@
 ---
 import Arrow from './Arrow.astro';
-// Site-wide soft lock for project detail pages. Password: advt.
+// Site-wide soft lock for project detail pages. Passwords are SHA-256 hashed
+// below — do not write the plaintext back into this file or the comments.
 // Public pages (home, about, projects index, categories) stay open.
 // State lives in sessionStorage; the SideNav lock toggle ([data-lock-toggle])
 // can lock/unlock the whole site at once.
@@ -33,9 +34,30 @@ import Arrow from './Arrow.astro';
 </div>
 
 <script>
-  const PASSWORD = 'advt';       // Tier 1 — unlocks viewing the gated project pages
-  const EDIT_PASSWORD = 'edit';  // Tier 2 — enters inline Edit Mode (localhost only)
+  /* Passwords are stored as SHA-256 hashes, not plaintext. They used to be
+     literals here, which meant View Source revealed them — and the same words
+     may be reused elsewhere, so the leak mattered beyond this gate.
+
+     Be clear about what this does and does not buy: the gate is still a SOFT
+     one. It runs in the browser, so anyone determined can set the session key
+     by hand and walk past it. Hashing stops the password itself escaping; it
+     does not make the archive private. Anything that must actually stay
+     private needs server-side auth — see /admin, which uses Firebase Auth.
+
+     A four-character password is also brute-forceable from its hash in
+     seconds. To change one:
+        node -e "console.log(require('crypto').createHash('sha256').update('NEW').digest('hex'))" */
+  const PASSWORD_HASH = 'a81aea2e5c0037e0ffe2c0e66179aa488a50def15f055e0467e67cde8285a37b';
+  const EDIT_HASH     = '262121c5372be8af3ae6ff0d3d138d9e6e1249335222c7f0e02535e35073bb0b';
   const KEY = 'ak-project-access';
+  /* What gets written to sessionStorage on success — deliberately not the
+     password, so the value cannot be lifted out of storage and reused. */
+  const UNLOCK_TOKEN = 'unlocked';
+
+  async function sha256(text: string): Promise<string> {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+    return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+  }
 
   const isLocal = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
 
@@ -50,7 +72,7 @@ import Arrow from './Arrow.astro';
     if (sub) sub.textContent = 'Enter the password to view — or the edit password to edit text in place.';
   }
 
-  const isUnlocked = () => sessionStorage.getItem(KEY) === PASSWORD;
+  const isUnlocked = () => sessionStorage.getItem(KEY) === UNLOCK_TOKEN;
 
   const BYPASS_SLUGS = [
     'alt-verse',
@@ -103,23 +125,26 @@ import Arrow from './Arrow.astro';
     reflectToggles();
   }
 
-  form?.addEventListener('submit', (e) => {
+  form?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (input && isLocal && input.value === EDIT_PASSWORD) {
+    if (!input) return;
+    const typed = await sha256(input.value);
+
+    if (isLocal && typed === EDIT_HASH) {
       // Edit Mode: also unlock previews so project pages are viewable while editing.
-      sessionStorage.setItem(KEY, PASSWORD);
+      sessionStorage.setItem(KEY, UNLOCK_TOKEN);
       input.value = '';
       closeLock();
       reflectToggles();
       document.dispatchEvent(new Event('ak:editmode:on'));
-    } else if (input && input.value === PASSWORD) {
-      sessionStorage.setItem(KEY, PASSWORD);
+    } else if (typed === PASSWORD_HASH) {
+      sessionStorage.setItem(KEY, UNLOCK_TOKEN);
       input.value = '';
       applyGate();
     } else {
       if (error) error.textContent = 'Incorrect password.';
-      input?.focus();
-      input?.select();
+      input.focus();
+      input.select();
     }
   });
 

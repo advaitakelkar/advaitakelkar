@@ -1,0 +1,73 @@
+rules_version = '2';
+
+/**
+ * Firestore security rules — the actual security boundary for /admin.
+ *
+ * These are enforced by Google's servers, not by anything in the browser, so
+ * unlike a client-side password check they cannot be bypassed by reading the
+ * bundle or setting a value in devtools. The Firebase apiKey being public is
+ * fine and by design; these rules are what protect the data.
+ *
+ * Deploy with:  firebase deploy --only firestore:rules
+ */
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /events/{eventId} {
+
+      /* Anyone may add a visit — the collector runs for anonymous visitors,
+         so this has to be open. It is constrained instead of trusted:
+         a document must look like a pageview and nothing else. */
+      allow create: if isWellFormedEvent();
+
+      /* Only the owner reads. This is the line that matters — without it the
+         entire visit log would be world-readable. */
+      allow read: if isOwner();
+
+      /* Visits are an append-only log. Nobody edits or deletes them, not even
+         the owner from the client; use the console for that. */
+      allow update, delete: if false;
+    }
+
+    /* Anything not named above is closed. */
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+
+  function isOwner() {
+    /* Pinned to one address, NOT merely "is signed in".
+       "Signed in" was never sufficient: Firebase Auth allows open self-signup
+       by default, and the Google provider is enabled on this project — so any
+       person on the internet could mint an account and read the whole visit
+       log. Verified against the live project: accounts:signUp succeeded for an
+       arbitrary address.
+       Pinned to the uid rather than the address: a uid is immutable, whereas
+       an email on an account can be changed. Self-signup is also switched off
+       in the console now, so this is belt and braces. */
+    return request.auth != null
+      && request.auth.uid == '9aBZX2FkrLTWoXYus0r8nt01abb2';
+  }
+
+  function isWellFormedEvent() {
+    let d = request.resource.data;
+    return
+      /* Cap the shape so the collection cannot be used as free storage. */
+      d.keys().hasOnly([
+        't', 'p', 'cat', 'r', 'rc', 'v', 's', 'd', 'w',
+        'lang', 'tz', 'hr', 'utm', 'dur', 'scroll', 'depth'
+      ])
+      && d.keys().hasAll(['t', 'p', 'v', 's'])
+      /* Bound every string so a document cannot be inflated. */
+      && d.p is string && d.p.size() <= 300
+      && d.v is string && d.v.size() <= 32
+      && d.s is string && d.s.size() <= 32
+      && d.t is string && d.t.size() <= 40
+      /* Numbers stay in plausible ranges. */
+      && (!('w' in d) || (d.w is int && d.w >= 0 && d.w <= 10000))
+      && (!('hr' in d) || (d.hr is int && d.hr >= 0 && d.hr <= 23))
+      && (!('scroll' in d) || (d.scroll is int && d.scroll >= 0 && d.scroll <= 100))
+      /* A single session cannot claim more than a day of dwell. */
+      && (!('dur' in d) || (d.dur is int && d.dur >= 0 && d.dur <= 86400));
+  }
+}

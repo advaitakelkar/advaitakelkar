@@ -1,28 +1,19 @@
 ---
 import '../styles/tokens.css';
-import { BORROWED_FAMILIES, BORROWED_TEXT, GLYPH_FONT_STACK } from '../lib/glyphs';
 
 export interface Props {
   title: string;
   description?: string;
   ogImage?: string;
+  /** Keep the page out of search results and the sitemap (used by /admin). */
+  noindex?: boolean;
 }
 
-const { title, description = 'Advaita Kelkar — Architect & Designer', ogImage } = Astro.props;
+const { title, description = 'Advaita Kelkar — Architect & Designer', ogImage, noindex = false } = Astro.props;
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 // Absolute share image (per-page override → site default). Crawlers need an
 // absolute URL, so resolve against the canonical site origin.
 const shareImage = new URL(ogImage ?? '/images/people/advaita-kelkar.jpg', Astro.site).href;
-
-/* Font URL for the scramble alphabet's non-Latin glyphs. Derived from
-   src/lib/glyphs.ts, never hand-written: `text=` subsets each Noto family to
-   exactly the characters the effect uses, which is what keeps twelve writing
-   systems down to ~22 KB in total. Editing the alphabet updates this on the
-   next build. */
-const glyphFontHref =
-  'https://fonts.googleapis.com/css2?' +
-  BORROWED_FAMILIES.map((f) => `family=${f.replace(/ /g, '+')}`).join('&') +
-  `&text=${encodeURIComponent(BORROWED_TEXT)}&display=swap`;
 ---
 
 <!doctype html>
@@ -32,6 +23,7 @@ const glyphFontHref =
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/svg+xml" href="/ak-favicon.svg" />
     <meta name="generator" content={Astro.generator} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
 
     <!-- Inter — loaded from the head (parallel, not chained behind the CSS
          bundle like the old @import). Roman only: the site uses no italics.
@@ -39,20 +31,6 @@ const glyphFontHref =
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100..900&display=swap" />
-
-    <!-- Scramble glyphs only. Subsetted to the exact characters used, so all
-         twelve non-Latin scripts together cost about 22 KB. Nothing on the
-         page is set in these — they appear mid-animation and vanish. -->
-    <link rel="stylesheet" href={glyphFontHref} />
-    <style define:vars={{ glyphFontStack: GLYPH_FONT_STACK }}>
-      /* Applied only while an element is mid-scramble. The font stack lets the
-         borrowed glyphs resolve; the bidi isolation stops Hebrew and Arabic
-         reordering the line and flinging characters to the wrong side. */
-      :global(.is-scrambling) {
-        font-family: var(--glyphFontStack);
-        unicode-bidi: isolate;
-      }
-    </style>
 
     <title>{title} — AK</title>
     <meta name="description" content={description} />
@@ -526,6 +504,18 @@ const glyphFontHref =
       }
       initScrollFades();
       document.addEventListener('astro:after-swap', initScrollFades);
+    </script>
+
+    <script>
+      /* Cookieless visit collector. Deferred to idle so it never competes with
+         paint, and silent on failure — a visitor must never see an analytics
+         error. Skips localhost, /admin, Do Not Track and Global Privacy
+         Control on its own (see src/lib/analytics.ts). */
+      import { trackPageview } from '../lib/analytics';
+
+      const start = () => { trackPageview().catch(() => {}); };
+      if ('requestIdleCallback' in window) requestIdleCallback(start, { timeout: 3000 });
+      else setTimeout(start, 1200);
     </script>
   </body>
 </html>

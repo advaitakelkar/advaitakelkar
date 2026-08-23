@@ -117,6 +117,113 @@ package.json            ← pnpm scripts: dev, build, preview, sync, sync-notion
 
 ---
 
+## ADMIN — the visitor console
+
+`/admin` is a private analytics console. Not linked from anywhere, `noindex`,
+excluded from the sitemap and disallowed in robots.txt.
+
+### How it is secured
+
+One password field, **real Firebase Auth behind it**. The email is fixed in
+`src/lib/firebase-config.ts` and never typed, so it feels like a soft gate while
+the password is actually checked by Google's servers and never ships in the
+bundle. `firestore.rules` is the real boundary — it is enforced server-side, so
+unlike `SiteLock` it cannot be walked past from devtools.
+
+The Firebase `apiKey` in `.env` is **public by design**. It is an identifier,
+not a secret. Do not try to hide it; protect the data with rules instead.
+
+### How it collects
+
+Cookieless. **Nothing is written to the visitor's device**, so there is no
+consent banner and no GDPR exposure. Unique visitors come from a
+**daily-rotating hash** — `SHA-256(UTC date + UA + language + timezone +
+screen)`. The date in the hash is what makes it rotate: today's id cannot be
+matched to yesterday's, so a person cannot be followed across days.
+
+Its limit, stated in the console footer too: two people on the same browser, OS,
+screen and timezone hash identically and count as one. Ad blockers suppress
+some visits. The numbers are directional.
+
+Public pages carry **~1.5 KB** — the collector posts straight to the Firestore
+REST API. The Firebase SDK (~670 KB) loads on `/admin` only; check that stays
+true if you touch `Base.astro`.
+
+### Age data does not exist
+
+A browser exposes no age, and never will. GA4's age buckets are inferred from
+Google ad profiles — they need consent, a server-side key, and only cover a
+sampled slice of signed-in users. **"Are these my peers?" is answered
+behaviourally instead**, in `audienceRead()`: a session counts as a likely peer
+when it arrives from an academic or portfolio referrer *and* actually reads
+something. Referrer class, dwell depth, local hour and device are the signals.
+
+### Charts
+
+No categorical colour anywhere, deliberately — the site is monochrome across
+seven schemes. Every panel encodes its value with **length or position** and a
+single uniform fill, so no legend is needed and nothing depends on hue. The one
+ramp is the hour strip, where darkness genuinely encodes magnitude; its steps
+were validated for contrast (all ≥ 3:1 against the surface in both modes). Every
+bar is direct-labelled and a table view of the same numbers sits below.
+
+### Two traps
+
+- **`<style>` on this page must be `is:global`.** Panel contents are injected
+  with `innerHTML`, and injected nodes never receive Astro's scoping attribute —
+  scoped rules silently fail to match and the console renders as unstyled text.
+  Every selector is `.ad`-prefixed so nothing escapes.
+- **The dispatch call sits at the bottom of the script.** The render helpers are
+  `const`, so calling into them any earlier hits the temporal dead zone.
+
+### Preview without data
+
+`/admin?demo=1` on **localhost only** renders the whole console with synthetic
+events. Gated on hostname, so it can never appear on the deployed site.
+
+### Setup status
+
+Done (22 Aug 2026):
+
+- Web app created — `1:233978163356:web:09626d7b4b49795829fd59`
+- `.env` written from `firebase apps:sdkconfig WEB` (gitignored)
+- Firestore `(default)` database created, **location `nam5`** — permanent, cannot be changed
+- `firestore.rules` + indexes deployed and verified against the live project:
+
+  | check | result |
+  |---|---|
+  | anonymous read | PERMISSION_DENIED |
+  | valid event write | allowed |
+  | write with unexpected keys | PERMISSION_DENIED |
+  | `dur` out of range | PERMISSION_DENIED |
+  | write to another collection | PERMISSION_DENIED |
+
+Still outstanding:
+
+1. **Authentication is not initialised.** Console → Authentication → Get started
+   → enable Email/Password → Users → Add user (`advaitakelkar@gmail.com`).
+   Leave sign-up disabled. Probing `accounts:signInWithPassword` returns
+   `CONFIGURATION_NOT_FOUND` until this is done, and `/admin` cannot sign in.
+2. **Turn off self-signup** — Authentication → Settings → User actions →
+   untick "Enable create (sign-up)". Firebase allows open self-registration by
+   default: `accounts:signUp` was verified succeeding for an arbitrary address
+   on this project. Also disable the **Google** provider unless something needs
+   it; `/admin` only uses Email/Password.
+
+   `isOwner()` no longer trusts "is signed in" for exactly this reason — it
+   pins to `request.auth.token.email`. Swap that for the uid once the owner
+   account exists (uid is stable; an address could in principle be changed).
+3. `pnpm build && firebase deploy --only hosting` to start collecting.
+
+Rules take up to a minute to propagate. A valid write rejected immediately
+after a deploy is usually propagation, not a rules bug — retry before debugging.
+
+`firestore.indexes.json` is deliberately empty: the console's only query filters
+and orders on one field, and Firestore builds single-field indexes itself —
+declaring one is rejected as unnecessary.
+
+---
+
 ## The Design System
 
 Three rules carry most of it. Breaking any of them is how the site drifted into
@@ -216,35 +323,33 @@ arrow pointing north-east.
 ### The scramble alphabet
 
 `src/lib/glyphs.ts` is the only place the glitch-text characters are defined —
-they used to be a literal pasted into Base, SideNav and about.astro. **190
-characters across 20 groups**, in two tiers:
+they used to be a literal pasted into Base, SideNav and about.astro. **91
+characters across 8 groups**: symbols, Greek, Cyrillic, Old Church Slavonic,
+polytonic Greek, IPA, and two Latin Extended blocks.
 
-- **Native (91)** — symbols, Greek, Cyrillic (incl. Old Church Slavonic),
-  polytonic Greek, IPA, Latin Extended. Already inside Inter, so they cost
-  nothing but an extra subset fetch on first use.
-- **Borrowed (99)** — Devanagari, Bengali, Gujarati, Tamil, Telugu, Kannada,
-  Malayalam, Japanese, Korean, Thai, Hebrew, Arabic. Inter has none of these;
-  they come from twelve Noto families that Google subsets to *exactly* these
-  characters via `text=`. All twelve together are **~22 KB**.
+Every one of them is **already inside Inter**, so the effect costs no extra
+font — just an additional Google Fonts subset the first time a scramble runs.
+Stay inside Inter's coverage when editing: `latin`, `latin-ext`, `greek(+ext)`,
+`cyrillic(+ext)`. Anything outside that renders in a fallback face or a tofu
+box.
 
-The `<link>` in `Base.astro` is **derived** from `BORROWED_TEXT` — never edit
-the URL by hand. Add a character to the module and the font request updates on
-the next build.
+> A version of this borrowed twelve subsetted Noto families to add Devanagari,
+> Tamil, Kannada, Malayalam, Bengali, Telugu, Gujarati, Japanese, Korean, Thai,
+> Hebrew and Arabic (~22 KB, verified working). It was reverted — mixing Noto
+> into an Inter page meant the effect ran in a different typeface. If it comes
+> back it needs its own derived `<link>`, plus `unicode-bidi: isolate` for the
+> two RTL scripts.
 
-Three things keep it from breaking, all learned the hard way:
+Two things keep it from breaking:
 
 - **Base characters only.** Combining marks (Unicode Mn/Mc/Me) attach to the
   preceding glyph and render as a broken cluster. `pnpm lint:glyphs` rejects
   them, rejects cross-group duplicates, and fails if any file hard-codes the
   alphabet again.
-- **`unicode-bidi: isolate`** on `.is-scrambling`. Hebrew and Arabic are RTL —
-  without isolation they reorder the whole line mid-animation and characters
-  fly to the wrong side.
-- **Width lock.** Advance widths run from ~0.3em (a bracket) to 1em (kana,
-  hangul) to 1.6em (Malayalam). `TextScrambler.lock()` pins `min-width` and
-  sets `white-space: nowrap` for the duration, so a heading cannot collapse or
-  re-wrap. It still breathes — measured peak is **1.4× the resting width** —
-  but produces no horizontal page overflow at any tested viewport.
+- **Width lock.** Glyph advance widths span roughly 0.3em to 1em, so
+  `TextScrambler.lock()` pins `min-width` and sets `white-space: nowrap` for
+  the duration — a heading cannot collapse or re-wrap mid-animation. It still
+  breathes a little, which reads as part of the effect.
 
 **`/glyphs`** renders every group and the effect on real headings. Not linked
 from anywhere and not in the sitemap; it uses `Base` rather than `PageLayout`

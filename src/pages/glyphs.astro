@@ -4,16 +4,12 @@
  * Visit /glyphs to see every group and watch the effect on real headings.
  */
 import Base from '../layouts/Base.astro';
-import { GLYPH_GROUPS, GLYPHS, BORROWED_FAMILIES } from '../lib/glyphs';
+import { GLYPH_GROUPS, GLYPHS } from '../lib/glyphs';
 
-const NATIVE_KEYS = ['symbols', 'greek', 'cyrillic', 'cyrArchaic', 'greekPoly', 'ipa', 'latinAdd', 'latinExtCD'];
 const groups = Object.entries(GLYPH_GROUPS).map(([name, chars]) => ({
   name,
   chars: [...chars],
-  native: NATIVE_KEYS.includes(name),
 }));
-const nativeCount = groups.filter((g) => g.native).reduce((n, g) => n + g.chars.length, 0);
-const borrowedCount = GLYPHS.length - nativeCount;
 ---
 
 <Base title="Glyphs">
@@ -21,9 +17,9 @@ const borrowedCount = GLYPHS.length - nativeCount;
     <header class="gp__head">
       <h1 class="gp__title" data-scramble>Scramble Alphabet</h1>
       <p class="gp__lede">
-        {GLYPHS.length} characters across {groups.length} groups.
-        {nativeCount} come from Inter itself; {borrowedCount} are borrowed from
-        {BORROWED_FAMILIES.length} subsetted Noto families (~22&nbsp;KB total).
+        {GLYPHS.length} characters across {groups.length} groups, every one of
+        them already inside Inter — symbols, Greek, Cyrillic, Old Church
+        Slavonic, polytonic Greek, IPA and Latin Extended. No extra font.
         Hover anything below to scramble it.
       </p>
     </header>
@@ -46,13 +42,11 @@ const borrowedCount = GLYPHS.length - nativeCount;
           <div class="gp__group">
             <div class="gp__group-head">
               <span class="gp__group-name">{g.name}</span>
-              <span class="gp__group-meta">
-                {g.chars.length} · {g.native ? 'Inter' : 'Noto'}
-              </span>
+              <span class="gp__group-meta">{g.chars.length}</span>
             </div>
             <div class="gp__cells">
               {g.chars.map((c) => (
-                <span class="gp__cell is-scrambling" title={`U+${c.codePointAt(0)!.toString(16).toUpperCase().padStart(4, '0')}`}>{c}</span>
+                <span class="gp__cell" title={`U+${c.codePointAt(0)!.toString(16).toUpperCase().padStart(4, '0')}`}>{c}</span>
               ))}
             </div>
           </div>
