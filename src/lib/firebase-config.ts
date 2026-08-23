@@ -1,24 +1,30 @@
 /**
  * Firebase web config for the /admin console.
  *
- * These values are PUBLIC by design — Firebase web config is meant to ship in
- * the client bundle. The apiKey is an identifier, not a secret; what actually
- * protects the data is firestore.rules, which Google enforces server-side.
+ * These values are committed on purpose. Firebase web config is PUBLIC by
+ * design — it ships in the client bundle to every visitor no matter where it
+ * is stored, and the apiKey is an identifier rather than a secret. What
+ * actually protects the visit log is firestore.rules (pinned to one uid,
+ * enforced by Google's servers) plus self-signup being disabled.
  *
- * Fill them in via .env (see .env.example). They come from:
- *   Firebase console → Project settings → General → Your apps → Web app → SDK
- *   setup and configuration → Config
+ * They started life in a gitignored .env, which quietly broke production: CI
+ * has no .env, so GitHub Actions built with empty config and deployed an
+ * /admin that could only show its own setup instructions. Hiding a value that
+ * is served to every visitor anyway bought nothing and cost a deploy.
+ *
+ * .env still overrides these, which is useful for pointing a local build at a
+ * different Firebase project.
  */
 
 const env = import.meta.env;
 
 export const firebaseConfig = {
-  apiKey:            env.PUBLIC_FIREBASE_API_KEY ?? '',
+  apiKey:            env.PUBLIC_FIREBASE_API_KEY ?? 'AIzaSyCkow4qpaBNHNHJ9WzxuqGCG34ybRJNFcg',
   authDomain:        env.PUBLIC_FIREBASE_AUTH_DOMAIN ?? 'advaitakelkar-site.firebaseapp.com',
   projectId:         env.PUBLIC_FIREBASE_PROJECT_ID ?? 'advaitakelkar-site',
   storageBucket:     env.PUBLIC_FIREBASE_STORAGE_BUCKET ?? 'advaitakelkar-site.appspot.com',
-  messagingSenderId: env.PUBLIC_FIREBASE_SENDER_ID ?? '',
-  appId:             env.PUBLIC_FIREBASE_APP_ID ?? '',
+  messagingSenderId: env.PUBLIC_FIREBASE_SENDER_ID ?? '233978163356',
+  appId:             env.PUBLIC_FIREBASE_APP_ID ?? '1:233978163356:web:09626d7b4b49795829fd59',
 };
 
 /**
