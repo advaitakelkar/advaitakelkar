@@ -6,16 +6,27 @@
  * Google's servers and never ships in this bundle; firestore.rules is what
  * keeps the visit log private. See src/lib/firebase-config.ts.
  *
+ * Uses PageLayout, so it carries the same rail, breadcrumb and Pages dropdown
+ * as every other route — the console is a page of the site, not a separate
+ * surface you can only leave with the back button.
+ *
  * Charts here carry no categorical colour on purpose. The site is monochrome
  * across seven schemes, so every panel encodes its value with length or
  * position and a single uniform fill; the only ramp is the hour strip, where
  * darkness genuinely encodes magnitude. Every bar is direct-labelled, and a
  * table view of the same numbers sits under each panel group.
  */
-import Base from '../layouts/Base.astro';
+import PageLayout from '../layouts/PageLayout.astro';
 ---
 
-<Base title="Admin" description="Private visitor console." noindex>
+<PageLayout
+  title="Admin"
+  label="Admin"
+  description="Private visitor console."
+  crumbs={[{ label: 'Home', href: '/' }, { label: 'Admin' }]}
+  showFooter={false}
+  noindex
+>
   <main class="ad" id="ad-root" data-state="loading">
 
     <!-- Gate -->
@@ -158,7 +169,7 @@ import Base from '../layouts/Base.astro';
       </ol>
     </section>
   </main>
-</Base>
+</PageLayout>
 
 <script>
   import { initializeApp } from 'firebase/app';
@@ -500,10 +511,9 @@ $('ad-csv').addEventListener('click', () => {
      .ad-prefixed, so nothing escapes this page. -->
 <style is:global>
   .ad {
-    padding-block: 32px 120px;
-    /* Standalone console — it does not use PageLayout, so it carries the house
-       gutter itself rather than sitting flush against the viewport edge. */
-    padding-inline: var(--_tokens---layout--gutter);
+    /* Clears the fixed breadcrumb bar, same as every other page. The gutter
+       comes from PageLayout now. */
+    padding-block: calc(var(--_tokens---layout--bar) + 12px) 120px;
     display: flex;
     flex-direction: column;
     gap: 40px;
