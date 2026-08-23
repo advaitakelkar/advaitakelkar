@@ -252,6 +252,12 @@ import PageLayout from '../layouts/PageLayout.astro';
 
     let days = 7;
     let events: Ev[] = [];
+    /* Firestore's JS SDK rejects limit() above 10000 with `invalid-argument`
+       — not a permissions error, and it fires before the query reaches the
+       server, so it looks like a broken console rather than a bad argument.
+       10000 is the ceiling, verified by bisection against the live project. */
+    const MAX_EVENTS = 10000;
+    let truncated = false;
 
     onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -305,9 +311,10 @@ import PageLayout from '../layouts/PageLayout.astro';
           collection(db, 'events'),
           where('t', '>=', sinceIso),
           orderBy('t', 'desc'),
-          limit(20000),
+          limit(MAX_EVENTS),
         ));
         events = snap.docs.map((d) => d.data() as Ev);
+        truncated = snap.size >= MAX_EVENTS;
       } catch (ex: any) {
         $('ad-window').textContent = `Could not read events — ${ex?.code ?? 'error'}`;
         return;
@@ -316,8 +323,9 @@ import PageLayout from '../layouts/PageLayout.astro';
       const empty = events.length === 0;
       $('ad-empty').hidden = !empty;
       $('ad-body').hidden = empty;
-      $('ad-window').textContent =
-        `Last ${days} days · ${events.length.toLocaleString()} views recorded`;
+      $('ad-window').textContent = truncated
+        ? `Last ${days} days · showing the most recent ${MAX_EVENTS.toLocaleString()} views — older ones in this range are not counted`
+        : `Last ${days} days · ${events.length.toLocaleString()} views recorded`;
       if (!empty) renderAll(events, days);
     }
   }
