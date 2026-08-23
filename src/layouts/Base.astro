@@ -155,31 +155,59 @@ const shareImage = new URL(ogImage ?? '/images/people/advaita-kelkar.jpg', Astro
           }
         }
 
-        /* Hold the line's geometry for the duration.
-           The alphabet now spans twelve writing systems whose advance widths
-           range from ~0.3em (a bracket) to 1em (kana, hangul) and 1.6em
-           (Malayalam), so an unlocked heading can re-wrap mid-animation and
-           shove the page around. min-width stops it collapsing, nowrap stops
-           it breaking to a second line; it may still breathe a few pixels
-           wider, which reads as part of the effect rather than as a bug. */
+        /* Freeze the box that must not move, for the duration.
+           Substituted glyphs are not the same width as the letters they
+           replace, so an unlocked element grows and shrinks as it runs and
+           drags the rest of the page with it.
+
+           The box we pin is not always the element being scrambled. Many
+           targets are inline <span>s, and width/height do nothing on those.
+           Two earlier attempts made it worse: `white-space: nowrap` collapsed
+           a two-line heading to one and everything below jumped up, and
+           `display: inline-block` added descender space to the line box and
+           pushed the page down 42px. So: pin the nearest block-level box
+           instead and never touch the inline element's own layout. */
+        boxEl(): HTMLElement {
+          const el = this.el;
+          if (getComputedStyle(el).display !== 'inline') return el;
+          return (el.parentElement as HTMLElement) || el;
+        }
+
         lock() {
-          if (this.el.dataset.scrambleLocked) return;
-          const w = this.el.getBoundingClientRect().width;
-          this.el.dataset.scrambleLocked = '1';
-          this.el.dataset.scramblePrevWs = this.el.style.whiteSpace || '';
-          this.el.dataset.scramblePrevMw = this.el.style.minWidth || '';
-          if (w > 0) this.el.style.minWidth = w + 'px';
-          this.el.style.whiteSpace = 'nowrap';
+          const box = this.boxEl();
+          if (box.dataset.scrambleLocked) return;
+          const r = box.getBoundingClientRect();
+          if (r.width === 0 || r.height === 0) return;
+          const st = box.style;
+          box.dataset.scrambleLocked = '1';
+          box.dataset.scramblePrev = JSON.stringify({
+            w: st.width, h: st.height, o: st.overflow, ws: st.whiteSpace,
+          });
+          st.width = r.width + 'px';
+          st.height = r.height + 'px';
+          st.overflow = 'hidden';
+          /* Wider glyphs can push a one-line heading onto a second line, which
+             the fixed height then clips — it reads as characters going
+             missing. nowrap keeps it on its line instead.
+             Applied ONLY to boxes that are already a single line: forcing it
+             on a heading that legitimately wraps collapses it to one line and
+             yanks the page upward, which is the bug this replaced. */
+          const lh = parseFloat(getComputedStyle(box).lineHeight) || r.height;
+          if (r.height < lh * 1.6) st.whiteSpace = 'nowrap';
           this.el.classList.add('is-scrambling');
         }
 
         unlock() {
-          if (!this.el.dataset.scrambleLocked) return;
-          this.el.style.whiteSpace = this.el.dataset.scramblePrevWs || '';
-          this.el.style.minWidth = this.el.dataset.scramblePrevMw || '';
-          delete this.el.dataset.scrambleLocked;
-          delete this.el.dataset.scramblePrevWs;
-          delete this.el.dataset.scramblePrevMw;
+          const box = this.boxEl();
+          if (!box.dataset.scrambleLocked) return;
+          const prev = JSON.parse(box.dataset.scramblePrev || '{}');
+          const st = box.style;
+          st.width = prev.w || '';
+          st.height = prev.h || '';
+          st.overflow = prev.o || '';
+          st.whiteSpace = prev.ws || '';
+          delete box.dataset.scrambleLocked;
+          delete box.dataset.scramblePrev;
           this.el.classList.remove('is-scrambling');
         }
 

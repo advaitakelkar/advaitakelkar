@@ -425,20 +425,28 @@ html {
    blanket-apply: several components already use ::after for arrows and
    underlines, and a global rule would collide with them. */
 @media (pointer: coarse) {
-  .tap-44 {
+  /* Doubled class so this beats Astro's scoped component rules (0,2,0).
+     If `position: relative` loses, the pseudo-element below escapes to the
+     nearest positioned ancestor — which is exactly how the lock button's hit
+     area grew to cover the entire 44x664 INDEX rail and stopped it opening. */
+  .tap-44.tap-44 {
     position: relative;
   }
-  .tap-44::after {
+  .tap-44.tap-44::after {
     content: '';
     position: absolute;
     top: 50%;
     left: 50%;
-    width: max(100%, 44px);
-    height: max(100%, 44px);
+    /* Fixed 44px, never a percentage. A percentage resolves against whatever
+       box this ends up positioned in, so a single missed `position: relative`
+       turns a 26px button into a full-height tap trap. Fixed values keep the
+       worst case to 44x44. */
+    width: 44px;
+    height: 44px;
     transform: translate(-50%, -50%);
-    /* Purely a hit area — never paints, never intercepts layout. */
     background: transparent;
-    pointer-events: auto;
+    /* No pointer-events here: inheriting means the hit area is live exactly
+       when its control is, so a hidden dropdown's swatches stay inert. */
   }
 }
 
