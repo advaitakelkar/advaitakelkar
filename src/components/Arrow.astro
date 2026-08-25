@@ -1,38 +1,26 @@
 ---
 /**
- * The site arrow. One shape, one pen curve, one size rule.
+ * The site arrow — now a thin alias over `Icon.astro`.
  *
- * This markup used to be pasted inline 55 times across 10 files, each copy
- * free to drift in stroke-width (2.5 / 2 / 1.3), linecap (square / round) and
- * explicit width/height. Everything visual now lives here and in the
- * `.link-arrow` block in tokens.css.
+ * The glyph, the spec and the rotation logic all live in Icon. This file
+ * exists so the 54 `<Arrow />` call sites keep working unchanged, and because
+ * "arrow" is the one symbol used often enough to deserve its own name.
  *
- * Note there is no `stroke-width` attribute. Weight is not a constant — it is
- * a shallow function of the rendered size, so the glyph reads the same at 6px
- * and at 30px. See "The pen" in tokens.css for the curve and the two tokens
- * that tune it. A hardcoded 2.5 here is what produced a 4.75x stroke spread
- * across the site; CSS would override the attribute anyway, so leaving one in
- * place would only be a lie about where the weight comes from.
+ *   <Arrow />            ↗  outbound link (default)
+ *   <Arrow dir="s" />    ↓  disclosure, open
  *
- * The glyph is drawn pointing north-east (↗), the site's "goes somewhere"
- * arrow. `dir` rotates it; direction is genuinely contextual — a disclosure
- * arrow points down, a link arrow points out — so it stays a prop rather than
- * being hard-coded per call site.
+ * Equivalent to `<Icon name="arrow" />`. New code can use either; prefer Icon
+ * when you are already reaching for other symbols in the same file.
  *
- *   <Arrow />                    ↗  outbound link (default)
- *   <Arrow dir="s" />            ↓  disclosure, open
- *   <Arrow dir="e" class="x" />  →  next
- *
- * `dir="ne"` emits no attribute at all. A `[data-dir]` rule and a contextual
- * one like `.page-toggle-btn .link-arrow` have equal specificity, so emitting
- * the default would win on source order and freeze every arrow at ↗.
- *
- * Size follows the font size of the parent (1em) unless the call site says
- * otherwise. Hover behaviour is global — see the arrow script in Base.astro.
+ * Size is `--icon-size` (`--arrow-size` still works), weight is the pen curve
+ * in tokens.css. Neither is set here — see Icon.astro for why.
  */
+import Icon from './Icon.astro';
+import type { IconDir } from '../lib/icons';
 
-/** Compass point the arrow should aim at. */
-export type ArrowDir = 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'nw';
+/** Compass point the arrow should aim at. Kept as an export: several files
+    import this type to annotate their own props. */
+export type ArrowDir = IconDir;
 
 interface Props {
   dir?: ArrowDir;
@@ -43,17 +31,4 @@ interface Props {
 const { dir = 'ne', class: className, ...rest } = Astro.props as Props;
 ---
 
-<svg
-  class:list={['link-arrow', className]}
-  data-dir={dir === 'ne' ? undefined : dir}
-  viewBox="0 0 24 24"
-  fill="none"
-  stroke="currentColor"
-  stroke-linecap="square"
-  stroke-linejoin="miter"
-  aria-hidden="true"
-  {...rest}
->
-  <line x1="6" y1="18" x2="18" y2="6"></line>
-  <polyline points="10 6 18 6 18 14"></polyline>
-</svg>
+<Icon name="arrow" dir={dir} class={className} {...rest} />

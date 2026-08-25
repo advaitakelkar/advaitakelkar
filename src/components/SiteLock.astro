@@ -1,4 +1,5 @@
 ---
+import Icon from './Icon.astro';
 import Arrow from './Arrow.astro';
 // Site-wide soft lock for project detail pages. Passwords are SHA-256 hashed
 // below — do not write the plaintext back into this file or the comments.
@@ -9,18 +10,10 @@ import Arrow from './Arrow.astro';
 
 <div class="site-lock" id="site-lock" hidden aria-hidden="true">
   <button class="site-lock__close" id="site-lock-close" type="button" aria-label="Close">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <line x1="18" y1="6" x2="6" y2="18"></line>
-      <line x1="6" y1="6" x2="18" y2="18"></line>
-    </svg>
+    <Icon name="close" />
   </button>
   <div class="site-lock__panel">
-    <svg class="site-lock__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <rect x="4" y="10.5" width="16" height="10.5" rx="2.2"></rect>
-      <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"></path>
-      <circle cx="12" cy="15.4" r="1.3"></circle>
-      <line x1="12" y1="16.7" x2="12" y2="18.4"></line>
-    </svg>
+    <Icon name="lock" state="closed" class="site-lock__icon" />
     <p class="site-lock__title">Private project</p>
     <p class="site-lock__sub">Enter the password to open the project archive.</p>
     <form class="site-lock__form" id="site-lock-form">
@@ -234,9 +227,11 @@ import Arrow from './Arrow.astro';
     background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
     color: var(--_tokens---color--muted);
     cursor: pointer;
-    transition: background-color 0.2s, color 0.2s;
+    transition: background-color var(--_tokens---motion--base), color var(--_tokens---motion--base);
   }
-  .site-lock__close svg { width: 16px; height: 16px; }
+  .site-lock__close svg {
+    --icon-size: 16px;
+  }
   @media (hover: hover) {
     .site-lock__close:hover {
     background-color: var(--_tokens---color--fg);
@@ -245,10 +240,10 @@ import Arrow from './Arrow.astro';
   }
 
   .site-lock__icon {
-    width: clamp(72px, 14vh, 110px);
-    height: clamp(72px, 14vh, 110px);
+    --icon-size: clamp(72px, 14vh, 110px);
     color: var(--_tokens---color--fg);
     margin-bottom: 4px;
+  
   }
 
   .site-lock__title {
@@ -299,7 +294,7 @@ import Arrow from './Arrow.astro';
     background: var(--_tokens---color--fg);
     color: var(--_tokens---color--bg);
     cursor: pointer;
-    transition: opacity 0.2s;
+    transition: opacity var(--_tokens---motion--base);
   }
   /* --icon-size rather than a raw width, so the pen curve in tokens.css sees
      the real 16px instead of falling back to the em default and under-weighting

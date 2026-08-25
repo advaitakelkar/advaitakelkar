@@ -123,10 +123,69 @@
   --_tokens---pen--base:  0.75px;
   --_tokens---pen--slope: 0.03;
 
+  /* ── Motion ──────────────────────────────────────────────────────────────
+     Twelve durations were in use across 126 hover rules — 0.1 / 0.15 / 0.18 /
+     0.2 / 0.25 / 0.3 / 0.35 / 0.4 / 0.45 / 0.5 / 0.55 / 0.6s. Two of them
+     carried 70% of the traffic (0.2s ×87 and 0.3s ×41), which is a good sign
+     the other ten were incidental rather than designed.
+
+     Three steps:
+       fast   state flips you should not notice — opacity, colour, borders
+       base   the house transition; most hovers and small transforms
+       slow   things that travel — panels, disclosure, the arrow's rotation
+
+     Easing was never the problem: `ease` was already doing 143 of 144 jobs.
+     `--ease-out` is the one curve worth naming, for motion that should
+     decelerate into place rather than coast.
+
+     Reduced motion is handled globally further down; these are durations
+     only, so that override still wins. */
+  --_tokens---motion--fast: 0.15s;
+  --_tokens---motion--base: 0.25s;
+  --_tokens---motion--slow: 0.4s;
+  --_tokens---ease:         ease;
+  --_tokens---ease-out:     cubic-bezier(0.16, 1, 0.3, 1);
+
   /* Radius */
   --_tokens---radius--small:  0.5rem;
   --_tokens---radius--medium: 0.5rem;
   --_tokens---radius--pill:   999px;
+
+  /* ── Pills ───────────────────────────────────────────────────────────────
+     Every pill on the site is the same object: rounded container, hairline
+     border, small label, trailing symbol. There was no shared primitive, so
+     fourteen implementations each re-declared it — nine paddings, six borders
+     and six gaps, including a `gap: 5.24px !important` that is on no grid at
+     all.
+
+     Four size steps, because four is what the content actually has. Forcing
+     three would either shrink the download pill or inflate the exhibition
+     pill, and neither is a real simplification.
+
+       xs   dense inline chips — credits, prompt, read-more
+       sm   the standard pill — project bubbles, skill tags, bio
+       md   pills that carry a symbol and stand alone — download, exhibition
+       lg   section tabs, set in display type
+
+     Borders are three documented tiers rather than six accidental ones:
+     `soft` is the house hairline, `mid` for dense chips that need to hold
+     their own against body text, `strong` for the two emphatic calls to
+     action (download, enter the exhibition). */
+  --_tokens---pill-pad--xs: 4px 10px;
+  --_tokens---pill-pad--sm: 6px 12px;
+  --_tokens---pill-pad--md: 8px 16px;
+  --_tokens---pill-pad--lg: 14px 22px;
+  /* lg at compact/medium widths, where a display-set tab would otherwise eat
+     the row. Was written inline as `10px 18px` in three places. */
+  --_tokens---pill-pad--lg-compact: 10px 18px;
+
+  --_tokens---pill-gap--xs: 4px;
+  --_tokens---pill-gap:     8px;
+  --_tokens---pill-gap--lg: 10px;
+
+  --_tokens---pill-border:        1px solid var(--_tokens---color--line-soft);
+  --_tokens---pill-border--mid:   1px solid color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
+  --_tokens---pill-border--strong: 1px solid var(--_tokens---color--fg);
 
   /* Layout */
   --_tokens---layout--container: 72rem;
@@ -257,7 +316,7 @@ body {
   background-color: var(--_tokens---color--bg);
   color: var(--_tokens---color--fg);
   min-height: 100dvh;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color var(--_tokens---motion--base) ease, color var(--_tokens---motion--base) ease;
 }
 
 a {
@@ -318,7 +377,7 @@ img {
   box-shadow: inset 0 16px 16px -8px var(--_tokens---color--bg),
               inset 0 -16px 16px -8px var(--_tokens---color--bg);
   pointer-events: none;
-  transition: box-shadow 0.3s ease;
+  transition: box-shadow var(--_tokens---motion--base) ease;
   z-index: 2;
 }
 
@@ -345,7 +404,7 @@ html {
   border-radius: 999px;
   border: 2px solid transparent;
   background-clip: padding-box;
-  transition: background-color 0.2s ease;
+  transition: background-color var(--_tokens---motion--base) ease;
 }
 
 @media (hover: hover) {
@@ -373,7 +432,7 @@ html {
   border-top: none;
   border-bottom: 1px solid var(--_tokens---color--line-soft);
   padding-block: 18px 20px;
-  transition: opacity 0.2s ease;
+  transition: opacity var(--_tokens---motion--base) ease;
 }
 @media (hover: hover) {
   .page-toggle-header:hover {
@@ -395,7 +454,7 @@ html {
   justify-content: center;
   flex-shrink: 0;
   opacity: 0.55;
-  transition: opacity 0.2s ease;
+  transition: opacity var(--_tokens---motion--base) ease;
 }
 .page-toggle-btn:focus-visible {
   opacity: 1;
@@ -417,7 +476,7 @@ html {
 .page-toggle-panel {
   overflow: hidden;
   border-bottom: 1px solid var(--_tokens---color--line-soft);
-  transition: max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease, margin 0.3s ease, padding 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: max-height var(--_tokens---motion--slow) cubic-bezier(0.4, 0, 0.2, 1), opacity var(--_tokens---motion--base) ease, margin var(--_tokens---motion--base) ease, padding var(--_tokens---motion--slow) cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* When the dropdown panel is closed, position its bottom border 3px below the header bottom border */
@@ -448,7 +507,7 @@ html {
   );
   flex-shrink: 0;
   transform: rotate(var(--arrow-rot, 0deg));
-  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform var(--_tokens---motion--slow) cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* `--pen-boost` adds a fixed amount on top of the curve. It exists for one

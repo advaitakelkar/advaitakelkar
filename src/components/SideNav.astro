@@ -1,4 +1,5 @@
 ---
+import Icon from './Icon.astro';
 import { getCollection } from 'astro:content';
 import { publicFileExists, isProjectLocked } from '../lib/content';
 import Arrow from './Arrow.astro';
@@ -165,14 +166,8 @@ const schemes = [
 
     <!-- Lock / unlock toggle (bottom corner) — unlocks all project pages at once -->
     <button class="sn-lock tap-44" id="sn-lock-toggle" data-lock-toggle data-unlocked="false" type="button" aria-label="Lock or unlock the project archive" title="Lock / unlock projects">
-      <svg class="sn-lock__icon sn-lock__icon--locked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <rect x="5" y="11" width="14" height="9" rx="2"></rect>
-        <path d="M8 11V8a4 4 0 0 1 8 0v3"></path>
-      </svg>
-      <svg class="sn-lock__icon sn-lock__icon--unlocked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <rect x="5" y="11" width="14" height="9" rx="2"></rect>
-        <path d="M8 11V8a4 4 0 0 1 7.5-1.9"></path>
-      </svg>
+      <Icon name="lock" state="closed" class="sn-lock__icon sn-lock__icon--locked" />
+      <Icon name="lock" state="open" class="sn-lock__icon sn-lock__icon--unlocked" />
     </button>
   </div>
 
@@ -188,13 +183,8 @@ const schemes = [
         <div class="sn-panel__email" id="sn-email-box" role="button" tabindex="0" aria-label="Copy email address">
           <span class="sn-panel__email-text">advaitakelkar@gmail.com</span>
           <span class="sn-panel__copy" aria-hidden="true">
-            <svg class="sn-copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-            </svg>
-            <svg class="sn-check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
+            <Icon name="copy" class="sn-copy-icon" />
+            <Icon name="check" class="sn-check-icon" />
           </span>
         </div>
 
@@ -214,10 +204,10 @@ const schemes = [
             <a href="https://github.com/advaitakelkar" target="_blank" rel="noopener" class="sn-panel__inline-link">GitHub</a>,
             <a href="https://instagram.com/3xpmnts" target="_blank" rel="noopener" class="sn-panel__inline-link">3xpmnts</a>,
             <a href="https://instagram.com/archv.in" target="_blank" rel="noopener" class="sn-panel__inline-link">ARCHV</a>.
-            Download my
-            <a href="/resume.pdf" download class="sn-panel__inline-link">Resume</a>
-            or
-            <a href="/portfolio.pdf" download class="sn-panel__inline-link">Portfolio</a>.
+            {(hasCv || hasPortfolio) && <>Download my</>}
+            {hasCv && <a href="/advaita-kelkar-resume.pdf" download class="sn-panel__inline-link">Resume</a>}
+            {hasCv && hasPortfolio && <> or </>}
+            {hasPortfolio && <a href="/advaita-kelkar-portfolio.pdf" download class="sn-panel__inline-link">Portfolio</a>}{(hasCv || hasPortfolio) && <>.</>}
           </p>
         </div>
       </div>
@@ -288,7 +278,7 @@ const schemes = [
     border-right: 1px solid var(--_tokens---color--line);
     cursor: pointer;
     flex-shrink: 0;
-    transition: background-color 0.3s ease, border-right-color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: background-color var(--_tokens---motion--base) ease, border-right-color var(--_tokens---motion--slow) cubic-bezier(0.16, 1, 0.3, 1);
     user-select: none;
   }
 
@@ -315,7 +305,7 @@ const schemes = [
     -webkit-mask: url('/ak-logo.svg') center / contain no-repeat;
     mask: url('/ak-logo.svg') center / contain no-repeat;
     flex-shrink: 0;
-    transition: background-color 0.3s ease;
+    transition: background-color var(--_tokens---motion--base) ease;
     /* Rotation is driven by scroll velocity in JS; keep only the breathing glow here */
     animation: glow-logo 4s ease-in-out infinite;
     will-change: transform;
@@ -349,7 +339,7 @@ const schemes = [
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.15s;
+    transition: transform var(--_tokens---motion--fast);
   }
 
   @media (hover: hover) {
@@ -382,7 +372,7 @@ const schemes = [
     opacity: 0;
     pointer-events: none;
     transform: translateX(-50%) translateY(-6px);
-    transition: opacity 0.2s ease, transform 0.2s ease;
+    transition: opacity var(--_tokens---motion--base) ease, transform var(--_tokens---motion--base) ease;
     z-index: 300;
   }
 
@@ -399,7 +389,7 @@ const schemes = [
     cursor: pointer;
     padding: 0;
     border-radius: 50%;
-    transition: transform 0.15s;
+    transition: transform var(--_tokens---motion--fast);
   }
 
   @media (hover: hover) {
@@ -472,7 +462,7 @@ const schemes = [
     width: 18px;
     height: 1.5px;
     background-color: var(--_tokens---color--fg);
-    transition: transform 0.3s ease, opacity 0.3s ease, width 0.3s ease;
+    transition: transform var(--_tokens---motion--base) ease, opacity var(--_tokens---motion--base) ease, width var(--_tokens---motion--base) ease;
     transform-origin: center;
   }
 
@@ -495,7 +485,7 @@ const schemes = [
     white-space: nowrap;
     text-transform: none;
     letter-spacing: 0.04em;
-    transition: color 0.3s ease;
+    transition: color var(--_tokens---motion--base) ease;
   }
 
   /* "index" — small token, weight 500 distinguishes from "/ page" */
@@ -518,7 +508,7 @@ const schemes = [
     color: inherit;
     text-decoration: none;
     pointer-events: auto;
-    transition: color 0.2s ease;
+    transition: color var(--_tokens---motion--base) ease;
   }
   @media (hover: hover) {
     .sn-bar__category-link:hover {
@@ -545,7 +535,7 @@ const schemes = [
     margin-bottom: 24px;
     opacity: 0.85;
     position: relative;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
+    transition: opacity var(--_tokens---motion--base) ease, visibility var(--_tokens---motion--base) ease;
   }
   .sn-open-tag__ghost {
     visibility: hidden; /* reserves the full text's space */
@@ -569,6 +559,8 @@ const schemes = [
   /* ── Lock / unlock toggle (bottom of the bar, just under the label) ── */
   .sn-lock {
     all: unset;
+    /* The lock icons fill this box; --icon-size is what the pen curve reads. */
+    --icon-size: 26px;
     margin-top: 16px;   /* gap below the index / page label */
     margin-bottom: 10px; /* nudge it up from the very bottom */
     width: 26px;
@@ -580,7 +572,7 @@ const schemes = [
     cursor: pointer;
     flex-shrink: 0;
     opacity: 0.65;
-    transition: opacity 0.2s ease;
+    transition: opacity var(--_tokens---motion--base) ease;
   }
   .sn-lock:focus-visible { opacity: 1; outline: none; }
   @media (hover: hover) {
@@ -609,7 +601,7 @@ const schemes = [
     padding: 24px 0;
     overflow: hidden; /* the wheel scrolls internally */
     transform: translateX(-100%);
-    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform var(--_tokens---motion--slow) cubic-bezier(0.16, 1, 0.3, 1);
     z-index: 200;
     pointer-events: none;
     border-right: 1px solid var(--_tokens---color--line);
@@ -677,7 +669,7 @@ const schemes = [
     text-decoration-thickness: 1px;
     text-underline-offset: 2px;
     text-decoration-color: color-mix(in srgb, var(--_tokens---color--fg) 35%, transparent);
-    transition: text-decoration-color 0.2s ease, opacity 0.2s ease;
+    transition: text-decoration-color var(--_tokens---motion--base) ease, opacity var(--_tokens---motion--base) ease;
   }
 
   @media (hover: hover) {
@@ -696,7 +688,7 @@ const schemes = [
     color: var(--_tokens---color--fg);
     text-decoration: none;
     padding: 6px 0;
-    transition: opacity 0.15s ease, transform 0.2s ease;
+    transition: opacity var(--_tokens---motion--fast) ease, transform var(--_tokens---motion--base) ease;
     opacity: 0.65;
     white-space: nowrap;
     gap: 12px;
@@ -751,11 +743,11 @@ const schemes = [
     gap: 12px;
     opacity: 0.8;
     white-space: nowrap;
-    transition: background-color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-                color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-                border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-                transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-                opacity 0.2s ease;
+    transition: background-color var(--_tokens---motion--base) cubic-bezier(0.16, 1, 0.3, 1),
+                color var(--_tokens---motion--base) cubic-bezier(0.16, 1, 0.3, 1),
+                border-color var(--_tokens---motion--base) cubic-bezier(0.16, 1, 0.3, 1),
+                transform var(--_tokens---motion--base) cubic-bezier(0.16, 1, 0.3, 1),
+                opacity var(--_tokens---motion--base) ease;
     scroll-snap-align: center;
   }
 
@@ -797,7 +789,7 @@ const schemes = [
     border-radius: 8px;
     padding: 8px 12px;
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    transition: background-color var(--_tokens---motion--base) ease;
   }
 
   @media (hover: hover) {
@@ -816,6 +808,8 @@ const schemes = [
   }
 
   .sn-panel__copy {
+    /* The svg fills this box, so the size lives here — the pen curve reads it. */
+    --icon-size: 15px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -831,7 +825,7 @@ const schemes = [
     height: 100%;
     position: absolute;
     inset: 0;
-    transition: opacity 0.2s ease, transform 0.2s ease;
+    transition: opacity var(--_tokens---motion--base) ease, transform var(--_tokens---motion--base) ease;
   }
 
   .sn-copy-icon { opacity: 1; }
@@ -849,7 +843,7 @@ const schemes = [
     height: var(--icon-size);
     flex-shrink: 0;
     opacity: 0.6;
-    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    transition: transform var(--_tokens---motion--base) cubic-bezier(0.16, 1, 0.3, 1), opacity var(--_tokens---motion--base) ease;
   }
 
   .sn-panel__arrow .link-arrow {
@@ -872,7 +866,7 @@ const schemes = [
     background-color: transparent;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.35s ease;
+    transition: opacity var(--_tokens---motion--slow) ease;
     z-index: 199;
   }
 

@@ -1,0 +1,141 @@
+---
+/**
+ * The site's symbol family. One grid, one spec, one place to change it.
+ *
+ * Before this, nine symbols were drawn 60 times inline across the codebase,
+ * each copy free to drift. The audit found three stroke weights (2.5 / 2 / 1.3),
+ * two terminal styles (square+miter and round+round) on the *same* symbol,
+ * four sizing strategies, and three separate drawings of the lock. This file
+ * is the whole family; nothing else in `src/` should contain a raw `<svg>`
+ * for a UI symbol. `pnpm lint:icons` enforces that.
+ *
+ * ── The spec ─────────────────────────────────────────────────────────────
+ * 24-unit grid · fill none · stroke currentColor · square caps · miter joins.
+ *
+ * Square + miter is the house terminal. It was already the majority (32 of
+ * the 51 stroked copies) and it matches Inter's flat stem terminals, which is
+ * what the icons sit beside. Switching the family to round is a two-word edit
+ * here and nowhere else.
+ *
+ * ── Weight ───────────────────────────────────────────────────────────────
+ * There is deliberately no `stroke-width`. Weight is a curve of the rendered
+ * size — see "The pen" in tokens.css. A constant here is what produced a
+ * 4.75x stroke spread across the site.
+ *
+ * ── Size ─────────────────────────────────────────────────────────────────
+ * `--icon-size` on the icon or any ancestor. Never a raw width/height: the
+ * pen curve reads that property, so a raw width silently mis-weights the
+ * glyph as well as mis-sizing it.
+ *
+ * ── Direction ────────────────────────────────────────────────────────────
+ * `dir` is a compass point. Symbols are drawn at their natural orientation
+ * and the component works out the rotation, so `dir="e"` points east whether
+ * the underlying glyph was drawn north-east (arrow) or east (chevron).
+ *
+ *   <Icon name="arrow" />              ↗  outbound link
+ *   <Icon name="arrow" dir="s" />      ↓  disclosure, open
+ *   <Icon name="chevron" dir="w" />    ‹  previous
+ *   <Icon name="lock" state="open" />
+ *   <Icon name="square" />           wayfinding marker
+ */
+
+import { iconTurn } from '../lib/icons';
+import type { IconDir, IconName } from '../lib/icons';
+
+interface Props {
+  name: IconName;
+  dir?: IconDir;
+  /** Lock only. */
+  state?: 'closed' | 'open';
+  class?: string;
+  [key: string]: unknown;
+}
+
+const {
+  name,
+  dir,
+  state = 'closed',
+  class: className,
+  ...rest
+} = Astro.props as Props;
+
+/* The arrow keeps using `data-dir`, because tokens.css already maps that to
+   --arrow-rot and several components override it contextually (the page
+   toggle, for one). Everything else gets its rotation inline — there is no
+   existing CSS expecting to steer a chevron by attribute.
+
+   `dir="ne"` on an arrow deliberately emits no attribute: a `[data-dir]` rule
+   and a contextual `.page-toggle-btn .link-arrow` rule have equal specificity,
+   so emitting the default would win on source order and freeze every arrow
+   pointing north-east. */
+const isArrow = name === 'arrow';
+const dataDir = isArrow && dir && dir !== 'ne' ? dir : undefined;
+
+const turn = dir ? iconTurn(name, dir) : 0;
+const rotStyle = !isArrow && turn !== 0 ? `--arrow-rot: ${turn}deg` : undefined;
+---
+
+<svg
+  class:list={['icon-pen', isArrow && 'link-arrow', className]}
+  data-icon={name}
+  data-dir={dataDir}
+  style={rotStyle}
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-linecap="square"
+  stroke-linejoin="miter"
+  aria-hidden="true"
+  {...rest}
+>
+  {name === 'arrow' && (
+    <>
+      <line x1="6" y1="18" x2="18" y2="6" />
+      <polyline points="10 6 18 6 18 14" />
+    </>
+  )}
+
+  {name === 'chevron' && <polyline points="9 18 15 12 9 6" />}
+
+  {name === 'close' && (
+    <>
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </>
+  )}
+
+  {name === 'check' && <polyline points="20 6 9 17 4 12" />}
+
+  {name === 'copy' && (
+    <>
+      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </>
+  )}
+
+  {name === 'download' && (
+    <>
+      <line x1="12" y1="4" x2="12" y2="20" />
+      <polyline points="5 13 12 20 19 13" />
+    </>
+  )}
+
+  {name === 'home' && <path d="M4 10.5 12 4l8 6.5V20H4Z" />}
+
+  {/* Wayfinding markers. House / square / circle label the three top-level
+      crumbs, so they are one set and belong in one file. */}
+  {name === 'square' && <rect x="5" y="5" width="14" height="14" />}
+  {name === 'circle' && <circle cx="12" cy="12" r="8" />}
+
+  {/* One lock, two shackles. This shipped as three separate drawings at two
+      different stroke weights — closed and open in SideNav, and a third with
+      a keyhole in SiteLock drawn at 1.3 while everything else used 2. */}
+  {name === 'lock' && (
+    <>
+      <rect x="5" y="11" width="14" height="9" rx="2" />
+      {state === 'open'
+        ? <path d="M8 11V8a4 4 0 0 1 7.5-1.9" />
+        : <path d="M8 11V8a4 4 0 0 1 8 0v3" />}
+    </>
+  )}
+</svg>

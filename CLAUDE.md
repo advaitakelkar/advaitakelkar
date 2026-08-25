@@ -277,14 +277,45 @@ odd ones are noise.
 
 ### 3. Components own their behaviour
 
-`src/components/Arrow.astro` is the only arrow. The markup used to be pasted
-inline 55 times across 10 files, each free to drift in stroke-width and cap.
-Direction is a prop, because it is genuinely contextual:
+`src/components/Icon.astro` is the whole symbol family — ten glyphs: arrow,
+chevron, close, check, copy, download, home, lock, square, circle. Nothing
+else in `src/` may contain a raw `<svg>` for a UI symbol; `pnpm lint:icons`
+fails the build if one appears.
+
+`Arrow.astro` still exists as a thin alias over `<Icon name="arrow" />`, so the
+54 `<Arrow />` call sites keep working. Both are fine in new code.
+
+The history is worth knowing, because it repeats: the arrow was pasted inline
+55 times, got consolidated into `Arrow.astro`, and had **regrown to 18 inline
+copies** by the time of the audit — while chevron, close, lock and four others
+never got a component at all. 48 inline `<svg>`s were migrated in one pass.
+
+**The spec** — 24-unit grid, fill none, stroke currentColor, **square caps,
+miter joins**, set once in the component. Square+miter was already the
+majority (32 of 51 stroked copies) and matches Inter's flat stem terminals.
+Switching the family to round is a two-word edit in `Icon.astro`.
+
+Direction is a prop, because it is genuinely contextual. Symbols are drawn at
+their natural orientation and the component computes the rotation, so
+`dir="e"` points east whether the glyph was drawn north-east (arrow) or east
+(chevron):
 
 ```astro
-<Arrow />            <!-- ↗ outbound link (default) -->
-<Arrow dir="s" />    <!-- ↓ disclosure, open        -->
+<Icon name="arrow" />           <!-- ↗ outbound link          -->
+<Icon name="arrow" dir="s" />   <!-- ↓ disclosure, open       -->
+<Icon name="chevron" dir="w" /> <!-- ‹ previous               -->
+<Icon name="lock" state="open" />
+<Arrow />                       <!-- same as name="arrow"     -->
 ```
+
+Three graphics are deliberately **not** in the family and are exempt in the
+linter: the slider and project countdown rings (they animate their own
+`stroke-dashoffset`), the Virtual Gods wheel (geometry derived from YAML) and
+the admin sparkline. They are drawings, not symbols.
+
+The random-rotation hover targets `[data-icon="arrow"]`, not every icon — a
+spin is a "this goes somewhere" affordance, and a lock that pirouettes is
+noise.
 
 **Size comes from `--arrow-size`, never from raw `width`/`height`.** Three
 steps, all in `em`, so an arrow always tracks the text beside it:
@@ -429,6 +460,49 @@ What keeps it from breaking:
 from anywhere and not in the sitemap; it uses `Base` rather than `PageLayout`
 so the nav chrome stays out of the way.
 
+### Pills
+
+Every pill on the site is the same object: rounded container, hairline border,
+small label, trailing symbol. There was no shared primitive, so fourteen
+implementations each re-declared it — **nine paddings, six borders, six gaps**,
+including a `gap: 5.24px !important` that sits on no grid at all.
+
+Four size steps, because four is what the content has. Forcing three would
+either shrink the download pill or inflate the exhibition pill.
+
+| token | value | used by |
+|---|---|---|
+| `--pill-pad--xs` | `4px 10px` | dense inline chips — credits, prompt, read-more |
+| `--pill-pad--sm` | `6px 12px` | the standard pill — bubbles, skill tags, bio |
+| `--pill-pad--md` | `8px 16px` | pills carrying a symbol — download, exhibition |
+| `--pill-pad--lg` | `14px 22px` | section tabs, set in display type |
+
+`--pill-pad--lg-compact` (`10px 18px`) is lg below the wide band. Gaps are
+`--pill-gap--xs|--pill-gap|--pill-gap--lg`. Borders are three documented tiers
+— `--pill-border` (house hairline), `--pill-border--mid` (dense chips that
+must hold against body text), `--pill-border--strong` (the two emphatic CTAs)
+— rather than six accidental ones.
+
+**One deliberate visual change came out of this.** The footer's "supersmall"
+field sized its labels at `calc(ultrathin * 0.75)` ≈ 7.5px, below the floor of
+the five-level scale and genuinely hard to read. It now sits on `ultrathin`.
+That makes the mobile footer about 135px taller at 390px — three more rows of
+bubbles — which is the cost of legible labels.
+
+### Motion
+
+Three durations replace twelve. `--motion--fast` (0.15s) for state flips you
+should not notice, `--motion--base` (0.25s) for the house transition,
+`--motion--slow` (0.4s) for things that travel. 345 literals were converted;
+two values had carried 70% of the traffic already, so the other ten were
+incidental rather than designed.
+
+Easing was never the problem — `ease` was doing 143 of 144 jobs. `--ease-out`
+is the one named curve, for motion that decelerates into place.
+
+`@keyframes` and `animation` timings were left alone: that is choreography,
+not UI response.
+
 ### Interaction
 
 - Every `:hover` rule sits inside `@media (hover: hover)`. On a touch tablet an
@@ -458,7 +532,7 @@ because page padding cannot move it.
 ```css
 var(--_tokens---color--bg)        /* page background */
 var(--_tokens---color--fg)        /* foreground / text */
-var(--_tokens---color--muted)     /* fg at 60% opacity */
+var(--_tokens---color--muted)     /* fg at 75% — raised from 60% for WCAG AA-large */
 var(--_tokens---color--line)      /* borders */
 var(--_tokens---color--bg-overlay) /* bg at 75% opacity */
 var(--_tokens---color--bg-glass)   /* bg at 40% opacity */
@@ -466,7 +540,7 @@ var(--_tokens---font--body)        /* 'Inter' */
 var(--_tokens---type--big)         /* clamp(3rem, 2rem+5vw, 6rem) */
 var(--_tokens---type--medium)      /* clamp(1.375rem, .75rem+2vw, 2.5rem) */
 var(--_tokens---type--small)       /* 1.125rem */
-var(--_tokens---type--micro)       /* clamp(.75rem, .4rem+.8vw, 1rem) */
+var(--_tokens---type--micro)       /* clamp(.75rem, .5rem+.6vw, .875rem) */
 var(--_tokens---type--ultrathin)   /* clamp(.625rem, .58rem+.15vw, .72rem) */
 var(--_tokens---space--micro)      /* 0.75rem */
 var(--_tokens---space--small)      /* 3rem (mobile: 12px) */
@@ -490,14 +564,15 @@ backdrop-filter: blur(20px);
 | `<html>` class | Name | BG | FG |
 |---|---|---|---|
 | *(none/default)* | Void | `#ffffff` / dark: `#111111` | `#111111` / dark: `#ffffff` |
-| `sch1` | Moss | `#ECE7E2` | `#4A7766` |
+| `sch1` | Moss | `#ECE7E2` | `#3D6355` |
 | `sch2` | Clay | `#fee7d5` | `#4b3935` |
 | `sch3` | Dusk | `#D7E7C3` | `#6C5383` |
 | `sch4` | Midnight | `#D2B96A` | `#0B1A35` |
 | `sch6` | Ember | `#ffe4a1` | `#97322D` |
-| `sch7` | Nomad | `#edcdc2` | `#0093AF` |
+| `sch7` | Nomad | `#edcdc2` | `#006076` |
 
-Pool weights (in `Base.astro`): Void has 6/12 probability (50%), others 1/12 each (~8%).
+Pool weights (in `Base.astro`): the pool holds 18 entries — Void 12/18 (~67%), the six
+colour schemes 1/18 each (~5.6%).
 
 ---
 
@@ -791,9 +866,8 @@ run, each of which has already caught a real bug:
 - **clipped, no fade** — text cut off with no affordance saying more exists
 - **content under fixed bar** — page content hidden behind the breadcrumb
 
-Firecrawl still cannot reach this site. The older note here also claimed Chrome
-MCP could not — that is no longer true; localhost and the live domain both load
-fine in the in-app browser.
+Both Firecrawl and the in-app browser reach this site fine — localhost and the
+live domain. An older note here claimed neither could; that is out of date.
 
 ---
 
