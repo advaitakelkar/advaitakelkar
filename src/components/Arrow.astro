@@ -1,11 +1,18 @@
 ---
 /**
- * The site arrow. One shape, one stroke spec, one size rule.
+ * The site arrow. One shape, one pen curve, one size rule.
  *
  * This markup used to be pasted inline 55 times across 10 files, each copy
  * free to drift in stroke-width (2.5 / 2 / 1.3), linecap (square / round) and
  * explicit width/height. Everything visual now lives here and in the
  * `.link-arrow` block in tokens.css.
+ *
+ * Note there is no `stroke-width` attribute. Weight is not a constant — it is
+ * a shallow function of the rendered size, so the glyph reads the same at 6px
+ * and at 30px. See "The pen" in tokens.css for the curve and the two tokens
+ * that tune it. A hardcoded 2.5 here is what produced a 4.75x stroke spread
+ * across the site; CSS would override the attribute anyway, so leaving one in
+ * place would only be a lie about where the weight comes from.
  *
  * The glyph is drawn pointing north-east (↗), the site's "goes somewhere"
  * arrow. `dir` rotates it; direction is genuinely contextual — a disclosure
@@ -42,7 +49,6 @@ const { dir = 'ne', class: className, ...rest } = Astro.props as Props;
   viewBox="0 0 24 24"
   fill="none"
   stroke="currentColor"
-  stroke-width="2.5"
   stroke-linecap="square"
   stroke-linejoin="miter"
   aria-hidden="true"

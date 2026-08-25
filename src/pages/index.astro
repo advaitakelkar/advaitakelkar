@@ -1017,7 +1017,11 @@ function getWords(name: string): string[] {
   }
 
   .home-slider__caption--knockout .link-arrow {
-    stroke-width: 3.4; /* match the text: cover the base arrow's rim too */
+    /* Cover the base arrow's anti-aliased rim, the same way -webkit-text-stroke
+       above covers the text's. A boost rather than a fixed stroke-width, so it
+       keeps tracking the pen curve if that is ever retuned. 0.85px of width is
+       ~0.42px per side, which is what the old fixed 3.4 gave at this size. */
+    --pen-boost: 0.85px;
   }
 
   /* Desktop arrow: the circle matches the H1 project name's height.
@@ -1069,8 +1073,10 @@ function getWords(name: string): string[] {
   }
 
   .home-slider__arrow .link-arrow {
-    width: 0.5em;
-    height: 0.5em;
+    /* Sized off the slider heading, not the arrow tokens — the ring around it
+       is what sets the scale here. Declared as --icon-size so the pen curve
+       sees the real rendered size instead of falling back to the md default. */
+    --icon-size: 0.5em;
   }
 
   @media (hover: hover) {

@@ -85,6 +85,44 @@
   --_tokens---arrow--md: 1em;
   --_tokens---arrow--lg: 1.35em;
 
+  /* ── The pen ─────────────────────────────────────────────────────────────
+     Icon stroke weight, as a curve rather than a constant.
+
+     The glyphs are drawn on a 24-unit grid, so a fixed `stroke-width` in
+     viewBox units scales *linearly* with the rendered size: the same arrow
+     shipped at 0.67px of stroke inside a 6.4px pill and 3.18px inside a 30px
+     heading — a 4.75x spread on what the component called "one stroke spec".
+     Small arrows went sub-pixel and vanished against the tinted schemes;
+     large ones went blunt.
+
+     Type on this site does not behave that way. Inter is loaded with an
+     optical-size axis (opsz 14..32), so it gets *relatively* sturdier as it
+     shrinks. These icons did the opposite, and that mismatch is what reads as
+     "the arrows are inconsistent".
+
+     The fix is the one drafting has used for a century: pick the pen for the
+     size instead of scaling one pen. `vector-effect: non-scaling-stroke`
+     takes the stroke out of the viewBox transform so this value lands in real
+     pixels, and the weight is then a shallow linear function of the glyph's
+     own size:
+
+         pen = base + slope x size
+
+     base   the floor — what a very small icon still gets, so it never goes
+            sub-pixel and disappears
+     slope  how much weight a bigger glyph earns; deliberately shallow, so a
+            4.8x range of sizes spans only ~1.8x of stroke
+
+       size    6.4px   10.8px   17.6px   30.5px
+       was      0.67     1.13     1.83     3.18   (4.75x spread)
+       now      0.94     1.08     1.28     1.67   (1.78x spread)
+
+     Both numbers are tunable here and nowhere else. Raising `base` thickens
+     the small end; raising `slope` steepens the whole ramp back toward the
+     old linear behaviour. */
+  --_tokens---pen--base:  0.75px;
+  --_tokens---pen--slope: 0.03;
+
   /* Radius */
   --_tokens---radius--small:  0.5rem;
   --_tokens---radius--medium: 0.5rem;
@@ -394,12 +432,36 @@ html {
    The glyph is drawn pointing north-east, so --arrow-rot is measured from ↗:
    0 = ↗, 45 = →, 90 = ↘, 135 = ↓, 180 = ↙, 225 = ←, 270 = ↖, 315 = ↑.
    Size tracks the parent font size unless a call site overrides it. */
-.link-arrow {
-  width: var(--arrow-size, var(--_tokens---arrow--md));
-  height: var(--arrow-size, var(--_tokens---arrow--md));
+.link-arrow,
+.icon-pen {
+  /* `--icon-size` is the name going forward; `--arrow-size` still works, so
+     every existing call site keeps its current size with no edit. */
+  width:  var(--icon-size, var(--arrow-size, var(--_tokens---arrow--md)));
+  height: var(--icon-size, var(--arrow-size, var(--_tokens---arrow--md)));
+  /* See "The pen" above. The em in --icon-size resolves against this element's
+     own inherited font-size, exactly as the width above does, so the slope
+     term is a true fraction of the rendered glyph. */
+  stroke-width: calc(
+    var(--_tokens---pen--base) +
+    var(--_tokens---pen--slope) * var(--icon-size, var(--arrow-size, var(--_tokens---arrow--md)))
+    + var(--pen-boost, 0px)
+  );
   flex-shrink: 0;
   transform: rotate(var(--arrow-rot, 0deg));
   transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* `--pen-boost` adds a fixed amount on top of the curve. It exists for one
+   real case — the slider's knockout copy, which has to be fractionally fatter
+   than the arrow beneath it to cover that arrow's anti-aliased rim. Expressing
+   it as a boost rather than a replacement stroke-width means it tracks the pen
+   automatically instead of drifting the moment the curve is retuned. */
+
+/* Take the stroke out of the viewBox transform so the calc above lands in real
+   pixels. Must sit on the shapes: vector-effect does not inherit. */
+.link-arrow > *,
+.icon-pen > * {
+  vector-effect: non-scaling-stroke;
 }
 .link-arrow[data-dir="ne"] { --arrow-rot:   0deg; }
 .link-arrow[data-dir="e"]  { --arrow-rot:  45deg; }

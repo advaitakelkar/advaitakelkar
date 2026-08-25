@@ -295,9 +295,49 @@ steps, all in `em`, so an arrow always tracks the text beside it:
 | `--arrow--md` | `1em` | body and heading text (the default) |
 | `--arrow--lg` | `1.35em` | standalone rows, where the arrow is the affordance |
 
-Set the step on the container: `--arrow-size: var(--_tokens---arrow--sm);`.
+Set the step on the container: `--icon-size: var(--_tokens---arrow--sm);`.
 Fifteen rules used to size the same glyph with `0.75 / 0.78 / 0.8 / 0.85em`
 and `14 / 16 / 20 / 24px` — four spellings of one intent, and four of another.
+
+`--icon-size` is the name going forward; **`--arrow-size` still works** and
+every existing call site kept its size unchanged when the pen landed.
+
+### The pen — stroke weight is a curve, not a constant
+
+`stroke-width` used to be hard-coded `2.5` on the component, in *viewBox
+units*. Because size is set in `em`, the two multiplied: the same arrow
+rendered **0.67px** of stroke inside a 6.4px pill and **3.18px** inside a 30px
+heading — a **4.75× spread** on what the component called "one stroke spec".
+Small arrows went sub-pixel and disappeared on the tinted schemes; large ones
+went blunt. Meanwhile Inter is loaded with an optical-size axis
+(`opsz 14..32`), so the *type* gets relatively sturdier as it shrinks — the
+icons were doing the exact opposite, and that mismatch is what reads as "the
+arrows look inconsistent".
+
+Now the weight is a shallow function of the glyph's own size:
+
+```
+pen = --pen--base  +  --pen--slope × --icon-size
+    = 0.75px       +  0.03         × size
+```
+
+`vector-effect: non-scaling-stroke` takes the stroke out of the viewBox
+transform so that value lands in real pixels. Result across the sizes actually
+in use:
+
+| size | 6.4px | 10.8px | 17.6px | 30.5px | spread |
+|---|---|---|---|---|---|
+| was | 0.67 | 1.13 | 1.83 | 3.18 | **4.75×** |
+| now | 0.94 | 1.08 | 1.28 | 1.67 | **1.78×** |
+
+Both numbers live in `tokens.css` and nowhere else. Raise `base` to thicken
+the small end; raise `slope` to steepen the ramp back toward the old linear
+behaviour.
+
+`--pen-boost` adds a fixed amount on top of the curve. One real user: the
+slider's knockout copy, which must be fractionally fatter than the arrow
+beneath it to cover that arrow's anti-aliased rim. Expressed as a boost so it
+tracks the curve instead of drifting when the curve is retuned.
 
 Two traps, both of which have already bitten:
 
@@ -314,6 +354,14 @@ Two traps, both of which have already bitten:
 - **`getBoundingClientRect()` lies about arrow size.** The glyph is rotated, so
   a 40px arrow at 45° measures 56.6px (40 × √2). Measure `getComputedStyle().width`
   when auditing, or you will chase inconsistencies that do not exist.
+- **A raw `width` on an icon now breaks its weight, not just its size.** The
+  pen curve reads `--icon-size`; if a rule sets `width` directly the curve
+  falls back to the `md` default and the icon is drawn with the wrong stroke.
+  `.site-lock__btn svg { width: 16px }` did exactly this — a 16px arrow drawn
+  at a 13.3px weight. Always set `--icon-size` and let the shared rule derive
+  width and height from it. Four rules needed converting when the pen landed:
+  `.sn-panel__arrow`, `.about-link-row__arrow`, `.home-slider__arrow
+  .link-arrow` and `.site-lock__btn`.
 
 `dir="ne"` deliberately emits **no** `data-dir` attribute — a `[data-dir]` rule
 and a contextual one like `.page-toggle-btn .link-arrow` have equal
