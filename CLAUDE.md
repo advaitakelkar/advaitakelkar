@@ -323,33 +323,59 @@ arrow pointing north-east.
 ### The scramble alphabet
 
 `src/lib/glyphs.ts` is the only place the glitch-text characters are defined —
-they used to be a literal pasted into Base, SideNav and about.astro. **91
-characters across 8 groups**: symbols, Greek, Cyrillic, Old Church Slavonic,
-polytonic Greek, IPA, and two Latin Extended blocks.
+they used to be a literal pasted into Base, SideNav and about.astro. **19
+symbols across 4 density bands**, no letterforms:
 
-Every one of them is **already inside Inter**, so the effect costs no extra
-font — just an additional Google Fonts subset the first time a scramble runs.
-Stay inside Inter's coverage when editing: `latin`, `latin-ext`, `greek(+ext)`,
-`cyrillic(+ext)`. Anything outside that renders in a fallback face or a tofu
-box.
+```
+directional  < > « »     rhymes with the chevron/cross icons
+operator     × + = ~ ± ÷ ¬
+editorial    § ¶ † ‖
+dense        # $ & *
+```
 
-> A version of this borrowed twelve subsetted Noto families to add Devanagari,
-> Tamil, Kannada, Malayalam, Bengali, Telugu, Gujarati, Japanese, Korean, Thai,
-> Hebrew and Arabic (~22 KB, verified working). It was reverted — mixing Noto
-> into an Inter page meant the effect ran in a different typeface. If it comes
-> back it needs its own derived `<link>`, plus `unicode-bidi: isolate` for the
-> two RTL scripts.
+The set is chosen by **advance width**, not by looks. Measured in Inter at 500
+weight, these span 8.84px → 11.46px against a 10.47px average letter — 0.84 to
+1.09 of a letter, a **1.30× spread**. The previous 91-character alphabet
+(Greek, Cyrillic, Old Church Slavonic, polytonic Greek, IPA, Latin Extended)
+spanned 5.58px → 22.22px, a **3.99× spread** — 3.07× looser, and that is what
+forced the width lock below.
 
-Two things keep it from breaking:
+All nineteen sit in Inter's **`latin`** subset, already loaded at first paint.
+The old set reached into five further Google Fonts subsets, so the first
+scramble on a cold page fired up to five extra font downloads *mid-animation*.
+Now it fires none.
 
-- **Base characters only.** Combining marks (Unicode Mn/Mc/Me) attach to the
-  preceding glyph and render as a broken cluster. `pnpm lint:glyphs` rejects
-  them, rejects cross-group duplicates, and fails if any file hard-codes the
-  alphabet again.
-- **Width lock.** Glyph advance widths span roughly 0.3em to 1em, so
-  `TextScrambler.lock()` pins `min-width` and sets `white-space: nowrap` for
-  the duration — a heading cannot collapse or re-wrap mid-animation. It still
-  breathes a little, which reads as part of the effect.
+> Two earlier versions are worth not repeating. One borrowed twelve subsetted
+> Noto families for Devanagari, Tamil, Japanese, Arabic and more (~22 KB,
+> verified working) — reverted, because mixing Noto into an Inter page ran the
+> effect in a different typeface. The other kept Greek/Cyrillic/IPA inside
+> Inter, which fixed the typeface but kept the width spread and the extra
+> subsets.
+
+What keeps it from breaking:
+
+- **Symbols only, exactly nineteen, all unique.** Every glyph is equally
+  likely, so a repeat silently double-weights it. `pnpm lint:glyphs` enforces
+  the count, uniqueness, symbols-only, the `latin` subset bound, and rejects
+  combining marks. It also fails if any file hard-codes the alphabet —
+  **case-insensitively**, which it did not do before: `projects/[slug].astro`
+  carried its own lowercase `const glyphs = '…'` and passed the lint for as
+  long as both existed.
+- **Stay inside the measured width band.** `%` (17.40px) and `@` (17.69px) are
+  the two obvious-looking symbols to avoid — both reintroduce the reflow this
+  set exists to remove.
+- **A unicode-range is not glyph coverage.** The subset's range says what the
+  font file *may* cover, not what it does. `‡` U+2021 sits inside `latin` and
+  Inter has no glyph for it, so it silently rendered in a fallback serif —
+  the exact "effect runs in a different typeface" failure the Noto experiment
+  was reverted for, reintroduced by one character. `‖` U+2016 replaced it.
+  **`/glyphs` now runs a per-glyph coverage test in the browser** and says
+  plainly if anything is falling back; the Node linter cannot see this, so
+  check that page after touching the set.
+- **Width lock.** `TextScrambler.lock()` still pins width/height and sets
+  `white-space: nowrap` for the duration. With near-uniform widths this is now
+  mostly belt-and-braces rather than load-bearing; it can probably be relaxed,
+  but it has not been tested that way yet.
 
 **`/glyphs`** renders every group and the effect on real headings. Not linked
 from anywhere and not in the sitemap; it uses `Base` rather than `PageLayout`

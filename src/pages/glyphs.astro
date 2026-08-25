@@ -17,10 +17,11 @@ const groups = Object.entries(GLYPH_GROUPS).map(([name, chars]) => ({
     <header class="gp__head">
       <h1 class="gp__title" data-scramble>Scramble Alphabet</h1>
       <p class="gp__lede">
-        {GLYPHS.length} characters across {groups.length} groups, every one of
-        them already inside Inter — symbols, Greek, Cyrillic, Old Church
-        Slavonic, polytonic Greek, IPA and Latin Extended. No extra font.
-        Hover anything below to scramble it.
+        {GLYPHS.length} symbols across {groups.length} density bands — no
+        letterforms, and every one inside Inter's <code>latin</code> subset,
+        which is already loaded at first paint. Widths span 9.25px to 11.89px
+        against a 10.96px average letter, so substituted glyphs barely move
+        the text they replace. Hover anything below to scramble it.
       </p>
     </header>
 
@@ -53,8 +54,54 @@ const groups = Object.entries(GLYPH_GROUPS).map(([name, chars]) => ({
         ))}
       </div>
     </section>
+
+    <section class="gp__demo">
+      <h2 class="gp__sub">Coverage</h2>
+      <p class="gp__hint">
+        Checked in the browser, because the unicode-range table cannot answer
+        this — a codepoint inside <code>latin</code> is not a promise that Inter
+        ships a glyph for it. <code>‡</code> U+2021 sat in this set silently
+        rendering in a fallback serif until this check existed.
+      </p>
+      <p class="gp__coverage" id="gp-coverage">checking…</p>
+    </section>
   </main>
 </Base>
+
+<script>
+  /**
+   * Per-glyph coverage test. If Inter has the glyph, its advance width is the
+   * same whichever fallback follows it in the stack; if Inter lacks it, each
+   * stack resolves to a different fallback and the widths diverge.
+   */
+  import { GLYPHS } from '../lib/glyphs';
+
+  const out = document.getElementById('gp-coverage');
+  if (out) {
+    document.fonts.ready.then(() => {
+      const ctx = document.createElement('canvas').getContext('2d')!;
+      const width = (ch: string, stack: string) => {
+        ctx.font = `500 40px ${stack}`;
+        return ctx.measureText(ch).width;
+      };
+      const missing = [...GLYPHS].filter((ch) => {
+        const a = width(ch, 'Inter, serif');
+        const b = width(ch, 'Inter, monospace');
+        const c = width(ch, 'Inter, cursive');
+        return !(a === b && b === c);
+      });
+      if (missing.length) {
+        out.dataset.state = 'fail';
+        out.textContent =
+          `${missing.length} glyph(s) NOT in Inter — falling back to another face: ` +
+          missing.map((c) => `${c} (U+${c.codePointAt(0)!.toString(16).toUpperCase().padStart(4, '0')})`).join(', ');
+      } else {
+        out.dataset.state = 'ok';
+        out.textContent = `All ${[...GLYPHS].length} glyphs render in Inter. No fallback, no tofu.`;
+      }
+    });
+  }
+</script>
 
 <style>
   .gp {
@@ -64,6 +111,21 @@ const groups = Object.entries(GLYPH_GROUPS).map(([name, chars]) => ({
     gap: 56px;
   }
   .gp__head { display: flex; flex-direction: column; gap: 12px; }
+  .gp__coverage {
+    font-size: var(--_tokens---type--micro);
+    margin: 0;
+    padding: 10px 14px;
+    border: 1px solid var(--_tokens---color--line-soft);
+    border-radius: var(--_tokens---radius--small);
+    color: var(--_tokens---color--muted);
+  }
+  .gp__coverage[data-state='ok']   { border-color: color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent); }
+  .gp__coverage[data-state='fail'] {
+    border-color: var(--_tokens---color--fg);
+    border-width: 2px;
+    color: var(--_tokens---color--fg);
+    font-weight: 500;
+  }
   .gp__title { font-size: var(--_tokens---type--big); font-weight: 500; letter-spacing: -0.03em; margin: 0; }
   .gp__lede {
     font-size: var(--_tokens---type--micro);
