@@ -279,7 +279,9 @@ const sorted = [...allProjects].sort((a, b) => {
   .proj-bubbles {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    /* Larger than the horizontal gap on purpose — capsules read wider
+       side-by-side than stacked. See the bubble-gap tokens. */
+    gap: var(--_tokens---bubble-gap-y);
   }
 
   /* Each row: space-between so gaps fill 100% width (like justified text).
@@ -474,6 +476,7 @@ const sorted = [...allProjects].sort((a, b) => {
 </style>
 
 <script>
+  import { initBubbleRows } from '../lib/bubbleRows';
   function initQuickSearch() {
     const footer = document.querySelector('.home-search-footer');
     if (!footer) return;
@@ -498,98 +501,10 @@ const sorted = [...allProjects].sort((a, b) => {
     g.innerHTML = '';
     originals.forEach(p => g.appendChild(p));
 
-    function buildRows() {
-      const pills = Array.from(g.querySelectorAll('.proj-bubble')) as HTMLElement[];
-      if (!pills.length) return;
-
-      // 1. Measure abbreviated (restW) and full-name (fullW) widths.
-      //    Pills already show abbreviated text from the Astro template.
-      g.style.flexDirection = 'row';
-      g.style.flexWrap = 'wrap';
-      g.style.gap = '5px';
-      pills.forEach(p => {
-        p.style.width = '';
-        g.appendChild(p);
-      });
-      g.classList.add('qs-measure-state'); // disables pill transitions
-      void g.offsetWidth; // force reflow — abbreviated text, natural widths
-      pills.forEach(p => { p.dataset.restW = String(p.offsetWidth); });
-
-      // Temporarily swap to full name + expand tag to measure true hover pill width.
-      // (The tag has max-width:0 at rest and expands via CSS :hover; we must force
-      //  it open here so fullW includes name + tag + arrow, not just name + arrow.)
-      pills.forEach(p => {
-        const nameEl = p.querySelector('.proj-bubble__name') as HTMLElement | null;
-        const tagEl  = p.querySelector('.proj-bubble__tag')  as HTMLElement | null;
-        if (nameEl) nameEl.textContent = nameEl.dataset.full ?? nameEl.textContent;
-        if (tagEl) {
-          tagEl.style.transition  = 'none';
-          tagEl.style.maxWidth    = '800px';
-          tagEl.style.marginLeft  = '0';
-        }
-      });
-      void g.offsetWidth;
-      pills.forEach(p => { p.dataset.fullW = String(p.offsetWidth); });
-
-      // Restore abbreviated text and collapsed tag
-      pills.forEach(p => {
-        const nameEl = p.querySelector('.proj-bubble__name') as HTMLElement | null;
-        const tagEl  = p.querySelector('.proj-bubble__tag')  as HTMLElement | null;
-        if (nameEl) nameEl.textContent = nameEl.dataset.short ?? nameEl.textContent;
-        if (tagEl) {
-          tagEl.style.transition  = '';
-          tagEl.style.maxWidth    = '';
-          tagEl.style.marginLeft  = '';
-        }
-      });
-      g.classList.remove('qs-measure-state');
-
-      // 2. Compute row grouping mathematically from restW + container width.
-      //    This avoids relying on offsetTop after qs-measure-state removal,
-      //    which is unreliable because CSS name transitions are mid-flight.
-      const containerW = g.clientWidth;
-      const gap = 5;
-      const rows: HTMLElement[][] = [];
-      let cur: HTMLElement[] = [];
-      let rowW = 0;
-      pills.forEach(p => {
-        const w = parseFloat(p.dataset.restW || '0');
-        if (cur.length > 0 && rowW + gap + w > containerW) {
-          rows.push(cur);
-          cur = [p];
-          rowW = w;
-        } else {
-          rowW = cur.length === 0 ? w : rowW + gap + w;
-          cur.push(p);
-        }
-      });
-      if (cur.length > 0) rows.push(cur);
-
-      // 3. Build qs-row wrappers.
-      // Apply layout via inline style — JS-created elements don't carry
-      // Astro's data-astro-cid attribute, so scoped CSS rules won't match.
-      g.style.flexDirection = '';
-      g.style.flexWrap = '';
-      g.style.gap = '';
-      g.innerHTML = '';
-      rows.forEach((rowPills, idx) => {
-        const isLast = idx === rows.length - 1;
-        const row = document.createElement('div');
-        row.className = isLast ? 'qs-row qs-row--last' : 'qs-row';
-        // Fixed 5px gap on every row — uniform spacing everywhere, left-aligned.
-        row.style.cssText = [
-          'display:flex',
-          'flex-direction:row',
-          'flex-wrap:nowrap',
-          'justify-content:flex-start',
-          'gap:4px',
-          'width:100%',
-          'overflow:visible',
-        ].join(';');
-        rowPills.forEach(p => row.appendChild(p));
-        g.appendChild(row);
-      });
-    }
+    // Row packing + hover-steal now live in src/lib/bubbleRows.ts, shared
+    // with the About page's Skillset cloud so the two cannot drift apart.
+    const rowEngine = initBubbleRows({ grid: g, pillSelector: '.proj-bubble' });
+    const buildRows = () => rowEngine.rebuild();
 
     // Mark category-matching bubbles if category filtering is active
     if (categoryId) {
@@ -600,94 +515,12 @@ const sorted = [...allProjects].sort((a, b) => {
       });
     }
 
-    // Defer buildRows until after the page layout (including home slider) has settled
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      buildRows();
-      render(input?.value || '');
-    }));
+    // Defer the first build until page layout (the home slider especially)
+    // has settled; the engine waits two frames internally.
+    rowEngine.build();
+    requestAnimationFrame(() => requestAnimationFrame(() => render(input?.value || '')));
 
-    // Attach smart hover listeners to each pill once
-    originals.forEach(p => {
-      p.addEventListener('mouseenter', () => {
-        const row = p.parentElement;
-        if (!row || !row.classList.contains('qs-row')) return;
-
-        const rowPills = Array.from(row.children) as HTMLElement[];
-        const H = rowPills.indexOf(p);
-        if (H === -1) return;
-
-        clearTimeout((row as any)._resetTimer);
-
-        // Swap to full name — the pill clips it until the width animation reveals it
-        const hoverNameEl = p.querySelector('.proj-bubble__name') as HTMLElement | null;
-        if (hoverNameEl) hoverNameEl.textContent = hoverNameEl.dataset.full ?? hoverNameEl.textContent;
-        
-        const N = rowPills.length;
-        const targetW = rowPills.map(rp => parseFloat(rp.dataset.restW || '0'));
-        const fullW = parseFloat(p.dataset.fullW || '0');
-        const rowWidth = row.clientWidth;
-
-        // With space-between rows, all space not occupied by pill content is available gap
-        const isLastRow = row.classList.contains('qs-row--last');
-        const totalRestW = targetW.reduce((a, b) => a + b, 0) + (isLastRow ? (N - 1) * 5 : 0);
-        const emptySpace = Math.max(0, rowWidth - totalRestW);
-
-        const req = fullW - targetW[H];
-        targetW[H] = fullW;
-
-        let deficit = Math.max(0, req - emptySpace);
-
-        const others = rowPills
-          .map((rp, i) => ({ i, dist: Math.abs(i - H) }))
-          .filter(o => o.i !== H)
-          .sort((a, b) => {
-            if (b.dist !== a.dist) return b.dist - a.dist;
-            return a.i - b.i; // left-most wins ties
-          });
-
-        for (const o of others) {
-          if (deficit <= 0) break;
-          const maxSteal = targetW[o.i] - 26; // 26px minimum circle width
-          if (maxSteal > 0) {
-            const steal = Math.min(deficit, maxSteal);
-            targetW[o.i] -= steal;
-            deficit -= steal;
-          }
-        }
-
-        if (deficit > 0) {
-          targetW[H] -= deficit;
-        }
-
-        rowPills.forEach((rp, i) => {
-          rp.style.width = targetW[i] + 'px';
-          rp.classList.toggle('is-squished', targetW[i] <= 32);
-        });
-
-        // Gap stays fixed at 5px — no dynamic adjustment needed.
-      });
-      p.addEventListener('mouseleave', () => {
-        const row = p.parentElement;
-        if (!row || !row.classList.contains('qs-row')) return;
-        
-        const rowPills = Array.from(row.children) as HTMLElement[];
-        rowPills.forEach((rp) => {
-          rp.classList.remove('is-squished');
-          rp.style.width = rp.dataset.restW + 'px';
-        });
-
-        clearTimeout((row as any)._resetTimer);
-        (row as any)._resetTimer = setTimeout(() => {
-          rowPills.forEach(rp => {
-            rp.style.width = '';
-            // Restore abbreviated text once the collapse animation has finished
-            const nameEl = rp.querySelector('.proj-bubble__name') as HTMLElement | null;
-            if (nameEl) nameEl.textContent = nameEl.dataset.short ?? nameEl.textContent;
-          });
-        }, 400);
-      });
-    });
-
+    // Hover behaviour is wired by the engine. Nothing else needed per pill.
     function render(query: string) {
       const q = query.trim().toLowerCase();
       const keywords = q.split(/\s+/).filter(Boolean);
