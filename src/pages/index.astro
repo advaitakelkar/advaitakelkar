@@ -466,6 +466,17 @@ function getWords(name: string): string[] {
       const right  = Math.max(0, cb.right - (pLeft + pw));
       const bottom = Math.max(0, cb.bottom - (pTop + ph));
       cap.style.clipPath = `inset(${top}px ${right}px ${bottom}px ${left}px)`;
+
+      /* Publish the rendered photo's edges so the compact/medium countdown
+         ring can sit on the *photo* rather than on its wrap. With
+         object-fit: contain a portrait image leaves wide bars, so the wrap's
+         left edge can be a long way from anything visible — the ring floated
+         in the empty band beside the picture. These are offsets from the
+         caption box, which is the ring's containing block, and they are
+         differences between two rects in the same space, so they survive the
+         track's translation without needing a recompute on scroll. */
+      slide.style.setProperty('--photo-l', left + 'px');
+      slide.style.setProperty('--photo-b', bottom + 'px');
     });
   }
   // Coalesce to one fit per frame — scroll fires many times per frame and
@@ -1462,9 +1473,29 @@ function getWords(name: string): string[] {
     .home-slider__arrow {
       display: flex !important;
       position: absolute !important;
-      top: calc(0.95em - 18px) !important; /* centered on top edge of the image wrap */
-      right: 0 !important; /* align to the right edge of the card */
-      left: auto !important;
+      /* Lower-left of the photo.
+
+         It used to sit at the photo's top-right corner, which is exactly
+         where the title lands — the name is set in --type--big and wraps to
+         four lines, so on a long name the ring printed through the words.
+
+         Dead-centre does not work either, and the numbers say why: the title
+         is anchored to the top of the photo and its last line sits at 2.85em
+         of a font that reaches 83px in the medium band, so a four-word name
+         runs *past* the photo's centre line at every width (at 375px it ends
+         at 193px against a centre of 186px). The centre band belongs to the
+         title; the bottom edge is the part of the photo that is always free.
+
+         --photo-l / --photo-b are the rendered picture's left and bottom
+         edges, measured from the caption box by fitKnockouts() — the same
+         measurement that clips the knockout copy. They are not the wrap's
+         edges: object-fit is `contain`, so a portrait image leaves bars and
+         the wrap's left edge can be far from anything visible. The fallbacks
+         are the wrap's own insets, for the frame before the image loads. */
+      top: auto !important;
+      bottom: calc(var(--photo-b, 0px) + 16px) !important;
+      left: calc(var(--photo-l, 16px) + 16px) !important;
+      right: auto !important;
       z-index: 5 !important;
       font-size: 2.2rem !important; /* much bigger arrow and timer ring */
       width: 1.15em !important;

@@ -43,6 +43,16 @@ const currentPath = Astro.url.pathname;
   <EditMode />
 </Base>
 
+<script>
+  // Scrolled-state marker for the fixed breadcrumb bar (hairline in CSS above).
+  const bar = document.querySelector('.page-breadcrumb');
+  if (bar) {
+    const onScroll = () => bar.classList.toggle('is-scrolled', window.scrollY > 8);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+  }
+</script>
+
 <style>
   .page-wrap {
     display: flex;
@@ -93,7 +103,18 @@ const currentPath = Astro.url.pathname;
        the page text at every breakpoint, instead of hugging closer at 16px. */
     padding-inline: var(--_tokens---layout--gutter);
     padding-block: 14px 12px;
-    transition: background-color var(--_tokens---motion--base) ease;
+    border-bottom: 1px solid transparent;
+    transition: background-color var(--_tokens---motion--base) ease,
+                border-color var(--_tokens---motion--base) ease;
+  }
+
+  /* A hairline appears under the bar once content scrolls beneath it — the
+     separation only exists when it's needed. Top-docked bands only: below
+     700px the bar sits at the bottom and already carries a border-top. */
+  @media (min-width: 700px) {
+    .page-breadcrumb.is-scrolled {
+      border-bottom-color: var(--_tokens---color--line-soft);
+    }
   }
 
   @media (min-width: 1366px) {

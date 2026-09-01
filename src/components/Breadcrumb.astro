@@ -67,6 +67,12 @@ if (activeProject) {
 
   <!-- Left pills: Home / About / Projects -->
   <div class="breadcrumb__list">
+    {/* History back. Hidden until there is somewhere in-site to go back to —
+        the script counts same-session navigations, so a visitor landing cold
+        never sees a dead control. */}
+    <button class="breadcrumb__back tap-44" id="breadcrumb-back" type="button" aria-label="Go back" hidden>
+      <Icon name="chevron" dir="w" />
+    </button>
     {/* Minimal geometric icon family (shown when labels collapse on small
         screens): Home = house outline, About = square, Projects = circle,
         Category = triangle. One shape each, same stroke, no detail. */}
@@ -186,6 +192,80 @@ if (activeProject) {
 
   .breadcrumb__sep { display: none; }
 
+  /* One line-height for every control in the bar.
+     The round buttons derive their size from `1lh`, and with `line-height:
+     normal` that is the browser's font-metric value rounded to whole pixels
+     while the pill's line box keeps its fraction — which left the circles
+     24px against a 25px pill. Stating the ratio makes both sides compute
+     from the same number, so `1lh + 10px` is exactly a pill's height. */
+  .breadcrumb__link,
+  .breadcrumb__dropdown-trigger,
+  .breadcrumb__back,
+  .breadcrumb__arrow {
+    line-height: 1.25;
+  }
+
+  /* ── Back button ────────────────────────────────────────────── */
+  .breadcrumb__back {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Square, and exactly as tall as a pill beside it.
+
+       A pill is one line box plus 4px padding and a 1px border top and
+       bottom, so `1lh + 10px` reproduces its height by construction rather
+       than by a guess — an em value lands close but never equal (1.8em
+       shipped 21.6px against a 25px pill), and it drifts as --type--micro
+       grows, because the padding is px and only the text scales.
+
+       Not `align-self: stretch` + `aspect-ratio`: stretch does give the
+       right height, but a flex item's width is resolved from its content
+       before the stretched cross size is known, so the ratio never applies
+       and the circle rendered 14px wide by 25px tall. */
+    width:  calc(1lh + 10px);
+    height: calc(1lh + 10px);
+    padding: 0;
+    border: 1px solid var(--_tokens---color--line-soft);
+    border-radius: 50%;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    color: var(--_tokens---color--muted);
+    font-size: var(--_tokens---type--micro);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background-color var(--_tokens---motion--fast), color var(--_tokens---motion--fast), border-color var(--_tokens---motion--fast), transform var(--_tokens---motion--fast);
+    /* No fill-mode: an animation's filled state wins over every normal
+       declaration, so `both` would freeze transform at `none` and kill the
+       :active press below. */
+    animation: bc-back-in var(--_tokens---motion--slow) var(--_tokens---ease-out);
+  }
+  .breadcrumb__back[hidden] { display: none; }
+  /* --icon-size, never a raw width: the pen curve reads it to set stroke
+     weight, so a raw width mis-weights the glyph as well as sizing it. */
+  .breadcrumb__back svg { --icon-size: 1em; }
+  .breadcrumb__back:focus-visible {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
+  }
+  @media (hover: hover) {
+    .breadcrumb__back:hover {
+      background-color: var(--_tokens---color--fg);
+      color: var(--_tokens---color--bg);
+      border-color: var(--_tokens---color--fg);
+    }
+    /* Nudge the chevron the way it will take you. transform must restate the
+       rotation — .icon-pen aims the glyph through rotate(var(--arrow-rot)). */
+    .breadcrumb__back:hover svg {
+      transform: translateX(-1.5px) rotate(var(--arrow-rot, 0deg));
+    }
+  }
+  .breadcrumb__back:active { transform: scale(0.9); }
+
+  @keyframes bc-back-in {
+    from { opacity: 0; transform: translateX(6px); }
+    to   { opacity: 1; transform: none; }
+  }
+
   /* ── Left nav pills ─────────────────────────────────────────── */
   .breadcrumb__link {
     display: inline-flex;
@@ -202,8 +282,9 @@ if (activeProject) {
     letter-spacing: 0.05em;
     white-space: nowrap;
     opacity: 0.45; /* muted when not in use */
-    transition: background-color var(--_tokens---motion--fast), color var(--_tokens---motion--fast), border-color var(--_tokens---motion--fast), opacity var(--_tokens---motion--fast), padding var(--_tokens---motion--base) cubic-bezier(0.16, 1, 0.3, 1);
+    transition: background-color var(--_tokens---motion--fast), color var(--_tokens---motion--fast), border-color var(--_tokens---motion--fast), opacity var(--_tokens---motion--fast), transform var(--_tokens---motion--fast), padding var(--_tokens---motion--base) cubic-bezier(0.16, 1, 0.3, 1);
   }
+  .breadcrumb__link:active { transform: scale(0.96); }
 
   .breadcrumb__link:focus-visible {
     background-color: var(--_tokens---color--fg);
@@ -326,9 +407,10 @@ if (activeProject) {
     cursor: pointer;
     outline: none;
     opacity: 0.55;
-    transition: background-color var(--_tokens---motion--fast), color var(--_tokens---motion--fast), border-color var(--_tokens---motion--fast), opacity var(--_tokens---motion--fast);
+    transition: background-color var(--_tokens---motion--fast), color var(--_tokens---motion--fast), border-color var(--_tokens---motion--fast), opacity var(--_tokens---motion--fast), transform var(--_tokens---motion--fast);
     max-width: 140px; /* prevent long project names from breaking layout */
   }
+  .breadcrumb__dropdown-trigger:active { transform: scale(0.96); }
 
   #breadcrumb-trigger-label {
     overflow: hidden;
@@ -385,26 +467,35 @@ if (activeProject) {
     transition: transform var(--_tokens---motion--base) ease, opacity var(--_tokens---motion--base);
   
   }
+  /* Open state flips the chevron to point up. The angle is measured from the
+     glyph's natural east (the icon draws itself through rotate(--arrow-rot),
+     and dir="s" pins 90deg inline), so up is 270 — the old 180 here pointed
+     the open chevron west, not up. */
   .breadcrumb__dropdown-trigger[aria-expanded="true"] .breadcrumb__trigger-chevron {
     opacity: 1;
+    transform: rotate(270deg);
   }
   @media (hover: hover) {
     .breadcrumb__dropdown-trigger:hover .breadcrumb__trigger-chevron {
     opacity: 1;
   }
   }
-  .breadcrumb__dropdown-trigger[aria-expanded="true"] .breadcrumb__trigger-chevron {
-    transform: rotate(180deg);
-  }
 
   /* Prev / Next project arrows */
   .breadcrumb__arrow {
     display: flex; align-items: center; justify-content: center;
-    width: 1.8em; height: 1.8em;
+    /* Same construction as the back button above, so every round control in
+       the bar matches the pill height instead of sitting 3px short at 1.8em.
+       The font-size has to be stated too: these inherit 16px from the bar
+       while the pills are set in --type--micro, so sizing off `1lh` without
+       it made them 30px against a 27.5px pill on desktop. */
+    font-size: var(--_tokens---type--micro);
+    width:  calc(1lh + 10px);
+    height: calc(1lh + 10px);
     border-radius: 50%;
     background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
     color: var(--_tokens---color--muted);
-    transition: background-color var(--_tokens---motion--fast), color var(--_tokens---motion--fast);
+    transition: background-color var(--_tokens---motion--fast), color var(--_tokens---motion--fast), transform var(--_tokens---motion--fast);
     flex-shrink: 0;
     text-decoration: none;
   }
@@ -413,8 +504,23 @@ if (activeProject) {
     background-color: var(--_tokens---color--fg);
     color: var(--_tokens---color--bg);
   }
+    /* Chevron leans the way it will take you. rotate(var(--arrow-rot)) must be
+       restated — the icon aims itself with it, and a bare translate erases it. */
+    .breadcrumb__arrow--prev:hover svg {
+      transform: translateX(-1.5px) rotate(var(--arrow-rot, 0deg));
+    }
+    .breadcrumb__arrow--next:hover svg {
+      transform: translateX(1.5px) rotate(var(--arrow-rot, 0deg));
+    }
   }
-  .breadcrumb__arrow svg { width: 1em; height: 1em; }
+  .breadcrumb__arrow:active { transform: scale(0.9); }
+  /* --icon-size, not a raw width — same reason as the back button above. The
+     icon linter's rule 3 cannot see this: it matches classes handed to
+     <Icon>, and this styles the icon through its parent's class. */
+  .breadcrumb__arrow svg {
+    --icon-size: 1em;
+    transition: transform var(--_tokens---motion--base) var(--_tokens---ease-out);
+  }
 
   @media (max-width: 699.98px) {
     .breadcrumb__arrow--prev,
@@ -432,14 +538,29 @@ if (activeProject) {
     width: 240px;
   }
 
-  .breadcrumb__dropdown-panel.is-open { display: block; }
+  .breadcrumb__dropdown-panel.is-open {
+    display: block;
+    /* display flips none→block, so a transition can never run — animate in. */
+    transform-origin: top right;
+    animation: bc-panel-in var(--_tokens---motion--base) var(--_tokens---ease-out);
+  }
 
-  /* Mobile: open upward (breadcrumb docked at bottom) */
-  @media (max-width: 1023.98px) {
+  @keyframes bc-panel-in {
+    from { opacity: 0; transform: scale(0.97); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  /* Compact: open upward (breadcrumb docked at bottom). 699.98, not 1023.98 —
+     the bar only bottom-docks below 700px, and opening upward from a
+     top-docked bar pushed the panel off the top of the screen across the
+     whole 700–1023 band. */
+  @media (max-width: 699.98px) {
     .breadcrumb__dropdown-panel {
       top: auto;
       bottom: calc(100% + 6px);
       width: min(260px, calc(100vw - 64px));
+      /* Opens upward here, so it should grow from its bottom edge. */
+      transform-origin: bottom right;
     }
   }
 
@@ -461,12 +582,14 @@ if (activeProject) {
   }
   .breadcrumb__pages-list::-webkit-scrollbar { display: none; }
 
-  @media (max-width: 1023.98px) {
+  @media (max-width: 699.98px) {
     .breadcrumb__pages-list {
       max-height: calc(80dvh - 60px);
       /* The bar docks at the bottom and the panel opens upward, so flip the
          list: Home/About/Projects land nearest the thumb, projects extend
-         upward. The scroll also starts at that end automatically. */
+         upward. The scroll also starts at that end automatically. Bound to
+         the same 700px dock as the panel direction above — a reversed list
+         under a downward-opening panel put Home at the far end. */
       flex-direction: column-reverse;
     }
   }
@@ -494,9 +617,10 @@ if (activeProject) {
     text-decoration: none;
     white-space: nowrap;
     cursor: pointer;
-    transition: background-color var(--_tokens---motion--fast), color var(--_tokens---motion--fast), border-color var(--_tokens---motion--fast);
+    transition: background-color var(--_tokens---motion--fast), color var(--_tokens---motion--fast), border-color var(--_tokens---motion--fast), transform var(--_tokens---motion--fast);
     flex-shrink: 0;
   }
+  .breadcrumb__list-item:active { transform: scale(0.98); }
 
   .breadcrumb__list-item:focus-visible {
     background-color: var(--_tokens---color--fg);
@@ -556,7 +680,14 @@ if (activeProject) {
     display: none;
     pointer-events: auto;
   }
-  .breadcrumb__backdrop.is-open { display: block; }
+  .breadcrumb__backdrop.is-open {
+    display: block;
+    animation: bc-fade-in var(--_tokens---motion--base) ease;
+  }
+  @keyframes bc-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
 
   /* Pills signal keyboard focus by inverting (bg↔fg) in the :focus-visible
      rules above; the prev/next arrows fall back to the global focus ring. */
@@ -748,6 +879,32 @@ if (activeProject) {
     }
   }
 
+  /* ── Back button ─────────────────────────────────────────────
+     Reveal it only when history.back() will land somewhere on this site.
+     A same-session navigation depth is kept in sessionStorage: forward
+     navigations increment it, back/forward traversals decrement it, reloads
+     leave it alone. Depth 1 is the entry page — nothing to go back to. */
+  function setupBackButton() {
+    const btn = document.getElementById('breadcrumb-back') as HTMLButtonElement | null;
+    if (!btn) return;
+
+    let depth = parseInt(sessionStorage.getItem('ak-nav-depth') || '0', 10);
+    if (!Number.isFinite(depth) || depth < 0) depth = 0;
+
+    const navEntry = performance.getEntriesByType?.('navigation')[0] as PerformanceNavigationTiming | undefined;
+    const navType  = navEntry?.type ?? 'navigate';
+
+    if (navType === 'back_forward') depth = Math.max(1, depth - 1);
+    else if (navType !== 'reload')  depth += 1;
+    sessionStorage.setItem('ak-nav-depth', String(depth));
+
+    if (depth > 1) {
+      btn.hidden = false;
+      btn.addEventListener('click', () => history.back());
+    }
+  }
+
+  setupBackButton();
   setupDropdown();
   document.addEventListener('astro:after-swap', () => {
     (window as any).hasKbGlobalNav = false;
