@@ -482,6 +482,11 @@ const shareImage = new URL(ogImage ?? '/images/people/advaita-kelkar.jpg', Astro
 
         document.querySelectorAll<HTMLElement>('main *, .sn-panel *').forEach((el) => {
           if (el.scrollHeight <= el.clientHeight + 2) return;
+          /* The home slider opts out. Its blurb is a deliberate fixed-height
+             teaser that continues on the project page, and the whole slide is
+             one link — so the fade was not signalling "scroll for more", it
+             just read as the sentence dissolving mid-word. */
+          if (el.closest('.home-slider')) return;
           const cs = getComputedStyle(el);
           // Don't fight a mask the component set for itself.
           if (cs.maskImage !== 'none' && !el.hasAttribute('data-more')) return;

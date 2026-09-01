@@ -89,7 +89,15 @@ const PROFESSOR_NAMES = ['Samir Raut', 'Faizan Khatri', 'Siddhesh Kadam', 'Casim
 const perProjectProfessors = new Set<string>();
 projects.forEach(p => (p.data.professors ?? []).forEach((n: string) => perProjectProfessors.add(n)));
 const isProfessor = (p: string) => PROFESSOR_NAMES.includes(p) || perProjectProfessors.has(p);
-categoryPeople = [...categoryPeople.filter(isProfessor), ...categoryPeople.filter(p => !isProfessor(p))];
+/* Advaita sits last among the collaborators — the collective's other members
+   read first, and the owner of the site closes the row. Professors keep their
+   place ahead of the divider regardless. */
+const OWNER = 'Advaita Kelkar';
+categoryPeople = [
+  ...categoryPeople.filter(isProfessor),
+  ...categoryPeople.filter(p => !isProfessor(p) && p !== OWNER),
+  ...categoryPeople.filter(p => !isProfessor(p) && p === OWNER),
+];
 const professorCount = categoryPeople.filter(isProfessor).length;
 // Index after which the single divider renders; -1 = no divider
 const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople.length ? professorCount - 1 : -1;
@@ -333,6 +341,11 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
       line-height: 1.55;
       color: var(--_tokens---color--muted);
       margin: 0;
+      /* Honour newlines written into the YAML copy, so a paragraph can be
+         broken where the author wants without splitting it into a second
+         intro entry — everything after intro[0] is hidden behind Read More,
+         so a split would bury half the sentence. Spaces still collapse. */
+      white-space: pre-line;
     }
 
     .category-intro__link {
