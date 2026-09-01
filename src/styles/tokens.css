@@ -163,14 +163,19 @@
      axes — which is what shipped — reads as ~4px vertically and ~10px
      horizontally. Same number, two and a half times the apparent space.
 
-     Full compensation would be y = x + 6. The minimum channel registers too,
-     not just the average, so full compensation overshoots; ~70% of it lands
-     right, which is y = x + 4. Both values stay on the 4px grid (using the
-     documented 2px sub-step).
+     That reasoning argues for y > x. In practice it overshot: at y = x + 4 the
+     rows read as drifting apart, because the eye tracks the *minimum* channel
+     between two capsules as much as the average, and vertically that minimum
+     runs the whole width of the pill rather than touching at one point.
 
-     Raise both together for more air; keep the 4px difference between them. */
+     So the rule in force is the author's: y is 75% of x. Expressed as a
+     ratio, not a literal, so the two stay locked if x is ever retuned —
+     change x alone and the vertical gap follows.
+
+     Note this deliberately lands off the 4px grid (6 -> 4.5px). The ratio is
+     the intent here; rounding it to 4px would make the gap 67% of x. */
   --_tokens---bubble-gap-x: 6px;
-  --_tokens---bubble-gap-y: 10px;
+  --_tokens---bubble-gap-y: calc(var(--_tokens---bubble-gap-x) * 0.75);
 
   /* Radius */
   --_tokens---radius--small:  0.5rem;
