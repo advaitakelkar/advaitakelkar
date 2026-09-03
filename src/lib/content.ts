@@ -52,3 +52,22 @@ export function isProjectLocked(slug: string, passcode?: string): boolean {
   if (passcode) return true;
   return !BYPASS_SLUGS.includes(slug);
 }
+
+/**
+ * Images a listing is allowed to show for a project.
+ *
+ * A locked project shows no imagery: the whole point of the lock is that the
+ * work is not on display, and a thumbnail strip gives it away regardless of
+ * the password gate on the project page itself. Returns the images unchanged
+ * for unlocked projects.
+ *
+ * One rule, one place — the project list, the project card and every
+ * category page route through this rather than each re-deriving it.
+ */
+export function visibleProjectImages(
+  slug: string,
+  passcode: string | undefined,
+  images: string[]
+): string[] {
+  return isProjectLocked(slug, passcode) ? [] : images;
+}

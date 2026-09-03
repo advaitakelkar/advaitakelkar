@@ -4,7 +4,7 @@ import { getCollection } from 'astro:content';
 import PageLayout from '../layouts/PageLayout.astro';
 import fs from 'node:fs';
 import path from 'node:path';
-import { isProjectLocked } from '../lib/content';
+import { isProjectLocked, visibleProjectImages } from '../lib/content';
 import Arrow from './Arrow.astro';
 
 export interface Props {
@@ -175,10 +175,12 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
           if (p.data.multiImage) allImgs.push(...(p.data.multiImage as string[]));
         }
         // Scrub shows only the curated set when a project defines one
-        const scrubImgs: string[] = (p.data.scrubImages as string[] | undefined)?.length
+        const scrubImgsRaw: string[] = (p.data.scrubImages as string[] | undefined)?.length
           ? (p.data.scrubImages as string[])
           : allImgs;
         const isLocked = isProjectLocked(p.id, p.data?.passcode);
+        // A locked project shows no imagery anywhere in a listing.
+        const scrubImgs = visibleProjectImages(p.id, p.data?.passcode, scrubImgsRaw);
         return (
         <div
           class="project-card"

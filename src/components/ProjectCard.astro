@@ -11,7 +11,7 @@ export interface Props {
   showDescription?: boolean;
 }
 const { project: p, tagMap, catMap = {}, showDescription = true } = Astro.props;
-import { realText, isProjectLocked } from '../lib/content';
+import { realText, isProjectLocked, visibleProjectImages } from '../lib/content';
 import Arrow from './Arrow.astro';
 
 const isLocked = isProjectLocked(p.id, p.data?.passcode);
@@ -58,16 +58,20 @@ if (p.id === 'ai-works') {
   if (p.data.coverImage) allImgs.push(p.data.coverImage);
   if (p.data.multiImage) allImgs.push(...(p.data.multiImage as string[]));
 }
+
+// A locked project shows no imagery anywhere in a listing — this covers the
+// category pages too, which render through this component.
+const shownImgs = visibleProjectImages(p.id, p.data?.passcode, allImgs);
 ---
 
 <a href={`/projects/${p.id}`} class="pcard" data-name={p.data.name}>
   <div class="pcard__row-first">
     <h2 class:list={["pcard__name", isLocked && "is-locked"]}>{p.data.name}</h2>
     <div class="pcard__right-wrap">
-      {allImgs.length > 0 && (
+      {shownImgs.length > 0 && (
       <div class="pcard__image-col">
-        <div class:list={["pcard__thumbs", allImgs.length < 5 && "is-few"]}>
-          {allImgs.map((src, idx) => (
+        <div class:list={["pcard__thumbs", shownImgs.length < 5 && "is-few"]}>
+          {shownImgs.map((src, idx) => (
             <span class="pcard__thumb"><img src={src} alt={`${p.data.name} ${idx + 1}`} loading="lazy" /></span>
           ))}
         </div>

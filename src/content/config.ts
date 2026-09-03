@@ -15,6 +15,9 @@ const categories = defineCollection({
     // Editable copy for the category archive page (inline edit mode writes here).
     tagline: z.string().optional(),
     intro: z.array(z.string()).optional(),
+    // Image used for og:image / social link previews on this category page.
+    // Falls back to the site-wide portrait in Base.astro when omitted.
+    shareImage: z.string().optional(),
   }),
 });
 
