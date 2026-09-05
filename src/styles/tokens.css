@@ -222,15 +222,13 @@
   --_tokens---layout--container: 72rem;
   --_tokens---layout--measure:   38rem;
   /* The house horizontal gutter — the page inset every route starts from.
-     Also fluid. It used to floor at 6rem and was therefore only safe to apply
-     above 1200px, which meant the gutter jumped from 48px to 154px across one
-     breakpoint. The curve below is tight enough to apply at every width, so
-     .page-main and .page-breadcrumb can use it unconditionally and the jump
-     disappears. Desktop values are unchanged from the old 12vw curve.
+     Fluid across viewports. Capped at 16rem for standard desktop viewports,
+     and gracefully expands on ultra-large displays (≥1920px / 4K) so that
+     content remains comfortably centered and never exceeds 1680px.
 
-       375px    700px    834px    1024px   1280px   1600px   1900px+
-        12       12       32       72       125      192      256 (cap) */
-  --_tokens---layout--gutter:    clamp(0.75rem, 20.9vw - 8.875rem, 16rem);
+       375px    700px    834px    1024px   1280px   1600px   1920px   2560px   3840px
+        12       12       32       72       125      192      256      418      1058 */
+  --_tokens---layout--gutter:    max(clamp(0.75rem, 20.9vw - 8.875rem, 16rem), calc((100vw - 44px - 1680px) / 2));
 
   /* Default color scheme: Void light */
   --_tokens---color--bg:         #ffffff;
@@ -254,10 +252,9 @@ html.mode-dark {
 
 /*
   Colors derived from the two primary colors (bg + fg).
-  - muted     : foreground at 75% — secondary text. Raised from 60% so metadata,
-                breadcrumbs and captions clear WCAG AA-large in every colour
-                scheme (at 60% the tinted schemes — Moss, Dusk, Ember, Nomad —
-                dropped below the 3:1 floor). See the audit.
+  - muted     : foreground at 80% — secondary text. Tuned so metadata,
+                breadcrumbs and captions clear WCAG AA (4.5:1) in every colour
+                scheme. See the audit.
   - line      : full-strength foreground hairline
   - line-soft : foreground at 8% — the faint hairline repeated across cards,
                 bars, pills and dropdowns (was hand-written dozens of times)
@@ -268,7 +265,7 @@ html.mode-dark {
                 the token now matches that real value.)
 */
 :root, html {
-  --_tokens---color--muted:      color-mix(in srgb, var(--_tokens---color--fg) 75%, transparent);
+  --_tokens---color--muted:      color-mix(in srgb, var(--_tokens---color--fg) 80%, transparent);
   --_tokens---color--line:       var(--_tokens---color--fg);
   --_tokens---color--line-soft:  color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
   --_tokens---color--bg-overlay: color-mix(in srgb, var(--_tokens---color--bg) 75%, transparent);
@@ -283,10 +280,10 @@ html.mode-dark {
 /* Applied via html.sch1 … html.sch9                         */
 /* Persisted in sessionStorage key 'aks'                     */
 
-/* sch1 — Moss */
-html.sch1 { --_tokens---color--bg: #ECE7E2; --_tokens---color--fg: #3D6355; }
+/* sch1 — Moss (darkened to #2B4A3E for WCAG AA compliance on muted text) */
+html.sch1 { --_tokens---color--bg: #ECE7E2; --_tokens---color--fg: #2B4A3E; }
 @media (prefers-color-scheme: dark) {
-  html:not(.mode-light).sch1 { --_tokens---color--bg: #3D6355; --_tokens---color--fg: #ECE7E2; }
+  html:not(.mode-light).sch1 { --_tokens---color--bg: #2B4A3E; --_tokens---color--fg: #ECE7E2; }
 }
 
 /* sch2 — Clay */
@@ -295,10 +292,10 @@ html.sch2 { --_tokens---color--bg: #fee7d5; --_tokens---color--fg: #4b3935; }
   html:not(.mode-light).sch2 { --_tokens---color--bg: #4b3935; --_tokens---color--fg: #fee7d5; }
 }
 
-/* sch3 — Dusk */
-html.sch3 { --_tokens---color--bg: #D7E7C3; --_tokens---color--fg: #6C5383; }
+/* sch3 — Dusk (darkened to #523869 for WCAG AA compliance on muted text) */
+html.sch3 { --_tokens---color--bg: #D7E7C3; --_tokens---color--fg: #523869; }
 @media (prefers-color-scheme: dark) {
-  html:not(.mode-light).sch3 { --_tokens---color--bg: #6C5383; --_tokens---color--fg: #D7E7C3; }
+  html:not(.mode-light).sch3 { --_tokens---color--bg: #523869; --_tokens---color--fg: #D7E7C3; }
 }
 
 /* sch4 — Midnight */
@@ -307,27 +304,27 @@ html.sch4 { --_tokens---color--bg: #D2B96A; --_tokens---color--fg: #0B1A35; }
   html:not(.mode-light).sch4 { --_tokens---color--bg: #0B1A35; --_tokens---color--fg: #D2B96A; }
 }
 
-/* sch6 — Ember */
-html.sch6 { --_tokens---color--bg: #ffe4a1; --_tokens---color--fg: #97322D; }
+/* sch6 — Ember (darkened to #7E2621 for WCAG AA compliance on muted text) */
+html.sch6 { --_tokens---color--bg: #ffe4a1; --_tokens---color--fg: #7E2621; }
 @media (prefers-color-scheme: dark) {
-  html:not(.mode-light).sch6 { --_tokens---color--bg: #97322D; --_tokens---color--fg: #ffe4a1; }
+  html:not(.mode-light).sch6 { --_tokens---color--bg: #7E2621; --_tokens---color--fg: #ffe4a1; }
 }
 
-/* sch7 — Nomad */
-html.sch7 { --_tokens---color--bg: #edcdc2; --_tokens---color--fg: #006076; }
+/* sch7 — Nomad (darkened to #004F62 for WCAG AA compliance on muted text) */
+html.sch7 { --_tokens---color--bg: #edcdc2; --_tokens---color--fg: #004F62; }
 @media (prefers-color-scheme: dark) {
-  html:not(.mode-light).sch7 { --_tokens---color--bg: #006076; --_tokens---color--fg: #edcdc2; }
+  html:not(.mode-light).sch7 { --_tokens---color--bg: #004F62; --_tokens---color--fg: #edcdc2; }
 }
 
 
 /* ─── Manual dark overrides (html.mode-dark) ────────────────────── */
 /* Higher specificity than @media — user choice wins over OS         */
-html.mode-dark.sch1 { --_tokens---color--bg: #3D6355; --_tokens---color--fg: #ECE7E2; }
+html.mode-dark.sch1 { --_tokens---color--bg: #2B4A3E; --_tokens---color--fg: #ECE7E2; }
 html.mode-dark.sch2 { --_tokens---color--bg: #4b3935; --_tokens---color--fg: #fee7d5; }
-html.mode-dark.sch3 { --_tokens---color--bg: #6C5383; --_tokens---color--fg: #D7E7C3; }
+html.mode-dark.sch3 { --_tokens---color--bg: #523869; --_tokens---color--fg: #D7E7C3; }
 html.mode-dark.sch4 { --_tokens---color--bg: #0B1A35; --_tokens---color--fg: #D2B96A; }
-html.mode-dark.sch6 { --_tokens---color--bg: #97322D; --_tokens---color--fg: #ffe4a1; }
-html.mode-dark.sch7 { --_tokens---color--bg: #006076; --_tokens---color--fg: #edcdc2; }
+html.mode-dark.sch6 { --_tokens---color--bg: #7E2621; --_tokens---color--fg: #ffe4a1; }
+html.mode-dark.sch7 { --_tokens---color--bg: #004F62; --_tokens---color--fg: #edcdc2; }
 
 /* ─── Base Reset ─────────────────────────────────────────── */
 

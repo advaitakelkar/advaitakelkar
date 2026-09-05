@@ -84,23 +84,33 @@ const shareImage = new URL(ogImage ?? '/images/people/advaita-kelkar.jpg', Astro
           return POOL[Math.floor(Math.random() * POOL.length)];
         }
 
-        // Reload detection — Navigation Timing Level 2
-        var navEntry = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
-        var isReload = navEntry ? navEntry.type === 'reload' : false;
+        var userPicked = null;
+        try { userPicked = localStorage.getItem('aks-picked'); } catch (e) {}
+        var userPickedValid = userPicked && VALID.indexOf(userPicked) !== -1;
 
-        var stored = sessionStorage.getItem('aks');
-        var valid  = stored && VALID.indexOf(stored) !== -1;
+        var storedMode = null;
+        try { storedMode = localStorage.getItem('aks-mode') || sessionStorage.getItem('aks-mode'); } catch (e) {}
+        if (storedMode === 'dark')  document.documentElement.classList.add('mode-dark');
+        if (storedMode === 'light') document.documentElement.classList.add('mode-light');
 
-        if (isReload || !valid) {
-          var cls = randomSch();
-          setClass(cls);
-          sessionStorage.setItem('aks', cls);
-          sessionStorage.removeItem('aks-mode');
+        if (userPickedValid) {
+          setClass(userPicked);
+          sessionStorage.setItem('aks', userPicked);
         } else {
-          setClass(stored);
-          var storedMode = sessionStorage.getItem('aks-mode');
-          if (storedMode === 'dark')  document.documentElement.classList.add('mode-dark');
-          if (storedMode === 'light') document.documentElement.classList.add('mode-light');
+          // Reload detection — Navigation Timing Level 2
+          var navEntry = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
+          var isReload = navEntry ? navEntry.type === 'reload' : false;
+
+          var stored = sessionStorage.getItem('aks');
+          var valid  = stored && VALID.indexOf(stored) !== -1;
+
+          if (isReload || !valid) {
+            var cls = randomSch();
+            setClass(cls);
+            sessionStorage.setItem('aks', cls);
+          } else {
+            setClass(stored);
+          }
         }
       })();
     </script>
