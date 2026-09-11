@@ -1,16 +1,18 @@
 import type { APIContext } from 'astro';
+import { isPublicProject } from '../lib/projectAccess';
 import { getCollection } from 'astro:content';
 
 // Hand-rolled sitemap (no extra dependency). Lists the PUBLIC surface only —
 // home, about, the projects index, every category and tag archive, and the two
-// Work sub-views. Individual /projects/<slug> pages are intentionally omitted:
-// they sit behind the soft password gate, so they're not advertised to crawlers.
+// Work sub-views, plus reviewed public project pages. Locked projects are omitted.
 export async function GET(context: APIContext) {
   const origin = (context.site?.href ?? 'https://advaitakelkar.com/').replace(/\/$/, '');
   const cats = await getCollection('categories');
   const tags = await getCollection('tags');
 
+  const projects = await getCollection('projects');
   const paths = [
+    ...projects.filter(p => isPublicProject(p.id)).map(p => `/projects/${p.id}`),
     '/',
     '/about',
     '/projects',

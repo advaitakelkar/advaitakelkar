@@ -1,4 +1,5 @@
 ---
+import { projectTemplate } from "../../lib/projectTemplates";
 import Icon from '../../components/Icon.astro';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -92,52 +93,12 @@ if (category) {
 
 dynamicCrumbs.push({ label: data.name });
 
-// Card deck page slugs
-const cardPageSlugs = [
-  'alt-verse',
-  'architect-x-architects',
-  'future-of-dance',
-  'indian-royals',
-  'sups-cards',
-  'sups-in-the-hinterland',
-  'human-pods'
-];
-// Original curated AI card sets (overlay name, logo, no Design/Making)
-const isOriginalCardPage = cardPageSlugs.includes(project.id);
-// Chapter-driven academic pages that use the same collapsible tab UI as work
-// pages — project name is tab 1, and each chapter (Unveil, Float, Lonely…)
-// is a tab instead of the generic Design / Making pair.
-const tabChapterSlugs = ['habersham-hall', 'scad-design-built'];
-const isTabChapterPage = tabChapterSlugs.includes(project.id);
+const template = projectTemplate(project.id, category?.id, data.template);
+const isOriginalCardPage = template.cards;
+const isTabChapterPage = template.chapters;
+const isTabLayout = template.tabs;
+const isCardPage = template.cardLayout;
 const isScarpinPage = project.id === 'scarpin';
-// Freelancer projects that should use the work-style tab layout UI
-// (collapsible name toggle, credits pill, accordion Design/Making, scrub in
-// left column) while staying in the freelancer category.
-const tabFreelancerSlugs = [
-  'carlo',
-  'concrt',
-  'goonj',
-  'nat-geo-humans',
-  'pet-pod',
-  'roberto-burle-marx-stickers',
-  'shelf',
-  'tilak-nagar-cricket-park',
-  'xbkc',
-];
-const isTabFreelancerPage = tabFreelancerSlugs.includes(project.id);
-// "Tab layout" = the work-style collapsible tab UI (name tab + section tabs).
-// Work + ARCHV + Academic pages get it, plus the chapter pages, opted-in
-// freelancer pages, and Scarpin (which renders person tabs instead of
-// Design/Making).
-const isTabLayout = (category?.id === 'work' || category?.id === 'archv' || category?.id === 'academic' || isTabChapterPage || isTabFreelancerPage || isScarpinPage) && true;
-// All freelancer + work + ARCHV + Academic pages now get the card layout
-const isCardPage = (isOriginalCardPage
-  || category?.id === 'freelancer'
-  || category?.id === 'work'
-  || category?.id === 'archv'
-  || category?.id === 'academic'
-  || isTabChapterPage
-  || isScarpinPage) && true;
 
 // Levenshtein distance — used to tolerate small folder-name typos when
 // matching a scarpin credit against the PEOPLE registry.
@@ -440,7 +401,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
             {hasImages && (
             <div class="project-col-right" id="project-slider-col">
               <div class="project-slider-wrapper" id="page-slider-wrapper" data-images={JSON.stringify(allImages)}>
-                <div class="project-detail__active-wrap" id="page-active-wrap" style="cursor: pointer;" title="Click to open fullscreen modal">
+                <div class="project-detail__active-wrap" id="page-active-wrap" role="button" tabindex="0" aria-label={`Open ${data.name} image gallery`} style="cursor: pointer;" title="Click to open fullscreen modal">
                   <img class="project-detail__active-img" id="page-active-img" src={allImages[0]} alt={data.name} />
 
                   <!-- Active card name on the image — only for original curated card sets -->
@@ -671,18 +632,19 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
           <section class="project-design-section">
             <div class="project-header-title-row project-design-header" id="project-design-click">
               <h3 class="project-section-subtitle">Design</h3>
-              <button class="project-detail-collapse-btn" id="project-design-toggle" type="button" aria-expanded="false" aria-label="Toggle design details">
+              <button class="project-detail-collapse-btn" id="project-design-toggle" aria-controls="project-design-panel" type="button" aria-expanded="false" aria-label="Toggle design details">
                 <Arrow class="toggle-icon-minus" style="display: none;" />
                 <Arrow class="toggle-icon-plus" />
               </button>
             </div>
             
             <div class="project-design-content" id="project-design-panel">
+              {realText(data.design) && <div set:html={data.design} />}
               <div class="project-design-grid">
-                <div class="project-design-item">
+                {data.program && (<div class="project-design-item">
                   <span class="design-label">Program</span>
-                  <span class="design-val">{data.program ?? 'N/A'}</span>
-                </div>
+                  <span class="design-val">{data.program}</span>
+                </div>)}
                 <div class="project-design-item">
                   <span class="design-label">Collaborator</span>
                   <span class="design-val">{data.collaborator ?? 'Self-initiated'}</span>
@@ -700,26 +662,27 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
           <section class="project-making-section">
             <div class="project-header-title-row project-making-header" id="project-making-click">
               <h3 class="project-section-subtitle">Making</h3>
-              <button class="project-detail-collapse-btn" id="project-making-toggle" type="button" aria-expanded="false" aria-label="Toggle making details">
+              <button class="project-detail-collapse-btn" id="project-making-toggle" aria-controls="project-making-panel" type="button" aria-expanded="false" aria-label="Toggle making details">
                 <Arrow class="toggle-icon-minus" style="display: none;" />
                 <Arrow class="toggle-icon-plus" />
               </button>
             </div>
             
             <div class="project-making-content" id="project-making-panel">
+              {realText(data.making) && <div set:html={data.making} />}
               <div class="project-making-grid">
-                <div class="project-making-item">
+                {data.client && (<div class="project-making-item">
                   <span class="design-label">Client</span>
-                  <span class="design-val">{data.client ?? 'N/A'}</span>
-                </div>
-                <div class="project-making-item">
+                  <span class="design-val">{data.client}</span>
+                </div>)}
+                {data.size && (<div class="project-making-item">
                   <span class="design-label">Size</span>
-                  <span class="design-val">{data.size ?? 'N/A'}</span>
-                </div>
-                <div class="project-making-item">
+                  <span class="design-val">{data.size}</span>
+                </div>)}
+                {data.location && (<div class="project-making-item">
                   <span class="design-label">Location</span>
-                  <span class="design-val">{data.location ?? 'N/A'}</span>
-                </div>
+                  <span class="design-val">{data.location}</span>
+                </div>)}
               </div>
             </div>
           </section>
@@ -771,7 +734,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
       <!-- Fullscreen Lightbox: card pages get a horizontally scrolling deck -->
       {isCardPage && (
-        <div id="card-lightbox" class="card-lightbox card-lightbox--deck" aria-hidden="true" style="display: none;">
+        <div id="card-lightbox" role="dialog" aria-modal="true" aria-label={`${data.name} image gallery`} tabindex="-1" class="card-lightbox card-lightbox--deck" aria-hidden="true" style="display: none;">
           <img class="lightbox-bg-ambient" id="lightbox-ambient-img" src="" alt="" />
           <div class="lightbox-backdrop"></div>
 
@@ -814,7 +777,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       )}
 
       {!isCardPage && (
-      <div id="card-lightbox" class="card-lightbox" aria-hidden="true" style="display: none;">
+      <div id="card-lightbox" role="dialog" aria-modal="true" aria-label={`${data.name} image gallery`} tabindex="-1" class="card-lightbox" aria-hidden="true" style="display: none;">
         <!-- Dynamic Blurred Background Ambient Image -->
         <img class="lightbox-bg-ambient" id="lightbox-ambient-img" src="" alt="" />
         <div class="lightbox-backdrop"></div>
@@ -4152,6 +4115,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 </style>
 
 <script>
+  import { wireAccordion } from "../../lib/accordion";
+  import { dialogFocus } from "../../lib/dialogFocus";
   import { shuffle, reorderChildrenByIndex } from '../../lib/random';
   import { GLYPHS } from '../../lib/glyphs';
 
@@ -4267,6 +4232,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
     // Glitch/scramble a name element into new text.
     const scrambleTo = (el: HTMLElement, text: string) => {
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { el.textContent = text; return; }
       const prev = (el as any)._scrRaf;
       if (prev) cancelAnimationFrame(prev);
       const totalFrames = Math.min(Math.max(text.length * 1.5, 18), 40);
@@ -4491,6 +4457,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
     const startAutoplay = () => {
       stopAutoplay();
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
       resetTimerRing();
       autoplayInterval = window.setInterval(() => {
         goToPos(currentPos + 1);
@@ -4499,11 +4466,14 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     };
 
     // ── Open / close ────────────────────────────────────────────────────────
+    const focus = dialogFocus(lightbox);
+    pageActiveWrap?.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); pageActiveWrap.click(); } });
     const openLightbox = (index: number) => {
       goToPos(order.indexOf(index));
       isOpen = true;
       lightbox.style.display = 'flex';
       lightbox.setAttribute('aria-hidden', 'false');
+      focus.open();
       document.body.style.overflow = 'hidden';
       updateDisplay(false);
       requestAnimationFrame(() => {
@@ -4517,6 +4487,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       isOpen = false;
       lightbox.style.display = 'none';
       lightbox.setAttribute('aria-hidden', 'true');
+      focus.close();
       document.body.style.overflow = '';
       startAutoplay();
     };
@@ -5371,48 +5342,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     document.querySelectorAll('.project-chapter').forEach(ch =>
       add(ch, '.project-chapter__header', '.project-detail-collapse-btn'));
 
-    const setExpanded = (entry: Entry, expanded: boolean) => {
-      entry.sect.classList.toggle('is-expanded', expanded);
-      entry.toggle.setAttribute('aria-expanded', String(expanded));
-      const iconMinus = entry.toggle.querySelector('.toggle-icon-minus') as HTMLElement | null;
-      const iconPlus = entry.toggle.querySelector('.toggle-icon-plus') as HTMLElement | null;
-      if (iconMinus && iconPlus) {
-        iconMinus.style.display = expanded ? 'block' : 'none';
-        iconPlus.style.display = expanded ? 'none' : 'block';
-      }
-    };
-
-    const toggleAll = () => {
-      const allOpen = entries.every(entry => entry.sect.classList.contains('is-expanded'));
-      entries.forEach(entry => setExpanded(entry, !allOpen));
-    };
-
-    entries.forEach(entry => {
-      // A double click fires click, click, dblclick — delay the single-click
-      // action just long enough to cancel it if a second click follows.
-      let clickTimer: number | null = null;
-
-      const onClick = (e: Event) => {
-        e.stopPropagation();
-        if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; return; }
-        clickTimer = window.setTimeout(() => {
-          clickTimer = null;
-          const wasExpanded = entry.sect.classList.contains('is-expanded');
-          setExpanded(entry, !wasExpanded);
-        }, 250);
-      };
-
-      const onDblClick = (e: Event) => {
-        e.stopPropagation();
-        if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; }
-        toggleAll();
-      };
-
-      entry.header.addEventListener('click', onClick);
-      entry.toggle.addEventListener('click', onClick);
-      entry.header.addEventListener('dblclick', onDblClick);
-      entry.toggle.addEventListener('dblclick', onDblClick);
-    });
+    wireAccordion(entries);
   }
 
   // Collapse every chapter accordion (module-level so the header tap can call it)

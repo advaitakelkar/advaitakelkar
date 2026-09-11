@@ -1,3 +1,4 @@
+import { PUBLIC_PROJECT_SLUGS, isPublicProject } from './projectAccess';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -35,22 +36,10 @@ export function publicFilesLike(publicDir: string, prefix: string, ext: string):
 }
 
 // Slugs for public/unlocked projects that do not require site-lock password
-export const BYPASS_SLUGS = [
-  'alt-verse',
-  'architect-x-architects',
-  'carlo',
-  'concrt',
-  'dhal-ni-pol',
-  'future-of-dance',
-  'human-pods',
-  'indian-royals',
-  'sups-cards',
-  'sups-in-the-hinterland',
-];
+export const BYPASS_SLUGS = PUBLIC_PROJECT_SLUGS;
 
-export function isProjectLocked(slug: string, passcode?: string): boolean {
-  if (passcode) return true;
-  return !BYPASS_SLUGS.includes(slug);
+export function isProjectLocked(slug: string, _passcode?: string): boolean {
+  return !isPublicProject(slug);
 }
 
 /**

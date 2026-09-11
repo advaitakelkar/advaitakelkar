@@ -8,13 +8,13 @@ import Arrow from './Arrow.astro';
 // can lock/unlock the whole site at once.
 ---
 
-<div class="site-lock" id="site-lock" hidden aria-hidden="true">
+<div class="site-lock" id="site-lock" role="dialog" aria-modal="true" aria-labelledby="site-lock-title" tabindex="-1" hidden aria-hidden="true">
   <button class="site-lock__close" id="site-lock-close" type="button" aria-label="Close">
     <Icon name="close" />
   </button>
   <div class="site-lock__panel">
     <Icon name="lock" state="closed" class="site-lock__icon" />
-    <p class="site-lock__title">Private project</p>
+    <p class="site-lock__title" id="site-lock-title">Private project</p>
     <p class="site-lock__sub">Enter the password to open the project archive.</p>
     <form class="site-lock__form" id="site-lock-form">
       <input class="site-lock__input" id="site-lock-input" type="password" placeholder="Password" autocomplete="current-password" aria-label="Password" />
@@ -27,6 +27,8 @@ import Arrow from './Arrow.astro';
 </div>
 
 <script>
+  import { isPublicProject } from "../lib/projectAccess";
+  import { dialogFocus } from "../lib/dialogFocus";
   /* Passwords are stored as SHA-256 hashes, not plaintext. They used to be
      literals here, which meant View Source revealed them — and the same words
      may be reused elsewhere, so the leak mattered beyond this gate.
@@ -55,6 +57,7 @@ import Arrow from './Arrow.astro';
   const isLocal = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
 
   const lock  = document.getElementById('site-lock');
+  const focus = lock ? dialogFocus(lock) : null;
   const form  = document.getElementById('site-lock-form');
   const input = document.getElementById('site-lock-input') as HTMLInputElement | null;
   const error = document.getElementById('site-lock-error');
@@ -67,24 +70,13 @@ import Arrow from './Arrow.astro';
 
   const isUnlocked = () => sessionStorage.getItem(KEY) === UNLOCK_TOKEN;
 
-  const BYPASS_SLUGS = [
-    'alt-verse',
-    'architect-x-architects',
-    'carlo',
-    'concrt',
-    'dhal-ni-pol',
-    'future-of-dance',
-    'human-pods',
-    'indian-royals',
-    'sups-cards',
-    'sups-in-the-hinterland',
-  ];
+
 
   const onProjectPage = () => {
     const p = window.location.pathname.replace(/\/$/, '') || '/';
     if (!p.startsWith('/projects/') || p === '/projects') return false;
     const slug = p.split('/').pop() || '';
-    if (BYPASS_SLUGS.includes(slug)) return false;
+    if (isPublicProject(slug)) return false;
     return true;
   };
 
@@ -100,12 +92,13 @@ import Arrow from './Arrow.astro';
     lock.setAttribute('aria-hidden', 'false');
     document.documentElement.style.overflow = 'hidden';
     document.body.style.overflow = 'hidden';
-    setTimeout(() => input?.focus(), 60);
+    focus?.open(input);
   }
   function closeLock() {
     if (!lock) return;
     lock.hidden = true;
     lock.setAttribute('aria-hidden', 'true');
+    focus?.close();
     document.documentElement.style.overflow = '';
     document.body.style.overflow = '';
     if (error) error.textContent = '';

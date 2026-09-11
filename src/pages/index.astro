@@ -1,13 +1,13 @@
 ---
+import PortfolioStatus from "../components/PortfolioStatus.astro";
 import Icon from '../components/Icon.astro';
 import { getCollection, getEntry } from 'astro:content';
 import PageLayout from '../layouts/PageLayout.astro';
 import Footer from '../components/Footer.astro';
-import { realText, publicFileExists } from '../lib/content';
+import { realText, publicFileExists, isProjectLocked } from '../lib/content';
 import Arrow from '../components/Arrow.astro';
 
 // PDF links only render once the files actually exist in public/
-const hasPortfolio = publicFileExists('/advaita-kelkar-portfolio.pdf');
 const hasCv = publicFileExists('/Adi-Advaita-Kelkar-CV-Sept-2026.pdf');
 
 // ── Data ──────────────────────────────────────────────────────
@@ -20,7 +20,7 @@ const homeIntro = home?.data.intro ?? [];
 
 // Featured slider (featured:true, sorted by numbr)
 const featured = allProjects
-  .filter(p => p.data.featured && p.data.coverImage)
+  .filter(p => p.data.featured && p.data.coverImage && !isProjectLocked(p.id))
   .sort((a, b) => (a.data.numbr ?? 999) - (b.data.numbr ?? 999));
 
 // Resolve a category relationship → its display name
@@ -83,11 +83,7 @@ function getWords(name: string): string[] {
           <p class="home-intro__desc home-intro__desc--follow">
             <a href="https://linkedin.com/in/advaita-kelkar" target="_blank" rel="noopener" class="intro-inline-link">LinkedIn<Arrow class="intro-arrow" /></a>, <a href="https://instagram.com/advaitakelkar" target="_blank" rel="noopener" class="intro-inline-link">Instagram<Arrow class="intro-arrow" /></a>, <a href="https://github.com/advaitakelkar" target="_blank" rel="noopener" class="intro-inline-link">GitHub<Arrow class="intro-arrow" /></a>, <a href="https://instagram.com/3xpmnts" target="_blank" rel="noopener" class="intro-inline-link">3xpmnts<Arrow class="intro-arrow" /></a>, <a href="https://instagram.com/archv.in" target="_blank" rel="noopener" class="intro-inline-link">ARCHV<Arrow class="intro-arrow" /></a>.
           </p>
-          {(hasCv || hasPortfolio) && (
-            <p class="home-intro__desc home-intro__desc--follow">
-              Download my {hasCv && <a href="/Adi-Advaita-Kelkar-CV-Sept-2026.pdf" target="_blank" rel="noopener" class="intro-inline-link">Resume<Arrow class="intro-arrow" /></a>}{hasCv && hasPortfolio && ' or '}{hasPortfolio && <a href="/advaita-kelkar-portfolio.pdf" target="_blank" rel="noopener" class="intro-inline-link">Portfolio<Arrow class="intro-arrow" /></a>}.
-            </p>
-          )}
+          <p>{hasCv && <a href="/Adi-Advaita-Kelkar-CV-Sept-2026.pdf" target="_blank" rel="noopener" class="intro-inline-link">Resume<Arrow class="intro-arrow" /></a>}<br /><PortfolioStatus /></p>
         </div>
       </div>
     </div>
@@ -207,14 +203,7 @@ function getWords(name: string): string[] {
           <Arrow />
         </span>
       </a>
-      {hasPortfolio && (
-        <a href="/advaita-kelkar-portfolio.pdf" class="home-nav-row" target="_blank" rel="noopener">
-          <span class="home-nav-row__text" data-scramble>Portfolio</span>
-          <span class="home-nav-row__arrow" aria-hidden="true">
-            <Arrow />
-          </span>
-        </a>
-      )}
+      <div class="home-nav-row"><span class="home-nav-row__text"><PortfolioStatus /></span></div>
       <a href="/projects" class="home-nav-row">
         <span class="home-nav-row__text" data-scramble>Projects</span>
         <span class="home-nav-row__arrow" aria-hidden="true">
@@ -242,6 +231,7 @@ function getWords(name: string): string[] {
   // Alphabet comes from lib/glyphs — this used to carry its own literal, which
   // included digits and so scrambled names into things that read as numbers.
   function scrambleName(slide) {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const els = slide.querySelectorAll('.home-slider__name, .home-slider__name-mobile');
     if (!els.length) return;
     const text = els[0].dataset.text || els[0].textContent || '';

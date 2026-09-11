@@ -33,6 +33,14 @@ export default config({
         }),
         featured: fields.checkbox({ label: 'Featured', defaultValue: false }),
         passcode: fields.text({ label: 'Passcode' }),
+        template: fields.select({ label: 'Page template', options: [
+          { label: 'Automatic (existing layout)', value: 'auto' },
+          { label: 'Project tabs', value: 'tabs' },
+          { label: 'Image cards', value: 'cards' },
+          { label: 'Chapters', value: 'chapters' },
+        ], defaultValue: 'auto' }),
+        design: fields.text({ label: 'Design (optional HTML)', multiline: true }),
+        making: fields.text({ label: 'Making (optional HTML)', multiline: true }),
         smallIntro: fields.text({ label: 'Short Intro', multiline: true }),
         description: fields.document({
           label: 'Description',

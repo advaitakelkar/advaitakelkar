@@ -52,7 +52,8 @@ const sorted = [...allProjects].sort((a, b) => {
       <Icon name="close" class="qs-clear-icon" />
     </button>
   </div>
-  <p class="home-search__count" id="qs-count" aria-live="polite"></p>
+  <ul class="search-results" id="qs-results" aria-label="Matching projects and categories" hidden></ul>
+  <p role="status" class="home-search__count" id="qs-count" aria-live="polite"></p>
   
   <!-- Pill/bubble search — multi-row paragraph; rows are nowrap + clipped (stagger) -->
   <div class="proj-bubbles supersmall" id="qs-grid" role="list" style="margin-top: 28px; border-top: none; padding-top: 0;">
@@ -168,6 +169,13 @@ const sorted = [...allProjects].sort((a, b) => {
 </footer>
 
 <style>
+  .is-searching .proj-bubbles { display:none; }
+  .search-results { list-style:none; margin:1.5rem 0 0; padding:0; }
+  .search-results[hidden] { display:none; }
+  .search-results :global(a) { display:flex; flex-wrap:wrap; justify-content:space-between; gap:.5rem 1.5rem; padding:.8rem 0; color:var(--_tokens---color--fg); text-decoration:none; border-bottom:1px solid var(--_tokens---color--line); min-height:44px; }
+  .search-results :global(a span) { color:var(--_tokens---color--muted); font-size:var(--_tokens---type--micro); }
+  .search-results :global(a:focus-visible) { outline:2px solid currentColor; outline-offset:3px; }
+
   .home-search-footer {
     width: 100%;
     border-top: 1px solid var(--_tokens---color--line-soft); /* family hairline */
@@ -483,6 +491,7 @@ const sorted = [...allProjects].sort((a, b) => {
     const grid     = footer.querySelector('#qs-grid') as HTMLElement | null;
     const input    = footer.querySelector('#qs-input') as HTMLInputElement | null;
     const clearBtn = footer.querySelector('#qs-clear');
+    const results = footer.querySelector('#qs-results') as HTMLElement | null;
     const count    = footer.querySelector('#qs-count');
     if (!grid || grid.dataset.qsInit) return;  // guard against double-init on the same DOM
     grid.dataset.qsInit = '1';
@@ -522,40 +531,37 @@ const sorted = [...allProjects].sort((a, b) => {
 
     // Hover behaviour is wired by the engine. Nothing else needed per pill.
     function render(query: string) {
-      const q = query.trim().toLowerCase();
-      const keywords = q.split(/\s+/).filter(Boolean);
-      g.classList.toggle('has-search', keywords.length > 0);
-      const matched = new Set<string>();
-      Array.from(g.querySelectorAll('.proj-bubble')).forEach(el0 => {
-        const el = el0 as HTMLElement;
-        if (!keywords.length) { el.classList.remove('is-match'); el.classList.remove('is-tag-reveal'); return; }
-        const hay = [
-          el.dataset.name, el.dataset.tags, el.dataset.cat, el.dataset.year,
-          el.dataset.loc, el.dataset.client, el.dataset.status, el.dataset.program
-        ].join(' ').toLowerCase();
-        const isMatch = keywords.every(kw => hay.includes(kw));
-        el.classList.toggle('is-match', isMatch);
-        if (isMatch) { if (el.dataset.name) matched.add(el.dataset.name); }
-        const tagText = (el.querySelector('.proj-bubble__tag')?.textContent || '').toLowerCase();
-        el.classList.toggle('is-tag-reveal', isMatch && keywords.some(kw => kw.length >= 3 && tagText.includes(kw)));
+      const keywords = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+      footer.classList.toggle('is-searching', keywords.length > 0);
+      if (!results) return;
+      results.hidden = !keywords.length;
+      results.replaceChildren();
+      if (!keywords.length) { if (count) count.textContent = `${total} items · Explore all projects and categories`; return; }
+      const matches = originals.filter(el => {
+        const hay = [el.dataset.name, el.dataset.short, el.dataset.tags, el.dataset.cat, el.dataset.year, el.dataset.loc, el.dataset.client, el.dataset.status, el.dataset.program].join(' ').toLowerCase();
+        return keywords.every(word => hay.includes(word));
       });
-      if (count) {
-        count.textContent = q
-          ? `Results ${total}   Showing Items 1 to ${matched.size} of ${total}`
-          : `Results ${total}   Showing all items`;
-      }
+      matches.forEach(el => {
+        const li = document.createElement('li'), link = document.createElement('a'), meta = document.createElement('span');
+        link.href = el.getAttribute('href') || '/projects';
+        link.textContent = el.dataset.name || el.textContent || '';
+        meta.textContent = [el.dataset.year, el.dataset.cat].filter(Boolean).join(' · ');
+        link.append(meta); li.append(link); results.append(li);
+      });
+      if (count) count.textContent = matches.length ? `${matches.length} ${matches.length === 1 ? 'match' : 'matches'} of ${total} items` : 'No matches. Try a project name, year, location or category.';
     }
 
     render('');
 
     input?.addEventListener('input', () => {
       render(input.value);
+      if (!input.value.trim()) buildRows();
       input.classList.toggle('is-active', !!input.value.trim());
     });
 
     clearBtn?.addEventListener('click', (e) => {
       e.preventDefault();
-      if (input) { input.value = ''; input.classList.remove('is-active'); render(''); input.focus(); }
+      if (input) { input.value = ''; input.classList.remove('is-active'); render(''); buildRows(); input.focus(); }
     });
 
     let resizeTimer: number | undefined;
