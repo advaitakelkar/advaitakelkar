@@ -1,5 +1,38 @@
-<span class="portfolio-status">Portfolio <span class="portfolio-status__note">Work in progress</span></span>
+---
+import Arrow from './Arrow.astro';
+---
+<span class="portfolio-status">
+  <button type="button" class="portfolio-status__trigger" aria-expanded="false">Portfolio<Arrow class="portfolio-status__arrow" /></button><span class="portfolio-status__note" hidden> (Under progress)</span>
+</span>
+<script>
+  document.querySelectorAll<HTMLButtonElement>('.portfolio-status__trigger').forEach(button => {
+    button.addEventListener('click', () => {
+      const expanded = button.getAttribute('aria-expanded') !== 'true';
+      button.setAttribute('aria-expanded', String(expanded));
+      const note = button.nextElementSibling as HTMLElement | null;
+      if (note) note.hidden = !expanded;
+    });
+  });
+</script>
 <style>
-.portfolio-status { display:inline-flex; flex-wrap:wrap; align-items:baseline; gap:.5em; }
-.portfolio-status__note { font-size:var(--_tokens---type--micro); font-weight:400; color:var(--_tokens---color--muted); }
+.portfolio-status { font:inherit; }
+.portfolio-status__trigger {
+  appearance:none; background:none; padding:0; border:0; border-radius:0;
+  font:inherit; letter-spacing:inherit; color:var(--_tokens---color--fg);
+  cursor:pointer; white-space:nowrap;
+  border-bottom:1px solid color-mix(in srgb, var(--_tokens---color--fg) 30%, transparent);
+  transition:border-color var(--_tokens---motion--base) ease;
+}
+.portfolio-status__trigger:focus-visible { outline:2px solid currentColor; outline-offset:3px; }
+.portfolio-status__trigger :global(.portfolio-status__arrow) {
+  margin-left:1px; vertical-align:-0.05em;
+  --arrow-size:var(--_tokens---arrow--sm);
+  transition:transform var(--_tokens---motion--base) ease;
+}
+.portfolio-status__note { font:inherit; color:var(--_tokens---color--muted); }
+.portfolio-status__note[hidden] { display:none; }
+@media (hover:hover) {
+  .portfolio-status__trigger:hover { border-bottom-color:var(--_tokens---color--fg); }
+  .portfolio-status__trigger:hover :global(.portfolio-status__arrow) { transform:translate(1px,-1px); }
+}
 </style>
