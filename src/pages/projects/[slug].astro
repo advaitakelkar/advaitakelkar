@@ -284,6 +284,14 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
               )}
             </div>
 
+            {/* Cancels whichever section the card has grown to show. Rendered
+                here rather than built in script so it carries this file's
+                scope attribute and uses the icon family; the phone card moves
+                it in like every other piece. */}
+            <button class="project-phone-close" type="button" aria-label="Close this section" hidden>
+              <Icon name="close" />
+            </button>
+
             <div class="project-card__metaline">
               {isOriginalCardPage ? (
                 <div class="project-meta-row project-meta-row--pills">
@@ -507,6 +515,14 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                 <span class="project-name-main">{data.name}</span>
               </h1>
             </div>
+
+            {/* Cancels whichever section the card has grown to show. Rendered
+                here rather than built in script so it carries this file's
+                scope attribute and uses the icon family; the phone card moves
+                it in like every other piece. */}
+            <button class="project-phone-close" type="button" aria-label="Close this section" hidden>
+              <Icon name="close" />
+            </button>
 
             <div class="project-card__metaline">
               {isOriginalCardPage ? (
@@ -4338,6 +4354,75 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       width: 100%;
     }
 
+    /* ── One rule above the card, and nothing between its parts ────────
+       The card carried three hairlines: one over the counter row, one over
+       the pills and one under the subtitle. Two of them were dividing things
+       that already read as separate, so only the top one survives — it is the
+       edge of the card, not a divider inside it. */
+    .project-detail .project-phone-card .project-card__metaline {
+      border-top: none;
+    }
+    .project-detail .project-phone-card .project-card__intro {
+      border-bottom: none;
+      margin: 0;
+    }
+
+    /* ── Collapsed, the card is four rows ──────────────────────────────
+       Counter, pills, subtitle, buttons. The description and the prompt are
+       behind their buttons: the card grows UP to show one of them, and the ✕
+       in the corner cancels it. Only the subtitle stays open, because it is
+       the one line that says what the project is. */
+    .project-detail .project-phone-card .project-desc-readmore {
+      display: none;
+    }
+    .project-detail .project-phone-card.is-reading .project-desc-readmore {
+      display: block;
+    }
+    .project-detail .project-phone-card .project-card__desc {
+      max-height: 34dvh;
+      overflow-y: auto;
+      scrollbar-width: none;
+      font-size: var(--_tokens---type--ultrathin);
+      line-height: 1.5;
+    }
+    .project-detail .project-phone-card :global(.prompt-box) {
+      display: none !important;
+    }
+    .project-detail .project-phone-card.is-prompting :global(.prompt-box) {
+      display: flex !important;
+      width: 100% !important;
+      max-width: none !important;
+      max-height: 34dvh;
+      overflow-y: auto;
+      margin: 0 !important;
+    }
+
+    /* The ✕ sits in the card's top-right corner, over the counter row, and
+       only exists while something is open. */
+    .project-detail .project-phone-card {
+      position: fixed;
+    }
+    .project-detail .project-phone-close {
+      position: absolute;
+      top: 6px;
+      right: 0;
+      z-index: 2;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      border: 0;
+      background: var(--_tokens---color--bg);
+      color: var(--_tokens---color--fg);
+      cursor: pointer;
+      --icon-size: 16px;
+    }
+    .project-detail .project-phone-close[hidden] {
+      display: none;
+    }
+
     /* Read more and Prompt share a row. */
     .project-detail .project-phone-actions {
       display: flex;
@@ -4395,31 +4480,17 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       font-weight: var(--_tokens---weight--strong);
       line-height: 1.35;
     }
+    /* The description is a section the card opens, not two clamped lines
+       under the subtitle — the clamp and its is-open wrapper belonged to the
+       earlier design and set display:block here, which kept the section open
+       whatever the card said. Its visibility now comes from the card's own
+       state, below. */
     .project-detail .project-phone-card .project-desc-readmore {
-      display: block;
       margin: 0;
-    }
-    .project-detail .project-phone-card .project-card__desc {
-      font-size: var(--_tokens---type--ultrathin);
-      line-height: 1.45;
-      max-height: none !important;
-      overflow: visible !important;
-    }
-    /* Two lines collapsed; Read More opens the rest into a scrolling block
-       rather than letting the card grow without limit. */
-    .project-detail .project-phone-card .project-desc-readmore:not(.is-open) .project-card__desc {
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden !important;
-    }
-    .project-detail .project-phone-card .project-desc-readmore.is-open .project-card__desc {
-      max-height: 34dvh !important;
-      overflow-y: auto !important;
     }
     .project-detail .project-phone-card .project-readmore-btn {
       display: inline-flex !important;
-      margin-top: 4px;
+      margin: 0;
     }
 
     /* One surface behind the whole bottom stack, at z-index 80. */
@@ -5901,6 +5972,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   // where they came from above 700px. Each element remembers its own origin
   // rather than the restore hard-coding a guess at it.
   const PHONE_CARD_PARTS = [
+    '.project-phone-close',                // ✕, shown only while a section is open
     '.project-card-name-pagination-row',   // logo, counter, timer ring
     '.project-card__metaline',             // year, location, status
     '.project-card__intro',                // the short line
@@ -5928,7 +6000,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
     if (!phone) {
       if (card) {
-        PHONE_CARD_PARTS.forEach(sel => {
+        [...PHONE_CARD_PARTS, '.prompt-box', '.project-readmore-btn'].forEach(sel => {
           const el = detail.querySelector(sel) as HTMLElement | null;
           if (el) sendHome(el);
         });
@@ -5967,6 +6039,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       if (el.parentElement !== card) card!.appendChild(el);
     });
 
+    const promptBox = detail.querySelector('.prompt-box') as HTMLElement | null;
+    if (promptBox) { rememberHome(promptBox); if (promptBox.parentElement !== card) card.appendChild(promptBox); }
     const readmore = detail.querySelector('.project-readmore-btn') as HTMLElement | null;
     const prompt = detail.querySelector('.project-prompt-btn') as HTMLElement | null;
     if (readmore) { rememberHome(readmore); actions.appendChild(readmore); }
@@ -6000,13 +6074,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         .forEach(sel => { const el = document.querySelector(sel); if (el) ro.observe(el); });
     }
     initDeckAutoScroll();
-    document.querySelector('.project-detail .project-readmore-btn')?.addEventListener('click', () => {
-      const wrap = document.querySelector('.project-detail .project-desc-readmore');
-      if (window.matchMedia('(max-width: 699.98px)').matches && wrap) {
-        wrap.classList.toggle('is-open');
-        requestAnimationFrame(measureProjectPhoneCard);
-      }
-    });
+    initPhoneCardSections();
   }
 
   // The deck advances on its own and on tap. Whichever card is active is
@@ -6035,6 +6103,77 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     showActive();
   }
 
+  // ── The card grows up to show one section at a time ──────────────────
+  // Collapsed it is the counter, the pills, the subtitle and two buttons.
+  // Read more grows it to the description, Prompt to the prompt box, and a ✕
+  // in the corner cancels whichever is open. One at a time: opening the second
+  // closes the first, so the card never stacks two panels into the screen.
+  function initPhoneCardSections() {
+    const detail = document.querySelector('.project-detail') as HTMLElement | null;
+    if (!detail || (detail as any)._sectionsWired) return;
+    (detail as any)._sectionsWired = true;
+    const phone = () => window.matchMedia('(max-width: 699.98px)').matches;
+
+    const setSection = (name: 'reading' | 'prompting' | null) => {
+      const card = detail.querySelector('.project-phone-card') as HTMLElement | null;
+      if (!card) return;
+      card.classList.toggle('is-reading', name === 'reading');
+      card.classList.toggle('is-prompting', name === 'prompting');
+      card.classList.toggle('is-open', name !== null);
+      const close = card.querySelector('.project-phone-close') as HTMLElement | null;
+      if (close) close.hidden = name === null;
+      // The buttons' own handlers never run on this band (the click is stopped
+      // in capture), so their labels and arrows are set from here instead —
+      // otherwise a collapsed card sat under a button reading "Read less".
+      const label = detail.querySelector('.project-readmore-label');
+      if (label) label.textContent = name === 'reading' ? 'Read less' : 'Read more';
+      detail.querySelector('.project-readmore-btn')
+        ?.setAttribute('aria-expanded', String(name === 'reading'));
+      detail.querySelector('.project-prompt-btn')
+        ?.setAttribute('aria-expanded', String(name === 'prompting'));
+      requestAnimationFrame(measureProjectPhoneCard);
+    };
+
+    const current = () => {
+      const card = detail.querySelector('.project-phone-card');
+      if (!card) return null;
+      if (card.classList.contains('is-reading')) return 'reading';
+      if (card.classList.contains('is-prompting')) return 'prompting';
+      return null;
+    };
+
+    detail.addEventListener('click', (e: Event) => {
+      if (!phone()) return;
+      const el = e.target as HTMLElement;
+      if (el.closest('.project-phone-close')) { e.stopPropagation(); setSection(null); return; }
+      if (el.closest('.project-readmore-btn')) {
+        e.preventDefault();
+        e.stopPropagation();
+        setSection(current() === 'reading' ? null : 'reading');
+        return;
+      }
+      if (el.closest('.project-prompt-btn')) {
+        e.preventDefault();
+        e.stopPropagation();
+        setSection(current() === 'prompting' ? null : 'prompting');
+      }
+    }, true);
+  }
+
+  // The pills arrive in a different order on every load, the way the footer's
+  // cloud reshuffles — the row is a set of filters, not a ranking.
+  function shuffleMetaPills() {
+    const row = document.querySelector('.project-meta-row--pills');
+    if (!row || (row as any)._shuffled) return;
+    (row as any)._shuffled = true;
+    const pills = Array.from(row.children);
+    for (let i = pills.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      row.insertBefore(pills[i], pills[j]);
+    }
+  }
+
+  shuffleMetaPills();
   initProjectPhoneCard();
   document.addEventListener('astro:after-swap', initProjectPhoneCard);
 
