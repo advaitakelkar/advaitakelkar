@@ -338,10 +338,15 @@ const skillsets = [
     <section class="about-section-snap about-section--intro">
 
       <!-- Full-width profile header: title left, toggle right -->
-      <header class="profile-header page-toggle-header">
+      <header class="profile-header intro-header page-toggle-header">
         <h1 class="profile-name">
           <span data-scramble>Adi (Advaita) Kelkar</span>
         </h1>
+        <div class="profile-photo-circle" aria-hidden="true"></div>
+        <div class="profile-header__meta">
+          <p class="profile-role" data-scramble data-edit="pages/about/role">{aboutRole}</p>
+          <p class="profile-degree" data-edit="pages/about/degree">{aboutDegree}</p>
+        </div>
         <button class="page-toggle-btn" data-page-toggle="about-top-grid" aria-expanded="true" aria-label="Toggle about details" type="button">
           <Arrow />
         </button>
@@ -353,14 +358,6 @@ const skillsets = [
 
         <!-- LEFT COLUMN: photo + role + degree + bio text + read more -->
         <div class="about-top-left">
-          <div class="profile-dropdown-meta">
-            <div class="profile-photo-circle" aria-hidden="true"></div>
-            <div class="profile-dropdown-meta__text">
-              <p class="profile-role" data-scramble data-edit="pages/about/role">{aboutRole}</p>
-              <p class="profile-degree" data-edit="pages/about/degree">{aboutDegree}</p>
-            </div>
-          </div>
-
           <div class="about-bio__text" id="bio-text-container">
             <p data-edit="pages/about/bioLead" data-edit-html set:html={aboutBioLead} />
 
@@ -767,19 +764,6 @@ const skillsets = [
     border-bottom: 1px solid var(--_tokens---color--line-soft);
   }
 
-  .profile-dropdown-meta {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 24px;
-  }
-
-  .profile-dropdown-meta__text {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-  }
 
   .profile-photo-circle {
     width: clamp(52px, 6vw, 68px);
@@ -790,19 +774,6 @@ const skillsets = [
     background-position: center top;
     background-repeat: no-repeat;
     flex-shrink: 0;
-  }
-
-  /* ══ Circular profile photo (right col, top — beside name) ══ */
-  .profile-photo-large {
-    width: clamp(72px, 9vw, 108px);
-    height: clamp(72px, 9vw, 108px);
-    border-radius: 50%;
-    background-image: url('/images/people/advaita-kelkar.jpg');
-    background-size: cover;
-    background-position: center top;
-    background-repeat: no-repeat;
-    flex-shrink: 0;
-    margin-bottom: 20px;
   }
 
   /* Name — medium on desktop (one size below H1); family small on mobile */
@@ -932,10 +903,6 @@ const skillsets = [
     .about-top-grid {
       grid-template-columns: 1fr;
       gap: 24px;
-    }
-    .profile-photo-large {
-      width: 80px;
-      height: 80px;
     }
   }
 
@@ -1771,6 +1738,172 @@ const skillsets = [
     margin: 0;
   }
 
+
+  /* ══ The intro header carries the identity ═══════════════════════════
+     Four children, one grid, two arrangements. Above 700 it reads as it did
+     when the photo and the role lived inside the panel: name on top, face and
+     role beneath it on the left, the fold control at the right. Below 700 it
+     becomes the page's top card — name left, face at the right corner on the
+     same line, role on the next line.
+
+     The !importants are not decoration. A .profile-header block further up
+     sets display/flex-direction/gap with !important below 1024, and this is
+     the same element wearing both classes, so nothing weaker reaches it. */
+  .about-page .intro-header {
+    display: grid !important;
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas:
+      "name  name  toggle"
+      "photo meta  .";
+    align-items: center;
+    column-gap: 16px !important;
+    row-gap: 14px;
+    width: 100%;
+  }
+  .about-page .intro-header .profile-name         { grid-area: name; }
+  .about-page .intro-header .profile-photo-circle { grid-area: photo; }
+  .about-page .intro-header .profile-header__meta { grid-area: meta; min-width: 0; }
+  .about-page .intro-header .page-toggle-btn      { grid-area: toggle; align-self: start; }
+  .profile-header__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  @media (max-width: 699.98px) {
+    /* Name and face share the top line, the role sits under them — the same
+       shape the projects page gives its own header. */
+    .about-page .intro-header {
+      grid-template-columns: 1fr auto;
+      grid-template-areas:
+        "name photo"
+        "meta meta";
+      align-items: center;
+      column-gap: 12px !important;
+      row-gap: 6px;
+      padding-block: 2px 8px !important;
+    }
+    .about-page .intro-header .profile-photo-circle {
+      width: 46px;
+      height: 46px;
+    }
+    /* The identity is the page header here, not a tab: there is nothing to
+       fold, so there is no control for it. */
+    .about-page .intro-header .page-toggle-btn {
+      display: none !important;
+    }
+  }
+
+
+  /* ══ Phone: three headings, one open at a time ═══════════════════════
+     Built on the projects page. The identity is the top card and never
+     folds; the two other headings dock to the bottom within thumb reach,
+     reading bottom-to-top as Skillset then Professional Journey; whichever
+     one you tap fills the middle. All three are on screen the whole time, so
+     there is never a section you have to scroll to find.
+
+     Heights are measured, not written down — the breadcrumb dock moves with
+     the device's safe area and either bar can wrap. The script writes
+     --ab-dock-h, --ab-skill-h and --ab-career-h. */
+  @media (max-width: 699.98px) {
+    /* One panel shows; the other two are gone, not collapsed. The global
+       toggle writes max-height and opacity inline, so display is the only
+       thing that reliably wins here. */
+    .about-page[data-panel] .page-toggle-panel {
+      display: none !important;
+    }
+    .about-page[data-panel="intro"] #about-top-grid,
+    .about-page[data-panel="career"] #about-career-panel,
+    .about-page[data-panel="skillset"] #skillset-panel {
+      display: block !important;
+      max-height: none !important;
+      opacity: 1 !important;
+      overflow: visible !important;
+      border-bottom: none;
+      margin-top: 0 !important;
+    }
+
+    /* Skillset sits lowest, right above the breadcrumb. */
+    .about-page .skillset-header {
+      position: fixed !important;
+      left: 12px;
+      right: 12px;
+      /* A .profile-header rule below 1024 sets width:100% with !important;
+         left+right alone then measured 12px past the right edge. */
+      width: auto !important;
+      bottom: calc(var(--ab-dock-h, 66px) + 6px);
+      z-index: 95;
+      margin: 0 !important;
+      padding-block: 8px !important;
+      background-color: var(--_tokens---color--bg) !important;
+      border-bottom: none !important;
+    }
+    /* Professional Journey stacks directly above it. */
+    .about-page .career-header {
+      position: fixed !important;
+      left: 12px;
+      right: 12px;
+      width: auto !important;
+      bottom: calc(var(--ab-dock-h, 66px) + var(--ab-skill-h, 52px) + 12px);
+      z-index: 95;
+      margin: 0 !important;
+      padding-block: 8px !important;
+      background-color: var(--_tokens---color--bg) !important;
+      border-bottom: none !important;
+      border-top: none !important;
+    }
+    /* A docked heading is a control, so it is sized like one rather than
+       like the page title it is above 700. */
+    .about-page .career-header .profile-name,
+    .about-page .skillset-header .profile-name {
+      font-size: var(--_tokens---type--small);
+      font-weight: var(--_tokens---weight--strong);
+    }
+    /* The one that is open reads at full strength; the other steps back. */
+    .about-page .career-header,
+    .about-page .skillset-header {
+      opacity: 0.7;
+      transition: opacity var(--_tokens---motion--base) ease;
+    }
+    .about-page[data-panel="career"] .career-header,
+    .about-page[data-panel="skillset"] .skillset-header {
+      opacity: 1;
+    }
+    .about-page .skillset-header__right {
+      gap: 8px;
+    }
+    .about-page .skillset-header .skillset-search-input {
+      width: clamp(84px, 32vw, 140px);
+    }
+
+    /* One surface behind the whole bottom stack, at z-index 80: above the
+       page content, below the two bars at 95. */
+    .about-page::after {
+      content: '';
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: calc(var(--ab-dock-h, 66px) + var(--ab-skill-h, 52px) + var(--ab-career-h, 52px) + 24px);
+      background-color: var(--_tokens---color--bg);
+      z-index: 80;
+      pointer-events: none;
+    }
+    .about-page {
+      padding-bottom: calc(var(--ab-dock-h, 66px) + var(--ab-skill-h, 52px) + var(--ab-career-h, 52px) + 36px);
+    }
+    /* The embedded footer is a second copy of the site nav on a page that
+       already docks one. Gone here, same as every other phone page. */
+    .about-page .skillset-footer-wrap {
+      display: none !important;
+    }
+    /* Nothing on this band needs a full-viewport section. */
+    .about-page .about-section-snap {
+      min-height: 0;
+      padding-block: 0;
+    }
+  }
+
 </style>
 
 <script>
@@ -1999,4 +2132,97 @@ const skillsets = [
       initActiveStatus();
     setupScrollToTop();
   });
+
+  // ── Phone: the About page is three headings and one open panel ──────
+  // Above 700 the page keeps its three independent fold toggles. Below it,
+  // exactly one panel is open, the identity is open on load, and the two
+  // other headings are docked at the bottom. Tapping a heading switches.
+  function initAboutPhonePanels() {
+    const page = document.querySelector('.about-page') as HTMLElement | null;
+    if (!page) return;
+    const phone = window.matchMedia('(max-width: 699.98px)');
+    const TABS = [
+      { key: 'intro',    header: '.intro-header' },
+      { key: 'career',   header: '.career-header' },
+      { key: 'skillset', header: '.skillset-header' },
+    ];
+
+    function show(key: string) {
+      page!.dataset.panel = key;
+      TABS.forEach(t => {
+        const btn = document.querySelector<HTMLElement>(t.header + ' .page-toggle-btn');
+        btn?.setAttribute('aria-expanded', t.key === key ? 'true' : 'false');
+      });
+      // The skill cloud lays itself out in rows and cannot measure while
+      // its panel is display:none, so it is told to look again once shown.
+      window.dispatchEvent(new Event('resize'));
+      // A new panel starts at its own top. Without this you can switch from a
+      // long section to a short one and land below everything it contains.
+      window.scrollTo({ top: 0 });
+    }
+
+    function measure() {
+      if (!phone.matches) {
+        page!.style.removeProperty('--ab-dock-h');
+        page!.style.removeProperty('--ab-skill-h');
+        page!.style.removeProperty('--ab-career-h');
+        return;
+      }
+      const h = (sel: string, fallback: number) => {
+        const el = document.querySelector(sel);
+        return Math.round(el?.getBoundingClientRect().height ?? fallback);
+      };
+      page!.style.setProperty('--ab-dock-h', h('.page-breadcrumb', 66) + 'px');
+      page!.style.setProperty('--ab-skill-h', h('.skillset-header', 52) + 'px');
+      page!.style.setProperty('--ab-career-h', h('.career-header', 52) + 'px');
+    }
+
+    function apply() {
+      if (phone.matches) {
+        if (!page!.dataset.panel) show('intro');
+      } else {
+        delete page!.dataset.panel;
+        // Hand the three sections back to the global fold toggles, open.
+        document.querySelectorAll<HTMLElement>('.about-page .page-toggle-btn')
+          .forEach(b => b.setAttribute('aria-expanded', 'true'));
+      }
+      measure();
+    }
+
+    if (!(page as any)._phoneTabsWired) {
+      (page as any)._phoneTabsWired = true;
+      TABS.forEach(t => {
+        const header = document.querySelector<HTMLElement>(t.header);
+        if (!header) return;
+        // Capture phase: the global [data-page-toggle] handler lives on the
+        // button inside this header, and on the phone it must not also run —
+        // two mechanisms driving one panel is how a tab ends up half open.
+        header.addEventListener('click', (e: Event) => {
+          if (!phone.matches) return;
+          const el = e.target as HTMLElement;
+          if (el.closest('input, a')) return;   // the skill search stays usable
+          e.stopPropagation();
+          e.preventDefault();
+          show(t.key);
+        }, true);
+      });
+      phone.addEventListener('change', apply);
+      window.addEventListener('resize', measure, { passive: true });
+      if ('ResizeObserver' in window) {
+        const ro = new ResizeObserver(() => measure());
+        ['.skillset-header', '.career-header', '.page-breadcrumb']
+          .forEach(sel => { const el = document.querySelector(sel); if (el) ro.observe(el); });
+      }
+      // Typing in the skill search should bring its panel forward.
+      document.getElementById('skill-search')?.addEventListener('focus', () => {
+        if (phone.matches) show('skillset');
+      });
+    }
+
+    apply();
+  }
+
+  initAboutPhonePanels();
+  document.addEventListener('astro:after-swap', initAboutPhonePanels);
+
 </script>
