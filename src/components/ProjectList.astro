@@ -233,8 +233,12 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
           <div class="project-card__header">
             <h2 class:list={["project-card__stack-name", isLocked && "is-locked"]}>{p.data.name}</h2>
             <span class="project-card__stack-right">
-              <a href={`/projects/${p.id}`} class="project-card__pill">
-                <span>Go to project</span>
+              <a
+                href={`/projects/${p.id}`}
+                class="project-card__pill"
+                aria-label={`Go to ${p.data.name}`}
+                title={`Go to ${p.data.name}`}
+              >
                 <Icon name="arrow" />
               </a>
             </span>
@@ -919,24 +923,32 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   }
 
   /* ── Pill / CTA button ── */
+  /* The label is gone and the arrow carries the whole affordance, so the pill
+     becomes the circle that holds it. --arrow--lg is the step the design
+     system specifies for exactly this case: a standalone row where the arrow
+     IS the control, rather than a glyph trailing a word. */
   .project-card__pill {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    font-size: var(--_tokens---type--micro);
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    gap: 0;
+    font-size: var(--_tokens---type--small);
     font-weight: 500;
     color: var(--_tokens---color--fg);
     text-decoration: none;
     border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
-    border-radius: var(--_tokens---radius--pill);
-    padding: 8px 14px;
+    border-radius: 50%;
     white-space: nowrap;
     flex-shrink: 0;
+    --icon-size: var(--_tokens---arrow--lg);
     transition: background-color var(--_tokens---motion--base) ease, border-color var(--_tokens---motion--base) ease, color var(--_tokens---motion--base) ease;
   }
 
   .project-card__pill svg {
-    --icon-size: var(--_tokens---type--medium); transition: transform var(--_tokens---motion--base) ease;
+    transition: transform var(--_tokens---motion--base) ease;
   }
 
   @media (hover: hover) {
@@ -1586,19 +1598,13 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     .project-card__body-inner {
       overflow: visible;
     }
-    /* Pill → bare arrow (no border/bg) so the name has the full width */
+    /* Same circle as desktop, one step smaller so the name keeps the width.
+       This used to strip the border and background back to a bare arrow;
+       the control is a circle at every width now. */
     .project-card__pill {
-      border: none;
-      background: transparent;
-      padding: 0;
+      width: 38px;
+      height: 38px;
     }
-    .project-card__pill span {
-      display: none;
-    }
-    /* Arrow matches category card arrow size */
-    .project-card__pill svg {
-    --icon-size: var(--_tokens---type--medium);
-  }
     .project-card__columns {
       flex-direction: column;
       min-height: auto;
