@@ -109,13 +109,11 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
             </button>
           </div>
         </header>
-      <div class="projects-sticky-header">
+      {/* Search field and selector collapse together: the bar you carry down
+          the page is the compact one, and the filters belong to the open
+          state. */}
+      <div class="projects-sticky-header page-toggle-panel" id="projects-filter-panel">
 
-      {/* Only the large search field collapses. The category selector and tag
-          picker below it stay put, the same way the title collapses into a
-          compact search rather than disappearing — a filter you cannot reach
-          while scrolling the results it filters is the wrong thing to hide. */}
-      <div class="page-toggle-panel" id="projects-filter-panel">
       <!-- Search bar matching home UI -->
       <div class="projects-search-bar">
         <input
@@ -129,7 +127,6 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
         <button class="projects-search-clear" id="projects-search-clear" type="button" aria-label="Clear search and all filters" title="Clear search and filters" hidden>
           <Icon name="close" class="projects-search-clear__icon" />
         </button>
-      </div>
       </div>
 
       <!-- Filter bar with dropdown and scrollable tag picker -->
@@ -382,14 +379,29 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
 <style>
   :global(html) {
-    scroll-snap-type: none !important;
+    /* This page opts INTO snapping (see --page-snap below). The rule has to
+       stay var-driven rather than a flat `none`, because it and the one in
+       Base both carry !important on `html` — whichever lands later would
+       otherwise decide, and this one used to hard-disable snapping on the
+       very page that wants it. */
+    scroll-snap-type: var(--page-snap, none) !important;
     scroll-behavior: smooth;
-    scroll-padding-top: 64px; /* any anchored/jumped heading lands clear of the fixed top breadcrumb */
+    /* Opening the panel adds ~144px above the fold, and scroll anchoring
+       "helpfully" pushed the scroll position down to compensate — which read
+       as leaving the top, which closed the panel again, which moved it back.
+       The page oscillated between 4px and 252px. Nothing else on this page
+       relies on anchoring. */
+    overflow-anchor: none;
+    /* Anchored jumps land clear of the pinned bar, same measured offset the
+       snap points use; 64px is the fallback before the script measures. */
+    scroll-padding-top: var(--snap-offset, 64px);
   }
 
   @media (max-width: 699.98px) {
     :global(html) {
-      scroll-padding-top: 12px; /* breadcrumb docks to the bottom on mobile */
+      /* The bar still pins here even though the breadcrumb docks to the
+         bottom, so the snapport inset is the bar, not a token 12px. */
+      scroll-padding-top: var(--snap-offset, 12px);
     }
   }
 
@@ -840,6 +852,25 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     color: var(--_tokens---color--bg);
     border-color: var(--_tokens---color--fg);
   }
+  }
+
+  /* ── Card snapping ──────────────────────────────────────────────────
+     Each card slots under the pinned bar as you scroll, so the list settles
+     on a whole card rather than halfway through one.
+
+     `proximity`, not `mandatory`. Mandatory snaps from anywhere, which fights
+     the user on a card taller than the viewport — you can end up unable to
+     reach the middle of one. Proximity only pulls when you are already close,
+     which is the resistance this wants and nothing more.
+
+     The inset that keeps a snapped card clear of the bar is scroll-padding on
+     the scrollport, and ONLY that. Setting scroll-margin on the cards as well
+     stacks the two: cards landed a full bar-height too low, identically at
+     every nudge, which is what a double inset looks like rather than a broken
+     snap. It is measured, because the bar's height changes when the search
+     panel folds and again between bands. */
+  .project-card {
+    scroll-snap-align: start;
   }
 
   /* ── Accordion Card List ── */
@@ -2672,24 +2703,55 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     if (!wrapper || (wrapper as any)._stuckWired) return;
     (wrapper as any)._stuckWired = true;
 
+    const root = document.documentElement;
     const toggle = document.querySelector('[data-page-toggle="projects-filter-panel"]') as HTMLElement | null;
     const isOpen = () => toggle?.getAttribute('aria-expanded') === 'true';
+    const panel = document.getElementById('projects-filter-panel') as HTMLElement;
+    let unclamp: number | undefined;
 
     // null until the first run, so a page that loads already scrolled (a back
     // navigation, a restored position) still gets its state corrected once.
     let prevAtTop: boolean | null = null;
     let queued = false;
 
+    // Snapping is only ever on in the scrolled region. Left on near the top it
+    // makes scrollY 0 unreachable — the first card's snap point pulls the page
+    // to ~75px, "at top" never becomes true, and the panel can never reopen.
+    // The two features were fighting over the same pixels; this gives each its
+    // own territory. Also off mid-resize (see below) and for reduced motion.
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let atTopNow = true;
+    let resizing = false;
+    const updateSnap = () => {
+      const on = !atTopNow && !resizing && !reducedMotion.matches;
+      root.style.setProperty('--page-snap', on ? 'y proximity' : 'none');
+    };
+
     const apply = () => {
       queued = false;
       const atTop = window.scrollY <= 4;
+      atTopNow = atTop;
+      updateSnap();
       wrapper.classList.toggle('is-stuck', !atTop);
 
       const crossed = prevAtTop === null || atTop !== prevAtTop;
       prevAtTop = atTop;
       if (!crossed) return;
 
-      if (atTop !== isOpen()) toggle?.click();
+      if (atTop !== isOpen()) {
+        toggle?.click();
+        // Base animates max-height to a measured pixel value and only clears
+        // it on the max-height transitionend. Child transitions inside the
+        // panel bubble the same event first, and when the panel is re-opened
+        // at a size it already held, no max-height transition runs at all —
+        // either way it can be left pinned to a stale number smaller than its
+        // own content, which is what was cutting the filter row off. Clear it
+        // once the animation is over.
+        window.clearTimeout(unclamp);
+        unclamp = window.setTimeout(() => {
+          if (isOpen()) panel.style.maxHeight = 'none';
+        }, 450);
+      }
     };
 
     const onScroll = () => {
@@ -2699,6 +2761,40 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     apply();
+
+    // Where a snapped card should come to rest: the bottom edge of the pinned
+    // bar. Measured rather than hard-coded, because that edge moves — the bar
+    // is shorter once the search panel folds, and shorter again on a phone.
+    // Without this a snapped card lands under the bar with its title hidden.
+    // Snapping and the folding panel fight each other. Closing the panel takes
+    // ~144px out of the flow, every card jumps up by that much, and snap —
+    // which is mid-flight holding a target — re-resolves against content that
+    // moved under it. The result is a scroll that stutters or overshoots.
+    //
+    // So snapping stands down while the bar is changing size and comes back
+    // once it has settled. The inline value shadows the :root declaration and
+    // removing it restores it, so there is one source of truth either way.
+    let resettle: number | undefined;
+    const suspendSnapWhileResizing = () => {
+      resizing = true;
+      updateSnap();
+      window.clearTimeout(resettle);
+      resettle = window.setTimeout(() => { resizing = false; updateSnap(); }, 280);
+    };
+
+    let lastHeight = wrapper.offsetHeight;
+    const syncSnapOffset = () => {
+      const stickTop = parseFloat(getComputedStyle(wrapper).getPropertyValue('--stick-top')) || 0;
+      const height = wrapper.offsetHeight;
+      root.style.setProperty('--snap-offset', `${Math.round(stickTop + height)}px`);
+      if (height !== lastHeight) {
+        lastHeight = height;
+        suspendSnapWhileResizing();
+      }
+    };
+    syncSnapOffset();
+    if ('ResizeObserver' in window) new ResizeObserver(syncSnapOffset).observe(wrapper);
+    window.addEventListener('resize', syncSnapOffset, { passive: true });
   }
   setupStuckState();
 
