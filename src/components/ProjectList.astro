@@ -2618,21 +2618,49 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     (window as any)._projHeaderTimer = setTimeout(positionMobileProjectsHeader, 120);
   });
 
-  // ── Pinned state ───────────────────────────────────────────────────
+  // ── Pinned state, and closing the panel on the way down ────────────
   // The wrapper's resting position and its sticky `top` are deliberately the
   // same value, so it never visually moves when it starts sticking — which
-  // means position cannot tell you whether it is pinned. Scroll offset can:
-  // above the fold it is resting, anywhere below it is pinned. rAF-throttled
-  // so this costs one class toggle per frame at most.
+  // means position cannot tell you whether it is pinned. Scroll offset can.
+  //
+  // Leaving the page is also what closes the filter panel. Carrying a 94px
+  // search field and a filter row down the page was the wrong half of the
+  // header to keep; scrolling collapses it to the compact bar, which is the
+  // one worth pinning. rAF-throttled, so this is one class toggle per frame
+  // at most.
   function setupStuckState() {
     const wrapper = document.querySelector('.projects-fixed-wrapper') as HTMLElement | null;
     if (!wrapper || (wrapper as any)._stuckWired) return;
     (wrapper as any)._stuckWired = true;
 
+    const toggle = document.querySelector('[data-page-toggle="projects-filter-panel"]') as HTMLElement | null;
+
+    // Opening the panel on purpose while already scrolled outranks the
+    // auto-close, or the next wheel tick would shut it in the user's face.
+    // Returning to the top clears the exemption.
+    let respectManualOpen = false;
+    // Set while WE press the button, so the auto-close below is not mistaken
+    // for the user opening the panel on purpose.
+    let autoClosing = false;
+    toggle?.addEventListener('click', () => {
+      if (autoClosing) return;
+      requestAnimationFrame(() => {
+        respectManualOpen =
+          window.scrollY > 4 && toggle.getAttribute('aria-expanded') === 'true';
+      });
+    });
+
     let queued = false;
     const apply = () => {
       queued = false;
-      wrapper.classList.toggle('is-stuck', window.scrollY > 4);
+      const scrolled = window.scrollY > 4;
+      wrapper.classList.toggle('is-stuck', scrolled);
+      if (!scrolled) respectManualOpen = false;
+      if (scrolled && !respectManualOpen && toggle?.getAttribute('aria-expanded') === 'true') {
+        autoClosing = true;
+        toggle.click();
+        requestAnimationFrame(() => { autoClosing = false; });
+      }
     };
     const onScroll = () => {
       if (queued) return;
