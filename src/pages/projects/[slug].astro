@@ -1227,7 +1227,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       display: flex;
       flex-direction: column;
     }
-    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-desc-readmore {
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-content-grid--card .project-desc-readmore {
       flex: 1;
       min-height: 0;
       display: flex;
@@ -1275,7 +1275,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       display: none;
     }
     /* Pagination row above, scrub last — bottom flush with the image */
-    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card-name-pagination-row {
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-content-grid--card .project-card-name-pagination-row {
       order: 1;
     }
     .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .deck-grid--mobile-scrub {
@@ -1372,11 +1372,11 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       grid-column: 1;
       grid-row: 1;
     }
-    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-col-right {
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-content-grid--card .project-col-right {
       grid-column: 2;
       grid-row: 1;
     }
-    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card-name-pagination-row {
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-content-grid--card .project-card-name-pagination-row {
       grid-column: 1 / -1;
       grid-row: 3; /* below the (optional) full-width prompt box */
     }
@@ -4143,24 +4143,28 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
      this band; row2 and the text block join them, which is what lets these
      three children be placed in the outer grid directly. */
   @media (max-width: 699.98px) {
+    /* Qualified by the grid they are placed in. These rules position pieces
+       INSIDE .project-content-grid--card, and the same pieces are moved into
+       the bottom card on this band — unqualified they followed them there and
+       spanned both of its columns, putting the counter behind the image. */
     .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card__row2,
     .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card__text-block {
       display: contents;
     }
-    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card__intro {
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-content-grid--card .project-card__intro {
       grid-column: 1;
       grid-row: 1;
       margin: 0;
     }
-    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-col-right {
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-content-grid--card .project-col-right {
       grid-column: 2;
       grid-row: 1;
     }
-    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-desc-readmore {
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-content-grid--card .project-desc-readmore {
       grid-column: 1 / -1;
       grid-row: 2;
     }
-    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-prompt-btn {
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-content-grid--card .project-prompt-btn {
       grid-column: 1 / -1;
       grid-row: 3;
       justify-self: start;
@@ -4170,7 +4174,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card-info :global(.prompt-box.is-open) {
       grid-row: 4;
     }
-    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card-name-pagination-row {
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-content-grid--card .project-card-name-pagination-row {
       grid-row: 5;
     }
   }
@@ -4223,29 +4227,101 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
        The facts take the slot the studio tabs take on a category page: the
        row directly above the card. */
+    /* Two columns: everything you read on the left, the image the deck is
+       driving on the right. Full width it was a 120px band that pushed the
+       card to a third of the screen; beside the text it is the same height as
+       the words next to it and the card is shorter for it. */
     .project-detail .project-phone-card {
       position: fixed;
       left: 12px;
       right: 12px;
       bottom: calc(var(--pp-dock-h, 66px) + 6px);
       z-index: 95;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
+      display: grid;
+      grid-template-columns: 1fr 104px;
+      column-gap: 10px;
+      row-gap: 6px;
+      align-items: start;
       margin: 0;
       padding: 8px 0 10px;
       background-color: var(--_tokens---color--bg);
     }
-    .project-detail .project-card__metaline {
-      position: fixed;
-      left: 12px;
-      right: 12px;
-      width: auto;
-      bottom: calc(var(--pp-dock-h, 66px) + var(--pp-card-h, 150px) + 18px);
-      z-index: 95;
+    /* Placed row by row rather than left to auto-flow. Auto-flow has to work
+       around the image spanning every row, and it put the pagination last and
+       full width with the facts stranded in the middle. The reading order is
+       fixed here: counter, facts, short line, description, buttons. */
+    .project-detail .project-phone-card {
+      grid-template-rows: auto auto auto auto auto;
+    }
+    .project-detail .project-phone-card > * {
+      grid-column: 1;
+      min-width: 0;
+    }
+    .project-detail .project-phone-card .project-card-name-pagination-row { grid-row: 1; }
+    .project-detail .project-phone-card .project-card__metaline          { grid-row: 2; }
+    .project-detail .project-phone-card .project-card__intro             { grid-row: 3; }
+    .project-detail .project-phone-card .project-desc-readmore           { grid-row: 4; }
+    .project-detail .project-phone-actions                               { grid-row: 5; }
+    /* The facts sit in the card, under the pagination. */
+    .project-detail .project-phone-card .project-card__metaline {
+      position: static;
       margin: 0;
-      padding-block: 6px;
-      background-color: var(--_tokens---color--bg);
+      padding: 0;
+      width: 100%;
+    }
+
+    /* The cover leads the card, the way the people row leads a category's.
+       It is a band here, not a portrait: the slider's 2/3 ratio is 527px tall
+       at full width, which is most of the screen for one image on a page whose
+       whole deck is three across above it. Cropped to a strip instead. */
+    .project-detail .project-phone-card .project-col-right {
+      position: static !important;
+      top: auto !important;
+      grid-column: 2;
+      grid-row: 1 / 6;
+      width: 100%;
+      margin: 0;
+    }
+    .project-detail .project-phone-card .project-detail__active-wrap {
+      aspect-ratio: 2 / 3;
+      height: auto;
+      width: 100%;
+      min-height: 0;
+    }
+    .project-detail .project-phone-card .project-detail__active-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Logo, counter and timer ring, directly above the facts. */
+    .project-detail .project-phone-card .project-card-name-pagination-row {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+    }
+
+    /* Read more and Prompt share a row. */
+    .project-detail .project-phone-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin-top: 2px;
+    }
+    .project-detail .project-phone-actions .project-prompt-btn {
+      margin: 0;
+    }
+
+    /* The deck is the middle of the page: three across, the grid the phone
+       has room for. It was one wide column of 26 rows. */
+    .project-detail :global(#deck-grid) {
+      grid-template-columns: repeat(3, 1fr) !important;
+      gap: 8px !important;
+    }
+    /* "Gallery View" opened a view of the deck that is now the page itself. */
+    .project-detail .gallery-view-row {
+      display: none !important;
     }
 
     /* People on top, one scrolling row — the grid wraps on four names and
@@ -5695,36 +5771,52 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
 
   // ── Phone: a project page is a category page with one project ───────
-  // The name is the top card, the work fills the middle, and the words dock
-  // at the bottom: people, then the short line, then the description behind a
-  // Read More. The pieces already exist — they are scattered through the
-  // header and the text block — so they are MOVED into one card rather than
-  // duplicated, and moved back above 700 where the page keeps its own layout.
+  // The name is the top card, the deck fills the middle three across, and
+  // everything you read docks at the bottom: the cover, the pagination, the
+  // facts, the short line, then the description with Read more and Prompt
+  // beside it.
+  //
+  // Every piece already exists somewhere in this page's own layout, so they
+  // are MOVED into one card rather than duplicated — and moved back exactly
+  // where they came from above 700px. Each element remembers its own origin
+  // rather than the restore hard-coding a guess at it.
+  const PHONE_CARD_PARTS = [
+    '.project-col-right',                  // the cover
+    '.project-card-name-pagination-row',   // logo, counter, timer ring
+    '.project-card__metaline',             // year, location, status
+    '.project-card__intro',                // the short line
+    '.project-desc-readmore',              // description + Read more
+    '.project-prompt-btn',                 // sits beside Read more
+  ];
+
+  function rememberHome(el: HTMLElement) {
+    if ((el as any)._home) return;
+    (el as any)._home = { parent: el.parentElement, next: el.nextElementSibling };
+  }
+
+  function sendHome(el: HTMLElement) {
+    const home = (el as any)._home;
+    if (!home || !home.parent) return;
+    if (home.next && home.next.parentElement === home.parent) home.parent.insertBefore(el, home.next);
+    else home.parent.appendChild(el);
+  }
+
   function buildProjectPhoneCard() {
     const detail = document.querySelector('.project-detail') as HTMLElement | null;
     if (!detail) return;
     const phone = window.matchMedia('(max-width: 699.98px)').matches;
-    const meta = detail.querySelector('.project-card__metaline') as HTMLElement | null;
-    const people = detail.querySelector('.project-people') as HTMLElement | null;
-    const intro = detail.querySelector('.project-card__intro') as HTMLElement | null;
-    const desc = detail.querySelector('.project-desc-readmore') as HTMLElement | null;
     let card = detail.querySelector('.project-phone-card') as HTMLElement | null;
 
     if (!phone) {
-      // Put everything back where the wider bands expect it, then drop the card.
       if (card) {
-        const home = detail.querySelector('.project-card__text-block');
-        const info = detail.querySelector('.project-card-info');
-        if (intro && home) home.insertBefore(intro, home.firstChild);
-        if (desc && home && intro) intro.after(desc);
-        if (people && info) info.appendChild(people);
+        PHONE_CARD_PARTS.forEach(sel => {
+          const el = detail.querySelector(sel) as HTMLElement | null;
+          if (el) sendHome(el);
+        });
         card.remove();
       }
-      const header = detail.querySelector('.project-top-header');
-      if (meta && header && meta.parentElement !== header) header.appendChild(meta);
       detail.style.removeProperty('--pp-dock-h');
       detail.style.removeProperty('--pp-card-h');
-      detail.style.removeProperty('--pp-meta-h');
       return;
     }
 
@@ -5738,18 +5830,36 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       if (cid) card.setAttribute(cid.name, '');
       detail.appendChild(card);
     }
-    // Order in the card is people, short line, description. The people row is
-    // lifted to the top with flex order, so this stays the reading order.
-    if (intro && intro.parentElement !== card) card.appendChild(intro);
-    if (desc && desc.parentElement !== card) card.appendChild(desc);
-    if (people && people.parentElement !== card) card.appendChild(people);
-    if (meta && meta.parentElement !== detail) detail.appendChild(meta);
+
+    // Read more and Prompt share a row, so they get a wrapper of their own.
+    let actions = card.querySelector('.project-phone-actions') as HTMLElement | null;
+    if (!actions) {
+      actions = document.createElement('div');
+      actions.className = 'project-phone-actions';
+      const cid = Array.from(detail.attributes).find(a => a.name.startsWith('data-astro-cid-'));
+      if (cid) actions.setAttribute(cid.name, '');
+    }
+
+    PHONE_CARD_PARTS.forEach(sel => {
+      const el = detail.querySelector(sel) as HTMLElement | null;
+      if (!el) return;
+      rememberHome(el);
+      if (sel === '.project-prompt-btn') return;   // placed in the actions row
+      if (el.parentElement !== card) card!.appendChild(el);
+    });
+
+    const readmore = detail.querySelector('.project-readmore-btn') as HTMLElement | null;
+    const prompt = detail.querySelector('.project-prompt-btn') as HTMLElement | null;
+    if (readmore) { rememberHome(readmore); actions.appendChild(readmore); }
+    if (prompt) actions.appendChild(prompt);
+    if (actions.children.length && actions.parentElement !== card) card.appendChild(actions);
+
     measureProjectPhoneCard();
   }
 
   // Heights are measured, never written down: the nav dock moves with the
-  // device's safe area, the people row may be absent, and Read More grows the
-  // card. Everything that has to clear the stack reads these three.
+  // device's safe area, parts of the card are absent on some projects, and
+  // Read more grows it.
   function measureProjectPhoneCard() {
     const detail = document.querySelector('.project-detail') as HTMLElement | null;
     if (!detail || !window.matchMedia('(max-width: 699.98px)').matches) return;
@@ -5758,8 +5868,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       return Math.round(el?.getBoundingClientRect().height ?? fallback);
     };
     detail.style.setProperty('--pp-dock-h', h('.page-breadcrumb', 66) + 'px');
-    detail.style.setProperty('--pp-card-h', h('.project-detail .project-phone-card', 150) + 'px');
-    detail.style.setProperty('--pp-meta-h', h('.project-detail .project-card__metaline', 35) + 'px');
+    detail.style.setProperty('--pp-card-h', h('.project-detail .project-phone-card', 220) + 'px');
   }
 
   function initProjectPhoneCard() {
@@ -5767,11 +5876,9 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     window.addEventListener('resize', buildProjectPhoneCard, { passive: true });
     if ('ResizeObserver' in window) {
       const ro = new ResizeObserver(() => measureProjectPhoneCard());
-      ['.page-breadcrumb', '.project-detail .project-phone-card', '.project-detail .project-card__metaline']
+      ['.page-breadcrumb', '.project-detail .project-phone-card']
         .forEach(sel => { const el = document.querySelector(sel); if (el) ro.observe(el); });
     }
-    // Read More opens the description in place; the card regrows and the row
-    // above it moves up with it.
     document.querySelector('.project-detail .project-readmore-btn')?.addEventListener('click', () => {
       const wrap = document.querySelector('.project-detail .project-desc-readmore');
       if (window.matchMedia('(max-width: 699.98px)').matches && wrap) {
