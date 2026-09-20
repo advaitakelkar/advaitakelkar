@@ -97,7 +97,12 @@
   --_tokens---space-5: 24px;
   --_tokens---space-6: 32px;
 
-  /* Fixed left nav bar width — referenced by sticky offsets, overlays, insets */
+  /* Fixed left nav bar width — referenced by sticky offsets, overlays, insets.
+     Everything that has to clear the index rail reads this rather than writing
+     44px again, so the rail existing or not is one decision in one place. It
+     is not rendered below 700 (see .sn-bar), and this goes to zero with it:
+     ten separate overlays were each carrying their own hard-coded 44px, and
+     without this they all had to be found and overridden one at a time. */
   --_tokens---layout--nav: 44px;
   /* Height of the fixed breadcrumb bar. It sits at the TOP from 700px up, and
      docks to the BOTTOM below that, so page content only needs to clear it in
@@ -381,6 +386,13 @@ html {
 ::selection {
   background-color: var(--_tokens---color--fg);
   color: var(--_tokens---color--bg);
+}
+
+/* No index rail below 700, so nothing needs to clear it. */
+@media (max-width: 699.98px) {
+  :root {
+    --_tokens---layout--nav: 0px;
+  }
 }
 
 body {
