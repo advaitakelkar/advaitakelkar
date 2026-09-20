@@ -31,6 +31,29 @@ let hasImages = allImages.length > 0;
 const firstTag = tags.find(t => t);
 const yearLoc = [data.year, data.location].filter(Boolean).join(', ');
 
+// ── The filter pills an AIworks page carries ──────────────────────────────
+// The same row a project card shows in a listing: the facts that place the
+// project, then the three axes — bucket, studio, discipline. A free-text field
+// that merely restates an axis is dropped rather than printed again, the same
+// dedupe ProjectStackCard does, so "SCAD" never appears as both a Client and a
+// studio. Each pill hands its value to the projects page.
+const studioEntry = data.studio ? await getEntry(data.studio) : null;
+const pillKey = (v: string) => v.toLowerCase().replace(/[^a-z0-9]/g, '');
+const categoryLabel = category?.data.displayName ?? '';
+const studioLabel = studioEntry?.data.displayName ?? '';
+const tagNames = tags.filter(Boolean).map((t: any) => t.data.name);
+const axisLabels = new Set(
+  [categoryLabel, studioLabel, ...tagNames].filter(Boolean).map(v => pillKey(String(v)))
+);
+const filterPills = [
+  ...[data.year, data.location, data.status]
+    .filter(Boolean)
+    .filter(v => !axisLabels.has(pillKey(String(v)))),
+  categoryLabel,
+  studioLabel,
+  ...tagNames,
+].filter(Boolean).map(String);
+
 // People registry — avatar portrait per collaborator (files in /images/people/)
 const PEOPLE: Record<string, string> = {
   'Advaita Kelkar':  '/images/people/advaita-kelkar.jpg',
@@ -262,16 +285,31 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
             </div>
 
             <div class="project-card__metaline">
-              <div class="project-meta-row">
-                <span class="project-card__meta-val">
-                  {[yearLoc, data.status].filter(Boolean).join(', ')}
-                </span>
-                {category && (
-                  <a href={`/${category.id}/`} class="project-card__meta-cat-link">
-                    {category.data.displayName}
-                  </a>
-                )}
-              </div>
+              {isOriginalCardPage ? (
+                <div class="project-meta-row project-meta-row--pills">
+                  {filterPills.map(v => (
+                    <a
+                      class="project-card__filter-pill"
+                      href={`/projects?q=${encodeURIComponent(v)}`}
+                      title={`Show only ${v}`}
+                    >
+                      <span>{v}</span>
+                      <Icon name="arrow" />
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <div class="project-meta-row">
+                  <span class="project-card__meta-val">
+                    {[yearLoc, data.status].filter(Boolean).join(', ')}
+                  </span>
+                  {category && (
+                    <a href={`/${category.id}/`} class="project-card__meta-cat-link">
+                      {category.data.displayName}
+                    </a>
+                  )}
+                </div>
+              )}
             </div>
           </header>
 
@@ -471,16 +509,31 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
             </div>
 
             <div class="project-card__metaline">
-              <div class="project-meta-row">
-                <span class="project-card__meta-val">
-                  {[yearLoc, data.status].filter(Boolean).join(', ')}
-                </span>
-                {category && (
-                  <a href={`/${category.id}/`} class="project-card__meta-cat-link">
-                    {category.data.displayName}
-                  </a>
-                )}
-              </div>
+              {isOriginalCardPage ? (
+                <div class="project-meta-row project-meta-row--pills">
+                  {filterPills.map(v => (
+                    <a
+                      class="project-card__filter-pill"
+                      href={`/projects?q=${encodeURIComponent(v)}`}
+                      title={`Show only ${v}`}
+                    >
+                      <span>{v}</span>
+                      <Icon name="arrow" />
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <div class="project-meta-row">
+                  <span class="project-card__meta-val">
+                    {[yearLoc, data.status].filter(Boolean).join(', ')}
+                  </span>
+                  {category && (
+                    <a href={`/${category.id}/`} class="project-card__meta-cat-link">
+                      {category.data.displayName}
+                    </a>
+                  )}
+                </div>
+              )}
             </div>
           </header>
 
@@ -4384,6 +4437,72 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     .project-detail {
       padding-bottom: calc(var(--pp-dock-h, 66px) + var(--pp-card-h, 150px) + var(--pp-meta-h, 35px) + 36px);
     }
+  }
+
+  /* ── AIworks: the facts are filters ────────────────────────────────────
+     The meta line on these pages is the same pill row a project card shows in
+     a listing — year, location, status, then bucket, studio, discipline — and
+     every one of them is a link into the projects page filtered to that value.
+     Shown at every width: the row IS the metadata here, not an extra. */
+  .project-meta-row--pills {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    /* Packed left and stacking like the footer's pill cloud, on the same two
+       gap tokens — the vertical rhythm is deliberately 75% of the horizontal
+       one, which is why they are not a single value.
+
+       .project-meta-row spaces its two halves apart; a wrapped row of pills
+       wants them packed instead, or the gaps land wherever the wrap happens
+       to fall. And they never grow: each pill rests at its own width. */
+    justify-content: flex-start;
+    gap: var(--_tokens---bubble-gap-y) var(--_tokens---bubble-gap-x);
+    width: 100%;
+  }
+  /* The pill's own look. It lives in ProjectStackCard's global block, which
+     is only emitted on pages that render a card — and this page does not, so
+     without these the row came out as plain 16px text with arrows after it.
+     Same tokens as the card, so the two stay one object. */
+  .project-meta-row--pills .project-card__filter-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--_tokens---pill-gap--xs);
+    flex: 0 0 auto;
+    color: var(--_tokens---color--muted);
+    background: color-mix(in srgb, var(--_tokens---color--fg) 5%, transparent);
+    border: var(--_tokens---pill-border--mid);
+    border-radius: var(--_tokens---radius--pill);
+    padding: var(--_tokens---pill-pad--xs);
+    font-family: inherit;
+    font-size: var(--_tokens---type--ultrathin);
+    font-weight: var(--_tokens---weight--light);
+    line-height: 1.1;
+    white-space: nowrap;
+    text-decoration: none;
+    /* Ultrathin label, so the small step on the arrow scale. */
+    --icon-size: var(--_tokens---arrow--sm);
+    transition: background-color var(--_tokens---motion--base) ease,
+                border-color var(--_tokens---motion--base) ease,
+                color var(--_tokens---motion--base) ease;
+  }
+  .project-meta-row--pills .project-card__filter-pill svg {
+    flex-shrink: 0;
+    opacity: 0.55;
+    transition: opacity var(--_tokens---motion--base) ease;
+  }
+  @media (hover: hover) {
+    .project-meta-row--pills .project-card__filter-pill:hover {
+      color: var(--_tokens---color--fg);
+      border-color: color-mix(in srgb, var(--_tokens---color--fg) 32%, transparent);
+      background: color-mix(in srgb, var(--_tokens---color--fg) 9%, transparent);
+    }
+    .project-meta-row--pills .project-card__filter-pill:hover svg {
+      opacity: 1;
+    }
+  }
+  .project-meta-row--pills .project-card__filter-pill:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
   }
 </style>
 
