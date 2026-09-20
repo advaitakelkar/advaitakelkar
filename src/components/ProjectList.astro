@@ -363,12 +363,22 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       <div class="project-lightbox__image-area" id="lightbox-image-area">
         <img class="project-lightbox__img" id="lightbox-img" src="" alt="" />
       </div>
-      <h2 class="project-lightbox__title" id="lightbox-title"></h2>
-      <div class="project-lightbox__bar" id="lightbox-bar">
-        <a class="project-lightbox__link" id="lightbox-link" href="#">
-          <span>Go to project</span>
-          <Icon name="arrow" />
+      {/* The name, its one-line intro and the summary — the same three things
+          the card carries, so opening an image does not cost you the context
+          you were reading. The whole heading is the link: title and arrow are
+          one target, which is why "Go to project" is gone. It said what the
+          arrow says. */}
+      <div class="project-lightbox__meta" id="lightbox-meta">
+        <a class="project-lightbox__heading" id="lightbox-heading" href="#">
+          <h2 class="project-lightbox__title" id="lightbox-title"></h2>
+          <span class="project-lightbox__go" aria-hidden="true">
+            <Icon name="arrow" />
+          </span>
         </a>
+        <p class="project-lightbox__intro" id="lightbox-intro"></p>
+        <p class="project-lightbox__desc" id="lightbox-desc"></p>
+      </div>
+      <div class="project-lightbox__bar" id="lightbox-bar">
         <button class="project-lightbox__close" id="lightbox-close" type="button" aria-label="Close image">
           <Icon name="close" />
         </button>
@@ -1146,11 +1156,13 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     transition: opacity var(--_tokens---motion--fast) ease, filter var(--_tokens---motion--fast) ease;
   }
 
-  /* While a preview is active: the scrubbed thumbnail stays in colour, the rest
-     drop to grayscale so the active image reads clearly */
+  /* While a preview is active the scrubbed thumbnail stays in colour and the
+     rest go grayscale, so the active one reads. They stay legible though —
+     at 0.5 the strip washed out into the glass and you could not see what you
+     were dragging through, which is the one control the preview has. */
   .project-card.is-previewing .project-card__thumb-item img {
     filter: grayscale(1);
-    opacity: 0.5;
+    opacity: 0.8;
   }
   .project-card.is-previewing .project-card__thumb-item.is-active img {
     filter: none;
@@ -2191,21 +2203,95 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   }
 
   /* Project name in medium size font above/below the scrub strip */
-  .project-lightbox__title {
+  /* The text block beside the strip. Positioned by script, which decides
+     whether it sits above or below depending on which side has the room. */
+  .project-lightbox__meta {
     position: absolute;
     left: 0;
     right: 0;
     display: flex;
-    justify-content: flex-start;
+    flex-direction: column;
+    gap: 6px;
     text-align: left;
-    padding: 16px 16px;
+    padding: 16px;
     margin: 0;
     box-sizing: border-box;
+    /* Clicks fall through to the glass to close — except on the heading,
+       which takes them back. */
+    pointer-events: none;
+    font-family: var(--_tokens---font--sans);
+  }
+
+  /* Title and arrow are one link and one line: tapping either goes to the
+     project. */
+  .project-lightbox__heading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    pointer-events: auto;
+    color: var(--_tokens---color--fg);
+    text-decoration: none;
+  }
+
+  .project-lightbox__title {
+    margin: 0;
     font-weight: var(--_tokens---weight--strong);
     color: var(--_tokens---color--fg);
-    pointer-events: none; /* passes clicks through to the glass below to close */
-    font-family: var(--_tokens---font--sans);
-    line-height: 1.25;
+    line-height: 1.2;
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Same ringed arrow the desktop card uses, so "this opens the project"
+     looks the same wherever it appears. */
+  .project-lightbox__go {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 38px;
+    height: 38px;
+    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
+    border-radius: 50%;
+    --icon-size: var(--_tokens---arrow--md);
+    transition: background-color var(--_tokens---motion--base) ease,
+                color var(--_tokens---motion--base) ease,
+                border-color var(--_tokens---motion--base) ease;
+  }
+
+  @media (hover: hover) {
+    .project-lightbox__heading:hover .project-lightbox__go {
+      background-color: var(--_tokens---color--fg);
+      color: var(--_tokens---color--bg);
+      border-color: var(--_tokens---color--fg);
+    }
+  }
+
+  .project-lightbox__intro {
+    margin: 0;
+    font-size: var(--_tokens---type--small);
+    font-weight: var(--_tokens---weight--strong);
+    color: var(--_tokens---color--fg);
+    line-height: 1.4;
+  }
+
+  .project-lightbox__desc {
+    margin: 0;
+    font-size: var(--_tokens---type--micro);
+    color: var(--_tokens---color--muted);
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .project-lightbox__intro:empty,
+  .project-lightbox__desc:empty {
+    display: none;
   }
 
   .project-lightbox__close {
@@ -2232,8 +2318,11 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   const lbImg = document.getElementById('lightbox-img') as HTMLImageElement | null;
   const lbImageArea = document.getElementById('lightbox-image-area');
   const lbBar = document.getElementById('lightbox-bar');
-  const lbLink = document.getElementById('lightbox-link') as HTMLAnchorElement | null;
+  const lbHeading = document.getElementById('lightbox-heading') as HTMLAnchorElement | null;
   const lbTitle = document.getElementById('lightbox-title');
+  const lbMeta = document.getElementById('lightbox-meta');
+  const lbIntro = document.getElementById('lightbox-intro');
+  const lbDesc = document.getElementById('lightbox-desc');
   let lbThumbs: HTMLElement[] = [];     // the CARD's own thumbnails (strip stays put)
   let lbStripEl: HTMLElement | null = null; // the card strip currently being previewed
   let activeCard: HTMLElement | null = null; // card whose preview is showing (for grayscale)
@@ -2263,7 +2352,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   // and the link/✕ bar sits in the gap right next to the strip.
   const BAR_H = 44;
   function positionPanel(strip: HTMLElement) {
-    if (!lightbox || !lbImageArea || !lbBar || !lbTitle) return;
+    if (!lightbox || !lbImageArea || !lbBar || !lbMeta || !lbTitle) return;
     const rect = strip.getBoundingClientRect();
     const vh = window.innerHeight;
     const vw = window.innerWidth;
@@ -2274,8 +2363,8 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     lbImageArea.style.paddingRight = padRight;
     lbBar.style.paddingLeft = padLeft;
     lbBar.style.paddingRight = padRight;
-    lbTitle.style.paddingLeft = padLeft;
-    lbTitle.style.paddingRight = padRight;
+    lbMeta.style.paddingLeft = padLeft;
+    lbMeta.style.paddingRight = padRight;
 
     const imageOnBottom = (vh - rect.bottom) >= rect.top;
     if (imageOnBottom) {
@@ -2286,16 +2375,15 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       lbImageArea.style.paddingBottom = '84px';    // clear the breadcrumb dock
       lbBar.style.top = rect.bottom + 'px';
 
-      // Title is on TOP (above the strip)
-      lbTitle.style.top = '0px';
-      lbTitle.style.bottom = (vh - rect.top) + 'px';
-      lbTitle.style.paddingTop = '20px';
-      lbTitle.style.paddingBottom = '20px';
-      lbTitle.style.alignItems = 'flex-end';
+      // Text block is on TOP (above the strip), sitting on the strip's edge
+      lbMeta.style.top = '0px';
+      lbMeta.style.bottom = (vh - rect.top) + 'px';
+      lbMeta.style.paddingTop = '20px';
+      lbMeta.style.paddingBottom = '20px';
+      lbMeta.style.justifyContent = 'flex-end';
 
-      const availableHeight = rect.top - 20 - 20;
-      const fontSizePx = Math.max(18, Math.min(36, availableHeight * 0.12));
-      lbTitle.style.fontSize = `${fontSizePx}px`;
+      const availableHeight = rect.top - 40;
+      lbTitle.style.fontSize = `${Math.max(18, Math.min(32, availableHeight * 0.12))}px`;
     } else {
       // image fills above the strip; bar just above the strip
       lbImageArea.style.top = '0px';
@@ -2304,16 +2392,15 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       lbImageArea.style.paddingBottom = BAR_H + 'px'; // clear the bar
       lbBar.style.top = (rect.top - BAR_H) + 'px';
 
-      // Title is on BOTTOM (below the strip)
-      lbTitle.style.top = rect.bottom + 'px';
-      lbTitle.style.bottom = '0px';
-      lbTitle.style.paddingTop = '20px';
-      lbTitle.style.paddingBottom = '84px'; // clear the bottom breadcrumb dock
-      lbTitle.style.alignItems = 'flex-start';
+      // Text block is on BOTTOM (below the strip)
+      lbMeta.style.top = rect.bottom + 'px';
+      lbMeta.style.bottom = '0px';
+      lbMeta.style.paddingTop = '20px';
+      lbMeta.style.paddingBottom = '84px'; // clear the bottom breadcrumb dock
+      lbMeta.style.justifyContent = 'flex-start';
 
-      const availableHeight = (vh - rect.bottom) - 84 - 20;
-      const fontSizePx = Math.max(18, Math.min(36, availableHeight * 0.12));
-      lbTitle.style.fontSize = `${fontSizePx}px`;
+      const availableHeight = (vh - rect.bottom) - 104;
+      lbTitle.style.fontSize = `${Math.max(18, Math.min(32, availableHeight * 0.12))}px`;
     }
   }
 
@@ -2324,8 +2411,14 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     activeCard = card;
     card.classList.add('is-previewing'); // grayscales the non-active thumbnails
     const href = card.querySelector('.project-card__pill')?.getAttribute('href');
-    if (lbLink && href) lbLink.href = href;
+    if (lbHeading && href) lbHeading.href = href;
     if (lbTitle) lbTitle.textContent = card.dataset.name || '';
+    // The card keeps its intro and summary in the DOM on every band — they are
+    // only hidden by CSS on the phone — so the preview can borrow them rather
+    // than the data being passed through a second channel.
+    const pick = (sel: string) => (card.querySelector(sel)?.textContent || '').trim();
+    if (lbIntro) lbIntro.textContent = pick('.project-card__intro');
+    if (lbDesc) lbDesc.textContent = pick('.project-card__desc');
     positionPanel(strip);
     setLbActive(startIdx);
     lightbox.classList.add('is-open');
@@ -2352,7 +2445,9 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     // stays tappable; the ✕ closes; the link navigates
     lightbox.addEventListener('click', closeLightbox);
     document.getElementById('lightbox-close')?.addEventListener('click', closeLightbox);
-    lbLink?.addEventListener('click', (e) => e.stopPropagation());
+    // The heading is the only thing inside the glass that must survive the tap
+    // that closes it.
+    lbHeading?.addEventListener('click', (e) => e.stopPropagation());
     // Block touch-scroll/rubber-band on the glass while open
     lightbox.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
     document.addEventListener('keydown', (e) => {

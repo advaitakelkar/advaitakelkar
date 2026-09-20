@@ -283,6 +283,18 @@ const schemes = [
     border-right-color: transparent;
   }
 
+  /* ── No rail on the phone ────────────────────────────────────────────
+     44px of a 375px screen — 12% of the width — given to a label and a menu
+     handle, when everything it offers (Home, the page list, the projects) is
+     already in the bottom bar where the thumb is.
+     After the .sn-bar rules above, not before: same class, same specificity,
+     so source order is the only thing deciding which display wins. */
+  @media (max-width: 699.98px) {
+    .sn-bar {
+      display: none;
+    }
+  }
+
   /* Logo */
   .sn-bar__logo {
     display: flex;
@@ -602,6 +614,18 @@ const schemes = [
     z-index: 200;
     pointer-events: none;
     border-right: 1px solid var(--_tokens---color--line);
+  }
+
+  /* With the rail hidden below 700, the panel's closed position has to move
+     with it. It rests at left:44px translated fully left, which parked its
+     right edge exactly under the rail — remove the rail and that 44px strip
+     of panel sits on top of the page instead, which is what was covering the
+     left of every card. Flush to the edge here, so closed is off-screen. */
+  @media (max-width: 699.98px) {
+    .sn-panel {
+      left: 0;
+      width: min(400px, 85vw);
+    }
   }
 
   .sn-panel.is-open {
