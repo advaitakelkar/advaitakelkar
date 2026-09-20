@@ -1863,9 +1863,11 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       margin-top: 0 !important;
     }
 
-    /* Search sits at the bottom, clear of the breadcrumb that docks there.
-       Fixed rather than sticky: it is a permanent control on this band, not
-       something that parks when you reach it. */
+    /* ── The controls live at the bottom, the list grows up out of them ──
+       Reading order runs bottom-to-top on this band: breadcrumb, search,
+       selector, then the cards stacking upward away from your thumb. Both
+       controls are fixed rather than sticky — they are permanent on this
+       band, not things that park when you reach them. */
     .projects-search-bar {
       position: fixed;
       left: var(--_tokens---layout--rail, 44px);
@@ -1874,6 +1876,44 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       z-index: 95;
       margin: 0;
       width: auto;
+    }
+
+    /* One surface behind the whole bottom stack. The controls are separate
+       fixed elements with 6px between the selector and the search and 13px
+       above the breadcrumb, and cards were visible through both slots — the
+       same leak the top bar had, at the other end of the screen.
+
+       z-index 80, not 94: the controls are fixed children of
+       .projects-fixed-wrapper, which is itself positioned at z-index 90 and
+       therefore opens a stacking context. Their own 95 is scoped inside that
+       context, so anything above 90 in the page's context — which a 94 seal
+       was — paints over the entire wrapper subtree and hid both controls
+       completely. Below 90 it sits under them and still above the unpositioned
+       cards. */
+    .projects-page::after {
+      content: '';
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 152px;
+      background-color: var(--_tokens---color--bg);
+      z-index: 80;
+      pointer-events: none;
+    }
+
+    /* The selector sits directly above the search, not up at the top of the
+       page — the two controls belong together, within one thumb's reach. */
+    .filter-bar {
+      position: fixed;
+      left: var(--_tokens---layout--rail, 44px);
+      right: 12px;
+      bottom: 104px;
+      z-index: 95;
+      margin: 0;
+      width: auto;
+      padding-block: 6px;
+      background-color: var(--_tokens---color--bg);
     }
     .projects-search-input {
       height: 52px;
@@ -1889,16 +1929,22 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       display: none;
     }
 
-    /* Clear the docked search plus the breadcrumb below it. */
+    /* Clear the whole bottom stack: breadcrumb, search and selector. */
     .projects-page {
-      padding-bottom: 150px;
+      padding-bottom: 170px;
     }
 
-    /* Cards stack upward, so the first one sits nearest the search at the
-       bottom of the screen rather than furthest from it. Visual order only —
-       the DOM order, and therefore reading and tab order, is unchanged. */
+    /* Cards stack upward out of the controls. In column-reverse the main axis
+       runs bottom-to-top, so items pack against the BOTTOM — which is what
+       stops a short result set stranding itself at the top of the screen with
+       a gap above the controls, as a four-result search did. The min-height
+       is what gives them a full screen to sit at the bottom of.
+       Visual order only: DOM order, and with it reading and tab order, is
+       unchanged. */
     .project-cards-container {
       flex-direction: column-reverse;
+      justify-content: flex-start;
+      min-height: calc(100dvh - 210px);
     }
 
     /* Tighter card rhythm: more of the list on screen per scroll. */
