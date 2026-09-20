@@ -279,9 +279,15 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
                 <div class="project-card__bottom-left">
                   <div class="project-card__metaline">
                     {metaParts.map((m) => (
-                      <span class="project-card__meta-item">
+                      <button
+                        type="button"
+                        class="project-card__meta-item project-card__filter-pill"
+                        data-filter-value={String(m.val)}
+                        title={`Show only ${m.val}`}
+                      >
                         <span class="project-card__meta-val">{m.val}</span>
-                      </span>
+                        <Icon name="arrow" />
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -289,9 +295,17 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
                      then what the work actually is. Each says a different
                      thing, so none of them repeats another. -->
                 <div class="project-card__bottom-right">
-                  {categoryLabel && <span class="project-card__filter-pill">{categoryLabel}</span>}
-                  {studioLabel && <span class="project-card__filter-pill">{studioLabel}</span>}
-                  {tagsArr.map(tag => <span class="project-card__filter-pill">{tag}</span>)}
+                  {[categoryLabel, studioLabel, ...tagsArr].filter(Boolean).map(label => (
+                    <button
+                      type="button"
+                      class="project-card__filter-pill"
+                      data-filter-value={String(label)}
+                      title={`Show only ${label}`}
+                    >
+                      <span>{label}</span>
+                      <Icon name="arrow" />
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -472,8 +486,9 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   }
 
   .projects-collapsed-search::placeholder {
-    color: color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
-    -webkit-text-fill-color: color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
+    font-weight: 400;
+    color: color-mix(in srgb, var(--_tokens---color--fg) 34%, transparent);
+    -webkit-text-fill-color: color-mix(in srgb, var(--_tokens---color--fg) 34%, transparent);
     opacity: 1;
   }
 
@@ -564,8 +579,9 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   }
 
   .projects-search-input::placeholder {
-    color: color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
-    -webkit-text-fill-color: color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
+    font-weight: 400;
+    color: color-mix(in srgb, var(--_tokens---color--fg) 34%, transparent);
+    -webkit-text-fill-color: color-mix(in srgb, var(--_tokens---color--fg) 34%, transparent);
     opacity: 1;
   }
 
@@ -1097,7 +1113,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     box-sizing: border-box;
     font-size: var(--_tokens---type--ultrathin);
     color: var(--_tokens---color--muted);
-    gap: 10px;
+    gap: var(--_tokens---pill-gap);
     min-width: 0;
     /* Hidden-scrollbar strip rather than a clip, so a long combination stays
        reachable instead of being cut off. initScrollFades() finds this by
@@ -1123,7 +1139,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     align-items: center;
     justify-content: flex-start;
     flex-wrap: nowrap;
-    gap: var(--_tokens---pill-gap--xs);
+    gap: var(--_tokens---pill-gap);
     flex: 0 0 auto;
     font-weight: 300;
   }
@@ -1132,25 +1148,63 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
      same kind of object, so they get the same object's styling. On the house
      tokens (xs padding, the mid border that holds against body text) rather
      than the hand-rolled values this used to carry. */
+  /* All six are the same object and now the same control: every value on the
+     row filters the list to the projects that share it. One spec, on the
+     house tokens, with the arrow that means "this goes somewhere". */
   .project-card__filter-pill,
   .project-card__meta-item {
     display: inline-flex;
     align-items: center;
+    gap: var(--_tokens---pill-gap--xs);
     color: var(--_tokens---color--muted);
     background: color-mix(in srgb, var(--_tokens---color--fg) 5%, transparent);
     border: var(--_tokens---pill-border--mid);
     border-radius: var(--_tokens---radius--pill);
     padding: var(--_tokens---pill-pad--xs);
+    font-family: inherit;
     font-size: var(--_tokens---type--ultrathin);
+    font-weight: 300;
     line-height: 1.1;
     white-space: nowrap;
+    cursor: pointer;
+    /* Ultrathin label, so the small step on the arrow scale. */
+    --icon-size: var(--_tokens---arrow--sm);
+    transition: background-color var(--_tokens---motion--base) ease,
+                border-color var(--_tokens---motion--base) ease,
+                color var(--_tokens---motion--base) ease;
+  }
+
+  .project-card__filter-pill svg,
+  .project-card__meta-item svg {
+    flex-shrink: 0;
+    opacity: 0.55;
+    transition: opacity var(--_tokens---motion--base) ease;
+  }
+
+  @media (hover: hover) {
+    .project-card__filter-pill:hover,
+    .project-card__meta-item:hover {
+      background-color: var(--_tokens---color--fg);
+      color: var(--_tokens---color--bg);
+      border-color: var(--_tokens---color--fg);
+    }
+    .project-card__filter-pill:hover svg,
+    .project-card__meta-item:hover svg {
+      opacity: 1;
+    }
+  }
+
+  .project-card__filter-pill:focus-visible,
+  .project-card__meta-item:focus-visible {
+    outline: 2px solid var(--_tokens---color--fg);
+    outline-offset: 2px;
   }
 
   .project-card__metaline {
     display: flex;
     flex-wrap: nowrap;
     align-items: center;
-    gap: var(--_tokens---pill-gap--xs);
+    gap: var(--_tokens---pill-gap);
     font-size: var(--_tokens---type--ultrathin);
     white-space: nowrap;
   }
@@ -1160,7 +1214,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
      Dot separators are gone: pills carry their own edges, and a dot between
      two of them reads as a third thing. */
   .project-card__meta-item { flex-shrink: 0; }
-  .project-card__meta-val { color: inherit; font-weight: 300; }
+  .project-card__meta-val { color: inherit; font-weight: inherit; }
 
   /* ── Meta ladder ───────────────────────────────────────────────────────
      metaParts is ordered Year, Location, Status — most identifying first —
@@ -1600,6 +1654,19 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   @media (max-width: 699.98px) {
     .project-card__description-col {
       display: none;
+    }
+    /* The arrow costs every pill ~13px, which on a phone is the difference
+       between the row fitting and the row scrolling. Buy it back from the
+       padding and the gaps rather than from the arrow itself. */
+    .project-card__bottom-bar,
+    .project-card__bottom-right,
+    .project-card__metaline {
+      gap: 5px;
+    }
+    .project-card__filter-pill,
+    .project-card__meta-item {
+      padding: 4px 8px;
+      gap: 3px;
     }
   }
 
@@ -2227,6 +2294,23 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     searchQuery = (e.target as HTMLInputElement).value;
     if (searchInput) searchInput.value = searchQuery;
     applyFilter();
+  });
+
+  // Every value on a card's bottom row is a filter. Clicking one drives the
+  // existing search path rather than a parallel mechanism, so the count, the
+  // clear button and the collapsed field all stay in step for free.
+  container?.addEventListener('click', (e) => {
+    const pill = (e.target as HTMLElement).closest('[data-filter-value]') as HTMLElement | null;
+    if (!pill) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const value = pill.dataset.filterValue ?? '';
+    if (!value) return;
+    searchQuery = value;
+    if (searchInput) searchInput.value = value;
+    if (collapsedSearchInput) collapsedSearchInput.value = value;
+    applyFilter();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 
   // Select dropdown filter listeners
