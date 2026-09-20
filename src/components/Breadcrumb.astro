@@ -76,8 +76,17 @@ if (activeProject) {
     {/* Minimal geometric icon family (shown when labels collapse on small
         screens): Home = house outline, About = square, Projects = circle,
         Category = triangle. One shape each, same stroke, no detail. */}
-    <a href="/" class:list={["breadcrumb__link", isHome && "is-active"]}>
+    <a
+      href="/"
+      class:list={["breadcrumb__link", "breadcrumb__link--home", isHome && "is-active"]}
+      aria-label="Home"
+    >
       <Icon name="home" class="crumb-icon" />
+      {/* Home is the one destination that needs no word — it reads as a mark
+          on a phone, and giving it back its space lets the three named pills
+          beside it breathe. The circle is compact-only; desktop keeps the
+          house-and-label pair, where "Projects" already owns the circle. */}
+      <Icon name="circle" class="crumb-icon crumb-icon--compact" />
       <span class="crumb-full">Home</span>
     </a>
     <span class="breadcrumb__sep" aria-hidden="true">/</span>
@@ -327,6 +336,15 @@ if (activeProject) {
     font-weight: var(--_tokens---weight--base);
   }
 
+  /* Compact-only mark — see .breadcrumb__link--home in the mobile block.
+     Qualified by the link because .crumb-icon carries display:inline-block at
+     the same specificity and sits later in the file; without the extra class
+     the circle simply won on source order and rode up onto the desktop bar,
+     where Home keeps its house and Projects owns the circle. */
+  .breadcrumb__link .crumb-icon--compact {
+    display: none;
+  }
+
   /* Icon is always visible and static on the left */
   .crumb-icon {
     --icon-size: 12px;
@@ -376,6 +394,19 @@ if (activeProject) {
     }
     .crumb-icon {
       display: none;
+    }
+    .breadcrumb__link.breadcrumb__link--home .crumb-icon--compact {
+      display: inline-block;
+      --icon-size: 15px;
+    }
+    .breadcrumb__link--home .crumb-full {
+      display: none;
+    }
+    /* A mark, not a word: fixed square target rather than an equal share. */
+    .breadcrumb__link--home {
+      flex: 0 0 auto;
+      width: 42px;
+      padding-inline: 0;
     }
     .crumb-full {
       max-width: none;
