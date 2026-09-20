@@ -11,20 +11,54 @@
      without touching components. */
   --_tokens---font--mono: 'Inter', sans-serif;
 
-  /* ── Type scale — 5-level hierarchy, fluid via clamp() ──────
-     Level 1  display  | big       : 48px → 96px   hero, page titles
-     Level 2  heading  | medium    : 22px → 40px   section heads, major CTAs
-     Level 3  body     | small     : 18px → 18px   paragraphs, card titles
-     Level 4  caption  | micro     : 12px → 14px   dates, roles, metadata
-     Level 5  tag      | ultrathin : 10px → 11.5px  skill pills, fine print
+  /* ── Type scale — 5 levels, every one of them fluid ─────────
+     Measured at 390 / 834 / 1440:
+
+       Level 1  display | big       : 51.5 → 73.7 → 96.0   hero, page titles
+       Level 2  heading | medium    : 26.0 → 31.9 → 40.0   section heads, CTAs
+       Level 3  body    | small     : 16.0 → 16.8 → 18.0   paragraphs, card titles
+       Level 4  caption | micro     : 12.5 → 13.0 → 13.9   dates, roles, metadata
+       Level 5  tag     | ultrathin : 10.0 → 10.4 → 11.0   pills, fine print
+
+     The rule that makes it read: the ratio between two adjacent levels must
+     not change with the viewport. `small` used to be the one fixed step in a
+     fluid scale (18px everywhere), so medium/small was 1.22x on a phone and
+     2.22x on a desktop — a 1.82x swing. Two classes that looked like clear
+     siblings on a laptop were indistinguishable on a phone. Every step is
+     fluid now and the bottom two pairs hold ~1.27x to within 1% at all three
+     widths.
+
+     `big` is deliberately untouched, and the jump from it to medium stays
+     large (2.0–2.4x). That is the hero gap, not a mistake.
+
+     micro and ultrathin carry ~two thirds of all type on the site, so they
+     are the pair worth protecting: never let them drift back inside 1.2x of
+     each other, which is where a reader stops seeing two sizes.
   ── */
   --_tokens---type--big:       clamp(3rem, 2rem + 5vw, 6rem);
-  --_tokens---type--medium:    clamp(1.375rem, 0.75rem + 2vw, 2.5rem);
-  --_tokens---type--small:     1.125rem;
-  /* micro caps at 14px (was 16px) so metadata stays a clear step below the
-     18px body size instead of colliding with it. */
-  --_tokens---type--micro:     clamp(0.75rem, 0.5rem + 0.6vw, 0.875rem);
-  --_tokens---type--ultrathin: clamp(0.625rem, 0.58rem + 0.15vw, 0.72rem);
+  --_tokens---type--medium:    clamp(1.625rem, 1.3rem + 1.333vw, 2.5rem);
+  --_tokens---type--small:     clamp(1rem, 0.954rem + 0.19vw, 1.125rem);
+  --_tokens---type--micro:     clamp(0.78rem, 0.735rem + 0.15vw, 0.875rem);
+  --_tokens---type--ultrathin: clamp(0.625rem, 0.59rem + 0.115vw, 0.6875rem);
+
+  /* ── Weight scale — 3 levels, 200 apart ─────────────────────
+     Inter was being asked for five weights (300/400/500/600/700) and the
+     steps between them were invisible: 400 next to 500, or 500 next to 600,
+     is not a difference a reader can see at 13px. The same failure the size
+     scale had, on the other axis.
+
+     Three weights, spaced 200 so each is unmistakably not the others:
+
+       light  300  metadata, pills, dates, fine print
+       base   500  body prose and default UI  (absorbed the old 400)
+       strong 700  titles and emphasis        (absorbed the old 600)
+
+     Where two things need separating but sit at the same weight, they are
+     already separated by size — both axes do not have to move at once.
+  ── */
+  --_tokens---weight--light:  300;
+  --_tokens---weight--base:   500;
+  --_tokens---weight--strong: 700;
 
   /* Display — oversized headings (project detail title + "Design" header).
      Bigger than --type--big; tracked here so the two stay in lockstep. */
@@ -352,6 +386,11 @@ html {
 body {
   background-color: var(--_tokens---color--bg);
   color: var(--_tokens---color--fg);
+  /* Anything that does not declare a weight inherits this one. Without it the
+     document default (400) sat between --weight--light and --weight--base, so
+     a third weight existed on the page that no token described: 290 elements
+     on a desktop home page were rendering at an undeclared 400. */
+  font-weight: var(--_tokens---weight--base);
   min-height: 100dvh;
   transition: background-color var(--_tokens---motion--base) ease, color var(--_tokens---motion--base) ease;
 }
@@ -359,6 +398,17 @@ body {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+/* Form controls do not inherit type from the document, so they kept the UA's
+   400 while everything around them moved to the weight tokens — the inline
+   "Copy" buttons inside project copy were the visible case. */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-weight: inherit;
 }
 
 img {

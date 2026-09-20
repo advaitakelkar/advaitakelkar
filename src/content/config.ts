@@ -20,6 +20,9 @@ const studios = defineCollection({
   schema: z.object({
     name: z.string(),
     displayName: z.string(),
+    // Tab label where the full name will not fit. Spelled out rather than
+    // sliced from displayName, which produced "F'K" and "STU".
+    shortName: z.string().optional(),
     // The bucket this studio sits under, so /work/<studio> can be derived.
     category: reference('categories'),
   }),
