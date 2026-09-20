@@ -1782,6 +1782,26 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   @media (max-width: 699.98px) {
     /* Breadcrumb bottom-docks below 700, so nothing to clear or seal. */
     .projects-fixed-wrapper { --stick-top: 0px; top: 0; }
+
+    /* The placeholder rotates through "Search by tag / year / location /
+       category", and the longest of those needed 303px in a field with 239px
+       of usable width — it was being cut mid-word on a 375px screen.
+       The curve is derived from the constraint rather than guessed: the field
+       loses a fixed ~136px to the index rail, gutters and the clear button, and
+       the longest placeholder runs about 9x the font size, so the largest size
+       that still fits is (100vw - 136px) / 9. The slope below is that, minus
+       5% so it is not sitting exactly on the limit; the cap hands back to the
+       shared scale once there is room again. */
+    .projects-search-input {
+      font-size: clamp(1.125rem, -0.898rem + 10.56vw, 2.75rem);
+    }
+
+    /* The collapsed field is narrower still and was overflowing the same
+       placeholder by 15px at 320. Capped by the same rule, handing straight
+       back to --type--medium from 375 up where it already fits. */
+    .projects-collapsed-search {
+      font-size: min(var(--_tokens---type--medium), 0.35rem + 5.45vw);
+    }
   }
 
   @media (min-width: 700px) and (max-width: 1023.98px) {
