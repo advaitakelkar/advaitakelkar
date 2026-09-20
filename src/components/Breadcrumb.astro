@@ -402,11 +402,16 @@ if (activeProject) {
     .breadcrumb__link--home .crumb-full {
       display: none;
     }
-    /* A mark, not a word: fixed square target rather than an equal share. */
+    /* A mark, not a word: a fixed circle rather than an equal share, and the
+       same circle as Back beside it — it was 42 wide against Back's 40, which
+       on two round controls sitting together reads as a mistake. */
     .breadcrumb__link--home {
-      flex: 0 0 auto;
-      width: 42px;
+      flex: 0 0 40px;
+      width: 40px;
+      height: 40px;
+      min-height: 40px;
       padding-inline: 0;
+      border-radius: 50%;
     }
     .crumb-full {
       max-width: none;
@@ -426,16 +431,42 @@ if (activeProject) {
     .breadcrumb {
       display: flex;
       align-items: center;
+      /* One gap for the row now that it is one row — it was 6 between the
+         groups and 5 inside the list. */
       gap: 6px;
       width: 100%;
     }
+    /* Flattened so all five controls share ONE flex line. Three pills can
+       only be exactly equal if they are measured against the same free space,
+       and Pages used to live in its own wrapper sized to its text — the three
+       came out 83 / 83 / 82 with 5 / 5 / 6 gaps, near enough to look like a
+       mistake rather than a rhythm. The seps are display:none already, so
+       nothing else falls into the row. */
     .breadcrumb__list {
-      flex: 1 1 auto;
-      min-width: 0;
-      gap: 5px;
+      display: contents;
     }
+    /* Flattened as well, so Pages is measured against the same free space as
+       About and Projects rather than against whatever its own wrapper had
+       left. Through the wrapper it came out 73 against their 87: the base
+       rule below sets flex-shrink:0 on it and sits LATER in this file, so a
+       flex shorthand up here never reached it. The panel keeps its anchor —
+       .breadcrumb__custom-dropdown is the position:relative box, and a
+       descendant selector does not care that an ancestor is display:contents. */
     .breadcrumb__project-nav {
-      flex: 0 0 auto;
+      display: contents;
+    }
+    .breadcrumb__custom-dropdown {
+      flex: 1 1 0;
+      min-width: 0;
+      z-index: 500;
+    }
+    .breadcrumb__dropdown-trigger {
+      width: 100%;
+    }
+    /* The three named pills: one share each of what the circles leave. */
+    .breadcrumb__link:not(.breadcrumb__link--home) {
+      flex: 1 1 0;
+      min-width: 0;
     }
     .breadcrumb__link {
       padding-inline: 6px;
@@ -444,12 +475,9 @@ if (activeProject) {
        real target rather than a 26px square. */
     .breadcrumb__back {
       width: 40px;
+      height: 40px;
       min-height: 40px;
-      flex: 0 0 auto;
-    }
-    /* Pages keeps its name and sits with the rest. */
-    .breadcrumb__custom-dropdown {
-      flex: 1 1 0;
+      flex: 0 0 40px;
     }
     .breadcrumb__dropdown-trigger {
       min-height: 40px;
@@ -457,6 +485,43 @@ if (activeProject) {
       padding: 0 10px;
       max-width: none;
     }
+
+    /* ── One behaviour for all five ─────────────────────────────────
+       The page you are on is inverted rather than tinted. At 14% against a
+       tinted bar the mark was doing almost nothing, and the row is the
+       primary navigation on a phone — which one you are on should not need
+       looking for. Same fill the hover state uses, so the two agree.
+
+       Every control transitions and presses identically. They were on the
+       same duration already but not the same property list, so moving
+       between them did not feel like moving along one row. */
+    .breadcrumb__link,
+    .breadcrumb__back,
+    .breadcrumb__dropdown-trigger {
+      transition: background-color var(--_tokens---motion--base) ease,
+                  color var(--_tokens---motion--base) ease,
+                  border-color var(--_tokens---motion--base) ease,
+                  transform var(--_tokens---motion--fast) ease;
+    }
+    .breadcrumb__link:active,
+    .breadcrumb__back:active,
+    .breadcrumb__dropdown-trigger:active {
+      transform: scale(0.96);
+    }
+    .breadcrumb__link.is-active {
+      background-color: var(--_tokens---color--fg);
+      color: var(--_tokens---color--bg);
+      border-color: var(--_tokens---color--fg);
+    }
+    /* The fill arrives rather than snapping in. Each page is a fresh
+       document, so this is the only place the change can be animated. */
+    .breadcrumb__link.is-active {
+      animation: bc-active-in var(--_tokens---motion--slow) var(--_tokens---ease-out);
+    }
+  }
+
+  @keyframes bc-active-in {
+    from { background-color: transparent; color: var(--_tokens---color--fg); border-color: var(--_tokens---color--line-soft); }
   }
 
   /* ── Dropdown trigger ───────────────────────────────────────── */
@@ -847,6 +912,25 @@ if (activeProject) {
 
   /* Pills signal keyboard focus by inverting (bg↔fg) in the :focus-visible
      rules above; the prev/next arrows fall back to the global focus ring. */
+
+  /* ── Pages points the way the panel opens ─────────────────────────
+     The bar docks at the bottom below 700 and the panel opens UPWARD from
+     it, so a chevron pointing down was aiming at the screen edge. Closed it
+     points up, toward where the list will appear; open it points down, the
+     way it will go back.
+
+     Stated as a transform rather than a dir on the icon: dir="s" writes
+     --arrow-rot inline, and inline wins over any rule. Placed after the
+     open-state rule above because that selector is identical — a media query
+     adds no specificity, so source order is what decides. */
+  @media (max-width: 699.98px) {
+    .breadcrumb__trigger-chevron {
+      transform: rotate(270deg);
+    }
+    .breadcrumb__dropdown-trigger[aria-expanded="true"] .breadcrumb__trigger-chevron {
+      transform: rotate(90deg);
+    }
+  }
 </style>
 
 <script>
