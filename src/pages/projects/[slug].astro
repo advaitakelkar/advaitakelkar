@@ -4306,28 +4306,21 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       z-index: 95;
       display: grid;
       grid-template-columns: 1fr;
-      row-gap: 6px;
+      row-gap: 5px;
       align-items: start;
       margin: 0;
-      padding: 8px 0 10px;
+      padding: 6px 0 8px;
       background-color: var(--_tokens---color--bg);
     }
-    /* Placed row by row rather than left to auto-flow. Auto-flow has to work
-       around the image spanning every row, and it put the pagination last and
-       full width with the facts stranded in the middle. The reading order is
-       fixed here: counter, facts, short line, description, buttons. */
-    .project-detail .project-phone-card {
-      grid-template-rows: auto auto auto auto auto;
-    }
+    /* Auto-placed in DOM order, which is already the reading order: counter,
+       facts, short line, description, prompt, buttons. The rows used to be
+       assigned by hand, which reserved one for the description even while it
+       was closed — an empty track contributes no height but still takes a gap
+       either side of it, so the collapsed card carried 6px of nothing. */
     .project-detail .project-phone-card > * {
       grid-column: 1;
       min-width: 0;
     }
-    .project-detail .project-phone-card .project-card-name-pagination-row { grid-row: 1; }
-    .project-detail .project-phone-card .project-card__metaline          { grid-row: 2; }
-    .project-detail .project-phone-card .project-card__intro             { grid-row: 3; }
-    .project-detail .project-phone-card .project-desc-readmore           { grid-row: 4; }
-    .project-detail .project-phone-actions                               { grid-row: 5; }
     /* The facts sit in the card, under the pagination. */
     .project-detail .project-phone-card .project-card__metaline {
       position: static;
@@ -4350,7 +4343,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     /* Logo, counter and timer ring, directly above the facts. */
     .project-detail .project-phone-card .project-card-name-pagination-row {
       margin: 0;
-      padding: 0;
+      padding: 4px 0 0;
       width: 100%;
     }
 
@@ -4397,16 +4390,10 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       margin: 0 !important;
     }
 
-    /* The ✕ sits in the card's top-right corner, over the counter row, and
-       only exists while something is open. */
-    .project-detail .project-phone-card {
-      position: fixed;
-    }
+    /* The ✕ closes whichever section is open, so it sits on the row that
+       opened it, pushed to the far right of it. */
     .project-detail .project-phone-close {
-      position: absolute;
-      top: 6px;
-      right: 0;
-      z-index: 2;
+      margin-left: auto;
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -4414,7 +4401,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       height: 28px;
       padding: 0;
       border: 0;
-      background: var(--_tokens---color--bg);
+      background: none;
       color: var(--_tokens---color--fg);
       cursor: pointer;
       --icon-size: 16px;
@@ -4423,13 +4410,76 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       display: none;
     }
 
+    /* ── The prompt is the prompt ──────────────────────────────────────
+       It arrived as a titled, bordered panel with a labelled Copy button —
+       three pieces of chrome around one paragraph, inside a card that is
+       already labelled by the button that opened it. What is left is the
+       text and a small copy mark after it. */
+    /* Every declaration in the prompt block carries !important — see the
+       :global(.prompt-box) rules further up — so overriding any of it here
+       has to as well. Without that the box kept its column order, its divider
+       and its labelled button, and only the pieces nothing else claimed moved. */
+    .project-detail .project-phone-card :global(.prompt-box) {
+      gap: 0 !important;
+      margin: 0 !important;
+      border: 0 !important;
+      padding: 0 !important;
+      background: none !important;
+    }
+    /* The header held a title and the copy button. The title is the name of
+       the button that opened this, and the button now sits at the end of the
+       paragraph, so the row itself has nothing left to hold. */
+    .project-detail .project-phone-card :global(.prompt-header) {
+      display: none !important;
+    }
+    /* One run of text ending in a small copy mark. */
+    .project-detail .project-phone-card :global(.prompt-body) {
+      display: block !important;
+    }
+    .project-detail .project-phone-card :global(.prompt-text) {
+      display: inline !important;
+    }
+    .project-detail .project-phone-card :global(.copy-prompt-btn) {
+      /* The label is a bare text node on the button, so it goes by sizing it
+         to nothing; the icon keeps its own size. */
+      display: inline-flex !important;
+      vertical-align: -3px;
+      margin-left: 6px !important;
+      font-size: 0 !important;
+      gap: 0 !important;
+      padding: 0 !important;
+      border: 0 !important;
+      background: none !important;
+      --icon-size: 13px;
+    }
+    .project-detail .project-phone-card :global(.prompt-text) {
+      font-size: var(--_tokens---type--ultrathin) !important;
+      line-height: 1.5 !important;
+    }
+
+    /* Every paragraph of the description at one size. The second one — the
+       italic list of characters — was resolving a step larger than the first,
+       so the block read as two different texts rather than one. The em keeps
+       its italic; only the size is levelled. */
+    .project-detail .project-phone-card .project-card__desc :global(p),
+    .project-detail .project-phone-card .project-card__desc :global(em) {
+      font-size: var(--_tokens---type--ultrathin) !important;
+      line-height: 1.5 !important;
+    }
+    .project-detail .project-phone-card .project-card__desc :global(p) {
+      margin: 0 0 8px !important;
+    }
+    .project-detail .project-phone-card .project-card__desc :global(p:last-child) {
+      margin-bottom: 0 !important;
+    }
+
     /* Read more and Prompt share a row. */
     .project-detail .project-phone-actions {
       display: flex;
       flex-wrap: wrap;
       align-items: center;
       gap: 8px;
-      margin-top: 2px;
+      margin: 0;
     }
     .project-detail .project-phone-actions .project-prompt-btn {
       margin: 0;
@@ -5972,7 +6022,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   // where they came from above 700px. Each element remembers its own origin
   // rather than the restore hard-coding a guess at it.
   const PHONE_CARD_PARTS = [
-    '.project-phone-close',                // ✕, shown only while a section is open
     '.project-card-name-pagination-row',   // logo, counter, timer ring
     '.project-card__metaline',             // year, location, status
     '.project-card__intro',                // the short line
@@ -6000,7 +6049,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
     if (!phone) {
       if (card) {
-        [...PHONE_CARD_PARTS, '.prompt-box', '.project-readmore-btn'].forEach(sel => {
+        [...PHONE_CARD_PARTS, '.prompt-box', '.copy-prompt-btn', '.project-readmore-btn', '.project-phone-close'].forEach(sel => {
           const el = detail.querySelector(sel) as HTMLElement | null;
           if (el) sendHome(el);
         });
@@ -6041,10 +6090,22 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
     const promptBox = detail.querySelector('.prompt-box') as HTMLElement | null;
     if (promptBox) { rememberHome(promptBox); if (promptBox.parentElement !== card) card.appendChild(promptBox); }
+    // The copy mark belongs at the end of the prompt, in the same run of text,
+    // rather than on a row of its own above it.
+    const promptText = detail.querySelector('.prompt-text') as HTMLElement | null;
+    const copyBtn = detail.querySelector('.copy-prompt-btn') as HTMLElement | null;
+    if (promptText && copyBtn && copyBtn.previousElementSibling !== promptText) {
+      rememberHome(copyBtn);
+      promptText.after(copyBtn);
+    }
     const readmore = detail.querySelector('.project-readmore-btn') as HTMLElement | null;
     const prompt = detail.querySelector('.project-prompt-btn') as HTMLElement | null;
     if (readmore) { rememberHome(readmore); actions.appendChild(readmore); }
     if (prompt) actions.appendChild(prompt);
+    // The ✕ closes whichever section is open, so it belongs on the row that
+    // opened it — at the far right of it, not floating over the card's corner.
+    const close = detail.querySelector('.project-phone-close') as HTMLElement | null;
+    if (close) { rememberHome(close); actions.appendChild(close); }
     if (actions.children.length && actions.parentElement !== card) card.appendChild(actions);
 
     measureProjectPhoneCard();
