@@ -6298,15 +6298,22 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     }
 
     // Wrap silently whenever the scroll leaves the middle copy.
+    //
+    // By modulo, not by a single step of one copy. A tall deck can end up
+    // more than one copy outside the band — Sups' Profiles has 51 cards, so
+    // scrolling to the very bottom sat two copies past the middle and a single
+    // -h step left it still outside, which is why it would not wrap downward.
+    // Content at t and t + h is identical, so any t can be mapped straight
+    // back into [h, 2h) and the jump stays invisible.
     let wrapping = false;
     deck.addEventListener('scroll', () => {
       if (!phone() || wrapping) return;
       const h = unitHeight();
       if (!h) return;
-      let next = null as number | null;
-      if (deck.scrollTop < h * 0.5) next = deck.scrollTop + h;
-      else if (deck.scrollTop > h * 1.5) next = deck.scrollTop - h;
-      if (next === null) return;
+      const t = deck.scrollTop;
+      if (t >= h && t < h * 2) return;
+      const next = h + (((t % h) + h) % h);
+      if (Math.abs(next - t) < 1) return;
       wrapping = true;
       const prev = deck.style.scrollBehavior;
       deck.style.scrollBehavior = 'auto';
