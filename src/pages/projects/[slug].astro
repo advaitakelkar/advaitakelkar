@@ -4173,6 +4173,48 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       grid-row: 5;
     }
   }
+
+  /* ══ Phone: no tabs, and the facts sit at the bottom ════════════════
+     Design and Making were two full-width headings that folded their own
+     content away, so on a phone the page ended in two big words and nothing
+     under them. They are plain sections here: the content is always open and
+     the fold controls are gone, so everything on the page is reached by
+     scrolling rather than by pressing.
+
+     The meta row — year, location, status — leaves the header and docks at
+     the bottom above the nav bar, which is where the other phone pages keep
+     the row you read last. Heights are measured, not written down: the nav
+     dock moves with the device's safe area. */
+  @media (max-width: 699.98px) {
+    .project-design-content,
+    .project-making-content {
+      max-height: none !important;
+      opacity: 1 !important;
+      overflow: visible !important;
+      padding-top: 12px;
+    }
+    /* Nothing folds, so there is no control for it and no state to remember. */
+    .project-design-header .project-detail-collapse-btn,
+    .project-making-header .project-detail-collapse-btn {
+      display: none !important;
+    }
+    .project-design-header,
+    .project-making-header {
+      cursor: default;
+    }
+
+    /* The facts, last. The script below moves the row out of the header to
+       the end of the page, where it is the final thing you read before the
+       nav bar — the same place the other phone pages put the row you read
+       last. In flow rather than fixed: a fixed row here sits in its own
+       compositing layer, and layers on this page are already doing enough
+       work without another one carrying a single line of text. */
+    .project-detail .project-card__metaline {
+      margin: 0;
+      padding-block: 12px 0;
+      border-top: 1px solid var(--_tokens---color--line-soft);
+    }
+  }
 </style>
 
 <script>
@@ -5550,4 +5592,26 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     initProjectPeople();
     initCopyPrompt();
   }
+
+  // ── Phone: the meta row reads last ──────────────────────────────────
+  // Year, location and status leave the header and become the final row of
+  // the page. Moved rather than duplicated, so there is one of them and the
+  // wider bands keep it where it was.
+  function placeProjectMeta() {
+    const detail = document.querySelector('.project-detail');
+    const meta = document.querySelector('.project-detail .project-card__metaline') as HTMLElement | null;
+    if (!detail || !meta) return;
+    const phone = window.matchMedia('(max-width: 699.98px)').matches;
+    const home = document.querySelector('.project-detail .project-top-header');
+    if (phone) {
+      if (meta.parentElement !== detail) detail.appendChild(meta);
+    } else if (home && meta.parentElement !== home) {
+      home.appendChild(meta);
+    }
+  }
+
+  placeProjectMeta();
+  window.addEventListener('resize', placeProjectMeta, { passive: true });
+  document.addEventListener('astro:after-swap', placeProjectMeta);
+
 </script>
