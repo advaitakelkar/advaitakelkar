@@ -197,8 +197,6 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
           { label: 'Year',     val: p.data.year },
           { label: 'Location', val: p.data.location },
           { label: 'Status',   val: p.data.status },
-          { label: 'Client',   val: p.data.client },
-          { label: 'Program',  val: p.data.program },
         ].filter(m => m.val && !axisLabels.has(dedupeKey(String(m.val))));
         // All images — cover first, then the rest; strip is horizontally scrollable
         const allImgs: string[] = [];
@@ -280,9 +278,8 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
               <div class="project-card__bottom-bar">
                 <div class="project-card__bottom-left">
                   <div class="project-card__metaline">
-                    {metaParts.map((m, idx) => (
+                    {metaParts.map((m) => (
                       <span class="project-card__meta-item">
-                        {idx > 0 && <span class="project-card__meta-sep">·</span>}
                         <span class="project-card__meta-val">{m.val}</span>
                       </span>
                     ))}
@@ -1135,7 +1132,10 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
      same kind of object, so they get the same object's styling. On the house
      tokens (xs padding, the mid border that holds against body text) rather
      than the hand-rolled values this used to carry. */
-  .project-card__filter-pill {
+  .project-card__filter-pill,
+  .project-card__meta-item {
+    display: inline-flex;
+    align-items: center;
     color: var(--_tokens---color--muted);
     background: color-mix(in srgb, var(--_tokens---color--fg) 5%, transparent);
     border: var(--_tokens---pill-border--mid);
@@ -1150,26 +1150,29 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     display: flex;
     flex-wrap: nowrap;
     align-items: center;
-    gap: 4px 4px;
+    gap: var(--_tokens---pill-gap--xs);
     font-size: var(--_tokens---type--ultrathin);
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
 
-  .project-card__meta-item { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; }
-  .project-card__meta-sep { color: color-mix(in srgb, var(--_tokens---color--fg) 25%, transparent); margin-right: 4px; }
-  .project-card__meta-val { color: var(--_tokens---color--muted); font-weight: 400; }
+  /* Every item on the row is the same object, so it gets the same object's
+     styling — see .project-card__filter-pill, which this shares a rule with.
+     Dot separators are gone: pills carry their own edges, and a dot between
+     two of them reads as a third thing. */
+  .project-card__meta-item { flex-shrink: 0; }
+  .project-card__meta-val { color: inherit; font-weight: 300; }
 
   /* ── Meta ladder ───────────────────────────────────────────────────────
-     metaParts is ordered Year, Location, Status, Client, Program — most
-     identifying first — so each tier just reveals the first N and never
-     repeats what the tier below already showed.
+     metaParts is ordered Year, Location, Status — most identifying first —
+     so each tier reveals the first N and never repeats the tier below.
        compact  (<700)      Year
-       medium   (700–1023)  + Location, Status
-       expanded (>=1024)    + Client, Program
-     The separator belongs to the item that follows it, so hiding an item
-     hides its separator with it and no line ever ends on a stray dot. */
+       medium+  (>=700)     + Location, Status
+     Client and Program are deliberately absent. Both were long enough to
+     outweigh the whole rest of the row ("Specialty Restaurants Private
+     Limited", "Hospitality Interior") while identifying the project less
+     than its year does, and Program largely restated the discipline pill.
+     The >=1024 step for this row is therefore a no-op by design; the
+     n + 4 rule below is kept so the ladder still holds if a field returns. */
   @media (max-width: 699.98px) {
     .project-card__meta-item:nth-child(n + 2) {
       display: none;
