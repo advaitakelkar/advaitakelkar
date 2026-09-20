@@ -4300,17 +4300,23 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
        shows it instead, scrolled so the active card stays on the top row. */
     .project-detail .project-phone-card {
       position: fixed;
-      left: 12px;
-      right: 12px;
-      bottom: calc(var(--pp-dock-h, 66px) + 6px);
+      left: 0;
+      right: 0;
+      bottom: var(--pp-dock-h, 66px);
       z-index: 95;
       display: grid;
       grid-template-columns: 1fr;
       row-gap: 5px;
       align-items: start;
       margin: 0;
-      padding: 6px 0 8px;
-      background-color: var(--_tokens---color--bg);
+      padding: 6px 12px 8px;
+      /* Not opaque. The deck runs on underneath and you can see it through
+         this — the blur is what keeps 10px of text readable over a moving
+         image. Full-bleed and sat directly on the nav bar, so there is no
+         strip of page between the two for the deck to peer through. */
+      background-color: color-mix(in srgb, var(--_tokens---color--bg) 90%, transparent);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
     }
     /* Auto-placed in DOM order, which is already the reading order: counter,
        facts, short line, description, prompt, buttons. The rows used to be
@@ -4559,7 +4565,11 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       grid-template-columns: repeat(4, 1fr) !important;
       gap: 3px !important;
       margin: 0 !important;
-      max-height: calc(100dvh - var(--pp-head-h, 40px) - var(--pp-card-h, 220px) - var(--pp-dock-h, 66px) - 20px);
+      /* The full height under the name, not just the gap above the card: the
+         deck runs on behind the card so the roll never stops at a hard edge.
+         The padding is what lets the last rows scroll clear of it. */
+      max-height: calc(100dvh - var(--pp-head-h, 40px) - 8px);
+      padding-bottom: calc(var(--pp-card-h, 220px) + var(--pp-dock-h, 66px));
       overflow-y: auto;
       scrollbar-width: none;
       scroll-behavior: smooth;
@@ -4622,20 +4632,12 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       margin: 0;
     }
 
-    /* One surface behind the whole bottom stack, at z-index 80. */
-    .project-detail::after {
-      content: '';
-      position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      height: calc(var(--pp-dock-h, 66px) + var(--pp-card-h, 150px) + var(--pp-meta-h, 35px) + 24px);
-      background-color: var(--_tokens---color--bg);
-      z-index: 80;
-      pointer-events: none;
-    }
+    /* No seal. It was an opaque surface behind the whole bottom stack, which
+       is exactly what the card is now deliberately not — the deck has to show
+       through it. The card carries its own background and the nav bar carries
+       its own; between them nothing is left uncovered. */
     .project-detail {
-      padding-bottom: calc(var(--pp-dock-h, 66px) + var(--pp-card-h, 150px) + var(--pp-meta-h, 35px) + 36px);
+      padding-bottom: 0;
     }
   }
 
@@ -6232,7 +6234,15 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       if (!active) return;
       // Offset within the deck, not the viewport: the deck is the scroller.
       const top = active.offsetTop - deck.offsetTop;
-      if (Math.abs(deck.scrollTop - top) > 4) deck.scrollTop = top;
+      const move = Math.abs(deck.scrollTop - top);
+      if (move <= 4) return;
+      // A step to the next row glides. The wrap from the last card back to the
+      // first is a whole list's worth of travel, and gliding it reads as the
+      // deck rewinding rather than rolling on — that one cuts.
+      const isWrap = move > deck.clientHeight;
+      if (isWrap) deck.style.scrollBehavior = 'auto';
+      deck.scrollTop = top;
+      if (isWrap) requestAnimationFrame(() => { deck.style.scrollBehavior = ''; });
     };
 
     new MutationObserver(showActive).observe(deck, {
