@@ -38,8 +38,9 @@ const isProjectsIndex = normalizedPath === '/projects';
 const isProjectPage   = normalizedPath.startsWith('/projects/') && !isProjectsIndex;
 const isAdmin         = normalizedPath === '/admin';
 
-let currentProjectId   = '';
-let currentProjectName = '';
+let currentProjectId    = '';
+let currentProjectName  = '';
+let currentProjectShort = '';
 let prevProjectUrl     = '';
 let nextProjectUrl     = '';
 
@@ -53,6 +54,15 @@ const activeProject = isProjectPage
 if (activeProject) {
   currentProjectId   = activeProject.id;
   currentProjectName = activeProject.data.name;
+  // The bar gives every pill an equal share of the row, and a long project
+  // name spends it on one word: "Sups' In the Hinterland" took 120px while
+  // About and Projects were squeezed to 64. The short name goes in the pill
+  // where there is one worth having — some are longer than the name they
+  // abbreviate, so the shorter of the two wins rather than the field.
+  const short = activeProject.data.shortName;
+  currentProjectShort = short && short.length < currentProjectName.length
+    ? short
+    : currentProjectName;
   const idx = projects.findIndex(p => p.id === currentProjectId);
   // Prev/next arrows only make sense on an actual project page — not on
   // Home / About / Projects / category pages, where there's no project context.
@@ -112,7 +122,12 @@ if (activeProject) {
     <div class="breadcrumb__custom-dropdown" id="breadcrumb-custom-dropdown">
       <button class="breadcrumb__dropdown-trigger" id="breadcrumb-dropdown-trigger" type="button" aria-haspopup="true" aria-expanded="false">
         <span id="breadcrumb-trigger-label">
-          {isProjectPage && currentProjectName ? currentProjectName : 'Pages'}
+          {isProjectPage && currentProjectName ? (
+            <>
+              <span class="crumb-name-full">{currentProjectName}</span>
+              <span class="crumb-name-short">{currentProjectShort}</span>
+            </>
+          ) : 'Pages'}
         </span>
         <Icon name="chevron" dir="s" class="breadcrumb__trigger-chevron" />
       </button>
@@ -445,21 +460,9 @@ if (activeProject) {
     .breadcrumb__list {
       display: contents;
     }
-    /* Flattened as well, so Pages is measured against the same free space as
-       About and Projects rather than against whatever its own wrapper had
-       left. Through the wrapper it came out 73 against their 87: the base
-       rule below sets flex-shrink:0 on it and sits LATER in this file, so a
-       flex shorthand up here never reached it. The panel keeps its anchor —
-       .breadcrumb__custom-dropdown is the position:relative box, and a
-       descendant selector does not care that an ancestor is display:contents. */
-    .breadcrumb__project-nav {
-      display: contents;
-    }
-    .breadcrumb__custom-dropdown {
-      flex: 1 1 0;
-      min-width: 0;
-      z-index: 500;
-    }
+    /* Pages is flattened out of its wrapper so it shares the row's free space
+       with About and Projects — see the block at the end of this file, which
+       has to sit after .breadcrumb__project-nav's own rule to reach it. */
     .breadcrumb__dropdown-trigger {
       width: 100%;
     }
@@ -484,7 +487,21 @@ if (activeProject) {
       justify-content: center;
       padding: 0 10px;
       max-width: none;
+      /* A flex item's automatic minimum is its content, so a long project name
+         pushed this pill past its share and took the width out of About and
+         Projects beside it. */
+      min-width: 0;
     }
+    #breadcrumb-trigger-label {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    /* The short name is for the phone; the wider bands have room for the
+       real one. */
+    .crumb-name-full { display: none; }
+    .crumb-name-short { display: inline; }
 
     /* ── One behaviour for all five ─────────────────────────────────
        The page you are on is inverted rather than tinted. At 14% against a
@@ -931,6 +948,39 @@ if (activeProject) {
       transform: rotate(90deg);
     }
   }
+
+  /* Above 700 the bar is not competing for width, so the pill carries the
+     project's actual name. Inside a media query, not bare: this sits after the
+     compact block, and a bare rule would win there too. */
+  @media (min-width: 700px) {
+    .crumb-name-short { display: none; }
+    .crumb-name-full { display: inline; }
+  }
+
+/* ── Pages, measured against the same space as its neighbours ───────────
+   .breadcrumb__project-nav is display:flex with flex-shrink:0 in its own
+   rule further up, so Pages sized itself to its label instead of taking an
+   equal share: on a project page "Architect x Architects" took 120px and
+   squeezed About and Projects to 64 each. Flattening the wrapper puts the
+   trigger on the bar's own flex line.
+
+   This block sits at the END of the file on purpose. The same rules inside
+   the compact block earlier never applied — same specificity as the base
+   rule, which comes later, so source order decided and the base won.
+
+   The panel keeps its anchor: .breadcrumb__custom-dropdown is the
+   position:relative box, and a descendant selector does not care that an
+   ancestor is display:contents. */
+@media (max-width: 699.98px) {
+  .breadcrumb__project-nav {
+    display: contents;
+  }
+  .breadcrumb__custom-dropdown {
+    flex: 1 1 0;
+    min-width: 0;
+    z-index: 500;
+  }
+}
 </style>
 
 <script>
