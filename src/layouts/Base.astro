@@ -120,7 +120,19 @@ const shareImage = new URL(ogImage ?? '/images/people/advaita-kelkar.jpg', Astro
       html, body {
         scroll-snap-type: none !important;
         scroll-behavior: smooth !important;
+        /* `hidden` here silently broke every position:sticky on the site.
+           Setting overflow on either axis of html/body makes it a scroll
+           container, and a sticky element then resolves against that instead
+           of the viewport — so the projects header, which has been asking to
+           stick since it was written, simply scrolled away.
+
+           `clip` does the same job (no sideways scrolling) without creating
+           the scroll container, which is exactly what it was added to CSS
+           for. The `hidden` line stays first as the fallback for engines
+           without `clip`: they keep the overflow guard and lose only the
+           sticking, which is the behaviour they have had all along. */
         overflow-x: hidden;
+        overflow-x: clip;
       }    </style>
 
     <slot />

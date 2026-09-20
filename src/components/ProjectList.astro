@@ -1303,31 +1303,47 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
      parked below the top breadcrumb bar; cards scroll underneath.
      Clearance is measured by script (same mechanism as mobile). ── */
   @media (min-width: 1024px) {
+    /* Sticky in BOTH states, not just collapsed — the bar you are using to
+       filter should not be the first thing to leave when you scroll the
+       results. The clearance above it is a margin, never padding: padding
+       sits inside the sticky box and would inflate the pinned bar, and the
+       margin has to equal `top` or sticky snaps the bar down by the
+       difference and paints it over the first card. */
     .projects-fixed-wrapper {
-      /* In-flow now — the title + filters scroll with the cards (was fixed).
-         Horizontal inset comes from .page-main. */
       display: block;
-      border-bottom: 1px solid var(--_tokens---color--line-soft);
-      padding: 56px 0 0; /* clear the fixed breadcrumb bar */
-      box-sizing: border-box;
-    }
-    /* Collapsed: the bar parks just below the fixed breadcrumb.
-       `top` has to match the flow offset above the wrapper, or sticky snaps
-       the bar down by the difference and paints it over the first card —
-       the wrapper's border box starts at 0 here, so top:64px shifted it 64px
-       with nothing reserving that space. The clearance is a margin, not
-       padding: padding sits inside the sticky box and would inflate the
-       blurred bar instead of moving it. 56px is the expanded state's
-       padding-top, so toggling the tab does not move the bar. */
-    .projects-fixed-wrapper:has(.page-toggle-btn[aria-expanded="false"]) {
       position: sticky;
       top: 56px;
       margin-top: 56px;
+      padding: 0;
       z-index: 90;
-      padding-top: 0;
+      border-bottom: 1px solid var(--_tokens---color--line-soft);
+      box-sizing: border-box;
+    }
+    /* The frosted backing only once it is actually pinned. Unpinned it sits
+       on the page like any other block and needs no surface of its own. */
+    .projects-fixed-wrapper.is-stuck {
       background-color: color-mix(in srgb, var(--_tokens---color--bg) 92%, transparent);
       -webkit-backdrop-filter: blur(18px);
       backdrop-filter: blur(18px);
+    }
+    /* Open, the search field is 94px of display type — fine as a landing
+       state, far too tall to carry down the page. Pinned, it stands down to
+       roughly half that so the bar stays a bar. */
+    .projects-search-input {
+      transition: height var(--_tokens---motion--base) var(--_tokens---ease-out),
+                  font-size var(--_tokens---motion--base) var(--_tokens---ease-out),
+                  background-color var(--_tokens---motion--base);
+    }
+    .projects-fixed-wrapper.is-stuck .projects-search-input {
+      height: 52px;
+      font-size: var(--_tokens---type--medium);
+      padding-inline: 20px 64px;
+    }
+    .projects-fixed-wrapper.is-stuck .projects-search-bar {
+      margin-bottom: 10px;
+    }
+    .projects-fixed-wrapper.is-stuck .projects-header {
+      padding-block: 10px 8px;
     }
     .projects-page {
       padding-top: 0; /* clearance comes from the measured cards padding */
@@ -1502,23 +1518,33 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     .projects-top-section {
       position: static;
     }
+    /* Sticky in both states here too. `top` matches the wrapper's resting
+       position in each band so it never jumps: below 700 the breadcrumb docks
+       to the bottom and the wrapper rests at 0, from 700 up .page-main's own
+       bar clearance already puts it at --layout--bar. */
     .projects-fixed-wrapper {
-      /* In-flow — scrolls with the cards (was fixed). */
       display: block;
+      position: sticky;
+      z-index: 90;
       border-bottom: 1px solid var(--_tokens---color--line-soft) !important;
-      padding-top: 16px;
+      padding-top: 8px;
       padding-bottom: 12px;
       padding-inline: 0;
       box-sizing: border-box;
     }
-    .projects-fixed-wrapper:has(.page-toggle-btn[aria-expanded="false"]) {
-      position: sticky;
-      top: 0;
-      z-index: 90;
-      padding-top: 8px;
+    .projects-fixed-wrapper.is-stuck {
       background-color: color-mix(in srgb, var(--_tokens---color--bg) 92%, transparent);
       -webkit-backdrop-filter: blur(18px);
       backdrop-filter: blur(18px);
+    }
+    /* Same stand-down as desktop: a 70–88px field is a landing state, not
+       something to carry down a phone screen. */
+    .projects-fixed-wrapper.is-stuck .projects-search-input {
+      height: 46px;
+      font-size: var(--_tokens---type--medium);
+    }
+    .projects-fixed-wrapper.is-stuck .projects-search-bar {
+      margin-bottom: 6px;
     }
     .projects-header-blur-overlay {
       display: none !important;
@@ -1689,6 +1715,16 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
      was 331px tall and carried a 58px title with no supporting text at all,
      taller than the same card on desktop while saying less. The middle tier
      is what that space is for. */
+
+  @media (max-width: 699.98px) {
+    /* Breadcrumb bottom-docks below 700, so nothing to clear at the top. */
+    .projects-fixed-wrapper { top: 0; }
+  }
+
+  @media (min-width: 700px) and (max-width: 1023.98px) {
+    /* .page-main already pads this band by the bar height; match it. */
+    .projects-fixed-wrapper { top: var(--_tokens---layout--bar); }
+  }
 
   /* Compact — the floor. Title, year, category, imagery. Nothing else. */
   @media (max-width: 699.98px) {
@@ -2582,6 +2618,32 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     (window as any)._projHeaderTimer = setTimeout(positionMobileProjectsHeader, 120);
   });
 
+  // ── Pinned state ───────────────────────────────────────────────────
+  // The wrapper's resting position and its sticky `top` are deliberately the
+  // same value, so it never visually moves when it starts sticking — which
+  // means position cannot tell you whether it is pinned. Scroll offset can:
+  // above the fold it is resting, anywhere below it is pinned. rAF-throttled
+  // so this costs one class toggle per frame at most.
+  function setupStuckState() {
+    const wrapper = document.querySelector('.projects-fixed-wrapper') as HTMLElement | null;
+    if (!wrapper || (wrapper as any)._stuckWired) return;
+    (wrapper as any)._stuckWired = true;
+
+    let queued = false;
+    const apply = () => {
+      queued = false;
+      wrapper.classList.toggle('is-stuck', window.scrollY > 4);
+    };
+    const onScroll = () => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(apply);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    apply();
+  }
+  setupStuckState();
+
   function setupScrollToTop() {
     const fixedWrapper = document.querySelector('.projects-fixed-wrapper');
     if (fixedWrapper) {
@@ -2597,6 +2659,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
   document.addEventListener('astro:after-swap', () => {
     positionMobileProjectsHeader();
+    setupStuckState();
     setupScrollToTop();
   });
 </script>
