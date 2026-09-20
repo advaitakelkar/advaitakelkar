@@ -108,6 +108,21 @@ if (activeProject) {
         <Icon name="chevron" dir="s" class="breadcrumb__trigger-chevron" />
       </button>
 
+      {/* Desktop only: the trigger pill grows into this field when the panel
+          opens, so the thing you clicked becomes the thing you type into.
+          Hidden and unused below 1024 — a phone gets the tap list, where an
+          on-screen keyboard would cover the very list you are choosing from. */}
+      <input
+        type="search"
+        class="breadcrumb__search"
+        id="breadcrumb-search"
+        placeholder="Search pages"
+        autocomplete="off"
+        aria-label="Search pages"
+        aria-controls="breadcrumb-pages-list"
+        hidden
+      />
+
       <div class="breadcrumb__dropdown-panel" id="breadcrumb-dropdown-panel">
 
         <!-- One flat list on EVERY breakpoint, fixed order:
@@ -156,6 +171,7 @@ if (activeProject) {
               <Icon name="arrow" class="breadcrumb__arrow-icon" />
             </a>
           ))}
+          <p class="breadcrumb__no-results" id="breadcrumb-no-results" hidden>No pages match.</p>
         </div>
 
       </div>
@@ -527,6 +543,73 @@ if (activeProject) {
     .breadcrumb__arrow--next { display: none; }
   }
 
+  /* ── Pages search (desktop only) ─────────────────────────────
+     The pill you clicked becomes the field you type into: same border,
+     radius, type and colour as .breadcrumb__dropdown-trigger, widened from
+     the pill's 140px cap to the panel's 240px so the control and the list
+     it filters share one edge. Below 1024 it never renders — the input
+     stays [hidden] and the script never unhides it. */
+  .breadcrumb__search {
+    display: none;
+    box-sizing: border-box;
+    width: 240px;
+    padding: 4px 12px;
+    border-radius: var(--_tokens---radius--pill);
+    border: 1px solid var(--_tokens---color--fg);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    color: var(--_tokens---color--fg);
+    font-family: var(--_tokens---font--mono);
+    font-size: var(--_tokens---type--micro);
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    outline: none;
+    /* Matches the panel's own entrance so the two read as one movement. */
+    animation: bc-search-grow var(--_tokens---motion--base) var(--_tokens---ease-out);
+  }
+
+  @keyframes bc-search-grow {
+    from { width: 140px; opacity: 0.4; }
+    to   { width: 240px; opacity: 1; }
+  }
+
+  .breadcrumb__search::placeholder {
+    color: var(--_tokens---color--muted);
+    font-weight: 400;
+    letter-spacing: 0.05em;
+    opacity: 1;
+  }
+
+  .breadcrumb__search::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+    display: none;
+  }
+
+  @media (min-width: 1024px) {
+    .breadcrumb__custom-dropdown.is-searching .breadcrumb__search:not([hidden]) {
+      display: block;
+    }
+    .breadcrumb__custom-dropdown.is-searching .breadcrumb__dropdown-trigger {
+      display: none;
+    }
+  }
+
+  /* Keyboard highlight. Distinct from .is-active, which marks the page you
+     are ON — during a search those two can be different rows. */
+  .breadcrumb__list-item.is-highlighted {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
+  }
+
+  .breadcrumb__no-results {
+    margin: 0;
+    padding: 6px 10px;
+    color: var(--_tokens---color--muted);
+    font-family: var(--_tokens---font--mono);
+    font-size: var(--_tokens---type--micro);
+  }
+
   /* ── Dropdown panel — right-aligned on every breakpoint ─────── */
   .breadcrumb__dropdown-panel {
     position: absolute;
@@ -622,6 +705,14 @@ if (activeProject) {
   }
   .breadcrumb__list-item:active { transform: scale(0.98); }
 
+  /* `display: flex` above is an author rule and the browser's own
+     [hidden] { display: none } is a UA rule, so the author rule wins and a
+     row set hidden by the pages search kept rendering. Restate it here. */
+  .breadcrumb__list-item[hidden],
+  .breadcrumb__divider[hidden] {
+    display: none;
+  }
+
   .breadcrumb__list-item:focus-visible {
     background-color: var(--_tokens---color--fg);
     color: var(--_tokens---color--bg);
@@ -700,6 +791,89 @@ if (activeProject) {
     const dropdown = document.getElementById('breadcrumb-custom-dropdown');
     if (!trigger || !panel || !dropdown) return;
 
+    // ── Pages search (desktop only) ────────────────────────────
+    // A phone gets the tap list: an on-screen keyboard would cover the very
+    // list you are choosing from, so this whole mode is gated on the pointer
+    // having a real keyboard behind it.
+    const search = document.getElementById('breadcrumb-search') as HTMLInputElement | null;
+    const noResults = document.getElementById('breadcrumb-no-results');
+    const desktop = () => window.matchMedia('(min-width: 1024px)').matches;
+    const rows = () =>
+      Array.from(dropdown.querySelectorAll('.breadcrumb__pages-list .breadcrumb__list-item')) as HTMLElement[];
+    const shownRows = () => rows().filter(r => !r.hidden);
+
+    function highlight(row: HTMLElement | null) {
+      rows().forEach(r => r.classList.remove('is-highlighted'));
+      if (!row) return;
+      row.classList.add('is-highlighted');
+      row.scrollIntoView({ block: 'nearest' });
+    }
+
+    function runFilter() {
+      if (!search) return;
+      const q = search.value.trim().toLowerCase();
+      rows().forEach(r => {
+        r.hidden = q ? !(r.textContent || '').toLowerCase().includes(q) : false;
+      });
+      // A divider between two hidden groups is a rule floating in space.
+      dropdown.querySelectorAll('.breadcrumb__divider').forEach(d => {
+        const el = d as HTMLElement;
+        let prev = el.previousElementSibling as HTMLElement | null;
+        let next = el.nextElementSibling as HTMLElement | null;
+        while (prev && (prev.hidden || prev.classList.contains('breadcrumb__divider'))) prev = prev.previousElementSibling as HTMLElement | null;
+        while (next && (next.hidden || next.classList.contains('breadcrumb__divider'))) next = next.nextElementSibling as HTMLElement | null;
+        el.hidden = !(prev && next);
+      });
+      const visible = shownRows();
+      if (noResults) noResults.hidden = visible.length > 0;
+      highlight(visible[0] ?? null);
+    }
+
+    function enterSearchMode() {
+      if (!search || !desktop()) return;
+      dropdown.classList.add('is-searching');
+      search.hidden = false;
+      search.value = '';
+      runFilter();
+      // Type immediately, without a second click.
+      requestAnimationFrame(() => search.focus());
+    }
+
+    function exitSearchMode() {
+      if (!search) return;
+      dropdown.classList.remove('is-searching');
+      search.hidden = true;
+      search.value = '';
+      rows().forEach(r => { r.hidden = false; r.classList.remove('is-highlighted'); });
+      dropdown.querySelectorAll('.breadcrumb__divider').forEach(d => { (d as HTMLElement).hidden = false; });
+      if (noResults) noResults.hidden = true;
+    }
+
+    search?.addEventListener('input', runFilter);
+
+    // Owns the keys while the field has focus — stopPropagation keeps the
+    // list-level handler below from also moving DOM focus off the input.
+    search?.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault(); e.stopPropagation();
+        closeDropdown(); trigger.focus(); return;
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault(); e.stopPropagation();
+        const target = dropdown.querySelector('.breadcrumb__list-item.is-highlighted') as HTMLAnchorElement | null;
+        if (target?.href) window.location.href = target.href;
+        return;
+      }
+      if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+      e.preventDefault(); e.stopPropagation();
+      const visible = shownRows();
+      if (!visible.length) return;
+      const idx = visible.findIndex(r => r.classList.contains('is-highlighted'));
+      highlight(e.key === 'ArrowDown'
+        ? (visible[idx + 1] ?? visible[0])
+        : (visible[idx - 1] ?? visible[visible.length - 1]));
+    });
+
     // ── Open / close ───────────────────────────────────────────
     function openDropdown() {
       panel.classList.add('is-open');
@@ -721,6 +895,7 @@ if (activeProject) {
           list.scrollTop = 0;
         }
       });
+      enterSearchMode();
     }
 
     function closeDropdown() {
@@ -730,6 +905,7 @@ if (activeProject) {
       // Restore page scroll
       document.documentElement.style.overflow = '';
       document.body.style.overflow = '';
+      exitSearchMode();
     }
     (window as any).closeBreadcrumbDropdown = closeDropdown;
 
