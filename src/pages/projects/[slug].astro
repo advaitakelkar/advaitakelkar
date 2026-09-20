@@ -4559,11 +4559,11 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
        between the name and the card, and scrolling there rather than running
        the page down 1500px. The script keeps the active card on the top row.
 
-       Four rather than three, with 3px between them: the images are the
-       content on this band and the gaps were spending width on nothing. */
+       Three across with 2px between them: the images are the content on this
+       band and the gaps were spending width on nothing. */
     .project-detail :global(#deck-grid) {
-      grid-template-columns: repeat(4, 1fr) !important;
-      gap: 3px !important;
+      grid-template-columns: repeat(3, 1fr) !important;
+      gap: 2px !important;
       margin: 0 !important;
       /* The full height under the name, not just the gap above the card: the
          deck runs on behind the card so the roll never stops at a hard edge.
@@ -6215,8 +6215,118 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       ['.page-breadcrumb', '.project-detail .project-phone-card']
         .forEach(sel => { const el = document.querySelector(sel); if (el) ro.observe(el); });
     }
+    initDeckLoop();
     initDeckAutoScroll();
     initPhoneCardSections();
+  }
+
+
+  // ── The deck loops ───────────────────────────────────────────────────
+  // Three copies of the set live in the grid and the scroll position is
+  // wrapped by one copy's height whenever it leaves the middle one, so the
+  // roll has no beginning and no end.
+  //
+  // The copy has to be a whole number of ROWS or the wrap is visible: with 26
+  // cards in a 3-column grid, cell 26 lands mid-row, so jumping by 26 cells
+  // slides every image one column sideways. Each copy is padded out to the
+  // next multiple of the column count — one extra cell here — which costs one
+  // repeated image per cycle and buys a seam you cannot see.
+  //
+  // Clones carry no listeners. A click on one is forwarded to the original
+  // with the same data-index, so every existing behaviour still runs; and the
+  // active class is mirrored onto every copy of that index.
+  function initDeckLoop() {
+    const deck = document.getElementById('deck-grid');
+    if (!deck || (deck as any)._looped) return;
+    const phone = () => window.matchMedia('(max-width: 699.98px)').matches;
+
+    const originals = () =>
+      Array.from(deck.querySelectorAll<HTMLElement>('.deck-card-item:not([data-clone])'));
+
+    const columnCount = () =>
+      getComputedStyle(deck).gridTemplateColumns.split(' ').filter(Boolean).length || 1;
+
+    function buildUnit(src: HTMLElement[], cols: number) {
+      const pad = (cols - (src.length % cols)) % cols;
+      return src.concat(src.slice(0, pad));
+    }
+
+    function unitHeight() {
+      const items = Array.from(deck.children) as HTMLElement[];
+      if (items.length < 2) return 0;
+      const rowTops = [...new Set(items.map(i => Math.round(i.offsetTop)))].sort((a, b) => a - b);
+      if (rowTops.length < 2) return 0;
+      const pitch = rowTops[1] - rowTops[0];
+      const cols = columnCount();
+      const src = originals();
+      const unitCells = buildUnit(src, cols).length;
+      return (unitCells / cols) * pitch;
+    }
+
+    function clearClones() {
+      deck.querySelectorAll('[data-clone]').forEach(n => n.remove());
+    }
+
+    function build() {
+      if (!phone()) { clearClones(); return; }
+      if (deck.querySelector('[data-clone]')) return;
+      const src = originals();
+      if (src.length < 6) return;           // too few for a loop to read as one
+      const cols = columnCount();
+      const unit = buildUnit(src, cols);
+      const copy = () => unit.map(n => {
+        const c = n.cloneNode(true) as HTMLElement;
+        c.setAttribute('data-clone', '');
+        c.removeAttribute('id');
+        c.classList.remove('is-active');
+        return c;
+      });
+      // The pad cells of the middle copy are clones too — the originals stay
+      // exactly as they were so nothing that queries them changes.
+      const tail = unit.slice(src.length).map(n => {
+        const c = n.cloneNode(true) as HTMLElement;
+        c.setAttribute('data-clone', '');
+        c.removeAttribute('id');
+        return c;
+      });
+      const before = copy();
+      const after = copy();
+      src[src.length - 1].after(...tail);
+      deck.prepend(...before);
+      deck.append(...after);
+      requestAnimationFrame(() => { deck.scrollTop = unitHeight(); });
+    }
+
+    // Wrap silently whenever the scroll leaves the middle copy.
+    let wrapping = false;
+    deck.addEventListener('scroll', () => {
+      if (!phone() || wrapping) return;
+      const h = unitHeight();
+      if (!h) return;
+      let next = null as number | null;
+      if (deck.scrollTop < h * 0.5) next = deck.scrollTop + h;
+      else if (deck.scrollTop > h * 1.5) next = deck.scrollTop - h;
+      if (next === null) return;
+      wrapping = true;
+      const prev = deck.style.scrollBehavior;
+      deck.style.scrollBehavior = 'auto';
+      deck.scrollTop = next;
+      deck.style.scrollBehavior = prev;
+      requestAnimationFrame(() => { wrapping = false; });
+    }, { passive: true });
+
+    // A clone hands its click to the original it was copied from.
+    deck.addEventListener('click', (e: Event) => {
+      const item = (e.target as HTMLElement)?.closest('.deck-card-item') as HTMLElement | null;
+      if (!item || !item.hasAttribute('data-clone')) return;
+      e.stopPropagation();
+      const idx = item.getAttribute('data-index');
+      deck.querySelector<HTMLElement>('.deck-card-item:not([data-clone])[data-index="' + idx + '"]')?.click();
+    }, true);
+
+    (deck as any)._looped = true;
+    build();
+    window.addEventListener('resize', build, { passive: true });
   }
 
   // The deck advances on its own and on tap. Whichever card is active is
@@ -6230,7 +6340,19 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
     const showActive = () => {
       if (!window.matchMedia('(max-width: 699.98px)').matches) return;
-      const active = deck.querySelector('.deck-card-item.is-active') as HTMLElement | null;
+      const source = deck.querySelector('.deck-card-item:not([data-clone]).is-active') as HTMLElement | null;
+      if (!source) return;
+      // Every copy of that card carries the active look, not just the original.
+      const idx = source.getAttribute('data-index');
+      deck.querySelectorAll<HTMLElement>('.deck-card-item').forEach(el => {
+        el.classList.toggle('is-active', el.getAttribute('data-index') === idx);
+      });
+      // Scroll to whichever copy is already nearest, so a step to the next
+      // card never travels a whole list to reach it.
+      const copies = Array.from(deck.querySelectorAll<HTMLElement>('.deck-card-item.is-active'));
+      const active = copies.reduce((best, el) =>
+        Math.abs(el.offsetTop - deck.scrollTop) < Math.abs(best.offsetTop - deck.scrollTop) ? el : best,
+      copies[0]);
       if (!active) return;
       // Offset within the deck, not the viewport: the deck is the scroller.
       const top = active.offsetTop - deck.offsetTop;
