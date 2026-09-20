@@ -182,7 +182,15 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
         const dedupeKey = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
         const categoryLabel = p.data.category ? (catMap[p.data.category.id] || p.data.category.id) : '';
         const studioLabel = p.data.studio ? (studioMap[p.data.studio.id] || p.data.studio.id) : '';
-        const axisLabels = new Set([categoryLabel, studioLabel].filter(Boolean).map(dedupeKey));
+        const tagsArr = (p.data.tags ?? []).map(t => tagMap[t.id] || t.id);
+        // The three pills ARE the taxonomy, and they always survive: they are
+        // the only part of the card you can also filter by. A free-text field
+        // that merely restates one is the redundant half, so it drops instead
+        // — Client "SCAD" beside the SCAD studio pill, Program "Architecture"
+        // beside the Architecture discipline pill.
+        const axisLabels = new Set(
+          [categoryLabel, studioLabel, ...tagsArr].filter(Boolean).map(t => dedupeKey(String(t)))
+        );
         // Ordered by how much it identifies the project. The responsive tiers
         // below reveal the first N of these, so the order IS the priority.
         const metaParts = [
@@ -192,13 +200,6 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
           { label: 'Client',   val: p.data.client },
           { label: 'Program',  val: p.data.program },
         ].filter(m => m.val && !axisLabels.has(dedupeKey(String(m.val))));
-        const alreadyShown = new Set([
-          ...axisLabels,
-          ...metaParts.map(m => dedupeKey(String(m.val ?? ''))),
-        ]);
-        const tagsArr = (p.data.tags ?? [])
-          .map(t => tagMap[t.id] || t.id)
-          .filter(t => !alreadyShown.has(dedupeKey(String(t))));
         // All images — cover first, then the rest; strip is horizontally scrollable
         const allImgs: string[] = [];
         if (p.id === 'ai-works') {
@@ -1085,41 +1086,62 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
   /* No placeholder art: projects without images leave the space empty */
 
+  /* One left-aligned line: the facts, then the taxonomy. The pills used to be
+     pushed to the right edge on their own axis, which read as a second,
+     competing column. Everything now sits on the reading edge at the smallest
+     step on the type scale, so the card has one baseline to scan, not two. */
   .project-card__bottom-bar {
     display: flex;
     flex-direction: row;
-    align-items: flex-end;
-    justify-content: space-between;
+    align-items: center;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
     padding: 6px 20px 4px;
     box-sizing: border-box;
-    font-size: var(--_tokens---type--micro);
+    font-size: var(--_tokens---type--ultrathin);
     color: var(--_tokens---color--muted);
-    gap: 16px;
+    gap: 10px;
+    min-width: 0;
+    /* Hidden-scrollbar strip rather than a clip, so a long combination stays
+       reachable instead of being cut off. initScrollFades() finds this by
+       inspection and adds the affordance. */
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .project-card__bottom-bar::-webkit-scrollbar {
+    display: none;
   }
 
   .project-card__bottom-left {
     display: flex;
     align-items: center;
-    min-width: 0;
+    flex: 0 0 auto;
   }
 
   .project-card__bottom-right {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
-    flex-wrap: wrap;
-    gap: 6px;
-    flex-shrink: 0;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    gap: var(--_tokens---pill-gap--xs);
+    flex: 0 0 auto;
     font-weight: 300;
-    max-width: 68%;
   }
 
+  /* One pill spec for all three axes — bucket, studio and discipline are the
+     same kind of object, so they get the same object's styling. On the house
+     tokens (xs padding, the mid border that holds against body text) rather
+     than the hand-rolled values this used to carry. */
   .project-card__filter-pill {
     color: var(--_tokens---color--muted);
     background: color-mix(in srgb, var(--_tokens---color--fg) 5%, transparent);
-    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
+    border: var(--_tokens---pill-border--mid);
     border-radius: var(--_tokens---radius--pill);
-    padding: 4px 9px;
+    padding: var(--_tokens---pill-pad--xs);
+    font-size: var(--_tokens---type--ultrathin);
     line-height: 1.1;
     white-space: nowrap;
   }
@@ -1129,7 +1151,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     flex-wrap: nowrap;
     align-items: center;
     gap: 4px 4px;
-    font-size: var(--_tokens---type--micro);
+    font-size: var(--_tokens---type--ultrathin);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1498,7 +1520,6 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     }
     .project-card__bottom-right {
       justify-content: flex-start;
-      max-width: 100%;
     }
     /* All cards open by default on mobile — no collapsing */
     .project-card__body {
@@ -1576,15 +1597,6 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   @media (max-width: 699.98px) {
     .project-card__description-col {
       display: none;
-    }
-    /* Meta and pills stack rather than fight for one narrow row. */
-    .project-card__bottom-bar {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 6px;
-    }
-    .project-card__bottom-right {
-      max-width: 100%;
     }
   }
 

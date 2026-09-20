@@ -264,7 +264,6 @@ const SLUG_TO_PROJECT_ID = {
   'bom-mum': 'BARCH-05',
   carlo: 'FREE-15',
   concrt: 'FREE-14',
-  crematorium: 'FKD-42',
   dakughar: '823-14',
   'dhal-ni-pol': 'ARCHV-07',
   'episode-kolkata': '823-11',
