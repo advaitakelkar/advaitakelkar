@@ -402,6 +402,20 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       /* The bar still pins here even though the breadcrumb docks to the
          bottom, so the snapport inset is the bar, not a token 12px. */
       scroll-padding-top: var(--snap-offset, 12px);
+      /* And the bottom of the snapport stops above the control stack, so a
+         card settling against it is never cut by the selector or the search. */
+      scroll-padding-bottom: 152px;
+    }
+
+    /* The list is inverted here: it grows up out of the controls, so a card
+       comes to rest on its BOTTOM edge against them rather than its top edge
+       against the header. Snapping to `start` landed cards under the control
+       stack with their lower half cut off.
+       Qualified by the container because the base rule is the same single
+       class — a media query adds no specificity, so without this the later of
+       the two simply wins and the alignment never changed. */
+    .project-cards-container .project-card {
+      scroll-snap-align: end;
     }
   }
 
@@ -1581,7 +1595,10 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       display: block;
       position: sticky;
       z-index: 90;
-      border-bottom: 1px solid var(--_tokens---color--line-soft) !important;
+      /* The card's own bottom rule is the only divider on this band. The
+         wrapper and the panel each drew one too, stacking three hairlines
+         through a header that is already set apart by sitting still. */
+      border-bottom: none !important;
       padding-top: 8px;
       padding-bottom: 12px;
       padding-inline: 0;
@@ -1857,6 +1874,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     }
     /* Never folded, whatever the toggle script last wrote inline. */
     #projects-filter-panel {
+      border-bottom: none;
       max-height: none !important;
       opacity: 1 !important;
       overflow: visible !important;
@@ -1915,12 +1933,13 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       padding-block: 6px;
       background-color: var(--_tokens---color--bg);
     }
+    /* Same field as the desktop one, only shorter: the 4px corner and the 6%
+       fill both come straight from the shared rule. It had picked up an 8%
+       opaque fill and a drop shadow of its own, which made the one control on
+       the page look like it belonged to a different site. The sealed backdrop
+       behind it means the transparent fill reads the same here. */
     .projects-search-input {
       height: 52px;
-      /* Same 4px corner as the desktop field: one search, one shape. */
-      border-radius: 4px;
-      background: color-mix(in srgb, var(--_tokens---color--fg) 8%, var(--_tokens---color--bg));
-      box-shadow: 0 6px 20px -8px color-mix(in srgb, var(--_tokens---color--fg) 30%, transparent);
     }
     /* The bubble cloud is this page's footer. On a phone it is a second copy
        of the list you are already looking at, below a list that scrolls for
@@ -1968,19 +1987,52 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     .project-card__metaline {
       gap: 5px;
     }
-    /* One line per name. At the shared 35px the longest name needed 517px in
-       a 253px column, so every other card was wrapping to two lines and the
-       list lost its rhythm. Measured across all 51 names at this width:
-       22px fits 92% of them, 20px fits 94%, 18px fits 96%, and only 16px —
-       body size, no longer a title — fits every one. 18px is the balance:
-       49 of 51 read whole, the two longest take an ellipsis. */
+    /* One line per name, at --type--medium. The name takes only the width it
+       needs and the arrow follows immediately, so a short name is a short row
+       rather than a name marooned from a control on the far edge. A name too
+       long for the line ends in an ellipsis and the arrow still closes it. */
+    .project-card__header {
+      justify-content: flex-start;
+      gap: 8px;
+    }
     .project-card__stack-name {
-      font-size: var(--_tokens---type--small);
-      line-height: 1.25;
+      font-size: var(--_tokens---type--medium);
+      line-height: 1.2;
       white-space: nowrap;
       display: block;
       overflow: hidden;
       text-overflow: ellipsis;
+      flex: 0 1 auto;
+      min-width: 0;
+    }
+    /* The ring is a desktop affordance. Here the arrow sits in the line of
+       text it belongs to, with nothing drawn around it. */
+    .project-card__stack-right {
+      flex: 0 0 auto;
+    }
+    .project-card__pill {
+      width: auto;
+      height: auto;
+      border: none;
+      background: none;
+      padding: 0;
+      --icon-size: var(--_tokens---arrow--md);
+    }
+    @media (hover: hover) {
+      .project-card__pill:hover {
+        background: none;
+        color: var(--_tokens---color--fg);
+      }
+    }
+
+    /* ── Two densities ───────────────────────────────────────────────
+       At rest — top of the page, nothing searched — a card carries its
+       imagery and its pills. The moment you are scrolling or filtering both
+       drop away and the list becomes names and arrows: at that point you are
+       looking for one project, not browsing them. */
+    .project-cards-container.is-compact .project-card__image-col,
+    .project-cards-container.is-compact .project-card__bottom-bar {
+      display: none;
     }
 
     .project-card__filter-pill,
@@ -2553,8 +2605,33 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     }
   }
 
+  // A card is dense at rest and thinned out while you are working. "Working"
+  // is either scrolling or filtering — both mean you are hunting one project
+  // rather than browsing them, and imagery and pills are in the way of that.
+  // Lives here rather than with the sticky logic because the filter state it
+  // depends on is in this scope.
+  // TOP_ZONE, not a couple of pixels: snapping parks the page a few pixels
+  // short of zero, and a 4px threshold read that as "scrolled" — which turned
+  // into a latch, because snapping stays on while scrolled and keeps parking
+  // it there. The zone has to be wider than any resting position snap can
+  // leave behind. Kept in step with the same constant in the sticky script.
+  const TOP_ZONE = 48;
+  function updateCardDensity() {
+    if (!container) return;
+    const searching = Boolean(searchQuery.trim() || activeCat || activeTag);
+    container.classList.toggle('is-compact', window.scrollY > TOP_ZONE || searching);
+  }
+  let densityQueued = false;
+  window.addEventListener('scroll', () => {
+    if (densityQueued) return;
+    densityQueued = true;
+    requestAnimationFrame(() => { densityQueued = false; updateCardDensity(); });
+  }, { passive: true });
+  updateCardDensity();
+
   function applyFilter() {
     updateFieldActivation();
+    updateCardDensity();
     const query = searchQuery.trim().toLowerCase();
     const keywords = query.split(/\s+/).filter(Boolean);
 
@@ -2870,6 +2947,9 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     // own territory. Also off mid-resize (see below) and for reduced motion.
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     const folds = window.matchMedia('(min-width: 700px)');
+    // Must match the constant of the same name in the filter script — see the
+    // note there. A threshold narrower than snap's resting slop latches on.
+    const TOP_ZONE = 48;
     let atTopNow = true;
     let resizing = false;
     const updateSnap = () => {
@@ -2879,7 +2959,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
     const apply = () => {
       queued = false;
-      const atTop = window.scrollY <= 4;
+      const atTop = window.scrollY <= TOP_ZONE;
       atTopNow = atTop;
       updateSnap();
       wrapper.classList.toggle('is-stuck', !atTop);
