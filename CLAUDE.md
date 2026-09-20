@@ -786,22 +786,40 @@ YAML file in `scripts/.notion-sync-state.json`) and resumable:
 `sync_from_notion.cjs` can overwrite YAML and *deletes* local files with no
 matching Notion row.
 
-### The two groupings
+### The three axes
 
-Every Notion row carries both, so neither hierarchy is lost:
+There is **no `Studio` column** in Notion. An older version of this file
+described one; it was folded into `Category` and the contract below replaces
+that section. Verified against the live schema 20 Sep 2026.
 
-- **`Studio`** — original studio / Drive folder: `823`, `ADVT`, `ANLA`, `ARCHV`,
-  `BARCH`, `FKD Workshop`, `FREE`, `Pragrup`, `SCAD`, `Studio Mumbai`. Matches
-  the `STUDIO_Project` folder names in Drive.
-- **`Category`** — this site's four buckets: `academic`, `ARCHV`, `freelancer`, `work`.
+Three questions, three places to answer them — never two questions in one list:
 
-| Studio | Site category |
+| Axis | Question | Notion | Website |
+|---|---|---|---|
+| Bucket | Which part of the practice? | `Category`, 1st value | `category:` (4 files in `content/categories/`) |
+| Studio | Made with whom? | `Category`, 2nd value | `studio:` (9 files in `content/studios/`) |
+| Discipline | What is the work? | `Type` (single-select) | `tags:` (12 files in `content/tags/`) |
+
+`Category` in Notion is a **multi-select holding a pair**, always
+`[bucket, studio]` — e.g. `["🏢 Work", "FKD"]`. ARCHV is the exception and
+carries no studio.
+
+| Bucket | Studios under it |
 |---|---|
-| SCAD, BARCH | `academic` |
-| 823, FKD Workshop | `work` |
-| FREE, ADVT, ANLA | `freelancer` |
-| ARCHV | `ARCHV` |
-| Pragrup, Studio Mumbai | *not published* |
+| 🏢 Work | FKD → `faizan-khatri`, Studio 823, ANLA |
+| 🎓 Academic | SCAD, BARCH → `barch` |
+| 💡 Freelance | ADVT, Varun, NMS, Studio Stumbles |
+| 🏛️ ARCHV | *(none)* |
+
+**`tags:` is the discipline axis and nothing else.** One per project, mirroring
+Notion `Type`. Putting a studio in here is what grew the filter bar to 17
+entries answering two unrelated questions, left 3 filters dead and 4 returning
+a single project, and printed `SCAD` twice on the same card. Studio sub-pages
+(`/work/<studio>`) read `studio:`, and a studio only gets a page once a project
+is published under it.
+
+Site spelling wins where the two differ: Notion `Visualization`, site
+`visualisation`. Notion `Artwork` and `Product Design` both map to `artwork`.
 
 **`ARCHV` is capitalised on purpose.** Notion compares select-option names
 case-insensitively and refuses case-only renames, so the site's `archv` reuses
@@ -814,18 +832,11 @@ One job per column — if two columns say the same thing, one is wrong.
 
 | Column | Job | Filled when |
 |---|---|---|
-| `Studio` | The spine; mirrors the Drive folder prefix | Always |
-| `Category` | The website's bucket | Published only — **blank means not on the site** |
-| `Drive Folder` | URL to where the files live | When a Drive folder exists (12 today) |
+| `Category` | Bucket + studio, in that order | Always |
+| `Type` | The discipline, one value | Always |
+| `Drive Folder` | URL to where the files live | When a Drive folder exists |
 | `Slug` | YAML filename; how rows are matched | Published only, machine-written |
-| `Website` / `Portfolio` | Intent flags | Manual |
-| `Review` | Flags duplicates/placeholders instead of deleting | Only rows needing attention |
-
-`Studio` answers *whose work is it*; `Category` answers *is it published*. The
-one-off `scripts/notion_tidy.cjs` enforced this: it cleared `Category` on the 97
-unpublished rows where it merely repeated `Studio`, flagged 6 duplicate and
-placeholder rows via `Review`, linked 12 Drive folders, and dropped three unused
-misspelled `Type` options. It is idempotent and safe to re-run.
+| `Website` / `Featured` | Intent flags | Manual |
 
 **Nothing is ever deleted** — duplicates are flagged, not removed.
 

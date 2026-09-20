@@ -1,9 +1,27 @@
 import { defineCollection, z, reference } from 'astro:content';
 
+// The discipline axis — WHAT a project is (Architecture, Interior, Research…).
+// Mirrors the `Type` property in the Notion Projects database, one per project.
+// Studios do NOT belong here; they are the `studios` collection below. Keeping
+// both in this one list is what grew the filter bar to 17 entries, half of
+// which answered a different question from the other half.
 const tags = defineCollection({
   type: 'data',
   schema: z.object({
     name: z.string(),
+  }),
+});
+
+// The studio axis — WHO the work was made with. A second level under
+// `category`, never a peer of it: Notion stores exactly this as the second
+// value of its `Category` multi-select, e.g. ["🏢 Work", "FKD"].
+const studios = defineCollection({
+  type: 'data',
+  schema: z.object({
+    name: z.string(),
+    displayName: z.string(),
+    // The bucket this studio sits under, so /work/<studio> can be derived.
+    category: reference('categories'),
   }),
 });
 
@@ -83,8 +101,12 @@ const projects = defineCollection({
       label: z.string(),
       href: z.string(),
     })).optional(),
+    // Discipline — one per project. Array kept for backwards compatibility
+    // with existing consumers, but the taxonomy is now single-valued.
     tags: z.array(reference('tags')).optional(),
     category: reference('categories').optional(),
+    // Which studio the work was made with, within that category.
+    studio: reference('studios').optional(),
   }),
 });
 
@@ -127,4 +149,4 @@ const exhibitions = defineCollection({
   }),
 });
 
-export const collections = { projects, tags, categories, pages, exhibitions };
+export const collections = { projects, tags, categories, studios, pages, exhibitions };

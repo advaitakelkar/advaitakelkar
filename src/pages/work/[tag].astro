@@ -2,28 +2,31 @@
 import { getCollection } from 'astro:content';
 import CategoryLayout from '../../components/CategoryLayout.astro';
 
+// Derived from the studios collection rather than hard-coded, so adding a
+// studio YAML is all it takes to get its archive page.
 export async function getStaticPaths() {
-  return [
-    { params: { tag: 'studio-823' } },
-    { params: { tag: 'faizan-khatri' } }
-  ];
+  const studios = await getCollection('studios');
+  const projects = await getCollection('projects');
+  // A studio only gets an archive page once something is published under it.
+  // ANLA is a real studio in Notion whose one project has no slug yet, and an
+  // empty archive is worse than no link.
+  return studios
+    .filter(s => s.data.category.id === 'work')
+    .filter(s => projects.some(p => p.data.studio?.id === s.id))
+    .map(s => ({ params: { tag: s.id } }));
 }
 
 const { tag } = Astro.params;
 const allProjects = await getCollection('projects');
+const studios = await getCollection('studios');
+const studio = studios.find(s => s.id === tag);
 
-// Filter for projects in 'work' category that ALSO have the specific tag
-const filtered = allProjects.filter(p => 
-  p.data.category?.id === 'work' && 
-  (p.data.tags ?? []).some(t => t.id === tag)
-);
+// Studio is its own field now. It used to be read out of `tags`, which is what
+// forced every studio to also exist as a discipline tag and doubled the filter
+// bar; tags carry the discipline only.
+const filtered = allProjects.filter(p => p.data.studio?.id === tag);
 
-const displayNames: Record<string, string> = {
-  'studio-823': 'Studio 823',
-  'faizan-khatri': 'FKD Workshop'
-};
-
-const title = displayNames[tag] || tag;
+const title = studio?.data.displayName ?? tag;
 
 const crumbs = [
   { label: 'Home', href: '/' },

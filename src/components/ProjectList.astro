@@ -17,6 +17,7 @@ const { projects, title, crumbs } = Astro.props;
 
 const allTags = await getCollection('tags');
 const allCats = await getCollection('categories');
+const allStudios = await getCollection('studios');
 
 // Sort by number then year
 const sorted = [...projects].sort((a, b) => {
@@ -28,6 +29,7 @@ const sorted = [...projects].sort((a, b) => {
 
 const tagMap = Object.fromEntries(allTags.map(t => [t.id, t.data.name]));
 const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
+const studioMap = Object.fromEntries(allStudios.map(s => [s.id, s.data.displayName]));
 
 // Resolve AI works preview images if any project is ai-works
 const aiWorksImages: string[] = [];
@@ -170,7 +172,17 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       <!-- Project list — accordion cards -->
     <div class="project-cards-container" id="project-cards-container">
       {sorted.map((p, i) => {
+        // ── The three axes, and the rule that no card says a thing twice ──
+        // The pills are the taxonomy: bucket, studio, discipline. They win,
+        // and any free-text field that merely restates one of them is dropped
+        // rather than printed again. Five SCAD projects named SCAD as both the
+        // studio and the Client; XBKC did the same with Studio Stumbles.
+        // Search reads data-tags / data-studio, which are built from the raw
+        // project data, so nothing here narrows what the page can find.
+        const dedupeKey = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
         const categoryLabel = p.data.category ? (catMap[p.data.category.id] || p.data.category.id) : '';
+        const studioLabel = p.data.studio ? (studioMap[p.data.studio.id] || p.data.studio.id) : '';
+        const axisLabels = new Set([categoryLabel, studioLabel].filter(Boolean).map(dedupeKey));
         // Ordered by how much it identifies the project. The responsive tiers
         // below reveal the first N of these, so the order IS the priority.
         const metaParts = [
@@ -179,18 +191,11 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
           { label: 'Status',   val: p.data.status },
           { label: 'Client',   val: p.data.client },
           { label: 'Program',  val: p.data.program },
-        ].filter(m => m.val);
-        // No card prints the same word twice: drop any tag pill that merely
-        // repeats the category or a meta value already on the card (the SCAD
-        // projects carried Client "SCAD" and a "Scad" tag side by side).
-        // Filtering/search reads data-tags, which is built from p.data.tags
-        // directly, so nothing here narrows what the page can find.
-        const dedupeKey = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
-        const alreadyShown = new Set(
-          [categoryLabel, ...metaParts.map(m => String(m.val ?? ''))]
-            .filter(Boolean)
-            .map(dedupeKey)
-        );
+        ].filter(m => m.val && !axisLabels.has(dedupeKey(String(m.val))));
+        const alreadyShown = new Set([
+          ...axisLabels,
+          ...metaParts.map(m => dedupeKey(String(m.val ?? ''))),
+        ]);
         const tagsArr = (p.data.tags ?? [])
           .map(t => tagMap[t.id] || t.id)
           .filter(t => !alreadyShown.has(dedupeKey(String(t))));
@@ -220,6 +225,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
           data-size={p.data.size ?? ''}
           data-program={p.data.program ?? ''}
           data-cat={p.data.category ? (catMap[p.data.category.id] || p.data.category.id) : ''}
+          data-studio={studioLabel}
           data-cat-id={p.data.category ? p.data.category.id : ''}
           data-tags={(p.data.tags ?? []).map(t => tagMap[t.id] || t.id).join(',')}
           data-tag-ids={(p.data.tags ?? []).map(t => t.id).join(',')}
@@ -281,8 +287,12 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
                     ))}
                   </div>
                 </div>
+                <!-- Three axes, widest first: bucket, then studio within it,
+                     then what the work actually is. Each says a different
+                     thing, so none of them repeats another. -->
                 <div class="project-card__bottom-right">
                   {categoryLabel && <span class="project-card__filter-pill">{categoryLabel}</span>}
+                  {studioLabel && <span class="project-card__filter-pill">{studioLabel}</span>}
                   {tagsArr.map(tag => <span class="project-card__filter-pill">{tag}</span>)}
                 </div>
               </div>
@@ -311,6 +321,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
               data-status={p.data.status ?? ''}
               data-program={p.data.program ?? ''}
               data-cat={p.data.category ? (catMap[p.data.category.id] || p.data.category.id) : ''}
+              data-studio={p.data.studio ? (studioMap[p.data.studio.id] || p.data.studio.id) : ''}
               data-tags={tagsArr.join(',')}
             >
               <span class="proj-bubble__name" data-short={p.data.shortName || abbrevName(p.data.name)} data-full={p.data.name}>{p.data.shortName || abbrevName(p.data.name)}</span>
@@ -2107,7 +2118,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       if (!keywords.length) { b.classList.remove('is-match'); return; }
       const hay = [
         b.dataset.name, b.dataset.loc, b.dataset.year, b.dataset.client,
-        b.dataset.status, b.dataset.program, b.dataset.cat, b.dataset.tags
+        b.dataset.status, b.dataset.program, b.dataset.cat, b.dataset.studio, b.dataset.tags
       ].join(' ').toLowerCase();
       b.classList.toggle('is-match', keywords.every(kw => hay.includes(kw)));
     });
@@ -2155,6 +2166,9 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       const size = (card.dataset.size ?? '').toLowerCase();
       const program = (card.dataset.program ?? '').toLowerCase();
       const cat = (card.dataset.cat ?? '').toLowerCase();
+      // Studio moved off the tag list, so it needs indexing on its own or
+      // searching "Studio 823" / "F'KD" would stop finding anything.
+      const studio = (card.dataset.studio ?? '').toLowerCase();
       const tags = (card.dataset.tags ?? '').toLowerCase();
       const catId = card.dataset.catId ?? '';
       const tagIds = (card.dataset.tagIds ?? '').split(',').filter(Boolean);
@@ -2169,6 +2183,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
         size.includes(kw) ||
         program.includes(kw) ||
         cat.includes(kw) ||
+        studio.includes(kw) ||
         tags.includes(kw)
       );
 

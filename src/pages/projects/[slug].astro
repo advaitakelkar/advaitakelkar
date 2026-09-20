@@ -80,11 +80,13 @@ const dynamicCrumbs = [ { label: 'Home', href: '/' } ];
 if (category) {
   dynamicCrumbs.push({ label: category.data.displayName, href: `/${category.id}` });
   
-  if (category.id === 'work' && data.tags) {
-    const subTag = data.tags.find(t => t.id === 'studio-823' || t.id === 'faizan-khatri');
-    if (subTag) {
-      const subLabel = subTag.id === 'studio-823' ? 'Studio 823' : 'FKD Workshop';
-      dynamicCrumbs.push({ label: subLabel, href: `/work/${subTag.id}` });
+  // Studio is the second level under a category, so it sits between the
+  // category and the project in the trail. Read from the studio field and
+  // named by the studios collection, not hard-coded per studio.
+  if (category.id === 'work' && data.studio) {
+    const studio = await getEntry(data.studio);
+    if (studio) {
+      dynamicCrumbs.push({ label: studio.data.displayName, href: `/work/${studio.id}` });
     }
   }
 } else {
