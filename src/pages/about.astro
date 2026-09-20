@@ -1,5 +1,4 @@
 ---
-import PortfolioStatus from "../components/PortfolioStatus.astro";
 import Icon from '../components/Icon.astro';
 import { getEntry } from 'astro:content';
 import PageLayout from '../layouts/PageLayout.astro';
@@ -386,7 +385,14 @@ const skillsets = [
                 </a>
               )}
 
-              <div class="about-link-row"><span class="about-link-row__text"><PortfolioStatus /></span></div>
+              <button class="about-link-row" id="about-portfolio-status" type="button" aria-expanded="false">
+                <span class="about-link-row__text">
+                  Portfolio <span class="about-link-row__status" hidden>(Under progress)</span>
+                </span>
+                <span class="about-link-row__arrow" aria-hidden="true">
+                  <Arrow />
+                </span>
+              </button>
             </div>
           </div>
         </div>
@@ -938,6 +944,14 @@ const skillsets = [
     font-weight: inherit;
     line-height: inherit;
     letter-spacing: inherit;
+  }
+
+  .about-link-row__status {
+    font-weight: 300;
+  }
+
+  .about-link-row__status[hidden] {
+    display: none;
   }
 
   .about-link-row__arrow {
@@ -1777,6 +1791,14 @@ const skillsets = [
   // --- Biography Read More Toggle ---
   const readMoreBtn = document.getElementById('bio-read-more-btn');
   const collapsedContent = document.getElementById('bio-collapsed-content');
+  const portfolioStatus = document.getElementById('about-portfolio-status');
+
+  portfolioStatus?.addEventListener('click', () => {
+    const expanded = portfolioStatus.getAttribute('aria-expanded') !== 'true';
+    portfolioStatus.setAttribute('aria-expanded', String(expanded));
+    const status = portfolioStatus.querySelector<HTMLElement>('.about-link-row__status');
+    if (status) status.hidden = !expanded;
+  });
   
   const toggleBio = () => {
     if (collapsedContent && readMoreBtn) {

@@ -28,14 +28,19 @@ Everything an AI agent needs to work on this repo cold.
 
 ## Working Directory
 
-The project lives inside Google Drive:
-
 ```
-/Users/adi/Library/CloudStorage/GoogleDrive-advaitakelkar@gmail.com/
-  My Drive/HUB/01 Websites/advaitakelkar-website/
+~/Dev/advaitakelkar-live
 ```
 
-Always `cd` to that full path before running any command. Git remote: `https://github.com/advaitakelkar/advaitakelkar`.
+**Never move this repo into `~/My Drive` or the CloudStorage mount.** Drive mirror mode created
+filename-collision refs (`refs/heads/main (1)`) that permanently broke `git fetch` in the old
+clone, and mangled `node_modules`. The old Drive-rooted clone and `~/Dev/advaitakelkar-website`
+are both scrap. Git remote: `https://github.com/advaitakelkar/advaitakelkar`.
+
+## Finishing the site
+
+`COMPLETION.md` (this folder) is the live worklist for getting every project done and unlocked.
+The `website` agent (`~/.claude/agents/website.md`) drives from it. Start there for content work.
 
 ---
 

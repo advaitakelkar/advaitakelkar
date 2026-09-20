@@ -86,7 +86,20 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       <div class="projects-fixed-wrapper">
         <!-- Title scrolls away with the page; only the bar below stays stuck -->
         <header class="projects-header page-toggle-header">
-          <h1 class="projects-title">{title}</h1>
+          <div class="projects-title-slot">
+            <h1 class="projects-title">{title}</h1>
+            <input
+              type="search"
+              id="projects-collapsed-search"
+              class="projects-collapsed-search"
+              placeholder="Search by year"
+              autocomplete="off"
+              aria-label="Search projects"
+            />
+            <button class="projects-search-clear projects-collapsed-search-clear" id="projects-collapsed-search-clear" type="button" aria-label="Clear search and all filters" title="Clear search and filters" hidden>
+              <Icon name="close" class="projects-search-clear__icon" />
+            </button>
+          </div>
           <div class="projects-header__right">
             <span class="projects-count text-muted">{projects.length} of {projects.length} works</span>
             <button class="page-toggle-btn" data-page-toggle="projects-filter-panel" aria-expanded="true" aria-label="Toggle search and filters" type="button">
@@ -102,11 +115,11 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
           type="search"
           id="projects-search-input"
           class="projects-search-input"
-          placeholder="Search projects by name, tag, location, client, status, year..."
+          placeholder="Search by year"
           autocomplete="off"
           aria-label="Search projects"
         />
-        <button class="projects-search-clear" id="projects-search-clear" type="button" aria-label="Clear search and all filters" title="Clear search and filters">
+        <button class="projects-search-clear" id="projects-search-clear" type="button" aria-label="Clear search and all filters" title="Clear search and filters" hidden>
           <Icon name="close" class="projects-search-clear__icon" />
         </button>
       </div>
@@ -158,12 +171,12 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     <div class="project-cards-container" id="project-cards-container">
       {sorted.map((p, i) => {
         const tagsArr = (p.data.tags ?? []).map(t => tagMap[t.id] || t.id);
-        const tagLine = tagsArr.join(', ');
-        const firstTag = tagsArr[0] || (p.data.category ? catMap[p.data.category.id] : '');
+        const categoryLabel = p.data.category ? (catMap[p.data.category.id] || p.data.category.id) : '';
         const metaParts = [
+          { label: 'Year',     val: p.data.year },
           { label: 'Location', val: p.data.location },
-          { label: 'Client',   val: p.data.client },
           { label: 'Status',   val: p.data.status },
+          { label: 'Client',   val: p.data.client },
           { label: 'Program',  val: p.data.program },
         ].filter(m => m.val);
         // All images — cover first, then the rest; strip is horizontally scrollable
@@ -254,8 +267,8 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
                   </div>
                 </div>
                 <div class="project-card__bottom-right">
-                  {tagLine && <span class="project-card__bottom-tags">{tagLine}</span>}
-                  {p.data.year && <span class="project-card__bottom-year">{p.data.year}</span>}
+                  {categoryLabel && <span class="project-card__filter-pill">{categoryLabel}</span>}
+                  {tagsArr.map(tag => <span class="project-card__filter-pill">{tag}</span>)}
                 </div>
               </div>
             </div>
@@ -398,6 +411,12 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     flex-shrink: 0;
   }
 
+  .projects-title-slot {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+  }
+
   /* Title — H1 big on desktop; family small style on mobile */
   .projects-title {
     font-size: var(--_tokens---type--medium);
@@ -406,6 +425,69 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     letter-spacing: -0.02em;
     line-height: 1.1;
     margin: 0;
+  }
+
+  .projects-collapsed-search {
+    display: none;
+    width: 100%;
+    min-width: 0;
+    height: 56px;
+    padding: 0 18px;
+    border: 0;
+    border-radius: 4px;
+    outline: 0;
+    background: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    color: var(--_tokens---color--fg);
+    -webkit-text-fill-color: var(--_tokens---color--fg);
+    caret-color: var(--_tokens---color--fg);
+    font: inherit;
+    font-size: var(--_tokens---type--medium);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  .projects-collapsed-search::placeholder {
+    color: color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
+    -webkit-text-fill-color: color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
+    opacity: 1;
+  }
+
+  .projects-search-input::-webkit-search-cancel-button,
+  .projects-collapsed-search::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+    display: none;
+  }
+
+  .projects-title-slot .projects-collapsed-search-clear {
+    display: none;
+  }
+
+  .projects-header:has(.page-toggle-btn[aria-expanded="false"]) .projects-title {
+    display: none;
+  }
+
+  .projects-header:has(.page-toggle-btn[aria-expanded="false"]) .projects-collapsed-search {
+    display: block;
+  }
+
+  .projects-header:has(.page-toggle-btn[aria-expanded="false"]) .projects-collapsed-search-clear:not([hidden]) {
+    display: inline-flex;
+  }
+
+  .projects-header:has(.page-toggle-btn[aria-expanded="false"]) + .projects-sticky-header {
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-top: 0;
+  }
+
+  .projects-header:has(.page-toggle-btn[aria-expanded="false"]) {
+    padding-bottom: 4px;
+  }
+
+  .projects-fixed-wrapper:has(.page-toggle-btn[aria-expanded="false"]) + .project-cards-container {
+    margin-top: 0;
   }
 
   @media (max-width: 1023.98px) {
@@ -440,24 +522,27 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   .projects-search-input {
     flex: 1;
     min-width: 0;
-    height: 66px;
+    height: clamp(72px, 6.5vw, 104px);
     padding: 0 76px 0 32px; /* right side clears the inline ✕ */
-    font-size: var(--_tokens---type--small);
+    font-size: clamp(2rem, 1.375rem + 3.5vw, 4rem);
+    font-weight: 500;
+    letter-spacing: -0.01em;
     font-family: inherit;
     background: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
     border: none;
     color: var(--_tokens---color--fg);
-    border-radius: var(--_tokens---radius--pill);
+    -webkit-text-fill-color: var(--_tokens---color--fg);
+    caret-color: var(--_tokens---color--fg);
+    border-radius: 4px;
     outline: none;
-    opacity: 0.35; /* grayed out by default */
-    transition: background-color var(--_tokens---motion--base), opacity var(--_tokens---motion--base) ease;
+    opacity: 1;
+    transition: background-color var(--_tokens---motion--base);
   }
 
-  .projects-search-input::placeholder { color: var(--_tokens---color--muted); }
-  .projects-search-input:focus,
-  .projects-search-input:not(:placeholder-shown),
-  .projects-search-input.is-active {
-    opacity: 1; /* activated */
+  .projects-search-input::placeholder {
+    color: color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
+    -webkit-text-fill-color: color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
+    opacity: 1;
   }
 
   /* Clears the search AND all filters — always available, inside the field */
@@ -478,6 +563,10 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     color: var(--_tokens---color--muted);
     cursor: pointer;
     transition: background-color var(--_tokens---motion--base), color var(--_tokens---motion--base);
+  }
+
+  .projects-search-clear[hidden] {
+    display: none;
   }
 
   .projects-search-clear__icon {
@@ -728,6 +817,12 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
        context so the image floats above ALL cards, not just its own */
   }
 
+  .project-card.is-keyboard-selected {
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 8%, var(--_tokens---color--bg));
+    outline: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 30%, transparent);
+    outline-offset: -1px;
+  }
+
   .project-card[hidden] { display: none !important; }
 
   /* ── Always-visible header strip ── */
@@ -795,7 +890,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   }
 
   .project-card__pill svg {
-    --icon-size: 0.85em; transition: transform var(--_tokens---motion--base) ease;
+    --icon-size: var(--_tokens---type--medium); transition: transform var(--_tokens---motion--base) ease;
   }
 
   @media (hover: hover) {
@@ -961,12 +1056,13 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   .project-card__bottom-bar {
     display: flex;
     flex-direction: row;
-    align-items: center;
+    align-items: flex-end;
     justify-content: space-between;
     padding: 6px 20px 4px;
     box-sizing: border-box;
     font-size: var(--_tokens---type--micro);
     color: var(--_tokens---color--muted);
+    gap: 16px;
   }
 
   .project-card__bottom-left {
@@ -978,17 +1074,22 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   .project-card__bottom-right {
     display: flex;
     align-items: center;
-    gap: 12px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 6px;
     flex-shrink: 0;
     font-weight: 300;
+    max-width: 68%;
   }
 
-  .project-card__bottom-tags {
+  .project-card__filter-pill {
     color: var(--_tokens---color--muted);
-  }
-
-  .project-card__bottom-year {
-    color: var(--_tokens---color--muted);
+    background: color-mix(in srgb, var(--_tokens---color--fg) 5%, transparent);
+    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
+    border-radius: var(--_tokens---radius--pill);
+    padding: 4px 9px;
+    line-height: 1.1;
+    white-space: nowrap;
   }
 
   .project-card__metaline {
@@ -1038,6 +1139,15 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       border-bottom: 1px solid var(--_tokens---color--line-soft);
       padding: 56px 0 0; /* clear the fixed breadcrumb bar */
       box-sizing: border-box;
+    }
+    .projects-fixed-wrapper:has(.page-toggle-btn[aria-expanded="false"]) {
+      position: sticky;
+      top: 64px;
+      z-index: 90;
+      padding-top: 0;
+      background-color: color-mix(in srgb, var(--_tokens---color--bg) 92%, transparent);
+      -webkit-backdrop-filter: blur(18px);
+      backdrop-filter: blur(18px);
     }
     .projects-page {
       padding-top: 0; /* clearance comes from the measured cards padding */
@@ -1221,6 +1331,15 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       padding-inline: 0;
       box-sizing: border-box;
     }
+    .projects-fixed-wrapper:has(.page-toggle-btn[aria-expanded="false"]) {
+      position: sticky;
+      top: 0;
+      z-index: 90;
+      padding-top: 8px;
+      background-color: color-mix(in srgb, var(--_tokens---color--bg) 92%, transparent);
+      -webkit-backdrop-filter: blur(18px);
+      backdrop-filter: blur(18px);
+    }
     .projects-header-blur-overlay {
       display: none !important;
     }
@@ -1254,8 +1373,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       margin: 0 0 8px;
     }
     .projects-search-input {
-      height: 48px;
-      font-size: var(--_tokens---type--micro);
+      height: clamp(64px, 18vw, 88px);
     }
     .projects-search-clear {
       width: 32px;
@@ -1318,7 +1436,15 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       display: none;
     }
     .project-card__bottom-bar {
+      display: flex;
+      padding: 8px 0 10px;
+    }
+    .project-card__bottom-left {
       display: none;
+    }
+    .project-card__bottom-right {
+      justify-content: flex-start;
+      max-width: 100%;
     }
     /* All cards open by default on mobile — no collapsing */
     .project-card__body {
@@ -1339,7 +1465,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     }
     /* Arrow matches category card arrow size */
     .project-card__pill svg {
-    --icon-size: var(--_tokens---arrow--sm);
+    --icon-size: var(--_tokens---type--medium);
   }
     .project-card__columns {
       flex-direction: column;
@@ -1744,7 +1870,9 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   const container = document.getElementById('project-cards-container');
   const cards = Array.from(container?.querySelectorAll<HTMLElement>('.project-card') ?? []);
   const searchInput = document.getElementById('projects-search-input') as HTMLInputElement;
+  const collapsedSearchInput = document.getElementById('projects-collapsed-search') as HTMLInputElement;
   const clearBtn = document.getElementById('projects-search-clear');
+  const collapsedClearBtn = document.getElementById('projects-collapsed-search-clear');
   const countLabel = document.querySelector('.projects-count');
 
   const catSelect = document.getElementById('cat-select') as HTMLSelectElement;
@@ -1753,6 +1881,39 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   let searchQuery = '';
   let activeCat = '';
   let activeTag = '';
+  let keyboardProjectIndex = -1;
+  const searchPrompts = [
+    'Search by year',
+    'Search by tag',
+    'Search by location',
+    'Search by category',
+  ];
+  let searchPromptIndex = 0;
+  let searchPromptTimer: number | undefined;
+
+  function stopSearchPrompts() {
+    if (searchPromptTimer !== undefined) {
+      window.clearInterval(searchPromptTimer);
+      searchPromptTimer = undefined;
+    }
+  }
+
+  function settleSearchPrompt() {
+    stopSearchPrompts();
+    if (searchInput) searchInput.placeholder = 'Search';
+    if (collapsedSearchInput) collapsedSearchInput.placeholder = 'Search';
+  }
+
+  if (searchInput && !searchInput.value) {
+    searchInput.placeholder = searchPrompts[0];
+    searchPromptTimer = window.setInterval(() => {
+      if (!searchInput.value) {
+        searchPromptIndex = (searchPromptIndex + 1) % searchPrompts.length;
+        searchInput.placeholder = searchPrompts[searchPromptIndex];
+        if (collapsedSearchInput) collapsedSearchInput.placeholder = searchPrompts[searchPromptIndex];
+      }
+    }, 1400);
+  }
 
   // ── State ──────────────────────────────────────────────────
 
@@ -1760,11 +1921,41 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     return cards.filter(c => !c.hidden);
   }
 
+  function clearKeyboardProjectSelection() {
+    cards.forEach(card => {
+      card.classList.remove('is-keyboard-selected');
+      card.removeAttribute('aria-current');
+    });
+    keyboardProjectIndex = -1;
+  }
+
+  function moveKeyboardProjectSelection(direction: 1 | -1) {
+    const visibleCards = getVisibleCards();
+    if (!visibleCards.length) return;
+
+    cards.forEach(card => {
+      card.classList.remove('is-keyboard-selected');
+      card.removeAttribute('aria-current');
+    });
+
+    if (keyboardProjectIndex < 0) {
+      keyboardProjectIndex = direction > 0 ? 0 : visibleCards.length - 1;
+    } else {
+      keyboardProjectIndex = (keyboardProjectIndex + direction + visibleCards.length) % visibleCards.length;
+    }
+
+    const selectedCard = visibleCards[keyboardProjectIndex];
+    selectedCard.classList.add('is-keyboard-selected');
+    selectedCard.setAttribute('aria-current', 'true');
+    selectedCard.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
   // Click to toggle open/close has been removed - cards are statically open.
 
 
 
   function applyVisibility(matchingCards: HTMLElement[]) {
+    clearKeyboardProjectSelection();
     cards.forEach(card => {
       card.hidden = true;
     });
@@ -1826,6 +2017,12 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       if (activeTag) tagGroup.classList.add('is-active');
       else tagGroup.classList.remove('is-active');
     }
+    if (clearBtn) {
+      clearBtn.hidden = !(searchQuery.trim() || activeCat || activeTag);
+    }
+    if (collapsedClearBtn) {
+      collapsedClearBtn.hidden = !(searchQuery.trim() || activeCat || activeTag);
+    }
   }
 
   function applyFilter() {
@@ -1875,7 +2072,16 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
   // Input typing listener
   searchInput?.addEventListener('input', (e) => {
+    settleSearchPrompt();
     searchQuery = (e.target as HTMLInputElement).value;
+    if (collapsedSearchInput) collapsedSearchInput.value = searchQuery;
+    applyFilter();
+  });
+
+  collapsedSearchInput?.addEventListener('input', (e) => {
+    settleSearchPrompt();
+    searchQuery = (e.target as HTMLInputElement).value;
+    if (searchInput) searchInput.value = searchQuery;
     applyFilter();
   });
 
@@ -1948,8 +2154,10 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   });
 
   // Clear search and filters trigger
-  clearBtn?.addEventListener('click', () => {
+  function clearSearchAndFilters() {
+    settleSearchPrompt();
     if (searchInput) searchInput.value = '';
+    if (collapsedSearchInput) collapsedSearchInput.value = '';
     if (catSelect) catSelect.value = '';
     searchQuery = '';
     activeCat = '';
@@ -1961,11 +2169,77 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     });
     applyFilter();
     updateScrollArrows();
-  });
+  }
 
-  // Mobile space-savers: shorter placeholder + abbreviated "All Categories"
+  clearBtn?.addEventListener('click', clearSearchAndFilters);
+  collapsedClearBtn?.addEventListener('click', clearSearchAndFilters);
+
+  function getVisibleSearchInput() {
+    const toggle = document.querySelector('[data-page-toggle="projects-filter-panel"]');
+    return toggle?.getAttribute('aria-expanded') === 'false'
+      ? collapsedSearchInput
+      : searchInput;
+  }
+
+  function handleProjectSearchKeyboard(event: KeyboardEvent) {
+    if (event.key === 'Enter') {
+      const target = event.target;
+      const isSearchField = target === searchInput || target === collapsedSearchInput;
+      if (!isSearchField || !searchQuery.trim()) return;
+
+      const selectedMatch = document.querySelector<HTMLElement>('.project-card.is-keyboard-selected');
+      const destination = selectedMatch ?? getVisibleCards()[0];
+      const projectLink = destination?.querySelector<HTMLAnchorElement>('.project-card__pill');
+      if (!projectLink) return;
+
+      event.preventDefault();
+      projectLink.click();
+      return;
+    }
+
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      const target = event.target;
+      const isSearchField = target === searchInput || target === collapsedSearchInput;
+      if (!isSearchField) return;
+      event.preventDefault();
+      moveKeyboardProjectSelection(event.key === 'ArrowDown' ? 1 : -1);
+      return;
+    }
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      clearSearchAndFilters();
+      searchInput?.blur();
+      collapsedSearchInput?.blur();
+      return;
+    }
+
+    if (event.key.length !== 1 || event.metaKey || event.ctrlKey || event.altKey) return;
+
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('input, textarea, select, [contenteditable="true"]')) return;
+
+    const visibleSearch = getVisibleSearchInput();
+    if (!visibleSearch) return;
+
+    event.preventDefault();
+    settleSearchPrompt();
+    visibleSearch.focus({ preventScroll: true });
+    visibleSearch.value += event.key;
+    visibleSearch.setSelectionRange(visibleSearch.value.length, visibleSearch.value.length);
+    searchQuery = visibleSearch.value;
+    if (searchInput) searchInput.value = searchQuery;
+    if (collapsedSearchInput) collapsedSearchInput.value = searchQuery;
+    applyFilter();
+  }
+
+  document.addEventListener('keydown', handleProjectSearchKeyboard);
+  document.addEventListener('astro:before-swap', () => {
+    document.removeEventListener('keydown', handleProjectSearchKeyboard);
+  }, { once: true });
+
+  // Mobile space-saver: abbreviate "All Categories".
   if (window.matchMedia('(max-width: 1023.98px)').matches) {
-    if (searchInput) searchInput.placeholder = 'Search projects';
     const allCatOpt = catSelect?.querySelector('option[value=""]');
     if (allCatOpt) allCatOpt.textContent = 'CTGRY';
   }
@@ -1974,8 +2248,10 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   const urlParams = new URLSearchParams(window.location.search);
   const qParam = urlParams.get('search') || urlParams.get('q');
   if (qParam) {
+    settleSearchPrompt();
     searchQuery = qParam;
     if (searchInput) searchInput.value = qParam;
+    if (collapsedSearchInput) collapsedSearchInput.value = qParam;
   }
 
   // Initialize visibility and tag scroll arrows

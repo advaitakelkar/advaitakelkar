@@ -82,7 +82,7 @@ function getWords(name: string): string[] {
           </p>
           <p class="home-intro__desc home-intro__desc--follow">
             <a href="https://linkedin.com/in/advaita-kelkar" target="_blank" rel="noopener" class="intro-inline-link">LinkedIn<Arrow class="intro-arrow" /></a>, <a href="https://instagram.com/advaitakelkar" target="_blank" rel="noopener" class="intro-inline-link">Instagram<Arrow class="intro-arrow" /></a>, <a href="https://github.com/advaitakelkar" target="_blank" rel="noopener" class="intro-inline-link">GitHub<Arrow class="intro-arrow" /></a>, <a href="https://instagram.com/3xpmnts" target="_blank" rel="noopener" class="intro-inline-link">3xpmnts<Arrow class="intro-arrow" /></a>, <a href="https://instagram.com/archv.in" target="_blank" rel="noopener" class="intro-inline-link">ARCHV<Arrow class="intro-arrow" /></a>.
-            Download {hasCv && <><a href="/Adi-Advaita-Kelkar-CV-Sept-2026.pdf" target="_blank" rel="noopener" class="intro-inline-link">Resume<Arrow class="intro-arrow" /></a> and </>}<PortfolioStatus />.
+            <br />Download {hasCv && <><a href="/Adi-Advaita-Kelkar-CV-Sept-2026.pdf" target="_blank" rel="noopener" class="intro-inline-link">Resume<Arrow class="intro-arrow" /></a> and </>}<PortfolioStatus />.
           </p>
         </div>
       </div>
@@ -203,7 +203,14 @@ function getWords(name: string): string[] {
           <Arrow />
         </span>
       </a>
-      <div class="home-nav-row"><span class="home-nav-row__text"><PortfolioStatus /></span></div>
+      <button type="button" class="home-nav-row home-nav-row--portfolio" aria-expanded="false">
+        <span class="home-nav-row__text">
+          Portfolio <span class="home-nav-row__status" hidden>(Under progress)</span>
+        </span>
+        <span class="home-nav-row__arrow" aria-hidden="true">
+          <Arrow />
+        </span>
+      </button>
       <a href="/projects" class="home-nav-row">
         <span class="home-nav-row__text" data-scramble>Projects</span>
         <span class="home-nav-row__arrow" aria-hidden="true">
@@ -226,6 +233,15 @@ function getWords(name: string): string[] {
   // ── Slider (seamless infinite loop) ─────────────────────────
   const track = document.getElementById('slider-track');
   const dots  = Array.from(document.querySelectorAll('.home-slider__dot'));
+
+  document.querySelectorAll<HTMLButtonElement>('.home-nav-row--portfolio').forEach(button => {
+    button.addEventListener('click', () => {
+      const expanded = button.getAttribute('aria-expanded') !== 'true';
+      button.setAttribute('aria-expanded', String(expanded));
+      const status = button.querySelector<HTMLElement>('.home-nav-row__status');
+      if (status) status.hidden = !expanded;
+    });
+  });
 
   // Scramble both name copies (base + colour-flip) in sync — on slide-in & hover.
   // Alphabet comes from lib/glyphs — this used to carry its own literal, which
@@ -1191,6 +1207,28 @@ function getWords(name: string): string[] {
     border-top: 1px solid var(--_tokens---color--line-soft); /* family hairline */
     padding-block: 22px;
     transition: opacity var(--_tokens---motion--base) ease, padding-left var(--_tokens---motion--base) ease;
+  }
+
+  .home-nav-row--portfolio {
+    appearance: none;
+    width: 100%;
+    background: none;
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .home-nav-row__status {
+    font-size: var(--_tokens---type--medium);
+    font-weight: 400;
+    letter-spacing: normal;
+  }
+
+  .home-nav-row__status[hidden] {
+    display: none;
   }
 
   .home-nav-row:last-child {
