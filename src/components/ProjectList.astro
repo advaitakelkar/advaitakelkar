@@ -1140,6 +1140,15 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     display: none;
   }
 
+  /* Says "there is more to the right" without a scrollbar. Anchored to the
+     padding box, so it stays at the edge while the row scrolls under it. A
+     row that fits ends before the fade zone and is untouched — which is why
+     this needs no JS to detect the overflow. */
+  .project-card__bottom-bar {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 20px), transparent 100%);
+    mask-image: linear-gradient(to right, #000 calc(100% - 20px), transparent 100%);
+  }
+
   .project-card__bottom-left {
     display: flex;
     align-items: center;
@@ -1660,6 +1669,36 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   @media (max-width: 699.98px) {
     .project-card__description-col {
       display: none;
+    }
+
+    /* The search field and the count were sharing one 322px row, which left
+       the field 183px — narrow enough that "Search by category" truncated to
+       "Search by cat". The field takes the full row; the count and the toggle
+       drop to the next one, where there is space for both. */
+    .projects-header {
+      flex-wrap: wrap;
+      row-gap: 6px;
+    }
+    .projects-title-slot {
+      flex: 0 0 100%;
+    }
+    .projects-header__right {
+      flex: 0 0 100%;
+      justify-content: space-between;
+    }
+
+    /* Tighter card rhythm: more of the list on screen per scroll. */
+    .project-cards-container {
+      gap: 10px;
+    }
+    .project-card {
+      padding-block: 10px 8px;
+    }
+    .project-card__header {
+      padding: 4px 0;
+    }
+    .project-card__bottom-bar {
+      padding: 4px 0 2px;
     }
     /* The arrow costs every pill ~13px, which on a phone is the difference
        between the row fitting and the row scrolling. Buy it back from the
