@@ -1947,18 +1947,11 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
        opaque fill and a drop shadow of its own, which made the one control on
        the page look like it belonged to a different site. The sealed backdrop
        behind it means the transparent fill reads the same here. */
-    /* It read as a grey slab: a 6% fill is a tint on a page, but this one sits
-       on its own sealed white backdrop with nothing around it, so the fill was
-       the only thing you saw. Drawn as an outline instead — the shape comes
-       from a hairline, the inside stays the page colour, and it reads as a
-       field rather than a block. */
+    /* The desktop field exactly — fill, corner, no border — only shorter, so
+       it clears the nav below it. Everything else comes from the shared rule
+       rather than being restated here. */
     .projects-search-input {
       height: 52px;
-      background: var(--_tokens---color--bg);
-      border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 20%, transparent);
-    }
-    .projects-search-input:focus {
-      border-color: var(--_tokens---color--fg);
     }
     /* The bubble cloud is this page's footer. On a phone it is a second copy
        of the list you are already looking at, below a list that scrolls for
@@ -2049,26 +2042,23 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
        imagery and its pills. The moment you are scrolling or filtering both
        drop away and the list becomes names and arrows: at that point you are
        looking for one project, not browsing them. */
-    .project-card__image-col,
+    /* ── What a card carries here ────────────────────────────────────
+       A name, its imagery, and an arrow. The pills stay off the phone
+       entirely: five of them under every row is more taxonomy than a 375px
+       column can hold, and they are what the selector above the search is
+       for.
+
+       Searching drops the imagery too, leaving a plain list of names — the
+       one time you are reading the list rather than looking at it.
+
+       Nothing changes while scrolling. Tying this to motion meant the list
+       resized under the thumb on every flick, and it never settled cleanly
+       however it was compensated. */
     .project-card__bottom-bar {
-      overflow: hidden;
-      max-height: 220px;
-      opacity: 1;
-      transition: max-height var(--_tokens---motion--base) var(--_tokens---ease-out),
-                  opacity var(--_tokens---motion--fast) ease;
+      display: none;
     }
-    .project-cards-container.is-compact .project-card__image-col,
-    .project-cards-container.is-compact .project-card__bottom-bar {
-      max-height: 0;
-      opacity: 0;
-    }
-    /* Nothing animates for someone who asked for no animation — it just
-       switches, which is the same two states without the travel. */
-    @media (prefers-reduced-motion: reduce) {
-      .project-card__image-col,
-      .project-card__bottom-bar {
-        transition: none;
-      }
+    .project-cards-container.is-searching .project-card__image-col {
+      display: none;
     }
 
     .project-card__filter-pill,
@@ -2651,83 +2641,15 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   // into a latch, because snapping stays on while scrolled and keeps parking
   // it there. The zone has to be wider than any resting position snap can
   // leave behind. Kept in step with the same constant in the sticky script.
-  // Density follows MOTION, not position: thin while the list is moving under
-  // your thumb, full again once it settles. Tying it to scroll offset meant a
-  // card stayed stripped for as long as you were anywhere but the top, which
-  // is most of the time.
-  let scrolling = false;
-  let scrollIdle: number | undefined;
-  // Expanding the cards makes the page taller, and the scroll the browser does
-  // to absorb that fires a scroll event of its own. Without this guard that
-  // event reads as "still scrolling", re-compacts, shrinks the page, fires
-  // again — the list never settled and simply stayed thin. Ignore our own
-  // echo for a beat after we cause it.
-  let ignoreScrollUntil = 0;
-  // The list is inverted and grows upward out of the controls, so the fixed
-  // point of this page is its BOTTOM, not its top. When cards change height,
-  // hold the card resting against the control stack exactly where it is and
-  // let everything above it move — that is the direction this list already
-  // reads in.
-  //
-  // Done by hand because the browser will not do it here: scroll anchoring is
-  // enabled (overflow-anchor computes to auto all the way down) and still
-  // fails to hold through a column-reverse container, which left the view
-  // lurching up to 130px every time the cards filled back out. The hold runs
-  // for the length of the transition, since the height arrives gradually
-  // rather than in one step.
-  const STACK_TOP_INSET = 168;
-  function bottomAnchor(): HTMLElement | null {
-    if (!container) return null;
-    const limit = window.innerHeight - STACK_TOP_INSET;
-    let best: HTMLElement | null = null;
-    let bestBottom = -Infinity;
-    (Array.from(container.children) as HTMLElement[]).forEach(el => {
-      if (el.hidden) return;
-      const b = el.getBoundingClientRect().bottom;
-      if (b <= limit + 2 && b > bestBottom) { bestBottom = b; best = el; }
-    });
-    return best;
-  }
-
+  // Searching swaps the list to names only — see the note in the compact
+  // block. No scroll listener and no anchor compensation: nothing here
+  // changes size while the list is moving, which is what made the previous
+  // version restless.
   function updateCardDensity() {
     if (!container) return;
     const searching = Boolean(searchQuery.trim() || activeCat || activeTag);
-    const next = scrolling || searching;
-    if (container.classList.contains('is-compact') === next) return;
-
-    const anchor = bottomAnchor();
-    const held = anchor ? anchor.getBoundingClientRect().bottom : null;
-    container.classList.toggle('is-compact', next);
-
-    // Only hold on the way OUT of compact — the settling case, where the
-    // reader is still and any movement is entirely ours. Going INTO compact
-    // happens mid-gesture, and pinning an anchor there means calling scrollBy
-    // against a scroll the user is actively driving: it fights the thumb and
-    // reads worse than the shift it is correcting.
-    if (!anchor || held === null || next) return;
-
-    // Our own corrections must not read back as the user scrolling.
-    ignoreScrollUntil = performance.now() + 500;
-    const started = performance.now();
-    const hold = () => {
-      const drift = anchor.getBoundingClientRect().bottom - held;
-      if (Math.abs(drift) > 0.5) window.scrollBy(0, drift);
-      if (performance.now() - started < 420) requestAnimationFrame(hold);
-    };
-    requestAnimationFrame(hold);
+    container.classList.toggle('is-searching', searching);
   }
-  window.addEventListener('scroll', () => {
-    if (performance.now() < ignoreScrollUntil) return;
-    if (!scrolling) { scrolling = true; updateCardDensity(); }
-    window.clearTimeout(scrollIdle);
-    // Long enough not to flicker between flicks of the same gesture, short
-    // enough to read as a response to stopping rather than an animation.
-    scrollIdle = window.setTimeout(() => {
-      scrolling = false;
-      ignoreScrollUntil = performance.now() + 300;
-      updateCardDensity();
-    }, 220);
-  }, { passive: true });
   updateCardDensity();
 
   function applyFilter() {
