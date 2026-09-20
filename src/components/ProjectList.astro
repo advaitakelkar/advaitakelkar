@@ -1818,20 +1818,66 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       display: none;
     }
 
-    /* The search field and the count were sharing one 322px row, which left
-       the field 183px — narrow enough that "Search by category" truncated to
-       "Search by cat". The field takes the full row; the count and the toggle
-       drop to the next one, where there is space for both. */
+    /* ── Mobile: one layout, no tab ──────────────────────────────────
+       The phone gets a single arrangement rather than an open and a closed
+       one: title and count on one line at the top, the category row under it,
+       and the search docked at the bottom by the thumb. Nothing folds, so
+       there is no toggle to press and nothing to remember the state of. */
     .projects-header {
-      flex-wrap: wrap;
-      row-gap: 6px;
+      flex-wrap: nowrap;
+      align-items: baseline;
+      gap: 10px;
+      padding-block: 2px 6px;
     }
     .projects-title-slot {
-      flex: 0 0 100%;
+      flex: 1 1 auto;
     }
     .projects-header__right {
-      flex: 0 0 100%;
-      justify-content: space-between;
+      flex: 0 0 auto;
+      justify-content: flex-end;
+    }
+    /* No fold, so no control for it. */
+    .page-toggle-btn[data-page-toggle="projects-filter-panel"] {
+      display: none;
+    }
+    /* The title stays the title here — the collapsed-search swap belongs to
+       the folding behaviour, which this band no longer has. */
+    .projects-header .projects-title {
+      display: block !important;
+    }
+    .projects-header .projects-collapsed-search,
+    .projects-header .projects-collapsed-search-clear {
+      display: none !important;
+    }
+    /* Never folded, whatever the toggle script last wrote inline. */
+    #projects-filter-panel {
+      max-height: none !important;
+      opacity: 1 !important;
+      overflow: visible !important;
+      margin-top: 0 !important;
+    }
+
+    /* Search sits at the bottom, clear of the breadcrumb that docks there.
+       Fixed rather than sticky: it is a permanent control on this band, not
+       something that parks when you reach it. */
+    .projects-search-bar {
+      position: fixed;
+      left: var(--_tokens---layout--rail, 44px);
+      right: 12px;
+      bottom: 46px;
+      z-index: 95;
+      margin: 0;
+      width: auto;
+    }
+    .projects-search-input {
+      height: 52px;
+      border-radius: var(--_tokens---radius--pill);
+      background: color-mix(in srgb, var(--_tokens---color--fg) 8%, var(--_tokens---color--bg));
+      box-shadow: 0 6px 20px -8px color-mix(in srgb, var(--_tokens---color--fg) 30%, transparent);
+    }
+    /* Clear the docked search plus the breadcrumb below it. */
+    .projects-page {
+      padding-bottom: 150px;
     }
 
     /* Tighter card rhythm: more of the list on screen per scroll. */
@@ -1857,8 +1903,9 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     }
     .project-card__filter-pill,
     .project-card__meta-item {
-      padding: 4px 8px;
+      padding: 3px 7px;
       gap: 3px;
+      font-size: 0.5625rem; /* 9px — below the ultrathin floor, phone only */
     }
   }
 
@@ -2740,6 +2787,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     // The two features were fighting over the same pixels; this gives each its
     // own territory. Also off mid-resize (see below) and for reduced motion.
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const folds = window.matchMedia('(min-width: 700px)');
     let atTopNow = true;
     let resizing = false;
     const updateSnap = () => {
@@ -2758,7 +2806,11 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       prevAtTop = atTop;
       if (!crossed) return;
 
-      if (atTop !== isOpen()) {
+      // Below 700 the panel does not fold at all — the toggle is hidden and
+      // the search lives at the bottom of the screen — so there is nothing to
+      // open or close, and pressing a hidden control would only desync the
+      // aria state from what is on screen.
+      if (folds.matches && atTop !== isOpen()) {
         toggle?.click();
         // Base animates max-height to a measured pixel value and only clears
         // it on the max-height transitionend. Child transitions inside the
