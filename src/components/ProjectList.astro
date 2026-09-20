@@ -386,15 +386,24 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
        very page that wants it. */
     scroll-snap-type: var(--page-snap, none) !important;
     scroll-behavior: smooth;
-    /* Opening the panel adds ~144px above the fold, and scroll anchoring
-       "helpfully" pushed the scroll position down to compensate — which read
-       as leaving the top, which closed the panel again, which moved it back.
-       The page oscillated between 4px and 252px. Nothing else on this page
-       relies on anchoring. */
-    overflow-anchor: none;
+    /* overflow-anchor is switched off only from 700 up — see the media query
+       after this rule. */
     /* Anchored jumps land clear of the pinned bar, same measured offset the
        snap points use; 64px is the fallback before the script measures. */
     scroll-padding-top: var(--snap-offset, 64px);
+  }
+
+  /* Opening the panel adds ~144px above the fold, and scroll anchoring
+     "helpfully" pushed the scroll position down to compensate — which read as
+     leaving the top, which closed the panel again, which moved it back. The
+     page oscillated between 4px and 252px.
+     Only from 700 up, where that panel folds. Below it the panel never folds,
+     and anchoring is wanted: cards there grow when scrolling stops, and
+     anchoring is what keeps the rows under your eye from sliding as they do. */
+  @media (min-width: 700px) {
+    :global(html) {
+      overflow-anchor: none;
+    }
   }
 
   @media (max-width: 699.98px) {
@@ -2615,17 +2624,34 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   // into a latch, because snapping stays on while scrolled and keeps parking
   // it there. The zone has to be wider than any resting position snap can
   // leave behind. Kept in step with the same constant in the sticky script.
-  const TOP_ZONE = 48;
+  // Density follows MOTION, not position: thin while the list is moving under
+  // your thumb, full again once it settles. Tying it to scroll offset meant a
+  // card stayed stripped for as long as you were anywhere but the top, which
+  // is most of the time.
+  let scrolling = false;
+  let scrollIdle: number | undefined;
+  // Expanding the cards makes the page taller, and the scroll the browser does
+  // to absorb that fires a scroll event of its own. Without this guard that
+  // event reads as "still scrolling", re-compacts, shrinks the page, fires
+  // again — the list never settled and simply stayed thin. Ignore our own
+  // echo for a beat after we cause it.
+  let ignoreScrollUntil = 0;
   function updateCardDensity() {
     if (!container) return;
     const searching = Boolean(searchQuery.trim() || activeCat || activeTag);
-    container.classList.toggle('is-compact', window.scrollY > TOP_ZONE || searching);
+    container.classList.toggle('is-compact', scrolling || searching);
   }
-  let densityQueued = false;
   window.addEventListener('scroll', () => {
-    if (densityQueued) return;
-    densityQueued = true;
-    requestAnimationFrame(() => { densityQueued = false; updateCardDensity(); });
+    if (performance.now() < ignoreScrollUntil) return;
+    if (!scrolling) { scrolling = true; updateCardDensity(); }
+    window.clearTimeout(scrollIdle);
+    // Long enough not to flicker between flicks of the same gesture, short
+    // enough to read as a response to stopping rather than an animation.
+    scrollIdle = window.setTimeout(() => {
+      scrolling = false;
+      ignoreScrollUntil = performance.now() + 300;
+      updateCardDensity();
+    }, 220);
   }, { passive: true });
   updateCardDensity();
 
