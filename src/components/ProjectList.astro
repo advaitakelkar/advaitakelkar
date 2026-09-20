@@ -170,8 +170,9 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       <!-- Project list — accordion cards -->
     <div class="project-cards-container" id="project-cards-container">
       {sorted.map((p, i) => {
-        const tagsArr = (p.data.tags ?? []).map(t => tagMap[t.id] || t.id);
         const categoryLabel = p.data.category ? (catMap[p.data.category.id] || p.data.category.id) : '';
+        // Ordered by how much it identifies the project. The responsive tiers
+        // below reveal the first N of these, so the order IS the priority.
         const metaParts = [
           { label: 'Year',     val: p.data.year },
           { label: 'Location', val: p.data.location },
@@ -179,6 +180,20 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
           { label: 'Client',   val: p.data.client },
           { label: 'Program',  val: p.data.program },
         ].filter(m => m.val);
+        // No card prints the same word twice: drop any tag pill that merely
+        // repeats the category or a meta value already on the card (the SCAD
+        // projects carried Client "SCAD" and a "Scad" tag side by side).
+        // Filtering/search reads data-tags, which is built from p.data.tags
+        // directly, so nothing here narrows what the page can find.
+        const dedupeKey = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const alreadyShown = new Set(
+          [categoryLabel, ...metaParts.map(m => String(m.val ?? ''))]
+            .filter(Boolean)
+            .map(dedupeKey)
+        );
+        const tagsArr = (p.data.tags ?? [])
+          .map(t => tagMap[t.id] || t.id)
+          .filter(t => !alreadyShown.has(dedupeKey(String(t))));
         // All images — cover first, then the rest; strip is horizontally scrollable
         const allImgs: string[] = [];
         if (p.id === 'ai-works') {
@@ -839,9 +854,15 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     font-size: clamp(2rem, 1.375rem + 3.5vw, 4rem); /* between --type--medium and --type--big */
     font-weight: 500;
     letter-spacing: -0.01em;
-    white-space: nowrap;
+    /* A project name is never truncated, at any width — it is the one field
+       every tier has to deliver in full. `nowrap` + ellipsis used to cut 16
+       of 50 names at 390px and still clipped the longest four on desktop
+       ("TOQW Tower of Quiet Witness"). Two lines at full scale instead. */
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
     color: var(--_tokens---color--fg);
     transition: opacity var(--_tokens---motion--base) ease;
     margin: 0;
@@ -1107,9 +1128,23 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   .project-card__meta-sep { color: color-mix(in srgb, var(--_tokens---color--fg) 25%, transparent); margin-right: 4px; }
   .project-card__meta-val { color: var(--_tokens---color--muted); font-weight: 400; }
 
-  @media (max-width: 1023.98px) {
-    .project-card__meta-item:not(:first-child),
-    .project-card__meta-sep {
+  /* ── Meta ladder ───────────────────────────────────────────────────────
+     metaParts is ordered Year, Location, Status, Client, Program — most
+     identifying first — so each tier just reveals the first N and never
+     repeats what the tier below already showed.
+       compact  (<700)      Year
+       medium   (700–1023)  + Location, Status
+       expanded (>=1024)    + Client, Program
+     The separator belongs to the item that follows it, so hiding an item
+     hides its separator with it and no line ever ends on a stray dot. */
+  @media (max-width: 699.98px) {
+    .project-card__meta-item:nth-child(n + 2) {
+      display: none;
+    }
+  }
+
+  @media (min-width: 700px) and (max-width: 1023.98px) {
+    .project-card__meta-item:nth-child(n + 4) {
       display: none;
     }
   }
@@ -1440,16 +1475,15 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     .project-card__header {
       padding: 10px 0;
     }
-    /* Hide the description column entirely on mobile, matching category cards */
-    .project-card__description-col {
-      display: none;
-    }
     .project-card__bottom-bar {
       display: flex;
       padding: 8px 0 10px;
     }
+    /* The meta line carries the year below 1024 — it is the one fact that
+       places a project, and the ladder above decides how much of it shows. */
     .project-card__bottom-left {
-      display: none;
+      display: block;
+      min-width: 0;
     }
     .project-card__bottom-right {
       justify-content: flex-start;
@@ -1511,6 +1545,77 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     /* The in-card scrub preview is desktop-only — mobile uses the lightbox below */
     .project-card__hover-preview {
       display: none !important;
+    }
+  }
+
+  /* ── Responsive data tiers ─────────────────────────────────────────────
+     One card, three densities. Each tier strictly ADDS to the one below it,
+     so nothing is stated twice as the viewport grows:
+
+       compact  (<700)      name · year · category · thumbs · arrow
+       medium   (700–1023)  + intro line, location, status, tags
+       expanded (>=1024)    + description, client, program, "Go to project"
+
+     Tablet used to inherit the phone treatment wholesale: at 1023px a card
+     was 331px tall and carried a 58px title with no supporting text at all,
+     taller than the same card on desktop while saying less. The middle tier
+     is what that space is for. */
+
+  /* Compact — the floor. Title, year, category, imagery. Nothing else. */
+  @media (max-width: 699.98px) {
+    .project-card__description-col {
+      display: none;
+    }
+    /* Meta and pills stack rather than fight for one narrow row. */
+    .project-card__bottom-bar {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+    }
+    .project-card__bottom-right {
+      max-width: 100%;
+    }
+  }
+
+  /* Medium — add the one-line hook and enough meta to place the project.
+     The description excerpt stays back; it needs a column to read well. */
+  @media (min-width: 700px) and (max-width: 1023.98px) {
+    .project-card__description-col {
+      display: flex;
+      padding: 2px 0 8px;
+    }
+    .project-card__desc {
+      display: none;
+    }
+    .project-card__intro {
+      font-size: var(--_tokens---type--micro);
+      max-width: 68ch;
+      /* One line only — a wrapping hook re-creates the tall, thin card this
+         tier exists to fix. */
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    /* The title is the only thing competing with the new copy. Left alone the
+       shared curve reaches 58px here — desktop scale on a tablet. This one is
+       tuned to meet the compact curve exactly at 700px (46px) and arrive just
+       under the desktop value at 1024 (56px vs 58px), so neither boundary
+       steps: the largest jump across the whole ladder stays inside the 1.12×
+       the design system allows. */
+    .project-card__stack-name {
+      font-size: clamp(2.875rem, 1.52rem + 3.1vw, 3.5rem);
+    }
+    /* Thumbnails stop scaling with the viewport and hold a fixed size, so a
+       wider tablet reveals MORE of them instead of blowing each one up. That
+       is what kept the card growing to 340px — taller than the same card on
+       desktop, while carrying less. */
+    .project-card__thumb-item {
+      flex: 0 0 116px;
+    }
+    .project-card__bottom-bar {
+      align-items: center;
+      gap: 12px;
     }
   }
 
