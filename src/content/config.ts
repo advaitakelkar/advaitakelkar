@@ -71,7 +71,7 @@ const projects = defineCollection({
     status: z.string().optional(),
     featured: z.boolean().default(false),
     passcode: z.string().optional(),
-    template: z.enum(['auto', 'tabs', 'cards', 'chapters']).optional(),
+    template: z.enum(['auto', 'tabs', 'cards', 'ai-works', 'chapters']).optional(),
     design: z.string().optional(),
     making: z.string().optional(),
     smallIntro: z.string().optional(),
