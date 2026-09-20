@@ -33,16 +33,31 @@ const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
 // studio became its own field — the Work page lost its tabs silently, because
 // an empty tab group just hides itself.
 const allStudios = await getCollection('studios');
-const tabGroups = allStudios
+const studioGroups = allStudios
   .filter(st => st.data.category.id === categoryId)
   .map(st => ({
     id: st.id,
     label: st.data.displayName,
     shortLabel: st.data.shortName ?? st.data.displayName,
+    isAll: false,
     projects: projects.filter((p: any) => p.data.studio?.id === st.id),
   }))
   .filter(g => g.projects.length > 0);
-const showTabs = tabGroups.length > 1;
+
+// ADVT is Adi's own studio. On the Freelancer page it is not a collaboration
+// you would filter TO — it is the default, the work with nobody else's name on
+// it — so there it becomes the All tab rather than sitting beside one. Every
+// other category keeps its studios and gains All in front of them.
+const advtIsAll = categoryId === 'freelancer';
+const namedGroups = advtIsAll ? studioGroups.filter(g => g.id !== 'advt') : studioGroups;
+
+// Tabs are worth showing when there is more than one named group to choose
+// between; All plus a single studio would be the same list twice. ARCHV has no
+// studios at all, so it keeps its flat list.
+const showTabs = namedGroups.length > 1;
+const tabGroups = showTabs
+  ? [{ id: 'all', label: 'All', shortLabel: 'All', isAll: true, projects }, ...namedGroups]
+  : studioGroups;
 const studioMap = Object.fromEntries(allStudios.map(st => [st.id, st.data.displayName]));
 
 // 3-column intro copy now lives in the category's YAML (editable inline). Sub-views
@@ -183,11 +198,21 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
         <section class="cat-tabs" style="margin-top: clamp(2rem, 4vh, 4rem);">
           <div class="cat-tabs__bar" role="tablist" aria-label="Project groups">
             {tabGroups.map((g, i) => (
-              <button class:list={["cat-tab-btn", i === 0 && "is-active"]} role="tab" aria-selected={i === 0 ? 'true' : 'false'} data-tab={g.id} type="button">
-                <span>
-                  <span class="tab-label-full">{g.label}</span>
-                  <span class="tab-label-short">{g.shortLabel}</span>
-                </span>
+              <button
+                class:list={["cat-tab-btn", g.isAll && "cat-tab-btn--all", i === 0 && "is-active"]}
+                role="tab"
+                aria-selected={i === 0 ? 'true' : 'false'}
+                data-tab={g.id}
+                type="button"
+                aria-label={g.isAll ? `All ${title} projects` : undefined}
+                title={g.isAll ? `All ${title} projects` : undefined}
+              >
+                {!g.isAll && (
+                  <span>
+                    <span class="tab-label-full">{g.label}</span>
+                    <span class="tab-label-short">{g.shortLabel}</span>
+                  </span>
+                )}
                 <Icon name="arrow" class="pill-arrow" />
               </button>
             ))}
@@ -480,6 +505,28 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
     }
     .cat-tab-btn.is-active .pill-arrow { opacity: 0.7; }
 
+    /* All is a mark, not a word: a round pill carrying only the arrow, so the
+       one tab that is not a studio does not read as another studio.
+
+       Its width is built from the same numbers that give a pill its height,
+       not from aspect-ratio and not from stretch: a flex item's width is
+       resolved from its content before the stretched cross size is known, so
+       the ratio never applies — the trap the breadcrumb's round Back button
+       documents in tokens.css.
+
+       A pill is as tall as whichever is taller, its line box or its arrow,
+       plus 14px of padding top and bottom and a 1px border. Above 700 the
+       display-sized label wins; below it the fixed 20px arrow does. max()
+       covers both, so the circle never has to be re-derived per band. */
+    .cat-tab-btn--all {
+      padding-inline: 0;
+      width: calc(max(1lh, 20px) + 30px);
+      border-radius: 50%;
+      justify-content: center;
+      gap: 0;
+      flex: 0 0 auto;
+    }
+
     /* Short labels (823 / FKD) replace the full names on small screens —
        same mechanism as the About page tabs */
     .tab-label-short { display: none; }
@@ -490,9 +537,16 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
         padding: var(--_tokens---pill-pad--lg-compact);
         font-size: var(--_tokens---type--small);
       }
+      /* 10px of padding on this band, and here the 20px arrow is the taller
+         of the two, not the 16px line box. */
+      .cat-tab-btn--all {
+        padding-inline: 0;
+        width: calc(max(1lh, 20px) + 22px);
+      }
     }
 
     .cat-tab-empty { padding: 2rem 24px; }
+
 
     .cat-card-list {
       display: flex;
