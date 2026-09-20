@@ -2039,9 +2039,26 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
        imagery and its pills. The moment you are scrolling or filtering both
        drop away and the list becomes names and arrows: at that point you are
        looking for one project, not browsing them. */
+    .project-card__image-col,
+    .project-card__bottom-bar {
+      overflow: hidden;
+      max-height: 220px;
+      opacity: 1;
+      transition: max-height var(--_tokens---motion--base) var(--_tokens---ease-out),
+                  opacity var(--_tokens---motion--fast) ease;
+    }
     .project-cards-container.is-compact .project-card__image-col,
     .project-cards-container.is-compact .project-card__bottom-bar {
-      display: none;
+      max-height: 0;
+      opacity: 0;
+    }
+    /* Nothing animates for someone who asked for no animation — it just
+       switches, which is the same two states without the travel. */
+    @media (prefers-reduced-motion: reduce) {
+      .project-card__image-col,
+      .project-card__bottom-bar {
+        transition: none;
+      }
     }
 
     .project-card__filter-pill,
@@ -2636,10 +2653,58 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   // again — the list never settled and simply stayed thin. Ignore our own
   // echo for a beat after we cause it.
   let ignoreScrollUntil = 0;
+  // The list is inverted and grows upward out of the controls, so the fixed
+  // point of this page is its BOTTOM, not its top. When cards change height,
+  // hold the card resting against the control stack exactly where it is and
+  // let everything above it move — that is the direction this list already
+  // reads in.
+  //
+  // Done by hand because the browser will not do it here: scroll anchoring is
+  // enabled (overflow-anchor computes to auto all the way down) and still
+  // fails to hold through a column-reverse container, which left the view
+  // lurching up to 130px every time the cards filled back out. The hold runs
+  // for the length of the transition, since the height arrives gradually
+  // rather than in one step.
+  const STACK_TOP_INSET = 152;
+  function bottomAnchor(): HTMLElement | null {
+    if (!container) return null;
+    const limit = window.innerHeight - STACK_TOP_INSET;
+    let best: HTMLElement | null = null;
+    let bestBottom = -Infinity;
+    (Array.from(container.children) as HTMLElement[]).forEach(el => {
+      if (el.hidden) return;
+      const b = el.getBoundingClientRect().bottom;
+      if (b <= limit + 2 && b > bestBottom) { bestBottom = b; best = el; }
+    });
+    return best;
+  }
+
   function updateCardDensity() {
     if (!container) return;
     const searching = Boolean(searchQuery.trim() || activeCat || activeTag);
-    container.classList.toggle('is-compact', scrolling || searching);
+    const next = scrolling || searching;
+    if (container.classList.contains('is-compact') === next) return;
+
+    const anchor = bottomAnchor();
+    const held = anchor ? anchor.getBoundingClientRect().bottom : null;
+    container.classList.toggle('is-compact', next);
+
+    // Only hold on the way OUT of compact — the settling case, where the
+    // reader is still and any movement is entirely ours. Going INTO compact
+    // happens mid-gesture, and pinning an anchor there means calling scrollBy
+    // against a scroll the user is actively driving: it fights the thumb and
+    // reads worse than the shift it is correcting.
+    if (!anchor || held === null || next) return;
+
+    // Our own corrections must not read back as the user scrolling.
+    ignoreScrollUntil = performance.now() + 500;
+    const started = performance.now();
+    const hold = () => {
+      const drift = anchor.getBoundingClientRect().bottom - held;
+      if (Math.abs(drift) > 0.5) window.scrollBy(0, drift);
+      if (performance.now() - started < 420) requestAnimationFrame(hold);
+    };
+    requestAnimationFrame(hold);
   }
   window.addEventListener('scroll', () => {
     if (performance.now() < ignoreScrollUntil) return;
@@ -2973,13 +3038,18 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     // own territory. Also off mid-resize (see below) and for reduced motion.
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     const folds = window.matchMedia('(min-width: 700px)');
+    // Snapping is a desktop/tablet behaviour only. On the phone the cards
+    // change height as you stop and start, which moves every snap point under
+    // the snap engine while it is mid-flight — the two cannot both be smooth.
+    // See the note on updateCardDensity.
+    const snaps = folds;
     // Must match the constant of the same name in the filter script — see the
     // note there. A threshold narrower than snap's resting slop latches on.
     const TOP_ZONE = 48;
     let atTopNow = true;
     let resizing = false;
     const updateSnap = () => {
-      const on = !atTopNow && !resizing && !reducedMotion.matches;
+      const on = snaps.matches && !atTopNow && !resizing && !reducedMotion.matches;
       root.style.setProperty('--page-snap', on ? 'y proximity' : 'none');
     };
 
@@ -3053,7 +3123,23 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       }
     };
     syncSnapOffset();
-    if ('ResizeObserver' in window) new ResizeObserver(syncSnapOffset).observe(wrapper);
+    if ('ResizeObserver' in window) {
+      new ResizeObserver(syncSnapOffset).observe(wrapper);
+      // The list changes height too, when cards thin out and fill back in.
+      // Every snap point moves when it does, so snapping has to stand down
+      // for the same reason it does when the bar resizes — otherwise it
+      // re-resolves against content that shifted underneath it and drags the
+      // view with it. This was the 95px jump on settling.
+      const list = document.getElementById('project-cards-container');
+      if (list) {
+        let listHeight = list.offsetHeight;
+        new ResizeObserver(() => {
+          if (list.offsetHeight === listHeight) return;
+          listHeight = list.offsetHeight;
+          suspendSnapWhileResizing();
+        }).observe(list);
+      }
+    }
     window.addEventListener('resize', syncSnapOffset, { passive: true });
   }
   setupStuckState();
