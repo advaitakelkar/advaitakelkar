@@ -1140,9 +1140,18 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       padding: 56px 0 0; /* clear the fixed breadcrumb bar */
       box-sizing: border-box;
     }
+    /* Collapsed: the bar parks just below the fixed breadcrumb.
+       `top` has to match the flow offset above the wrapper, or sticky snaps
+       the bar down by the difference and paints it over the first card —
+       the wrapper's border box starts at 0 here, so top:64px shifted it 64px
+       with nothing reserving that space. The clearance is a margin, not
+       padding: padding sits inside the sticky box and would inflate the
+       blurred bar instead of moving it. 56px is the expanded state's
+       padding-top, so toggling the tab does not move the bar. */
     .projects-fixed-wrapper:has(.page-toggle-btn[aria-expanded="false"]) {
       position: sticky;
-      top: 64px;
+      top: 56px;
+      margin-top: 56px;
       z-index: 90;
       padding-top: 0;
       background-color: color-mix(in srgb, var(--_tokens---color--bg) 92%, transparent);
