@@ -577,6 +577,33 @@ Anything the category list must inherit from the shared stack is restated on
 adds no specificity, so a same-class override only wins on source order, and a
 scoped rule outranks a global one outright.
 
+### About: three tabs, and the open one between them
+
+The same idea as the category pages, arranged differently because About has no
+list to scroll. Below 700px each of its three headings — the identity,
+Professional Journey, Skillset — is a tab, and exactly one section is open.
+The tabs BEFORE the open one dock to the top of the screen, the tabs AFTER it
+dock to the bottom above the breadcrumb, and the open heading pins between
+them. Open the last tab and all three sit at the top; open the first and two
+sit at the bottom. The order never changes, so a tab is always where you last
+saw it, and all three are on screen however far you scroll.
+
+The identity tab is the exception: open, it is a card carrying the face at the
+right corner and the role on the next line; closed, it is a row with an arrow
+like the other two.
+
+**The offsets are computed in script, not written as a rule per state.** Three
+tabs give nine top/bottom positions, every one of them a sum of measured
+heights — the identity tab is a tall card when open and a single row when
+closed, and the breadcrumb dock moves with the safe area. A CSS matrix of that
+cannot be kept correct. The script sets each tab's `top` or `bottom` directly
+and publishes `--ab-top-h`, `--ab-bot-h` and `--ab-dock-h` for the page
+padding and the two seals. It measures in a second frame, because the classes
+it sets are what decide the heights it needs to read.
+
+Above 700px none of this applies: `data-panel` is removed, the inline offsets
+are cleared, and the page goes back to three independent fold toggles.
+
 
 ## CSS Conventions
 

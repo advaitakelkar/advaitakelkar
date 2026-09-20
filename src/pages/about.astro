@@ -1771,8 +1771,19 @@ const skillsets = [
   }
 
   @media (max-width: 699.98px) {
-    /* Name and face share the top line, the role sits under them — the same
-       shape the projects page gives its own header. */
+    /* ══ Phone: three tabs, and the open one sits between them ═════════
+       Every heading is a tab. The tabs above the open one dock to the top of
+       the screen, the tabs below it dock to the bottom, and the open one sits
+       in the gap with its section under it. Open the last tab and all three
+       are at the top; open the first and all three are at the bottom. The
+       order never changes, so a tab is always where you last saw it.
+
+       Positions are written by the script rather than by a rule per state:
+       nine combinations of top and bottom offsets is a matrix nobody can keep
+       correct, and every one of them depends on a height that is measured. */
+
+    /* The open tab keeps the identity's full card shape: name left, face at
+       the right corner on the same line, role on the next line. */
     .about-page .intro-header {
       grid-template-columns: 1fr auto;
       grid-template-areas:
@@ -1787,28 +1798,66 @@ const skillsets = [
       width: 46px;
       height: 46px;
     }
-    /* The identity is the page header here, not a tab: there is nothing to
-       fold, so there is no control for it. */
-    .about-page .intro-header .page-toggle-btn {
+
+    /* ── A docked tab is one row: name and arrow ─────────────────────── */
+    .about-page .profile-header.is-tab {
+      position: fixed !important;
+      left: 12px;
+      right: 12px;
+      /* A .profile-header rule below 1024 sets width:100% with !important;
+         left+right alone measured 12px past the right edge. */
+      width: auto !important;
+      z-index: 95;
+      margin: 0 !important;
+      padding-block: 8px !important;
+      background-color: var(--_tokens---color--bg) !important;
+      border-top: none !important;
+      border-bottom: none !important;
+      opacity: 0.7;
+      transition: opacity var(--_tokens---motion--base) ease;
+    }
+    .about-page .profile-header.is-tab .profile-name {
+      font-size: var(--_tokens---type--small);
+      font-weight: var(--_tokens---weight--strong);
+    }
+    /* The face belongs to the open identity. Closed, the identity is a tab
+       like the other two and carries an arrow instead. */
+    .about-page .intro-header.is-tab {
+      grid-template-columns: 1fr auto;
+      grid-template-areas: "name toggle";
+      row-gap: 0;
+    }
+    .about-page .intro-header.is-tab .profile-photo-circle,
+    .about-page .intro-header.is-tab .profile-header__meta {
       display: none !important;
     }
-  }
+    .about-page .intro-header.is-tab .page-toggle-btn {
+      display: inline-flex !important;
+    }
+    /* Open, the identity has nothing to fold, so it has no control. */
+    .about-page .intro-header:not(.is-tab) .page-toggle-btn {
+      display: none !important;
+    }
+    /* The open heading sits between the two docks and pins under the top
+       one, so all three headings are on screen however far you scroll.
+       Sticky rather than fixed: it is still in the flow, so the section under
+       it needs no clearance of its own. z-index 94 keeps it under the docked
+       tabs at 95 and over the page at 80. */
+    .about-page .profile-header:not(.is-tab) {
+      position: sticky !important;
+      top: var(--ab-top-h, 0px);
+      z-index: 94;
+      opacity: 1;
+      background-color: var(--_tokens---color--bg) !important;
+    }
+    .about-page .career-header:not(.is-tab),
+    .about-page .skillset-header:not(.is-tab) {
+      margin: 0 !important;
+    }
 
-
-  /* ══ Phone: three headings, one open at a time ═══════════════════════
-     Built on the projects page. The identity is the top card and never
-     folds; the two other headings dock to the bottom within thumb reach,
-     reading bottom-to-top as Skillset then Professional Journey; whichever
-     one you tap fills the middle. All three are on screen the whole time, so
-     there is never a section you have to scroll to find.
-
-     Heights are measured, not written down — the breadcrumb dock moves with
-     the device's safe area and either bar can wrap. The script writes
-     --ab-dock-h, --ab-skill-h and --ab-career-h. */
-  @media (max-width: 699.98px) {
-    /* One panel shows; the other two are gone, not collapsed. The global
-       toggle writes max-height and opacity inline, so display is the only
-       thing that reliably wins here. */
+    /* ── One panel shows; the other two are gone, not collapsed ───────
+       The global toggle writes max-height and opacity inline, so display is
+       the only property that reliably decides this. */
     .about-page[data-panel] .page-toggle-panel {
       display: none !important;
     }
@@ -1823,52 +1872,6 @@ const skillsets = [
       margin-top: 0 !important;
     }
 
-    /* Skillset sits lowest, right above the breadcrumb. */
-    .about-page .skillset-header {
-      position: fixed !important;
-      left: 12px;
-      right: 12px;
-      /* A .profile-header rule below 1024 sets width:100% with !important;
-         left+right alone then measured 12px past the right edge. */
-      width: auto !important;
-      bottom: calc(var(--ab-dock-h, 66px) + 6px);
-      z-index: 95;
-      margin: 0 !important;
-      padding-block: 8px !important;
-      background-color: var(--_tokens---color--bg) !important;
-      border-bottom: none !important;
-    }
-    /* Professional Journey stacks directly above it. */
-    .about-page .career-header {
-      position: fixed !important;
-      left: 12px;
-      right: 12px;
-      width: auto !important;
-      bottom: calc(var(--ab-dock-h, 66px) + var(--ab-skill-h, 52px) + 12px);
-      z-index: 95;
-      margin: 0 !important;
-      padding-block: 8px !important;
-      background-color: var(--_tokens---color--bg) !important;
-      border-bottom: none !important;
-      border-top: none !important;
-    }
-    /* A docked heading is a control, so it is sized like one rather than
-       like the page title it is above 700. */
-    .about-page .career-header .profile-name,
-    .about-page .skillset-header .profile-name {
-      font-size: var(--_tokens---type--small);
-      font-weight: var(--_tokens---weight--strong);
-    }
-    /* The one that is open reads at full strength; the other steps back. */
-    .about-page .career-header,
-    .about-page .skillset-header {
-      opacity: 0.7;
-      transition: opacity var(--_tokens---motion--base) ease;
-    }
-    .about-page[data-panel="career"] .career-header,
-    .about-page[data-panel="skillset"] .skillset-header {
-      opacity: 1;
-    }
     .about-page .skillset-header__right {
       gap: 8px;
     }
@@ -1876,21 +1879,36 @@ const skillsets = [
       width: clamp(84px, 32vw, 140px);
     }
 
-    /* One surface behind the whole bottom stack, at z-index 80: above the
-       page content, below the two bars at 95. */
+    /* Surfaces behind the two docks, at z-index 80: above the page content,
+       below the tabs at 95. The top dock has no gaps between its tabs, but a
+       fractional height still leaves a hairline of card showing through. */
+    .about-page::before,
     .about-page::after {
       content: '';
       position: fixed;
       left: 0;
       right: 0;
-      bottom: 0;
-      height: calc(var(--ab-dock-h, 66px) + var(--ab-skill-h, 52px) + var(--ab-career-h, 52px) + 24px);
       background-color: var(--_tokens---color--bg);
       z-index: 80;
       pointer-events: none;
     }
+    .about-page::before {
+      top: 0;
+      height: var(--ab-top-h, 0px);
+    }
+    .about-page::after {
+      bottom: 0;
+      height: calc(var(--ab-dock-h, 66px) + var(--ab-bot-h, 0px));
+    }
+
     .about-page {
-      padding-bottom: calc(var(--ab-dock-h, 66px) + var(--ab-skill-h, 52px) + var(--ab-career-h, 52px) + 36px);
+      padding-top: var(--ab-top-h, 0px);
+      padding-bottom: calc(var(--ab-dock-h, 66px) + var(--ab-bot-h, 0px) + 24px);
+    }
+    /* The breadcrumb docks to the bottom on this band, so the old top
+       clearance is 56px of nothing. */
+    .about-page .about-section--intro {
+      padding-top: 0;
     }
     /* The embedded footer is a second copy of the site nav on a page that
        already docks one. Gone here, same as every other phone page. */
@@ -2133,66 +2151,116 @@ const skillsets = [
     setupScrollToTop();
   });
 
-  // ── Phone: the About page is three headings and one open panel ──────
+  // ── Phone: three tabs, and the open one sits between them ───────────
   // Above 700 the page keeps its three independent fold toggles. Below it,
-  // exactly one panel is open, the identity is open on load, and the two
-  // other headings are docked at the bottom. Tapping a heading switches.
+  // exactly one section is open: the tabs before it dock to the top, the tabs
+  // after it dock to the bottom, and it sits in the gap.
+  //
+  // The offsets are computed here rather than written as a rule per state.
+  // Three tabs give nine top/bottom positions, every one of them a sum of
+  // heights that are measured — the identity tab is a tall card when open and
+  // a single row when closed, and the breadcrumb dock moves with the device's
+  // safe area.
   function initAboutPhonePanels() {
     const page = document.querySelector('.about-page') as HTMLElement | null;
     if (!page) return;
     const phone = window.matchMedia('(max-width: 699.98px)');
-    const TABS = [
-      { key: 'intro',    header: '.intro-header' },
-      { key: 'career',   header: '.career-header' },
-      { key: 'skillset', header: '.skillset-header' },
-    ];
+    const GAP = 6;
+    const ORDER = ['intro', 'career', 'skillset'];
+    const HEADER: Record<string, string> = {
+      intro: '.intro-header',
+      career: '.career-header',
+      skillset: '.skillset-header',
+    };
+    const headerEl = (key: string) =>
+      document.querySelector<HTMLElement>(HEADER[key]);
+
+    function clearInline() {
+      ORDER.forEach(key => {
+        const el = headerEl(key);
+        if (!el) return;
+        el.classList.remove('is-tab');
+        el.style.top = '';
+        el.style.bottom = '';
+      });
+      page!.style.removeProperty('--ab-top-h');
+      page!.style.removeProperty('--ab-bot-h');
+      page!.style.removeProperty('--ab-dock-h');
+    }
+
+    // Two passes on purpose: the classes decide how tall each tab is, so the
+    // heights cannot be read in the same frame they are set.
+    function layout() {
+      if (!phone.matches) { clearInline(); return; }
+      const active = page!.dataset.panel || 'intro';
+      const ai = Math.max(0, ORDER.indexOf(active));
+
+      ORDER.forEach((key, i) => {
+        const el = headerEl(key);
+        if (!el) return;
+        el.classList.toggle('is-tab', i !== ai);
+        const btn = el.querySelector('.page-toggle-btn');
+        btn?.setAttribute('aria-expanded', i === ai ? 'true' : 'false');
+      });
+
+      requestAnimationFrame(() => {
+        const dock = Math.round(
+          document.querySelector('.page-breadcrumb')?.getBoundingClientRect().height ?? 66
+        );
+        // Tabs above the open one stack downward from the top edge, flush
+        // against each other so they read as one block.
+        let top = 0;
+        ORDER.slice(0, ai).forEach(key => {
+          const el = headerEl(key);
+          if (!el) return;
+          el.style.bottom = '';
+          el.style.top = top + 'px';
+          top += Math.round(el.getBoundingClientRect().height);
+        });
+        // Tabs below it stack upward from the breadcrumb, so the last tab in
+        // the page's order is the one nearest your thumb.
+        let bottom = dock + GAP;
+        ORDER.slice(ai + 1).reverse().forEach(key => {
+          const el = headerEl(key);
+          if (!el) return;
+          el.style.top = '';
+          el.style.bottom = bottom + 'px';
+          bottom += Math.round(el.getBoundingClientRect().height) + GAP;
+        });
+        page!.style.setProperty('--ab-dock-h', dock + 'px');
+        page!.style.setProperty('--ab-top-h', top + 'px');
+        page!.style.setProperty('--ab-bot-h', (bottom - dock) + 'px');
+      });
+    }
 
     function show(key: string) {
       page!.dataset.panel = key;
-      TABS.forEach(t => {
-        const btn = document.querySelector<HTMLElement>(t.header + ' .page-toggle-btn');
-        btn?.setAttribute('aria-expanded', t.key === key ? 'true' : 'false');
-      });
-      // The skill cloud lays itself out in rows and cannot measure while
-      // its panel is display:none, so it is told to look again once shown.
+      layout();
+      // The skill cloud lays itself out in rows and cannot measure while its
+      // panel is display:none, so it is told to look again once shown.
       window.dispatchEvent(new Event('resize'));
-      // A new panel starts at its own top. Without this you can switch from a
-      // long section to a short one and land below everything it contains.
+      // A new section starts at its own top. Without this you can switch from
+      // a long one to a short one and land below everything it contains.
       window.scrollTo({ top: 0 });
-    }
-
-    function measure() {
-      if (!phone.matches) {
-        page!.style.removeProperty('--ab-dock-h');
-        page!.style.removeProperty('--ab-skill-h');
-        page!.style.removeProperty('--ab-career-h');
-        return;
-      }
-      const h = (sel: string, fallback: number) => {
-        const el = document.querySelector(sel);
-        return Math.round(el?.getBoundingClientRect().height ?? fallback);
-      };
-      page!.style.setProperty('--ab-dock-h', h('.page-breadcrumb', 66) + 'px');
-      page!.style.setProperty('--ab-skill-h', h('.skillset-header', 52) + 'px');
-      page!.style.setProperty('--ab-career-h', h('.career-header', 52) + 'px');
     }
 
     function apply() {
       if (phone.matches) {
-        if (!page!.dataset.panel) show('intro');
+        if (!page!.dataset.panel) page!.dataset.panel = 'intro';
+        layout();
       } else {
         delete page!.dataset.panel;
+        clearInline();
         // Hand the three sections back to the global fold toggles, open.
         document.querySelectorAll<HTMLElement>('.about-page .page-toggle-btn')
           .forEach(b => b.setAttribute('aria-expanded', 'true'));
       }
-      measure();
     }
 
     if (!(page as any)._phoneTabsWired) {
       (page as any)._phoneTabsWired = true;
-      TABS.forEach(t => {
-        const header = document.querySelector<HTMLElement>(t.header);
+      ORDER.forEach(key => {
+        const header = headerEl(key);
         if (!header) return;
         // Capture phase: the global [data-page-toggle] handler lives on the
         // button inside this header, and on the phone it must not also run —
@@ -2203,19 +2271,19 @@ const skillsets = [
           if (el.closest('input, a')) return;   // the skill search stays usable
           e.stopPropagation();
           e.preventDefault();
-          show(t.key);
+          show(key);
         }, true);
       });
       phone.addEventListener('change', apply);
-      window.addEventListener('resize', measure, { passive: true });
+      window.addEventListener('resize', layout, { passive: true });
       if ('ResizeObserver' in window) {
-        const ro = new ResizeObserver(() => measure());
-        ['.skillset-header', '.career-header', '.page-breadcrumb']
+        const ro = new ResizeObserver(() => layout());
+        [...ORDER.map(k => HEADER[k]), '.page-breadcrumb']
           .forEach(sel => { const el = document.querySelector(sel); if (el) ro.observe(el); });
       }
-      // Typing in the skill search should bring its panel forward.
+      // Typing in the skill search should bring its section forward.
       document.getElementById('skill-search')?.addEventListener('focus', () => {
-        if (phone.matches) show('skillset');
+        if (phone.matches && page!.dataset.panel !== 'skillset') show('skillset');
       });
     }
 
