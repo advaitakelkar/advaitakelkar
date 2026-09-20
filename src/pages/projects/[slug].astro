@@ -1326,12 +1326,13 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card__desc > :global(p:first-child)::-webkit-scrollbar {
         display: none;
       }
-    }
-    /* No pill on either band below 1024. The rule above this block already
-       forces the description open with !important, which beats the script's
-       inline clip — so there is never anything for a Read more to expand. */
-    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-readmore-btn {
-      display: none !important;
+      /* No pill in the narrow column: the rule above already forces the
+         description open with !important, which beats the script's inline
+         clip, so there is nothing for a Read more to expand. Below 700 the
+         description lives in the bottom card and the pill is wanted. */
+      .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-readmore-btn {
+        display: none !important;
+      }
     }
     /* Prompt box collapses behind the "Prompt" pill on mobile; the
        publisher/character logo strip is hidden on mobile entirely. */
@@ -4203,16 +4204,116 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       cursor: default;
     }
 
-    /* The facts, last. The script below moves the row out of the header to
-       the end of the page, where it is the final thing you read before the
-       nav bar — the same place the other phone pages put the row you read
-       last. In flow rather than fixed: a fixed row here sits in its own
-       compositing layer, and layers on this page are already doing enough
-       work without another one carrying a single line of text. */
-    .project-detail .project-card__metaline {
+    /* The name is the category name: same size, same weight. A project page
+       is one project's category page, so its title is set the way that title
+       is set rather than at display scale. */
+    .project-detail .project-name-title {
+      font-size: var(--_tokens---type--small);
+      font-weight: var(--_tokens---weight--strong);
+      line-height: 1.2;
+      letter-spacing: 0.01em;
+    }
+
+    /* ── The same bottom card a category page has ──────────────────
+       A project page is a category page with one project in it: the name is
+       the top card, the work fills the middle, and the words dock at the
+       bottom within thumb reach. People on top of that card, then the short
+       line, then the description behind a Read More — the same order, so the
+       two pages read as one design.
+
+       The facts take the slot the studio tabs take on a category page: the
+       row directly above the card. */
+    .project-detail .project-phone-card {
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      bottom: calc(var(--pp-dock-h, 66px) + 6px);
+      z-index: 95;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
       margin: 0;
-      padding-block: 12px 0;
-      border-top: 1px solid var(--_tokens---color--line-soft);
+      padding: 8px 0 10px;
+      background-color: var(--_tokens---color--bg);
+    }
+    .project-detail .project-card__metaline {
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      width: auto;
+      bottom: calc(var(--pp-dock-h, 66px) + var(--pp-card-h, 150px) + 18px);
+      z-index: 95;
+      margin: 0;
+      padding-block: 6px;
+      background-color: var(--_tokens---color--bg);
+    }
+
+    /* People on top, one scrolling row — the grid wraps on four names and
+       every extra row is height taken off the work above. */
+    .project-detail .project-phone-card .project-people {
+      order: -1;
+      display: flex !important;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      scrollbar-width: none;
+      gap: 8px;
+      margin: 0;
+      max-height: none !important;
+      opacity: 1 !important;
+    }
+    .project-detail .project-phone-card .project-people::-webkit-scrollbar { display: none; }
+    .project-detail .project-phone-card .project-people__person { flex: 0 0 auto; }
+    .project-detail .project-phone-card .project-people__avatar { width: 44px; height: 44px; }
+    /* The row is on the page now, so the pill that used to reveal it is not. */
+    .project-detail .project-credits-btn { display: none !important; }
+
+    .project-detail .project-phone-card .project-card__intro {
+      margin: 0;
+      font-size: var(--_tokens---type--micro);
+      font-weight: var(--_tokens---weight--strong);
+      line-height: 1.35;
+    }
+    .project-detail .project-phone-card .project-desc-readmore {
+      display: block;
+      margin: 0;
+    }
+    .project-detail .project-phone-card .project-card__desc {
+      font-size: var(--_tokens---type--ultrathin);
+      line-height: 1.45;
+      max-height: none !important;
+      overflow: visible !important;
+    }
+    /* Two lines collapsed; Read More opens the rest into a scrolling block
+       rather than letting the card grow without limit. */
+    .project-detail .project-phone-card .project-desc-readmore:not(.is-open) .project-card__desc {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden !important;
+    }
+    .project-detail .project-phone-card .project-desc-readmore.is-open .project-card__desc {
+      max-height: 34dvh !important;
+      overflow-y: auto !important;
+    }
+    .project-detail .project-phone-card .project-readmore-btn {
+      display: inline-flex !important;
+      margin-top: 4px;
+    }
+
+    /* One surface behind the whole bottom stack, at z-index 80. */
+    .project-detail::after {
+      content: '';
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: calc(var(--pp-dock-h, 66px) + var(--pp-card-h, 150px) + var(--pp-meta-h, 35px) + 24px);
+      background-color: var(--_tokens---color--bg);
+      z-index: 80;
+      pointer-events: none;
+    }
+    .project-detail {
+      padding-bottom: calc(var(--pp-dock-h, 66px) + var(--pp-card-h, 150px) + var(--pp-meta-h, 35px) + 36px);
     }
   }
 </style>
@@ -5593,25 +5694,95 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     initCopyPrompt();
   }
 
-  // ── Phone: the meta row reads last ──────────────────────────────────
-  // Year, location and status leave the header and become the final row of
-  // the page. Moved rather than duplicated, so there is one of them and the
-  // wider bands keep it where it was.
-  function placeProjectMeta() {
-    const detail = document.querySelector('.project-detail');
-    const meta = document.querySelector('.project-detail .project-card__metaline') as HTMLElement | null;
-    if (!detail || !meta) return;
+  // ── Phone: a project page is a category page with one project ───────
+  // The name is the top card, the work fills the middle, and the words dock
+  // at the bottom: people, then the short line, then the description behind a
+  // Read More. The pieces already exist — they are scattered through the
+  // header and the text block — so they are MOVED into one card rather than
+  // duplicated, and moved back above 700 where the page keeps its own layout.
+  function buildProjectPhoneCard() {
+    const detail = document.querySelector('.project-detail') as HTMLElement | null;
+    if (!detail) return;
     const phone = window.matchMedia('(max-width: 699.98px)').matches;
-    const home = document.querySelector('.project-detail .project-top-header');
-    if (phone) {
-      if (meta.parentElement !== detail) detail.appendChild(meta);
-    } else if (home && meta.parentElement !== home) {
-      home.appendChild(meta);
+    const meta = detail.querySelector('.project-card__metaline') as HTMLElement | null;
+    const people = detail.querySelector('.project-people') as HTMLElement | null;
+    const intro = detail.querySelector('.project-card__intro') as HTMLElement | null;
+    const desc = detail.querySelector('.project-desc-readmore') as HTMLElement | null;
+    let card = detail.querySelector('.project-phone-card') as HTMLElement | null;
+
+    if (!phone) {
+      // Put everything back where the wider bands expect it, then drop the card.
+      if (card) {
+        const home = detail.querySelector('.project-card__text-block');
+        const info = detail.querySelector('.project-card-info');
+        if (intro && home) home.insertBefore(intro, home.firstChild);
+        if (desc && home && intro) intro.after(desc);
+        if (people && info) info.appendChild(people);
+        card.remove();
+      }
+      const header = detail.querySelector('.project-top-header');
+      if (meta && header && meta.parentElement !== header) header.appendChild(meta);
+      detail.style.removeProperty('--pp-dock-h');
+      detail.style.removeProperty('--pp-card-h');
+      detail.style.removeProperty('--pp-meta-h');
+      return;
     }
+
+    if (!card) {
+      card = document.createElement('div');
+      card.className = 'project-phone-card';
+      // Astro scopes every selector in this file to a data-astro-cid-* attribute
+      // that only elements from the template carry. A div built here has none,
+      // so every rule written for it silently fails to match. Borrow the page's.
+      const cid = Array.from(detail.attributes).find(a => a.name.startsWith('data-astro-cid-'));
+      if (cid) card.setAttribute(cid.name, '');
+      detail.appendChild(card);
+    }
+    // Order in the card is people, short line, description. The people row is
+    // lifted to the top with flex order, so this stays the reading order.
+    if (intro && intro.parentElement !== card) card.appendChild(intro);
+    if (desc && desc.parentElement !== card) card.appendChild(desc);
+    if (people && people.parentElement !== card) card.appendChild(people);
+    if (meta && meta.parentElement !== detail) detail.appendChild(meta);
+    measureProjectPhoneCard();
   }
 
-  placeProjectMeta();
-  window.addEventListener('resize', placeProjectMeta, { passive: true });
-  document.addEventListener('astro:after-swap', placeProjectMeta);
+  // Heights are measured, never written down: the nav dock moves with the
+  // device's safe area, the people row may be absent, and Read More grows the
+  // card. Everything that has to clear the stack reads these three.
+  function measureProjectPhoneCard() {
+    const detail = document.querySelector('.project-detail') as HTMLElement | null;
+    if (!detail || !window.matchMedia('(max-width: 699.98px)').matches) return;
+    const h = (sel: string, fallback: number) => {
+      const el = document.querySelector(sel);
+      return Math.round(el?.getBoundingClientRect().height ?? fallback);
+    };
+    detail.style.setProperty('--pp-dock-h', h('.page-breadcrumb', 66) + 'px');
+    detail.style.setProperty('--pp-card-h', h('.project-detail .project-phone-card', 150) + 'px');
+    detail.style.setProperty('--pp-meta-h', h('.project-detail .project-card__metaline', 35) + 'px');
+  }
+
+  function initProjectPhoneCard() {
+    buildProjectPhoneCard();
+    window.addEventListener('resize', buildProjectPhoneCard, { passive: true });
+    if ('ResizeObserver' in window) {
+      const ro = new ResizeObserver(() => measureProjectPhoneCard());
+      ['.page-breadcrumb', '.project-detail .project-phone-card', '.project-detail .project-card__metaline']
+        .forEach(sel => { const el = document.querySelector(sel); if (el) ro.observe(el); });
+    }
+    // Read More opens the description in place; the card regrows and the row
+    // above it moves up with it.
+    document.querySelector('.project-detail .project-readmore-btn')?.addEventListener('click', () => {
+      const wrap = document.querySelector('.project-detail .project-desc-readmore');
+      if (window.matchMedia('(max-width: 699.98px)').matches && wrap) {
+        wrap.classList.toggle('is-open');
+        requestAnimationFrame(measureProjectPhoneCard);
+      }
+    });
+  }
+
+  initProjectPhoneCard();
+  document.addEventListener('astro:after-swap', initProjectPhoneCard);
+
 
 </script>
