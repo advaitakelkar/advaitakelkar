@@ -1872,6 +1872,88 @@ const skillsets = [
       margin-top: 0 !important;
     }
 
+
+    /* ══ Tabs inside a tab ════════════════════════════════════════════
+       Professional Journey's four sections stack the same way its own
+       heading does: the ones before the open section dock under the outer
+       top stack, the ones after it dock above the outer bottom stack, and
+       the open one pins between them. Same rule at both levels, so the page
+       behaves one way rather than two.
+
+       They stop being pills here. A pill row that scrolls sideways hides
+       whichever section you are not looking at; a stack of rows shows all
+       four at once, which is the whole point of the arrangement. */
+    .about-page[data-panel="career"] .about-tabs-container {
+      position: sticky;
+      top: var(--ab-sub-anchor, 0px);
+      z-index: 93;
+      display: block;
+      overflow: visible;
+      margin: 0 !important;
+      padding: 0 !important;
+      background-color: var(--_tokens---color--bg);
+    }
+    .about-page[data-panel="career"] .about-tab-btn {
+      display: flex;
+      width: 100%;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      border: none;
+      background: none;
+      border-radius: 0;
+      padding: 7px 0;
+      font-size: var(--_tokens---type--micro);
+      font-weight: var(--_tokens---weight--strong);
+      letter-spacing: 0;
+      color: var(--_tokens---color--fg);
+      white-space: nowrap;
+    }
+    /* Rows have room for the real names; the abbreviations were for pills. */
+    .about-page[data-panel="career"] .tab-label-full  { display: inline; }
+    .about-page[data-panel="career"] .tab-label-short { display: none; }
+    .about-page[data-panel="career"] .about-tab-btn .pill-arrow {
+      opacity: 1;
+    }
+    .about-page[data-panel="career"] .about-tab-btn:not(.is-active) {
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      width: auto;
+      z-index: 95;
+      background-color: var(--_tokens---color--bg);
+      opacity: 0.7;
+    }
+    .about-page[data-panel="career"] .about-tab-btn.is-active {
+      position: static;
+      opacity: 1;
+      /* The pill's inverted fill is for a pill. As a row, the open section is
+         marked the way every other open heading on this page is marked. */
+      background-color: transparent;
+      color: var(--_tokens---color--fg);
+      border-color: transparent;
+    }
+    /* Open points down, closed points north-east — the same two states the
+       section headings above it use. */
+    .about-page[data-panel="career"] .about-tab-btn.is-active .pill-arrow {
+      opacity: 1;
+      transform: rotate(135deg);
+    }
+    /* Only the open section's panel exists. The base rule lays all four out
+       and merely fades three of them to zero, which on this band is three
+       screens of invisible content between you and the docked rows. */
+    .about-page[data-panel="career"] .about-tab-panel {
+      display: none !important;
+    }
+    .about-page[data-panel="career"] .about-tab-panel.is-active {
+      display: flex !important;
+    }
+    /* Clear the two inner docks. */
+    .about-page[data-panel="career"] .about-career-panel {
+      padding-top: var(--ab-sub-top-h, 0px);
+      padding-bottom: var(--ab-sub-bot-h, 0px);
+    }
+
     .about-page .skillset-header__right {
       gap: 8px;
     }
@@ -1894,16 +1976,16 @@ const skillsets = [
     }
     .about-page::before {
       top: 0;
-      height: var(--ab-top-h, 0px);
+      height: var(--ab-top-seal-h, var(--ab-top-h, 0px));
     }
     .about-page::after {
       bottom: 0;
-      height: calc(var(--ab-dock-h, 66px) + var(--ab-bot-h, 0px));
+      height: calc(var(--ab-dock-h, 66px) + var(--ab-bot-h, 0px) + var(--ab-sub-bot-h, 0px));
     }
 
     .about-page {
       padding-top: var(--ab-top-h, 0px);
-      padding-bottom: calc(var(--ab-dock-h, 66px) + var(--ab-bot-h, 0px) + 24px);
+      padding-bottom: calc(var(--ab-dock-h, 66px) + var(--ab-bot-h, 0px) + var(--ab-sub-bot-h, 0px) + 24px);
     }
     /* The breadcrumb docks to the bottom on this band, so the old top
        clearance is 56px of nothing. */
@@ -1993,7 +2075,12 @@ const skillsets = [
 
       // Reset scroll position of career section to start from top
       if (careerSection) {
-        if (window.matchMedia('(max-width: 1023.98px)').matches) {
+        if (window.matchMedia('(max-width: 699.98px)').matches) {
+          // On the phone the section's heading is pinned and the rows are
+          // docked, so there is nothing to scroll INTO view — scrolling to
+          // the section's box just pushes the new content under the stack.
+          window.scrollTo({ top: 0 });
+        } else if (window.matchMedia('(max-width: 1023.98px)').matches) {
           const y = careerSection.getBoundingClientRect().top + window.pageYOffset - 48;
           window.scrollTo({ top: y, behavior: 'smooth' });
         } else {
@@ -2167,6 +2254,12 @@ const skillsets = [
     const phone = window.matchMedia('(max-width: 699.98px)');
     const GAP = 6;
     const ORDER = ['intro', 'career', 'skillset'];
+    // Professional Journey's own four sections, in the order they are written.
+    const SUB_ORDER = ['about', 'exhibitions', 'press', 'timeline'];
+    const subEl = (key: string) =>
+      document.querySelector<HTMLElement>('.about-tab-btn[data-tab="' + key + '"]');
+    const subTabsBar = () =>
+      document.querySelector<HTMLElement>('.about-tabs-container');
     const HEADER: Record<string, string> = {
       intro: '.intro-header',
       career: '.career-header',
@@ -2183,9 +2276,25 @@ const skillsets = [
         el.style.top = '';
         el.style.bottom = '';
       });
+      clearSubInline();
       page!.style.removeProperty('--ab-top-h');
       page!.style.removeProperty('--ab-bot-h');
       page!.style.removeProperty('--ab-dock-h');
+      page!.style.removeProperty('--ab-top-seal-h');
+    }
+
+    function clearSubInline() {
+      SUB_ORDER.forEach(key => {
+        const el = subEl(key);
+        if (!el) return;
+        el.style.top = '';
+        el.style.bottom = '';
+      });
+      const bar = subTabsBar();
+      if (bar) bar.style.top = '';
+      page!.style.removeProperty('--ab-sub-anchor');
+      page!.style.removeProperty('--ab-sub-top-h');
+      page!.style.removeProperty('--ab-sub-bot-h');
     }
 
     // Two passes on purpose: the classes decide how tall each tab is, so the
@@ -2230,6 +2339,47 @@ const skillsets = [
         page!.style.setProperty('--ab-dock-h', dock + 'px');
         page!.style.setProperty('--ab-top-h', top + 'px');
         page!.style.setProperty('--ab-bot-h', (bottom - dock) + 'px');
+
+        // ── The second level, when Professional Journey is the open one ──
+        // Its four sections stack by the same rule, starting where the open
+        // heading ends and finishing where the outer bottom stack begins.
+        if (active !== 'career') {
+          clearSubInline();
+          page!.style.setProperty('--ab-top-seal-h', top + 'px');
+          return;
+        }
+        const openHeader = headerEl('career');
+        const headerBottom = top + Math.round(openHeader?.getBoundingClientRect().height ?? 0);
+        const activeSub = SUB_ORDER.find(k => subEl(k)?.classList.contains('is-active')) ?? SUB_ORDER[0];
+        const si = Math.max(0, SUB_ORDER.indexOf(activeSub));
+
+        let subTop = headerBottom;
+        SUB_ORDER.slice(0, si).forEach(key => {
+          const el = subEl(key);
+          if (!el) return;
+          el.style.bottom = '';
+          el.style.top = subTop + 'px';
+          subTop += Math.round(el.getBoundingClientRect().height);
+        });
+        let subBottom = bottom + GAP;
+        SUB_ORDER.slice(si + 1).reverse().forEach(key => {
+          const el = subEl(key);
+          if (!el) return;
+          el.style.top = '';
+          el.style.bottom = subBottom + 'px';
+          subBottom += Math.round(el.getBoundingClientRect().height) + GAP;
+        });
+
+        const bar = subTabsBar();
+        if (bar) bar.style.top = subTop + 'px';
+        page!.style.setProperty('--ab-sub-anchor', subTop + 'px');
+        page!.style.setProperty('--ab-sub-top-h', (subTop - headerBottom) + 'px');
+        page!.style.setProperty('--ab-sub-bot-h', (subBottom - bottom) + 'px');
+        // Everything down to the open section's own row is opaque chrome.
+        page!.style.setProperty(
+          '--ab-top-seal-h',
+          (subTop + Math.round(bar?.getBoundingClientRect().height ?? 0)) + 'px'
+        );
       });
     }
 
@@ -2281,6 +2431,14 @@ const skillsets = [
         [...ORDER.map(k => HEADER[k]), '.page-breadcrumb']
           .forEach(sel => { const el = document.querySelector(sel); if (el) ro.observe(el); });
       }
+      // The career tab handler further up swaps is-active synchronously;
+      // this runs after it, so the layout reads the new state rather than
+      // the one it is replacing.
+      SUB_ORDER.forEach(key => {
+        subEl(key)?.addEventListener('click', () => {
+          if (phone.matches) requestAnimationFrame(layout);
+        });
+      });
       // Typing in the skill search should bring its section forward.
       document.getElementById('skill-search')?.addEventListener('focus', () => {
         if (phone.matches && page!.dataset.panel !== 'skillset') show('skillset');

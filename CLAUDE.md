@@ -604,6 +604,19 @@ it sets are what decide the heights it needs to read.
 Above 700px none of this applies: `data-panel` is removed, the inline offsets
 are cleared, and the page goes back to three independent fold toggles.
 
+Professional Journey's own four sections — Work EXP, Exhibitions, Press,
+Timeline — stack by the same rule one level down. The ones before the open
+section dock under the outer top stack, the ones after it dock above the outer
+bottom stack, and the open one pins between them. They stop being pills on
+this band: a pill row that scrolls sideways hides whichever section you are
+not looking at, which is the opposite of what the arrangement is for. The
+second level publishes `--ab-sub-anchor`, `--ab-sub-top-h` and
+`--ab-sub-bot-h`, and the seals and the page padding read both levels.
+
+Switching an inner section has to re-run the layout. The existing tab handler
+swaps `is-active` synchronously, so the phone layout hooks the same click and
+measures a frame later, on the new state rather than the one being replaced.
+
 
 ## CSS Conventions
 
