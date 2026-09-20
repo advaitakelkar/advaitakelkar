@@ -1310,21 +1310,21 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
        margin has to equal `top` or sticky snaps the bar down by the
        difference and paints it over the first card. */
     .projects-fixed-wrapper {
+      --stick-top: 56px;
       display: block;
       position: sticky;
-      top: 56px;
-      margin-top: 56px;
+      top: var(--stick-top);
+      margin-top: var(--stick-top);
       padding: 0;
       z-index: 90;
       border-bottom: 1px solid var(--_tokens---color--line-soft);
       box-sizing: border-box;
     }
-    /* The frosted backing only once it is actually pinned. Unpinned it sits
-       on the page like any other block and needs no surface of its own. */
+    /* Opaque once pinned, not frosted. At 92% the card text underneath stayed
+       legible straight through the bar — blur smears an image, it does not
+       hide 8% of a black glyph on a light ground. */
     .projects-fixed-wrapper.is-stuck {
-      background-color: color-mix(in srgb, var(--_tokens---color--bg) 92%, transparent);
-      -webkit-backdrop-filter: blur(18px);
-      backdrop-filter: blur(18px);
+      background-color: var(--_tokens---color--bg);
     }
     /* Open, the search field is 94px of display type — fine as a landing
        state, far too tall to carry down the page. Pinned, it stands down to
@@ -1344,6 +1344,24 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     }
     .projects-fixed-wrapper.is-stuck .projects-header {
       padding-block: 10px 8px;
+    }
+
+    /* The bar parks BELOW the breadcrumb, which is a row of floating pills
+       rather than a solid bar — so a 15px window of page was left between
+       the two, and cards scrolled visibly through it. This seals that strip
+       up to the top of the viewport. It sits at the wrapper's own z-index
+       (90), under the breadcrumb (100), so the pills still read on top of
+       it. Inset to the wrapper's width, which is also the cards' width, so
+       there is nothing outside it to cover. */
+    .projects-fixed-wrapper.is-stuck::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 100%;
+      height: var(--stick-top);
+      background-color: var(--_tokens---color--bg);
+      pointer-events: none;
     }
     .projects-page {
       padding-top: 0; /* clearance comes from the measured cards padding */
@@ -1533,9 +1551,17 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       box-sizing: border-box;
     }
     .projects-fixed-wrapper.is-stuck {
-      background-color: color-mix(in srgb, var(--_tokens---color--bg) 92%, transparent);
-      -webkit-backdrop-filter: blur(18px);
-      backdrop-filter: blur(18px);
+      background-color: var(--_tokens---color--bg);
+    }
+    .projects-fixed-wrapper.is-stuck::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 100%;
+      height: var(--stick-top, 0px);
+      background-color: var(--_tokens---color--bg);
+      pointer-events: none;
     }
     /* Same stand-down as desktop: a 70–88px field is a landing state, not
        something to carry down a phone screen. */
@@ -1717,13 +1743,16 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
      is what that space is for. */
 
   @media (max-width: 699.98px) {
-    /* Breadcrumb bottom-docks below 700, so nothing to clear at the top. */
-    .projects-fixed-wrapper { top: 0; }
+    /* Breadcrumb bottom-docks below 700, so nothing to clear or seal. */
+    .projects-fixed-wrapper { --stick-top: 0px; top: 0; }
   }
 
   @media (min-width: 700px) and (max-width: 1023.98px) {
     /* .page-main already pads this band by the bar height; match it. */
-    .projects-fixed-wrapper { top: var(--_tokens---layout--bar); }
+    .projects-fixed-wrapper {
+      --stick-top: var(--_tokens---layout--bar);
+      top: var(--stick-top);
+    }
   }
 
   /* Compact — the floor. Title, year, category, imagery. Nothing else. */
@@ -2618,50 +2647,45 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     (window as any)._projHeaderTimer = setTimeout(positionMobileProjectsHeader, 120);
   });
 
-  // ── Pinned state, and closing the panel on the way down ────────────
+  // ── Pinned state, and the panel following the scroll ───────────────
   // The wrapper's resting position and its sticky `top` are deliberately the
   // same value, so it never visually moves when it starts sticking — which
   // means position cannot tell you whether it is pinned. Scroll offset can.
   //
-  // Leaving the page is also what closes the filter panel. Carrying a 94px
-  // search field and a filter row down the page was the wrong half of the
-  // header to keep; scrolling collapses it to the compact bar, which is the
-  // one worth pinning. rAF-throttled, so this is one class toggle per frame
-  // at most.
+  // The panel tracks the top of the page: leaving the top closes it, coming
+  // back to the top opens it again. Carrying a 94px search field and a filter
+  // row down the page was the wrong half of the header to keep.
+  //
+  // It fires on the CROSSING, not on the position. Acting on position would
+  // mean the panel could never be closed by hand while at the top, or opened
+  // by hand while scrolled — it would spring back on the next frame. Acting
+  // on the crossing leaves anything the user does inside a zone alone.
+  // rAF-throttled, so this costs one check per frame at most.
   function setupStuckState() {
     const wrapper = document.querySelector('.projects-fixed-wrapper') as HTMLElement | null;
     if (!wrapper || (wrapper as any)._stuckWired) return;
     (wrapper as any)._stuckWired = true;
 
     const toggle = document.querySelector('[data-page-toggle="projects-filter-panel"]') as HTMLElement | null;
+    const isOpen = () => toggle?.getAttribute('aria-expanded') === 'true';
 
-    // Opening the panel on purpose while already scrolled outranks the
-    // auto-close, or the next wheel tick would shut it in the user's face.
-    // Returning to the top clears the exemption.
-    let respectManualOpen = false;
-    // Set while WE press the button, so the auto-close below is not mistaken
-    // for the user opening the panel on purpose.
-    let autoClosing = false;
-    toggle?.addEventListener('click', () => {
-      if (autoClosing) return;
-      requestAnimationFrame(() => {
-        respectManualOpen =
-          window.scrollY > 4 && toggle.getAttribute('aria-expanded') === 'true';
-      });
-    });
-
+    // null until the first run, so a page that loads already scrolled (a back
+    // navigation, a restored position) still gets its state corrected once.
+    let prevAtTop: boolean | null = null;
     let queued = false;
+
     const apply = () => {
       queued = false;
-      const scrolled = window.scrollY > 4;
-      wrapper.classList.toggle('is-stuck', scrolled);
-      if (!scrolled) respectManualOpen = false;
-      if (scrolled && !respectManualOpen && toggle?.getAttribute('aria-expanded') === 'true') {
-        autoClosing = true;
-        toggle.click();
-        requestAnimationFrame(() => { autoClosing = false; });
-      }
+      const atTop = window.scrollY <= 4;
+      wrapper.classList.toggle('is-stuck', !atTop);
+
+      const crossed = prevAtTop === null || atTop !== prevAtTop;
+      prevAtTop = atTop;
+      if (!crossed) return;
+
+      if (atTop !== isOpen()) toggle?.click();
     };
+
     const onScroll = () => {
       if (queued) return;
       queued = true;
