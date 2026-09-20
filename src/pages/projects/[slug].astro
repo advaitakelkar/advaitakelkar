@@ -4799,6 +4799,14 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     cardButtons.forEach(btn => {
       btn.addEventListener('click', () => {
         const idx = parseInt(btn.getAttribute('data-index') || '0', 10);
+        // On a phone the deck IS the page's image: the large one beside it is
+        // not rendered on that band, so a tap that only re-pointed it would
+        // change a picture the reader cannot see. Open it instead.
+        // openLightbox takes the image index and does its own goToPos.
+        if (window.matchMedia('(max-width: 699.98px)').matches) {
+          openLightbox(idx);
+          return;
+        }
         goToPos(order.indexOf(idx));
         updateDisplay(true);
         startAutoplay();
