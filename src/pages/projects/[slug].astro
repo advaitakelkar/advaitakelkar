@@ -4227,10 +4227,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
        The facts take the slot the studio tabs take on a category page: the
        row directly above the card. */
-    /* Two columns: everything you read on the left, the image the deck is
-       driving on the right. Full width it was a 120px band that pushed the
-       card to a third of the screen; beside the text it is the same height as
-       the words next to it and the card is shorter for it. */
+    /* One column of words. The image used to sit beside them; the deck above
+       shows it instead, scrolled so the active card stays on the top row. */
     .project-detail .project-phone-card {
       position: fixed;
       left: 12px;
@@ -4238,8 +4236,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       bottom: calc(var(--pp-dock-h, 66px) + 6px);
       z-index: 95;
       display: grid;
-      grid-template-columns: 1fr 104px;
-      column-gap: 10px;
+      grid-template-columns: 1fr;
       row-gap: 6px;
       align-items: start;
       margin: 0;
@@ -4274,24 +4271,11 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
        It is a band here, not a portrait: the slider's 2/3 ratio is 527px tall
        at full width, which is most of the screen for one image on a page whose
        whole deck is three across above it. Cropped to a strip instead. */
-    .project-detail .project-phone-card .project-col-right {
-      position: static !important;
-      top: auto !important;
-      grid-column: 2;
-      grid-row: 1 / 6;
-      width: 100%;
-      margin: 0;
-    }
-    .project-detail .project-phone-card .project-detail__active-wrap {
-      aspect-ratio: 2 / 3;
-      height: auto;
-      width: 100%;
-      min-height: 0;
-    }
-    .project-detail .project-phone-card .project-detail__active-img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
+    /* The single large image is gone from this band. The deck is showing the
+       same picture at the same moment, and two copies of it on one screen is
+       one too many. */
+    .project-detail .project-content-grid--card .project-col-right {
+      display: none !important;
     }
 
     /* Logo, counter and timer ring, directly above the facts. */
@@ -4313,11 +4297,20 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       margin: 0;
     }
 
-    /* The deck is the middle of the page: three across, the grid the phone
-       has room for. It was one wide column of 26 rows. */
+    /* The deck is the middle of the page: three across, and it scrolls in
+       the space between the name and the card rather than running the page
+       down 1500px. The script keeps the active card on the top row. */
     .project-detail :global(#deck-grid) {
       grid-template-columns: repeat(3, 1fr) !important;
       gap: 8px !important;
+      max-height: calc(100dvh - var(--pp-head-h, 40px) - var(--pp-card-h, 220px) - var(--pp-dock-h, 66px) - 40px);
+      overflow-y: auto;
+      scrollbar-width: none;
+      scroll-behavior: smooth;
+      overscroll-behavior: contain;
+    }
+    .project-detail :global(#deck-grid::-webkit-scrollbar) {
+      display: none;
     }
     /* "Gallery View" opened a view of the deck that is now the page itself. */
     .project-detail .gallery-view-row {
@@ -5781,7 +5774,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   // where they came from above 700px. Each element remembers its own origin
   // rather than the restore hard-coding a guess at it.
   const PHONE_CARD_PARTS = [
-    '.project-col-right',                  // the cover
     '.project-card-name-pagination-row',   // logo, counter, timer ring
     '.project-card__metaline',             // year, location, status
     '.project-card__intro',                // the short line
@@ -5869,6 +5861,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     };
     detail.style.setProperty('--pp-dock-h', h('.page-breadcrumb', 66) + 'px');
     detail.style.setProperty('--pp-card-h', h('.project-detail .project-phone-card', 220) + 'px');
+    detail.style.setProperty('--pp-head-h', h('.project-detail .project-top-header', 40) + 'px');
   }
 
   function initProjectPhoneCard() {
@@ -5879,6 +5872,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       ['.page-breadcrumb', '.project-detail .project-phone-card']
         .forEach(sel => { const el = document.querySelector(sel); if (el) ro.observe(el); });
     }
+    initDeckAutoScroll();
     document.querySelector('.project-detail .project-readmore-btn')?.addEventListener('click', () => {
       const wrap = document.querySelector('.project-detail .project-desc-readmore');
       if (window.matchMedia('(max-width: 699.98px)').matches && wrap) {
@@ -5886,6 +5880,32 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         requestAnimationFrame(measureProjectPhoneCard);
       }
     });
+  }
+
+  // The deck advances on its own and on tap. Whichever card is active is
+  // scrolled to the deck's top row, so the picture you are being shown is
+  // never below the fold. Watching the class rather than hooking the several
+  // places that set it — the timer, a tap and the arrow keys all land here.
+  function initDeckAutoScroll() {
+    const deck = document.getElementById('deck-grid');
+    if (!deck || (deck as any)._autoScroll) return;
+    (deck as any)._autoScroll = true;
+
+    const showActive = () => {
+      if (!window.matchMedia('(max-width: 699.98px)').matches) return;
+      const active = deck.querySelector('.deck-card-item.is-active') as HTMLElement | null;
+      if (!active) return;
+      // Offset within the deck, not the viewport: the deck is the scroller.
+      const top = active.offsetTop - deck.offsetTop;
+      if (Math.abs(deck.scrollTop - top) > 4) deck.scrollTop = top;
+    };
+
+    new MutationObserver(showActive).observe(deck, {
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+    showActive();
   }
 
   initProjectPhoneCard();
