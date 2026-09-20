@@ -2,10 +2,9 @@
 import Icon from './Icon.astro';
 import { getCollection } from 'astro:content';
 import PageLayout from '../layouts/PageLayout.astro';
-import fs from 'node:fs';
-import path from 'node:path';
-import { isProjectLocked, visibleProjectImages } from '../lib/content';
 import Arrow from './Arrow.astro';
+import ProjectStackCard from './ProjectStackCard.astro';
+import ImageLightbox from './ImageLightbox.astro';
 
 export interface Props {
   projects: any[];
@@ -30,32 +29,6 @@ const sorted = [...projects].sort((a, b) => {
 const tagMap = Object.fromEntries(allTags.map(t => [t.id, t.data.name]));
 const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
 const studioMap = Object.fromEntries(allStudios.map(s => [s.id, s.data.displayName]));
-
-// Resolve AI works preview images if any project is ai-works
-const aiWorksImages: string[] = [];
-try {
-  const aiWorksDir = path.resolve('public/images/ai-works');
-  if (fs.existsSync(aiWorksDir)) {
-    const folders = fs.readdirSync(aiWorksDir).filter(f => {
-      const fullPath = path.join(aiWorksDir, f);
-      return fs.statSync(fullPath).isDirectory();
-    }).sort();
-
-    for (const folder of folders) {
-      const folderPath = path.join(aiWorksDir, folder);
-      const files = fs.readdirSync(folderPath).filter(file => {
-        const ext = path.extname(file).toLowerCase();
-        return ['.png', '.jpg', '.jpeg', '.webp'].includes(ext);
-      }).sort();
-
-      if (files.length > 0) {
-        aiWorksImages.push(`/images/ai-works/${folder}/${files[0]}`);
-      }
-    }
-  }
-} catch (e) {
-  console.error("Error reading AI works folders in ProjectList:", e);
-}
 
 // Abbreviate project names for footer bubbles (same logic as Footer.astro)
 function abbrevName(name: string): string {
@@ -174,152 +147,9 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
       <!-- Project list — accordion cards -->
     <div class="project-cards-container" id="project-cards-container">
-      {sorted.map((p, i) => {
-        // ── The three axes, and the rule that no card says a thing twice ──
-        // The pills are the taxonomy: bucket, studio, discipline. They win,
-        // and any free-text field that merely restates one of them is dropped
-        // rather than printed again. Five SCAD projects named SCAD as both the
-        // studio and the Client; XBKC did the same with Studio Stumbles.
-        // Search reads data-tags / data-studio, which are built from the raw
-        // project data, so nothing here narrows what the page can find.
-        const dedupeKey = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
-        const categoryLabel = p.data.category ? (catMap[p.data.category.id] || p.data.category.id) : '';
-        const studioLabel = p.data.studio ? (studioMap[p.data.studio.id] || p.data.studio.id) : '';
-        const tagsArr = (p.data.tags ?? []).map(t => tagMap[t.id] || t.id);
-        // The three pills ARE the taxonomy, and they always survive: they are
-        // the only part of the card you can also filter by. A free-text field
-        // that merely restates one is the redundant half, so it drops instead
-        // — Client "SCAD" beside the SCAD studio pill, Program "Architecture"
-        // beside the Architecture discipline pill.
-        const axisLabels = new Set(
-          [categoryLabel, studioLabel, ...tagsArr].filter(Boolean).map(t => dedupeKey(String(t)))
-        );
-        // Ordered by how much it identifies the project. The responsive tiers
-        // below reveal the first N of these, so the order IS the priority.
-        const metaParts = [
-          { label: 'Year',     val: p.data.year },
-          { label: 'Location', val: p.data.location },
-          { label: 'Status',   val: p.data.status },
-        ].filter(m => m.val && !axisLabels.has(dedupeKey(String(m.val))));
-        // All images — cover first, then the rest; strip is horizontally scrollable
-        const allImgs: string[] = [];
-        if (p.id === 'ai-works') {
-          allImgs.push(...aiWorksImages);
-        } else {
-          if (p.data.coverImage) allImgs.push(p.data.coverImage);
-          if (p.data.multiImage) allImgs.push(...(p.data.multiImage as string[]));
-        }
-        // Scrub shows only the curated set when a project defines one
-        const scrubImgsRaw: string[] = (p.data.scrubImages as string[] | undefined)?.length
-          ? (p.data.scrubImages as string[])
-          : allImgs;
-        const isLocked = isProjectLocked(p.id, p.data?.passcode);
-        // A locked project shows no imagery anywhere in a listing.
-        const scrubImgs = visibleProjectImages(p.id, p.data?.passcode, scrubImgsRaw);
-        return (
-        <div
-          class:list={["project-card", isLocked && "is-locked"]}
-          data-name={p.data.name}
-          data-loc={p.data.location ?? ''}
-          data-year={p.data.year ?? ''}
-          data-client={p.data.client ?? ''}
-          data-status={p.data.status ?? ''}
-          data-size={p.data.size ?? ''}
-          data-program={p.data.program ?? ''}
-          data-cat={p.data.category ? (catMap[p.data.category.id] || p.data.category.id) : ''}
-          data-studio={studioLabel}
-          data-cat-id={p.data.category ? p.data.category.id : ''}
-          data-tags={(p.data.tags ?? []).map(t => tagMap[t.id] || t.id).join(',')}
-          data-tag-ids={(p.data.tags ?? []).map(t => t.id).join(',')}
-        >
-          <!-- Header -->
-          <div class="project-card__header">
-            <h2 class:list={["project-card__stack-name", isLocked && "is-locked"]}>{p.data.name}</h2>
-            <span class="project-card__stack-right">
-              <a
-                href={`/projects/${p.id}`}
-                class="project-card__pill"
-                aria-label={`Go to ${p.data.name}`}
-                title={`Go to ${p.data.name}`}
-              >
-                <Icon name="arrow" />
-              </a>
-            </span>
-          </div>
-
-          <div class="project-card__body">
-            <div class="project-card__body-inner">
-              <div class="project-card__columns">
-                <!-- Left: description -->
-                <div class="project-card__description-col">
-                  <p class="project-card__intro">{p.data.smallIntro}</p>
-                  {p.data.description && (
-                    <p class="project-card__desc">
-                      {p.data.description.replace(/<[^>]*>/g, '').substring(0, 120) + (p.data.description.replace(/<[^>]*>/g, '').length > 120 ? '...' : '')}
-                    </p>
-                  )}
-                </div>
-
-                <!-- Right: scrollable thumbnail strip (omitted entirely when a
-                     project has no images — no empty column) -->
-                {scrubImgs.length > 0 && (
-                <div class="project-card__image-col">
-                  <div class:list={['project-card__thumbs-scroll', scrubImgs.length < 5 && 'is-few']}>
-                    {scrubImgs.map((src, idx) => (
-                      <button
-                        type="button"
-                        class="project-card__thumb-item"
-                        data-src={src}
-                        data-alt={p.data.name}
-                        aria-label={`View image ${idx + 1} of ${p.data.name}`}
-                      >
-                        <img src={src} alt={`${p.data.name} ${idx + 1}`} loading="lazy" />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                )}
-              </div>
-
-              <!-- Bottom Bar -->
-              <div class="project-card__bottom-bar">
-                <div class="project-card__bottom-left">
-                  <div class="project-card__metaline">
-                    {metaParts.map((m) => (
-                      <button
-                        type="button"
-                        class="project-card__meta-item project-card__filter-pill"
-                        data-filter-value={String(m.val)}
-                        title={`Show only ${m.val}`}
-                      >
-                        <span class="project-card__meta-val">{m.val}</span>
-                        <Icon name="arrow" />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <!-- Three axes, widest first: bucket, then studio within it,
-                     then what the work actually is. Each says a different
-                     thing, so none of them repeats another. -->
-                <div class="project-card__bottom-right">
-                  {[categoryLabel, studioLabel, ...tagsArr].filter(Boolean).map(label => (
-                    <button
-                      type="button"
-                      class="project-card__filter-pill"
-                      data-filter-value={String(label)}
-                      title={`Show only ${label}`}
-                    >
-                      <span>{label}</span>
-                      <Icon name="arrow" />
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        );
-      })}
+      {sorted.map(p => (
+        <ProjectStackCard project={p} tagMap={tagMap} catMap={catMap} studioMap={studioMap} />
+      ))}
     </div>
     </div> <!-- End projects-top-section -->
 
@@ -352,38 +182,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       </div>
     </div>
 
-    <!-- Desktop hover preview — shared, top-level so it overlays all cards -->
-    <div class="project-card__hover-preview" id="desktop-preview">
-      <img class="project-card__hover-preview-img" id="desktop-preview-img" src="" alt="" />
-    </div>
-
-    <!-- Single full-screen frosted-glass background. The card's scrub strip is
-         lifted sharp on top; image fills the larger region; link + ✕ bar by the strip -->
-    <div class="project-lightbox" id="project-lightbox" aria-hidden="true">
-      <div class="project-lightbox__image-area" id="lightbox-image-area">
-        <img class="project-lightbox__img" id="lightbox-img" src="" alt="" />
-      </div>
-      {/* The name, its one-line intro and the summary — the same three things
-          the card carries, so opening an image does not cost you the context
-          you were reading. The whole heading is the link: title and arrow are
-          one target, which is why "Go to project" is gone. It said what the
-          arrow says. */}
-      <div class="project-lightbox__meta" id="lightbox-meta">
-        <a class="project-lightbox__heading" id="lightbox-heading" href="#">
-          <h2 class="project-lightbox__title" id="lightbox-title"></h2>
-          <span class="project-lightbox__go" aria-hidden="true">
-            <Icon name="arrow" />
-          </span>
-        </a>
-        <p class="project-lightbox__intro" id="lightbox-intro"></p>
-        <p class="project-lightbox__desc" id="lightbox-desc"></p>
-      </div>
-      <div class="project-lightbox__bar" id="lightbox-bar">
-        <button class="project-lightbox__close" id="lightbox-close" type="button" aria-label="Close image">
-          <Icon name="close" />
-        </button>
-      </div>
-    </div>
+    <ImageLightbox />
   </section>
 </PageLayout>
 
@@ -414,7 +213,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     :global(html) {
       overflow-anchor: none;
     }
-  }
+}
 
   @media (max-width: 699.98px) {
     :global(html) {
@@ -425,18 +224,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
          card settling against it is never cut by the selector or the search. */
       scroll-padding-bottom: 168px;
     }
-
-    /* The list is inverted here: it grows up out of the controls, so a card
-       comes to rest on its BOTTOM edge against them rather than its top edge
-       against the header. Snapping to `start` landed cards under the control
-       stack with their lower half cut off.
-       Qualified by the container because the base rule is the same single
-       class — a media query adds no specificity, so without this the later of
-       the two simply wins and the alignment never changed. */
-    .project-cards-container .project-card {
-      scroll-snap-align: end;
-    }
-  }
+}
 
   .projects-page {
     padding-top: calc(clamp(2rem, 5vh, 3rem) + 48px); /* = home hero padding */
@@ -450,13 +238,13 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     .projects-page {
       padding-top: 0;
     }
-  }
+}
 
   @media (max-width: 699.98px) {
     .projects-page {
       padding-bottom: 80px; /* space for mobile bottom docked breadcrumbs */
     }
-  }
+}
 
   /* Sticky search + filter bar — sticks below the breadcrumb; the title above
      it scrolls away normally */
@@ -580,10 +368,6 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     padding-bottom: 4px;
   }
 
-  .projects-fixed-wrapper:has(.page-toggle-btn[aria-expanded="false"]) + .project-cards-container {
-    margin-top: 0;
-  }
-
   @media (max-width: 1023.98px) {
     .projects-title {
       font-size: var(--_tokens---type--medium) !important;
@@ -593,7 +377,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       text-transform: none !important;
       color: var(--_tokens---color--fg) !important;
     }
-  }
+}
 
   .projects-count {
     font-size: var(--_tokens---type--micro);
@@ -675,7 +459,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     background-color: var(--_tokens---color--fg);
     color: var(--_tokens---color--bg);
   }
-  }
+}
 
   /* Filters (Dropdown Category + Scrollable Tag Picker) */
   .filter-bar {
@@ -709,7 +493,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     .filter-group--tags:hover {
     opacity: 1; /* activated */
   }
-  }
+}
 
   .filter-label {
     font-size: var(--_tokens---type--micro);
@@ -735,7 +519,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     .filter-select-wrap:hover {
     opacity: 1; /* activated */
   }
-  }
+}
 
   .filter-select {
     appearance: none;
@@ -760,7 +544,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     .filter-select:hover {
     background-color: color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
   }
-  }
+}
 
   .filter-select option {
     background-color: var(--_tokens---color--bg);
@@ -826,7 +610,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     background-color: color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
     opacity: 1;
   }
-  }
+}
 
   .tag-scroll-arrow:disabled {
     opacity: 0.15;
@@ -885,482 +669,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     color: var(--_tokens---color--bg);
     border-color: var(--_tokens---color--fg);
   }
-  }
-
-  /* ── Card snapping ──────────────────────────────────────────────────
-     Each card slots under the pinned bar as you scroll, so the list settles
-     on a whole card rather than halfway through one.
-
-     `proximity`, not `mandatory`. Mandatory snaps from anywhere, which fights
-     the user on a card taller than the viewport — you can end up unable to
-     reach the middle of one. Proximity only pulls when you are already close,
-     which is the resistance this wants and nothing more.
-
-     The inset that keeps a snapped card clear of the bar is scroll-padding on
-     the scrollport, and ONLY that. Setting scroll-margin on the cards as well
-     stacks the two: cards landed a full bar-height too low, identically at
-     every nudge, which is what a double inset looks like rather than a broken
-     snap. It is measured, because the bar's height changes when the search
-     panel folds and again between bands. */
-  .project-card {
-    scroll-snap-align: start;
-  }
-
-  /* ── Accordion Card List ── */
-  .project-cards-container {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    margin-top: 8px; /* sticky bar is in normal flow now — no big clearance needed */
-  }
-
-  .project-card {
-    width: 100%;
-    box-sizing: border-box;
-    cursor: default;
-    background-color: color-mix(in srgb, var(--_tokens---color--fg) 2.5%, var(--_tokens---color--bg));
-    border-top: none;
-    border-left: none;
-    border-right: none;
-    border-bottom: 1px solid var(--_tokens---color--line-soft);
-    padding-block: 16px 14px;
-    border-radius: 0;
-    overflow: visible;
-    box-shadow: 0 8px 24px -10px color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
-    /* No isolation: the fixed hover-preview must escape the card's stacking
-       context so the image floats above ALL cards, not just its own */
-  }
-
-  .project-card.is-keyboard-selected {
-    background-color: color-mix(in srgb, var(--_tokens---color--fg) 8%, var(--_tokens---color--bg));
-    outline: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 30%, transparent);
-    outline-offset: -1px;
-  }
-
-  .project-card[hidden] { display: none !important; }
-
-  /* ── Always-visible header strip ── */
-  .project-card__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 4px 20px 6px;
-    user-select: none;
-  }
-
-  .project-card__stack-name {
-    font-size: clamp(2rem, 1.375rem + 3.5vw, 4rem); /* between --type--medium and --type--big */
-    font-weight: var(--_tokens---weight--base);
-    letter-spacing: -0.01em;
-    /* A project name is never truncated, at any width — it is the one field
-       every tier has to deliver in full. `nowrap` + ellipsis used to cut 16
-       of 50 names at 390px and still clipped the longest four on desktop
-       ("TOQW Tower of Quiet Witness"). Two lines at full scale instead. */
-    white-space: normal;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    color: var(--_tokens---color--fg);
-    transition: opacity var(--_tokens---motion--base) ease;
-    margin: 0;
-  }
-
-  /* ── Protected vs live projects ──────────────────────────────────────
-     A locked project is still listed — the point is that it exists, not
-     that it is readable — so the whole card recedes rather than only its
-     title. Before this, muting stopped at the name and the intro, summary
-     and pills below it were rendered at full strength, so a protected card
-     read as live from the second line down.
-
-     Carried on the text, not the card, so the border and background keep
-     the list's rhythm and a locked row does not punch a hole in it. The
-     arrow stays more legible than the copy: it is the one thing you can
-     still act on. */
-  .project-card.is-locked .project-card__stack-name,
-  .project-card.is-locked .project-card__intro,
-  .project-card.is-locked .project-card__desc,
-  .project-card.is-locked .project-card__bottom-bar {
-    opacity: 0.32;
-    transition: opacity var(--_tokens---motion--base) ease;
-  }
-
-  .project-card.is-locked .project-card__pill {
-    opacity: 0.55;
-  }
-
-  @media (hover: hover) {
-    .project-card.is-locked:hover .project-card__stack-name,
-    .project-card.is-locked:hover .project-card__intro,
-    .project-card.is-locked:hover .project-card__desc,
-    .project-card.is-locked:hover .project-card__bottom-bar {
-      opacity: 0.5;
-    }
-    .project-card.is-locked:hover .project-card__pill {
-      opacity: 1;
-    }
-  }
-
-  .project-card__stack-right {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-shrink: 0;
-  }
-
-  .project-card__stack-tags,
-  .project-card__stack-year {
-    font-size: var(--_tokens---type--micro);
-    font-weight: var(--_tokens---weight--light);
-    color: var(--_tokens---color--muted);
-    white-space: nowrap;
-  }
-
-  /* ── Pill / CTA button ── */
-  /* The label is gone and the arrow carries the whole affordance, so the pill
-     becomes the circle that holds it. --arrow--lg is the step the design
-     system specifies for exactly this case: a standalone row where the arrow
-     IS the control, rather than a glyph trailing a word. */
-  .project-card__pill {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 44px;
-    height: 44px;
-    padding: 0;
-    gap: 0;
-    font-size: var(--_tokens---type--small);
-    font-weight: var(--_tokens---weight--base);
-    color: var(--_tokens---color--fg);
-    text-decoration: none;
-    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
-    border-radius: 50%;
-    white-space: nowrap;
-    flex-shrink: 0;
-    --icon-size: var(--_tokens---arrow--lg);
-    transition: background-color var(--_tokens---motion--base) ease, border-color var(--_tokens---motion--base) ease, color var(--_tokens---motion--base) ease;
-  }
-
-  .project-card__pill svg {
-    transition: transform var(--_tokens---motion--base) ease;
-  }
-
-  @media (hover: hover) {
-    .project-card__pill:hover {
-    background-color: var(--_tokens---color--fg);
-    color: var(--_tokens---color--bg);
-    border-color: var(--_tokens---color--fg);
-  }
-  }
-
-  @media (hover: hover) {
-    .project-card__pill:hover svg { transform: translate(2px, -2px); }
-  }
-
-  /* Cards are always open — no accordion, no clipping */
-  .project-card__body {
-    overflow: visible;
-  }
-
-  .project-card__body-inner {
-    position: relative;
-    overflow: visible;
-    min-height: 0;
-  }
-
-  .project-card__columns {
-    display: flex;
-    flex-direction: row;
-    width: 100%;
-    min-height: 76px;
-    overflow: visible;
-    position: relative;
-  }
-
-  .project-card__description-col {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding: 2px 20px 6px;
-    box-sizing: border-box;
-  }
-
-  .project-card__intro {
-    font-size: var(--_tokens---type--small);
-    font-weight: var(--_tokens---weight--strong); /* semibold */
-    line-height: 1.4; /* slightly tighter */
-    color: var(--_tokens---color--muted);
-    margin: 0;
-    max-width: 62ch;
-  }
-
-  .project-card__desc {
-    font-size: var(--_tokens---type--micro); /* micro size */
-    line-height: 1.55;
-    color: var(--_tokens---color--muted);
-    margin: 0;
-    max-width: 62ch;
-    opacity: 0.85;
-  }
-
-  .project-card__image-col {
-    width: 40%;
-    flex-shrink: 0;
-    overflow: hidden;
-    position: relative;
-    display: flex;
-    align-items: stretch;
-    background: none;
-  }
-
-  /* ── Thumbnail strip: shows exactly 5 thumbs; >5 scrolls horizontally ── */
-  .project-card__thumbs-scroll {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: flex-start;
-    overflow: hidden; /* strip never scrolls — JS prunes it to 5 random thumbs */
-    width: 100%;
-    height: 100%;
-    gap: 0;
-    padding: 0;
-    background: none;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .project-card__thumbs-scroll::-webkit-scrollbar { display: none; }
-
-  /* Fewer than 5 images → arrange from the right (no scroll needed) */
-  .project-card__thumbs-scroll.is-few { justify-content: flex-end; }
-
-  /* Square thumbnails sized so 5 fill the strip; a 6th+ overflows → scroll */
-  .project-card__thumb-item {
-    all: unset;
-    flex: 0 0 20%; /* 5 thumbs filling the strip completely */
-    aspect-ratio: 1;
-    max-height: 100%;
-    overflow: hidden;
-    cursor: crosshair;
-    position: relative;
-  }
-
-  .project-card__thumb-item img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center;
-    display: block;
-    transition: opacity var(--_tokens---motion--fast) ease, filter var(--_tokens---motion--fast) ease;
-  }
-
-  /* While a preview is active the scrubbed thumbnail stays in colour and the
-     rest go grayscale, so the active one reads. They stay legible though —
-     at 0.5 the strip washed out into the glass and you could not see what you
-     were dragging through, which is the one control the preview has. */
-  .project-card.is-previewing .project-card__thumb-item img {
-    filter: grayscale(1);
-    opacity: 0.8;
-  }
-  .project-card.is-previewing .project-card__thumb-item.is-active img {
-    filter: none;
-    opacity: 1;
-  }
-
-  /* ── Scrub preview: big image filling the left 60% of the viewport, centered,
-        independent of card height. Fixed → escapes the card bounds entirely. ── */
-  .project-card__hover-preview {
-    position: fixed;
-    left: var(--_tokens---layout--nav); /* clear the side-nav index bar */
-    top: 0;     /* grows up beneath the frosted breadcrumb (it sits over the image) */
-    bottom: 0;
-    width: 56vw; /* left ~60% of the screen, minus the side-nav bar */
-    z-index: 95; /* above all cards, under breadcrumb (100) + sidenav (200) */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 48px;
-    box-sizing: border-box;
-    background-color: var(--_tokens---color--bg-glass); /* same glass as the mobile preview / breadcrumb */
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity var(--_tokens---motion--base) ease;
-  }
-
-  .project-card__hover-preview.is-visible {
-    opacity: 1;
-    pointer-events: none; /* scrubbing passes through to the thumbnails */
-  }
-
-  /* As big as it can fit in the left 60%, centered. Portrait images go tall. */
-  .project-card__hover-preview-img {
-    max-width: 100%;
-    max-height: 90vh;
-    width: auto;
-    height: auto;
-    object-fit: contain;
-    display: block;
-  }
-
-  /* No placeholder art: projects without images leave the space empty */
-
-  /* One left-aligned line: the facts, then the taxonomy. The pills used to be
-     pushed to the right edge on their own axis, which read as a second,
-     competing column. Everything now sits on the reading edge at the smallest
-     step on the type scale, so the card has one baseline to scan, not two. */
-  .project-card__bottom-bar {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: flex-start;
-    flex-wrap: nowrap;
-    padding: 6px 20px 4px;
-    box-sizing: border-box;
-    font-size: var(--_tokens---type--ultrathin);
-    color: var(--_tokens---color--muted);
-    gap: var(--_tokens---pill-gap);
-    min-width: 0;
-    /* Hidden-scrollbar strip rather than a clip, so a long combination stays
-       reachable instead of being cut off. initScrollFades() finds this by
-       inspection and adds the affordance. */
-    overflow-x: auto;
-    overflow-y: hidden;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .project-card__bottom-bar::-webkit-scrollbar {
-    display: none;
-  }
-
-  /* Says "there is more to the right" without a scrollbar. Anchored to the
-     padding box, so it stays at the edge while the row scrolls under it. A
-     row that fits ends before the fade zone and is untouched — which is why
-     this needs no JS to detect the overflow. */
-  .project-card__bottom-bar {
-    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 20px), transparent 100%);
-    mask-image: linear-gradient(to right, #000 calc(100% - 20px), transparent 100%);
-  }
-
-  .project-card__bottom-left {
-    display: flex;
-    align-items: center;
-    flex: 0 0 auto;
-  }
-
-  .project-card__bottom-right {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    flex-wrap: nowrap;
-    gap: var(--_tokens---pill-gap);
-    flex: 0 0 auto;
-    font-weight: var(--_tokens---weight--light);
-  }
-
-  /* One pill spec for all three axes — bucket, studio and discipline are the
-     same kind of object, so they get the same object's styling. On the house
-     tokens (xs padding, the mid border that holds against body text) rather
-     than the hand-rolled values this used to carry. */
-  /* All six are the same object and now the same control: every value on the
-     row filters the list to the projects that share it. One spec, on the
-     house tokens, with the arrow that means "this goes somewhere". */
-  .project-card__filter-pill,
-  .project-card__meta-item {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--_tokens---pill-gap--xs);
-    color: var(--_tokens---color--muted);
-    background: color-mix(in srgb, var(--_tokens---color--fg) 5%, transparent);
-    border: var(--_tokens---pill-border--mid);
-    border-radius: var(--_tokens---radius--pill);
-    padding: var(--_tokens---pill-pad--xs);
-    font-family: inherit;
-    font-size: var(--_tokens---type--ultrathin);
-    font-weight: var(--_tokens---weight--light);
-    line-height: 1.1;
-    white-space: nowrap;
-    cursor: pointer;
-    /* Ultrathin label, so the small step on the arrow scale. */
-    --icon-size: var(--_tokens---arrow--sm);
-    transition: background-color var(--_tokens---motion--base) ease,
-                border-color var(--_tokens---motion--base) ease,
-                color var(--_tokens---motion--base) ease;
-  }
-
-  .project-card__filter-pill svg,
-  .project-card__meta-item svg {
-    flex-shrink: 0;
-    opacity: 0.55;
-    transition: opacity var(--_tokens---motion--base) ease;
-  }
-
-  @media (hover: hover) {
-    .project-card__filter-pill:hover,
-    .project-card__meta-item:hover {
-      background-color: var(--_tokens---color--fg);
-      color: var(--_tokens---color--bg);
-      border-color: var(--_tokens---color--fg);
-    }
-    .project-card__filter-pill:hover svg,
-    .project-card__meta-item:hover svg {
-      opacity: 1;
-    }
-  }
-
-  .project-card__filter-pill:focus-visible,
-  .project-card__meta-item:focus-visible {
-    outline: 2px solid var(--_tokens---color--fg);
-    outline-offset: 2px;
-  }
-
-  .project-card__metaline {
-    display: flex;
-    flex-wrap: nowrap;
-    align-items: center;
-    gap: var(--_tokens---pill-gap);
-    font-size: var(--_tokens---type--ultrathin);
-    white-space: nowrap;
-  }
-
-  /* Every item on the row is the same object, so it gets the same object's
-     styling — see .project-card__filter-pill, which this shares a rule with.
-     Dot separators are gone: pills carry their own edges, and a dot between
-     two of them reads as a third thing. */
-  .project-card__meta-item { flex-shrink: 0; }
-  .project-card__meta-val { color: inherit; font-weight: inherit; }
-
-  /* ── Meta ladder ───────────────────────────────────────────────────────
-     metaParts is ordered Year, Location, Status — most identifying first —
-     so each tier reveals the first N and never repeats the tier below.
-       compact  (<700)      Year
-       medium+  (>=700)     + Location, Status
-     Client and Program are deliberately absent. Both were long enough to
-     outweigh the whole rest of the row ("Specialty Restaurants Private
-     Limited", "Hospitality Interior") while identifying the project less
-     than its year does, and Program largely restated the discipline pill.
-     The >=1024 step for this row is therefore a no-op by design; the
-     n + 4 rule below is kept so the ladder still holds if a field returns. */
-  @media (max-width: 699.98px) {
-    .project-card__meta-item:nth-child(n + 2) {
-      display: none;
-    }
-  }
-
-  @media (min-width: 700px) and (max-width: 1023.98px) {
-    .project-card__meta-item:nth-child(n + 4) {
-      display: none;
-    }
-  }
-
-  .project-card__pill--cta {
-    padding: 8px 16px;
-    font-size: var(--_tokens---type--small);
-  }
+}
 
   .projects-top-section {
     position: relative;
@@ -1463,7 +772,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     .tag-picker-container {
       max-width: none;
     }
-  }
+}
   /* No gutter here. The wrapper is in-flow inside .page-main, which already
      applies it — adding it again inset the title/search/filters twice as far
      as the cards below them at wide widths. (This dates from when the wrapper
@@ -1547,7 +856,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     opacity: 0.6;
     margin-left: 0;
   }
-  }
+}
 
   .proj-bubble__arrow {
     flex-shrink: 0;
@@ -1566,13 +875,13 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     border-color: var(--_tokens---color--fg);
     transform: translateY(-1px);
   }
-  }
+}
 
   @media (hover: hover) {
     .proj-bubble:hover .proj-bubble__arrow {
     opacity: 1;
   }
-  }
+}
 
   /* Search match state */
   .proj-bubble.is-match {
@@ -1585,7 +894,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     .proj-bubble.is-match:hover {
     transform: translateY(-1px);
   }
-  }
+}
 
   /* Active search: dim non-matching bubbles */
   .proj-bubbles.has-search .proj-bubble:not(.is-match) {
@@ -1596,7 +905,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     .proj-bubbles.has-search .proj-bubble:not(.is-match):hover {
     opacity: 1;
   }
-  }
+}
 
   @media (max-width: 1023.98px) {
     /* Fixed header stack: title, search bar, and filter bar all pin to the
@@ -1671,10 +980,6 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     .projects-sticky-header::before {
       display: none;
     }
-    /* Header scrolls in-flow above the cards now — no big offset needed. */
-    .project-cards-container {
-      padding-top: 8px;
-    }
 
     .projects-search-bar {
       margin: 0 0 8px;
@@ -1732,77 +1037,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       overflow-x: auto;
       overflow-y: hidden;
     }
-    /* (Top spacing above the cards now comes entirely from the fixed
-       header stack's measured height, applied as padding-top above.) */
-    /* Mobile card: name + short intro + scrub strip. Flush left/right. */
-    .project-card__header {
-      padding: 10px 0;
-    }
-    .project-card__bottom-bar {
-      display: flex;
-      padding: 8px 0 10px;
-    }
-    /* The meta line carries the year below 1024 — it is the one fact that
-       places a project, and the ladder above decides how much of it shows. */
-    .project-card__bottom-left {
-      display: block;
-      min-width: 0;
-    }
-    .project-card__bottom-right {
-      justify-content: flex-start;
-    }
-    /* All cards open by default on mobile — no collapsing */
-    .project-card__body {
-      max-height: none;
-      overflow: visible;
-    }
-    .project-card__body-inner {
-      overflow: visible;
-    }
-    /* Same circle as desktop, one step smaller so the name keeps the width.
-       This used to strip the border and background back to a bare arrow;
-       the control is a circle at every width now. */
-    .project-card__pill {
-      width: 38px;
-      height: 38px;
-    }
-    .project-card__columns {
-      flex-direction: column;
-      min-height: auto;
-    }
-    .project-card__image-col {
-      width: 100%;
-      height: auto;
-    }
-    /* Strip is flush left/right; 5 thumbs fit the row, anything beyond 5 scrolls horizontally */
-    .project-card__thumbs-scroll {
-      justify-content: flex-start;
-      padding: 0;
-    }
-    .project-card__thumbs-scroll.is-few { justify-content: flex-start; } /* always left-aligned on mobile */
-    .project-card__thumb-item {
-      flex: 0 0 20%;
-      width: auto;
-      height: auto;
-      aspect-ratio: 1;
-    }
-    /* While the lightbox is open: lift the card's strip ABOVE the full glass
-       (now z210, raised to cover the sidenav) so the thumbnails stay sharp,
-       and disable native scroll so the drag scrubs. Must stay above 210 or
-       the frosted glass hides the strip entirely. */
-    .project-card.is-previewing .project-card__thumbs-scroll {
-      position: relative;
-      z-index: 211;
-      /* pan-x: the strip stays horizontally scrollable while the lightbox
-         is open (needed beyond ~5 thumbs); dragging still scrubs — the
-         preview follows whichever thumb passes under the finger */
-      touch-action: pan-x;
-    }
-    /* The in-card scrub preview is desktop-only — mobile uses the lightbox below */
-    .project-card__hover-preview {
-      display: none !important;
-    }
-  }
+}
 
   /* ── Responsive data tiers ─────────────────────────────────────────────
      One card, three densities. Each tier strictly ADDS to the one below it,
@@ -1840,7 +1075,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     .projects-collapsed-search {
       font-size: min(var(--_tokens---type--medium), 0.35rem + 5.45vw);
     }
-  }
+}
 
   @media (min-width: 700px) and (max-width: 1023.98px) {
     /* .page-main already pads this band by the bar height; match it. */
@@ -1848,13 +1083,10 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       --stick-top: var(--_tokens---layout--bar);
       top: var(--stick-top);
     }
-  }
+}
 
   /* Compact — the floor. Title, year, category, imagery. Nothing else. */
   @media (max-width: 699.98px) {
-    .project-card__description-col {
-      display: none;
-    }
 
     /* ── Mobile: one layout, no tab ──────────────────────────────────
        The phone gets a single arrangement rather than an open and a closed
@@ -1978,594 +1210,8 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     .projects-page {
       padding-bottom: 186px;
     }
-
-    /* Cards stack upward out of the controls. In column-reverse the main axis
-       runs bottom-to-top, so items pack against the BOTTOM — which is what
-       stops a short result set stranding itself at the top of the screen with
-       a gap above the controls, as a four-result search did. The min-height
-       is what gives them a full screen to sit at the bottom of.
-       Visual order only: DOM order, and with it reading and tab order, is
-       unchanged. */
-    .project-cards-container {
-      flex-direction: column-reverse;
-      justify-content: flex-start;
-      min-height: calc(100dvh - 210px);
-    }
-
-    /* Tighter card rhythm: more of the list on screen per scroll. */
-    .project-cards-container {
-      gap: 10px;
-    }
-    .project-card {
-      padding-block: 10px 8px;
-    }
-    .project-card__header {
-      padding: 4px 0;
-    }
-    .project-card__bottom-bar {
-      padding: 4px 0 2px;
-    }
-    /* The arrow costs every pill ~13px, which on a phone is the difference
-       between the row fitting and the row scrolling. Buy it back from the
-       padding and the gaps rather than from the arrow itself. */
-    .project-card__bottom-bar,
-    .project-card__bottom-right,
-    .project-card__metaline {
-      gap: 5px;
-    }
-    /* One line per name, at --type--medium. The name takes only the width it
-       needs and the arrow follows immediately, so a short name is a short row
-       rather than a name marooned from a control on the far edge. A name too
-       long for the line ends in an ellipsis and the arrow still closes it. */
-    .project-card__header {
-      justify-content: flex-start;
-      gap: 8px;
-    }
-    .project-card__stack-name {
-      font-size: var(--_tokens---type--medium);
-      line-height: 1.2;
-      white-space: nowrap;
-      display: block;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      flex: 0 1 auto;
-      min-width: 0;
-    }
-    /* The ring is a desktop affordance. Here the arrow sits in the line of
-       text it belongs to, with nothing drawn around it. */
-    .project-card__stack-right {
-      flex: 0 0 auto;
-    }
-    .project-card__pill {
-      width: auto;
-      height: auto;
-      border: none;
-      background: none;
-      padding: 0;
-      --icon-size: var(--_tokens---arrow--md);
-    }
-    @media (hover: hover) {
-      .project-card__pill:hover {
-        background: none;
-        color: var(--_tokens---color--fg);
-      }
-    }
-
-    /* ── Two densities ───────────────────────────────────────────────
-       At rest — top of the page, nothing searched — a card carries its
-       imagery and its pills. The moment you are scrolling or filtering both
-       drop away and the list becomes names and arrows: at that point you are
-       looking for one project, not browsing them. */
-    /* ── What a card carries here ────────────────────────────────────
-       A name, its imagery, and an arrow. The pills stay off the phone
-       entirely: five of them under every row is more taxonomy than a 375px
-       column can hold, and they are what the selector above the search is
-       for.
-
-       Searching drops the imagery too, leaving a plain list of names — the
-       one time you are reading the list rather than looking at it.
-
-       Nothing changes while scrolling. Tying this to motion meant the list
-       resized under the thumb on every flick, and it never settled cleanly
-       however it was compensated. */
-    .project-card__bottom-bar {
-      display: none;
-    }
-    .project-cards-container.is-searching .project-card__image-col {
-      display: none;
-    }
-
-    .project-card__filter-pill,
-    .project-card__meta-item {
-      padding: 3px 7px;
-      gap: 3px;
-      font-size: 0.5625rem; /* 9px — below the ultrathin floor, phone only */
-    }
-  }
-
-  /* Medium — add the one-line hook and enough meta to place the project.
-     The description excerpt stays back; it needs a column to read well. */
-  @media (min-width: 700px) and (max-width: 1023.98px) {
-    .project-card__description-col {
-      display: flex;
-      padding: 2px 0 8px;
-    }
-    .project-card__desc {
-      display: none;
-    }
-    .project-card__intro {
-      font-size: var(--_tokens---type--micro);
-      max-width: 68ch;
-      /* One line only — a wrapping hook re-creates the tall, thin card this
-         tier exists to fix. */
-      display: -webkit-box;
-      -webkit-line-clamp: 1;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-    /* The title is the only thing competing with the new copy. Left alone the
-       shared curve reaches 58px here — desktop scale on a tablet. This one is
-       tuned to meet the compact curve exactly at 700px (46px) and arrive just
-       under the desktop value at 1024 (56px vs 58px), so neither boundary
-       steps: the largest jump across the whole ladder stays inside the 1.12×
-       the design system allows. */
-    .project-card__stack-name {
-      font-size: clamp(2.875rem, 1.52rem + 3.1vw, 3.5rem);
-    }
-    /* Thumbnails stop scaling with the viewport and hold a fixed size, so a
-       wider tablet reveals MORE of them instead of blowing each one up. That
-       is what kept the card growing to 340px — taller than the same card on
-       desktop, while carrying less. */
-    .project-card__thumb-item {
-      flex: 0 0 116px;
-    }
-    .project-card__bottom-bar {
-      align-items: center;
-      gap: 12px;
-    }
-  }
-
-  /* ── Mobile image preview ────────────────────────────────────────────
-     A transparent full-screen container holding two frosted-glass panes that
-     sandwich the card's scrub strip. The strip stays sharp in the gap; the
-     image and the link/✕ bar sit sharp on the glass; everything behind the
-     glass (other cards) is blurred — same glass as the side nav / breadcrumb.
-     Sits ABOVE the side nav (200/201), same as the project-detail page's
-     card-deck lightbox (.card-lightbox--deck, z 210) — full-bleed edge to
-     edge, covering the index rail instead of clearing space for it. */
-  /* Single full-screen glass — same as the side nav (bg 35% + blur 20) */
-  .project-lightbox {
-    display: none;
-    position: fixed;
-    left: 0;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 210;
-    pointer-events: auto; /* tap the glass to close */
-    background-color: var(--_tokens---color--bg-glass);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    padding-left: 0;
-    box-sizing: border-box;
-  }
-
-  .project-lightbox.is-open { display: block; }
-
-  /* Holds the image in the larger region; transparent (the glass is behind it) */
-  .project-lightbox__image-area {
-    position: absolute;
-    left: 0;
-    right: 0;
-    /* top / bottom set in JS */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px 22px;
-    box-sizing: border-box;
-    pointer-events: none; /* taps fall through to the glass → close */
-  }
-
-  .project-lightbox__img {
-    max-width: calc(100% - 48px);
-    max-height: calc(100% - 48px);
-    width: auto;
-    height: auto;
-    object-fit: contain;
-    display: block;
-  }
-
-  /* Link (left) + ✕ (right) bar — sits in the gap right by the strip */
-  .project-lightbox__bar {
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 44px;
-    /* top set in JS — just above the strip (image on top) or just below it */
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 16px;
-    box-sizing: border-box;
-    pointer-events: none;
-  }
-
-  .project-lightbox__link {
-    pointer-events: auto;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: var(--_tokens---type--micro);
-    font-weight: var(--_tokens---weight--base);
-    color: var(--_tokens---color--fg);
-  }
-
-  .project-lightbox__link svg {
-    --icon-size: 0.9em; flex-shrink: 0;
-  }
-
-  /* Project name in medium size font above/below the scrub strip */
-  /* The text block beside the strip. Positioned by script, which decides
-     whether it sits above or below depending on which side has the room. */
-  .project-lightbox__meta {
-    position: absolute;
-    left: 0;
-    right: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    text-align: left;
-    padding: 16px;
-    margin: 0;
-    box-sizing: border-box;
-    /* Clicks fall through to the glass to close — except on the heading,
-       which takes them back. */
-    pointer-events: none;
-    font-family: var(--_tokens---font--sans);
-  }
-
-  /* Title and arrow are one link and one line: tapping either goes to the
-     project. */
-  .project-lightbox__heading {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    pointer-events: auto;
-    color: var(--_tokens---color--fg);
-    text-decoration: none;
-  }
-
-  .project-lightbox__title {
-    margin: 0;
-    font-weight: var(--_tokens---weight--strong);
-    color: var(--_tokens---color--fg);
-    line-height: 1.2;
-    flex: 0 1 auto;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  /* Same ringed arrow the desktop card uses, so "this opens the project"
-     looks the same wherever it appears. */
-  .project-lightbox__go {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 auto;
-    width: 38px;
-    height: 38px;
-    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
-    border-radius: 50%;
-    --icon-size: var(--_tokens---arrow--md);
-    transition: background-color var(--_tokens---motion--base) ease,
-                color var(--_tokens---motion--base) ease,
-                border-color var(--_tokens---motion--base) ease;
-  }
-
-  @media (hover: hover) {
-    .project-lightbox__heading:hover .project-lightbox__go {
-      background-color: var(--_tokens---color--fg);
-      color: var(--_tokens---color--bg);
-      border-color: var(--_tokens---color--fg);
-    }
-  }
-
-  .project-lightbox__intro {
-    margin: 0;
-    font-size: var(--_tokens---type--small);
-    font-weight: var(--_tokens---weight--strong);
-    color: var(--_tokens---color--fg);
-    line-height: 1.4;
-  }
-
-  .project-lightbox__desc {
-    margin: 0;
-    font-size: var(--_tokens---type--micro);
-    color: var(--_tokens---color--muted);
-    line-height: 1.5;
-    display: -webkit-box;
-    -webkit-line-clamp: 4;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .project-lightbox__intro:empty,
-  .project-lightbox__desc:empty {
-    display: none;
-  }
-
-  .project-lightbox__close {
-    pointer-events: auto;
-    all: unset;
-    cursor: pointer;
-    color: var(--_tokens---color--fg);
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: -8px;
-  }
-
-  .project-lightbox__close svg {
-    --icon-size: 22px;
-  }
+}
 </style>
-
-<script>
-  // ── Mobile image preview controller (shared, top-level — floats over cards) ──
-  const lightbox = document.getElementById('project-lightbox');
-  const lbImg = document.getElementById('lightbox-img') as HTMLImageElement | null;
-  const lbImageArea = document.getElementById('lightbox-image-area');
-  const lbBar = document.getElementById('lightbox-bar');
-  const lbHeading = document.getElementById('lightbox-heading') as HTMLAnchorElement | null;
-  const lbTitle = document.getElementById('lightbox-title');
-  const lbMeta = document.getElementById('lightbox-meta');
-  const lbIntro = document.getElementById('lightbox-intro');
-  const lbDesc = document.getElementById('lightbox-desc');
-  let lbThumbs: HTMLElement[] = [];     // the CARD's own thumbnails (strip stays put)
-  let lbStripEl: HTMLElement | null = null; // the card strip currently being previewed
-  let activeCard: HTMLElement | null = null; // card whose preview is showing (for grayscale)
-  let lbIndex = 0;                      // current image index (for prev/next loop)
-
-  // Which thumbnail is under a given screen-x — drives the drag/scrub
-  function thumbIndexAtX(thumbs: HTMLElement[], clientX: number): number {
-    if (!thumbs.length) return -1;
-    for (let i = 0; i < thumbs.length; i++) {
-      const r = thumbs[i].getBoundingClientRect();
-      if (clientX >= r.left && clientX <= r.right) return i;
-    }
-    return clientX < thumbs[0].getBoundingClientRect().left ? 0 : thumbs.length - 1;
-  }
-
-  function setLbActive(i: number) {
-    if (!lbImg) return;
-    const t = lbThumbs[i];
-    if (!t) return;
-    lbIndex = i;
-    lbThumbs.forEach((el, j) => el.classList.toggle('is-active', j === i));
-    lbImg.src = t.dataset.src ?? '';
-    lbImg.alt = t.dataset.alt ?? '';
-  }
-
-  // Sandwich the strip: image pane fills the larger side, filler pane the other,
-  // and the link/✕ bar sits in the gap right next to the strip.
-  const BAR_H = 44;
-  function positionPanel(strip: HTMLElement) {
-    if (!lightbox || !lbImageArea || !lbBar || !lbMeta || !lbTitle) return;
-    const rect = strip.getBoundingClientRect();
-    const vh = window.innerHeight;
-    const vw = window.innerWidth;
-    const padLeft = rect.left + 'px';
-    const padRight = (vw - rect.right) + 'px';
-
-    lbImageArea.style.paddingLeft = padLeft;
-    lbImageArea.style.paddingRight = padRight;
-    lbBar.style.paddingLeft = padLeft;
-    lbBar.style.paddingRight = padRight;
-    lbMeta.style.paddingLeft = padLeft;
-    lbMeta.style.paddingRight = padRight;
-
-    const imageOnBottom = (vh - rect.bottom) >= rect.top;
-    if (imageOnBottom) {
-      // image fills below the strip; bar just below the strip
-      lbImageArea.style.top = rect.bottom + 'px';
-      lbImageArea.style.bottom = '0px';
-      lbImageArea.style.paddingTop = BAR_H + 'px'; // clear the bar
-      lbImageArea.style.paddingBottom = '84px';    // clear the breadcrumb dock
-      lbBar.style.top = rect.bottom + 'px';
-
-      // Text block is on TOP (above the strip), sitting on the strip's edge
-      lbMeta.style.top = '0px';
-      lbMeta.style.bottom = (vh - rect.top) + 'px';
-      lbMeta.style.paddingTop = '20px';
-      lbMeta.style.paddingBottom = '20px';
-      lbMeta.style.justifyContent = 'flex-end';
-
-      const availableHeight = rect.top - 40;
-      lbTitle.style.fontSize = `${Math.max(18, Math.min(32, availableHeight * 0.12))}px`;
-    } else {
-      // image fills above the strip; bar just above the strip
-      lbImageArea.style.top = '0px';
-      lbImageArea.style.bottom = (vh - rect.top) + 'px';
-      lbImageArea.style.paddingTop = '20px';
-      lbImageArea.style.paddingBottom = BAR_H + 'px'; // clear the bar
-      lbBar.style.top = (rect.top - BAR_H) + 'px';
-
-      // Text block is on BOTTOM (below the strip)
-      lbMeta.style.top = rect.bottom + 'px';
-      lbMeta.style.bottom = '0px';
-      lbMeta.style.paddingTop = '20px';
-      lbMeta.style.paddingBottom = '84px'; // clear the bottom breadcrumb dock
-      lbMeta.style.justifyContent = 'flex-start';
-
-      const availableHeight = (vh - rect.bottom) - 104;
-      lbTitle.style.fontSize = `${Math.max(18, Math.min(32, availableHeight * 0.12))}px`;
-    }
-  }
-
-  function openLightbox(card: HTMLElement, strip: HTMLElement, startIdx: number) {
-    if (!lightbox) return;
-    lbThumbs = Array.from(card.querySelectorAll<HTMLElement>('.project-card__thumb-item'));
-    lbStripEl = strip;
-    activeCard = card;
-    card.classList.add('is-previewing'); // grayscales the non-active thumbnails
-    const href = card.querySelector('.project-card__pill')?.getAttribute('href');
-    if (lbHeading && href) lbHeading.href = href;
-    if (lbTitle) lbTitle.textContent = card.dataset.name || '';
-    // The card keeps its intro and summary in the DOM on every band — they are
-    // only hidden by CSS on the phone — so the preview can borrow them rather
-    // than the data being passed through a second channel.
-    const pick = (sel: string) => (card.querySelector(sel)?.textContent || '').trim();
-    if (lbIntro) lbIntro.textContent = pick('.project-card__intro');
-    if (lbDesc) lbDesc.textContent = pick('.project-card__desc');
-    positionPanel(strip);
-    setLbActive(startIdx);
-    lightbox.classList.add('is-open');
-    lightbox.setAttribute('aria-hidden', 'false');
-    // Fully lock the page so nothing scrolls behind the open lightbox
-    document.documentElement.style.overflow = 'hidden';
-    document.body.style.overflow = 'hidden';
-  }
-
-  function closeLightbox() {
-    if (!lightbox) return;
-    lightbox.classList.remove('is-open');
-    lightbox.setAttribute('aria-hidden', 'true');
-    document.documentElement.style.overflow = '';
-    document.body.style.overflow = '';
-    lbThumbs.forEach(t => t.classList.remove('is-active'));
-    activeCard?.classList.remove('is-previewing');
-    activeCard = null;
-    lbStripEl = null;
-  }
-
-  if (lightbox) {
-    // Tap the glass (or image) to dismiss — the strip is lifted above it and
-    // stays tappable; the ✕ closes; the link navigates
-    lightbox.addEventListener('click', closeLightbox);
-    document.getElementById('lightbox-close')?.addEventListener('click', closeLightbox);
-    // The heading is the only thing inside the glass that must survive the tap
-    // that closes it.
-    lbHeading?.addEventListener('click', (e) => e.stopPropagation());
-    // Block touch-scroll/rubber-band on the glass while open
-    lightbox.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') closeLightbox();
-      if (lightbox && lightbox.classList.contains('is-open')) {
-        if (e.key === 'ArrowRight') {
-          e.preventDefault();
-          const nextIdx = (lbIndex + 1) % lbThumbs.length;
-          setLbActive(nextIdx);
-        }
-        if (e.key === 'ArrowLeft') {
-          e.preventDefault();
-          const prevIdx = (lbIndex - 1 + lbThumbs.length) % lbThumbs.length;
-          setLbActive(prevIdx);
-        }
-      }
-    });
-    window.addEventListener('resize', () => {
-      if (lbStripEl && lightbox.classList.contains('is-open')) positionPanel(lbStripEl);
-    });
-  }
-
-  // ── Scrub preview: same model on desktop and mobile ──
-  // Desktop: hovering / dragging across the strip scrubs the left-side preview.
-  // Mobile: tap opens the frosted lightbox; sliding across the strip scrubs it.
-  // In both, the active thumbnail stays in colour while the rest go grayscale.
-  function initImagePreview() {
-    const isHoverDevice = window.matchMedia('(hover: hover)').matches;
-
-    // Prune each strip to 5 random thumbs (random pick, random order) BEFORE
-    // wiring listeners, so the scrub only ever tracks live elements.
-    document.querySelectorAll<HTMLElement>('.project-card__thumbs-scroll').forEach(strip => {
-      if ((strip as any)._pruned) return; (strip as any)._pruned = true;
-      const items = Array.from(strip.children) as HTMLElement[];
-      for (let i = items.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [items[i], items[j]] = [items[j], items[i]];
-      }
-      items.slice(5).forEach(el => el.remove());
-      items.slice(0, 5).forEach(el => strip.appendChild(el));
-    });
-
-    document.querySelectorAll<HTMLElement>('.project-card').forEach(card => {
-      const strip = card.querySelector<HTMLElement>('.project-card__thumbs-scroll');
-      if (!strip) return;
-      const thumbs = Array.from(card.querySelectorAll<HTMLElement>('.project-card__thumb-item'));
-      let lastIdx = -1;
-
-      if (isHoverDevice) {
-        // One shared preview element for the whole page (not one per card)
-        const preview = document.getElementById('desktop-preview');
-        const previewImg = document.getElementById('desktop-preview-img') as HTMLImageElement | null;
-        if (!preview || !previewImg) return;
-        let hideTimer: ReturnType<typeof setTimeout> | null = null;
-
-        const showIdx = (i: number) => {
-          const t = thumbs[i];
-          if (!t) return;
-          if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
-          previewImg.src = t.dataset.src ?? '';
-          previewImg.alt = t.dataset.alt ?? '';
-          preview.classList.add('is-visible');
-          card.classList.add('is-previewing'); // grayscale the rest
-          thumbs.forEach((el, j) => el.classList.toggle('is-active', j === i));
-          lastIdx = i;
-        };
-        const hide = () => {
-          hideTimer = setTimeout(() => {
-            preview.classList.remove('is-visible');
-            card.classList.remove('is-previewing');
-            thumbs.forEach(t => t.classList.remove('is-active'));
-            lastIdx = -1;
-          }, 80);
-        };
-
-        strip.addEventListener('pointerenter', () => { if (thumbs.length) showIdx(0); });
-        // Scrub: image follows the pointer across the strip (hover or click-drag)
-        strip.addEventListener('pointermove', (e) => {
-          const i = thumbIndexAtX(thumbs, e.clientX);
-          if (i >= 0 && i !== lastIdx) showIdx(i);
-        });
-        strip.addEventListener('pointerleave', () => hide());
-      } else {
-        // Mobile: tap a thumb → open the frosted lightbox at that image
-        thumbs.forEach((thumb, idx) => {
-          thumb.addEventListener('click', () => openLightbox(card, strip, idx));
-        });
-        // Slide across the strip while the lightbox is open → scrub the image
-        strip.addEventListener('pointermove', (e) => {
-          if (!lightbox || !lightbox.classList.contains('is-open') || activeCard !== card) return;
-          const i = thumbIndexAtX(thumbs, e.clientX);
-          if (i >= 0 && i !== lastIdx) { lastIdx = i; setLbActive(i); }
-        });
-      }
-    });
-  }
-
-  initImagePreview();
-  document.addEventListener('astro:after-swap', initImagePreview);
-
-  // Cards are always open (no accordion). Leaving a card just clears the shared
-  // scrub preview so the next hover starts clean.
-  function initCardLeave() {
-    const preview = document.getElementById('desktop-preview');
-    document.querySelectorAll<HTMLElement>('.project-card').forEach(card => {
-      card.addEventListener('mouseleave', () => {
-        preview?.classList.remove('is-visible');
-        card.classList.remove('is-previewing');
-        card.querySelectorAll<HTMLElement>('.project-card__thumb-item').forEach(t => t.classList.remove('is-active'));
-      });
-    });
-  }
-
-  initCardLeave();
-  document.addEventListener('astro:after-swap', initCardLeave);
-</script>
 
 <script>
   import { shuffleChildren } from '../lib/random';

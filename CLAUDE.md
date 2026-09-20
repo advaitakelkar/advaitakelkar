@@ -74,7 +74,12 @@ src/
     SideNav.astro       ← Fixed left 48px INDEX bar + slide-out nav panel
     Breadcrumb.astro    ← Top "Pages" pill dropdown navigation
     CategoryLayout.astro ← Layout for category archive pages
-    ProjectList.astro   ← Reusable project grid/list
+    ProjectList.astro   ← The projects page: header, search, filters, card stack
+    ProjectStackCard.astro ← ONE card of that stack. Styles are is:global so the
+                          category pages can render the same card.
+    ImageLightbox.astro ← Desktop hover preview + phone scrub lightbox. Binds to
+                          .project-card, so any page rendering ProjectStackCard
+                          gets it by including this component once.
     Footer.astro        ← Site footer
     WayfindingNav.astro ← Project prev/next navigation
 
@@ -529,6 +534,49 @@ Anything `position: fixed` has to offset itself (see `.project-dashboard-wrap`),
 because page padding cannot move it.
 
 ---
+
+## One card, two pages
+
+The projects page and the category pages show the SAME card. Not two designs
+that resemble each other — one component, `ProjectStackCard.astro`, rendered by
+both. That is why its styles are `is:global`: an Astro scoped block carries the
+component's own cid, so the moment a second page rendered a card, half the rules
+would stop matching.
+
+The same goes for the preview. `ImageLightbox.astro` holds the desktop hover
+preview and the phone's frosted scrub lightbox, binds to `.project-card`, and a
+page gets the whole behaviour by including it once.
+
+### The phone shape, shared
+
+Both pages use the same chassis below 700px, and they should keep using it:
+
+- The title and a count sit on one line at the top, no fold control.
+- The list runs `column-reverse` and grows UP out of the controls.
+- The controls are fixed at the bottom, within a thumb's reach.
+- One opaque seal sits behind the whole bottom stack at z-index 80 — above the
+  unpositioned cards, below the fixed controls at 95.
+
+Where the projects page puts a search field and a discipline selector, a
+category page puts its own copy: the people row on top, then the short line,
+then the description behind Read More. Category pages have NO search — the
+pills on their cards hand the query to `/projects?q=` instead.
+
+Heights in that stack are MEASURED, never written down. The card holds a people
+row and a paragraph Read More can grow, and the breadcrumb dock moves with the
+device's safe area. `CategoryLayout`'s script writes `--cat-dock-h`,
+`--cat-card-h` and `--cat-tabs-h`; everything that has to clear the stack reads
+those. Reach for a fixed pixel number here and it will be wrong on some phone.
+
+### Specificity, again
+
+`.cat-card-list` is scoped to CategoryLayout and therefore carries a cid, which
+beats the global `.project-cards-container` rules whatever the source order.
+Anything the category list must inherit from the shared stack is restated on
+`.cat-card-list.project-cards-container`. Same trap as always: a media query
+adds no specificity, so a same-class override only wins on source order, and a
+scoped rule outranks a global one outright.
+
 
 ## CSS Conventions
 

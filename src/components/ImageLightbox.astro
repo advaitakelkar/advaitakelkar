@@ -1,0 +1,482 @@
+---
+/**
+ * The shared image preview for every page that renders a projects-page card
+ * stack: the desktop hover preview and the phone's frosted scrub lightbox.
+ *
+ * It binds to `.project-card` / `.project-card__thumb-item`, so any page that
+ * renders <ProjectStackCard> gets the same behaviour by including this once.
+ */
+import Icon from './Icon.astro';
+---
+
+<!-- Desktop hover preview — shared, top-level so it overlays all cards -->
+<div class="project-card__hover-preview" id="desktop-preview">
+  <img class="project-card__hover-preview-img" id="desktop-preview-img" alt="" />
+</div>
+
+<!-- Single full-screen frosted-glass background. The card's scrub strip is
+     lifted above it, so it stays sharp and tappable while everything else
+     behind the glass blurs. -->
+<div class="project-lightbox" id="project-lightbox" aria-hidden="true">
+  <div class="project-lightbox__image-area" id="lightbox-image-area">
+    <img class="project-lightbox__img" id="lightbox-img" alt="" />
+  </div>
+
+  <div class="project-lightbox__meta" id="lightbox-meta">
+    <a class="project-lightbox__heading" id="lightbox-heading" href="#">
+      <h2 class="project-lightbox__title" id="lightbox-title"></h2>
+      <span class="project-lightbox__go" aria-hidden="true"><Icon name="arrow" /></span>
+    </a>
+    <p class="project-lightbox__intro" id="lightbox-intro"></p>
+    <p class="project-lightbox__desc" id="lightbox-desc"></p>
+  </div>
+
+  <div class="project-lightbox__bar" id="lightbox-bar">
+    <button class="project-lightbox__close" id="lightbox-close" type="button" aria-label="Close image">
+      <Icon name="close" />
+    </button>
+  </div>
+</div>
+
+<style is:global>
+
+
+  /* ── Mobile image preview ────────────────────────────────────────────
+     A transparent full-screen container holding two frosted-glass panes that
+     sandwich the card's scrub strip. The strip stays sharp in the gap; the
+     image and the link/✕ bar sit sharp on the glass; everything behind the
+     glass (other cards) is blurred — same glass as the side nav / breadcrumb.
+     Sits ABOVE the side nav (200/201), same as the project-detail page's
+     card-deck lightbox (.card-lightbox--deck, z 210) — full-bleed edge to
+     edge, covering the index rail instead of clearing space for it. */
+  /* Single full-screen glass — same as the side nav (bg 35% + blur 20) */
+  .project-lightbox {
+    display: none;
+    position: fixed;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 210;
+    pointer-events: auto; /* tap the glass to close */
+    background-color: var(--_tokens---color--bg-glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    padding-left: 0;
+    box-sizing: border-box;
+  }
+
+  .project-lightbox.is-open { display: block; }
+
+  /* Holds the image in the larger region; transparent (the glass is behind it) */
+  .project-lightbox__image-area {
+    position: absolute;
+    left: 0;
+    right: 0;
+    /* top / bottom set in JS */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 22px;
+    box-sizing: border-box;
+    pointer-events: none; /* taps fall through to the glass → close */
+  }
+
+  .project-lightbox__img {
+    max-width: calc(100% - 48px);
+    max-height: calc(100% - 48px);
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+  }
+
+  /* Link (left) + ✕ (right) bar — sits in the gap right by the strip */
+  .project-lightbox__bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 44px;
+    /* top set in JS — just above the strip (image on top) or just below it */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    box-sizing: border-box;
+    pointer-events: none;
+  }
+
+  .project-lightbox__link {
+    pointer-events: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--_tokens---type--micro);
+    font-weight: var(--_tokens---weight--base);
+    color: var(--_tokens---color--fg);
+  }
+
+  .project-lightbox__link svg {
+    --icon-size: 0.9em; flex-shrink: 0;
+  }
+
+  /* Project name in medium size font above/below the scrub strip */
+  /* The text block beside the strip. Positioned by script, which decides
+     whether it sits above or below depending on which side has the room. */
+  .project-lightbox__meta {
+    position: absolute;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    text-align: left;
+    padding: 16px;
+    margin: 0;
+    box-sizing: border-box;
+    /* Clicks fall through to the glass to close — except on the heading,
+       which takes them back. */
+    pointer-events: none;
+    font-family: var(--_tokens---font--sans);
+  }
+
+  /* Title and arrow are one link and one line: tapping either goes to the
+     project. */
+  .project-lightbox__heading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    pointer-events: auto;
+    color: var(--_tokens---color--fg);
+    text-decoration: none;
+  }
+
+  .project-lightbox__title {
+    margin: 0;
+    font-weight: var(--_tokens---weight--strong);
+    color: var(--_tokens---color--fg);
+    line-height: 1.2;
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Same ringed arrow the desktop card uses, so "this opens the project"
+     looks the same wherever it appears. */
+  .project-lightbox__go {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 38px;
+    height: 38px;
+    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
+    border-radius: 50%;
+    --icon-size: var(--_tokens---arrow--md);
+    transition: background-color var(--_tokens---motion--base) ease,
+                color var(--_tokens---motion--base) ease,
+                border-color var(--_tokens---motion--base) ease;
+  }
+
+  @media (hover: hover) {
+    .project-lightbox__heading:hover .project-lightbox__go {
+      background-color: var(--_tokens---color--fg);
+      color: var(--_tokens---color--bg);
+      border-color: var(--_tokens---color--fg);
+    }
+}
+
+  .project-lightbox__intro {
+    margin: 0;
+    font-size: var(--_tokens---type--small);
+    font-weight: var(--_tokens---weight--strong);
+    color: var(--_tokens---color--fg);
+    line-height: 1.4;
+  }
+
+  .project-lightbox__desc {
+    margin: 0;
+    font-size: var(--_tokens---type--micro);
+    color: var(--_tokens---color--muted);
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .project-lightbox__intro:empty,
+  .project-lightbox__desc:empty {
+    display: none;
+  }
+
+  .project-lightbox__close {
+    pointer-events: auto;
+    all: unset;
+    cursor: pointer;
+    color: var(--_tokens---color--fg);
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: -8px;
+  }
+
+  .project-lightbox__close svg {
+    --icon-size: 22px;
+  }</style>
+<script>
+  // ── Mobile image preview controller (shared, top-level — floats over cards) ──
+  const lightbox = document.getElementById('project-lightbox');
+  const lbImg = document.getElementById('lightbox-img') as HTMLImageElement | null;
+  const lbImageArea = document.getElementById('lightbox-image-area');
+  const lbBar = document.getElementById('lightbox-bar');
+  const lbHeading = document.getElementById('lightbox-heading') as HTMLAnchorElement | null;
+  const lbTitle = document.getElementById('lightbox-title');
+  const lbMeta = document.getElementById('lightbox-meta');
+  const lbIntro = document.getElementById('lightbox-intro');
+  const lbDesc = document.getElementById('lightbox-desc');
+  let lbThumbs: HTMLElement[] = [];     // the CARD's own thumbnails (strip stays put)
+  let lbStripEl: HTMLElement | null = null; // the card strip currently being previewed
+  let activeCard: HTMLElement | null = null; // card whose preview is showing (for grayscale)
+  let lbIndex = 0;                      // current image index (for prev/next loop)
+
+  // Which thumbnail is under a given screen-x — drives the drag/scrub
+  function thumbIndexAtX(thumbs: HTMLElement[], clientX: number): number {
+    if (!thumbs.length) return -1;
+    for (let i = 0; i < thumbs.length; i++) {
+      const r = thumbs[i].getBoundingClientRect();
+      if (clientX >= r.left && clientX <= r.right) return i;
+    }
+    return clientX < thumbs[0].getBoundingClientRect().left ? 0 : thumbs.length - 1;
+  }
+
+  function setLbActive(i: number) {
+    if (!lbImg) return;
+    const t = lbThumbs[i];
+    if (!t) return;
+    lbIndex = i;
+    lbThumbs.forEach((el, j) => el.classList.toggle('is-active', j === i));
+    lbImg.src = t.dataset.src ?? '';
+    lbImg.alt = t.dataset.alt ?? '';
+  }
+
+  // Sandwich the strip: image pane fills the larger side, filler pane the other,
+  // and the link/✕ bar sits in the gap right next to the strip.
+  const BAR_H = 44;
+  function positionPanel(strip: HTMLElement) {
+    if (!lightbox || !lbImageArea || !lbBar || !lbMeta || !lbTitle) return;
+    const rect = strip.getBoundingClientRect();
+    const vh = window.innerHeight;
+    const vw = window.innerWidth;
+    const padLeft = rect.left + 'px';
+    const padRight = (vw - rect.right) + 'px';
+
+    lbImageArea.style.paddingLeft = padLeft;
+    lbImageArea.style.paddingRight = padRight;
+    lbBar.style.paddingLeft = padLeft;
+    lbBar.style.paddingRight = padRight;
+    lbMeta.style.paddingLeft = padLeft;
+    lbMeta.style.paddingRight = padRight;
+
+    const imageOnBottom = (vh - rect.bottom) >= rect.top;
+    if (imageOnBottom) {
+      // image fills below the strip; bar just below the strip
+      lbImageArea.style.top = rect.bottom + 'px';
+      lbImageArea.style.bottom = '0px';
+      lbImageArea.style.paddingTop = BAR_H + 'px'; // clear the bar
+      lbImageArea.style.paddingBottom = '84px';    // clear the breadcrumb dock
+      lbBar.style.top = rect.bottom + 'px';
+
+      // Text block is on TOP (above the strip), sitting on the strip's edge
+      lbMeta.style.top = '0px';
+      lbMeta.style.bottom = (vh - rect.top) + 'px';
+      lbMeta.style.paddingTop = '20px';
+      lbMeta.style.paddingBottom = '20px';
+      lbMeta.style.justifyContent = 'flex-end';
+
+      const availableHeight = rect.top - 40;
+      lbTitle.style.fontSize = `${Math.max(18, Math.min(32, availableHeight * 0.12))}px`;
+    } else {
+      // image fills above the strip; bar just above the strip
+      lbImageArea.style.top = '0px';
+      lbImageArea.style.bottom = (vh - rect.top) + 'px';
+      lbImageArea.style.paddingTop = '20px';
+      lbImageArea.style.paddingBottom = BAR_H + 'px'; // clear the bar
+      lbBar.style.top = (rect.top - BAR_H) + 'px';
+
+      // Text block is on BOTTOM (below the strip)
+      lbMeta.style.top = rect.bottom + 'px';
+      lbMeta.style.bottom = '0px';
+      lbMeta.style.paddingTop = '20px';
+      lbMeta.style.paddingBottom = '84px'; // clear the bottom breadcrumb dock
+      lbMeta.style.justifyContent = 'flex-start';
+
+      const availableHeight = (vh - rect.bottom) - 104;
+      lbTitle.style.fontSize = `${Math.max(18, Math.min(32, availableHeight * 0.12))}px`;
+    }
+  }
+
+  function openLightbox(card: HTMLElement, strip: HTMLElement, startIdx: number) {
+    if (!lightbox) return;
+    lbThumbs = Array.from(card.querySelectorAll<HTMLElement>('.project-card__thumb-item'));
+    lbStripEl = strip;
+    activeCard = card;
+    card.classList.add('is-previewing'); // grayscales the non-active thumbnails
+    const href = card.querySelector('.project-card__pill')?.getAttribute('href');
+    if (lbHeading && href) lbHeading.href = href;
+    if (lbTitle) lbTitle.textContent = card.dataset.name || '';
+    // The card keeps its intro and summary in the DOM on every band — they are
+    // only hidden by CSS on the phone — so the preview can borrow them rather
+    // than the data being passed through a second channel.
+    const pick = (sel: string) => (card.querySelector(sel)?.textContent || '').trim();
+    if (lbIntro) lbIntro.textContent = pick('.project-card__intro');
+    if (lbDesc) lbDesc.textContent = pick('.project-card__desc');
+    positionPanel(strip);
+    setLbActive(startIdx);
+    lightbox.classList.add('is-open');
+    lightbox.setAttribute('aria-hidden', 'false');
+    // Fully lock the page so nothing scrolls behind the open lightbox
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeLightbox() {
+    if (!lightbox) return;
+    lightbox.classList.remove('is-open');
+    lightbox.setAttribute('aria-hidden', 'true');
+    document.documentElement.style.overflow = '';
+    document.body.style.overflow = '';
+    lbThumbs.forEach(t => t.classList.remove('is-active'));
+    activeCard?.classList.remove('is-previewing');
+    activeCard = null;
+    lbStripEl = null;
+  }
+
+  if (lightbox) {
+    // Tap the glass (or image) to dismiss — the strip is lifted above it and
+    // stays tappable; the ✕ closes; the link navigates
+    lightbox.addEventListener('click', closeLightbox);
+    document.getElementById('lightbox-close')?.addEventListener('click', closeLightbox);
+    // The heading is the only thing inside the glass that must survive the tap
+    // that closes it.
+    lbHeading?.addEventListener('click', (e) => e.stopPropagation());
+    // Block touch-scroll/rubber-band on the glass while open
+    lightbox.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeLightbox();
+      if (lightbox && lightbox.classList.contains('is-open')) {
+        if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          const nextIdx = (lbIndex + 1) % lbThumbs.length;
+          setLbActive(nextIdx);
+        }
+        if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          const prevIdx = (lbIndex - 1 + lbThumbs.length) % lbThumbs.length;
+          setLbActive(prevIdx);
+        }
+      }
+    });
+    window.addEventListener('resize', () => {
+      if (lbStripEl && lightbox.classList.contains('is-open')) positionPanel(lbStripEl);
+    });
+  }
+
+  // ── Scrub preview: same model on desktop and mobile ──
+  // Desktop: hovering / dragging across the strip scrubs the left-side preview.
+  // Mobile: tap opens the frosted lightbox; sliding across the strip scrubs it.
+  // In both, the active thumbnail stays in colour while the rest go grayscale.
+  function initImagePreview() {
+    const isHoverDevice = window.matchMedia('(hover: hover)').matches;
+
+    // Prune each strip to 5 random thumbs (random pick, random order) BEFORE
+    // wiring listeners, so the scrub only ever tracks live elements.
+    document.querySelectorAll<HTMLElement>('.project-card__thumbs-scroll').forEach(strip => {
+      if ((strip as any)._pruned) return; (strip as any)._pruned = true;
+      const items = Array.from(strip.children) as HTMLElement[];
+      for (let i = items.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [items[i], items[j]] = [items[j], items[i]];
+      }
+      items.slice(5).forEach(el => el.remove());
+      items.slice(0, 5).forEach(el => strip.appendChild(el));
+    });
+
+    document.querySelectorAll<HTMLElement>('.project-card').forEach(card => {
+      const strip = card.querySelector<HTMLElement>('.project-card__thumbs-scroll');
+      if (!strip) return;
+      const thumbs = Array.from(card.querySelectorAll<HTMLElement>('.project-card__thumb-item'));
+      let lastIdx = -1;
+
+      if (isHoverDevice) {
+        // One shared preview element for the whole page (not one per card)
+        const preview = document.getElementById('desktop-preview');
+        const previewImg = document.getElementById('desktop-preview-img') as HTMLImageElement | null;
+        if (!preview || !previewImg) return;
+        let hideTimer: ReturnType<typeof setTimeout> | null = null;
+
+        const showIdx = (i: number) => {
+          const t = thumbs[i];
+          if (!t) return;
+          if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+          previewImg.src = t.dataset.src ?? '';
+          previewImg.alt = t.dataset.alt ?? '';
+          preview.classList.add('is-visible');
+          card.classList.add('is-previewing'); // grayscale the rest
+          thumbs.forEach((el, j) => el.classList.toggle('is-active', j === i));
+          lastIdx = i;
+        };
+        const hide = () => {
+          hideTimer = setTimeout(() => {
+            preview.classList.remove('is-visible');
+            card.classList.remove('is-previewing');
+            thumbs.forEach(t => t.classList.remove('is-active'));
+            lastIdx = -1;
+          }, 80);
+        };
+
+        strip.addEventListener('pointerenter', () => { if (thumbs.length) showIdx(0); });
+        // Scrub: image follows the pointer across the strip (hover or click-drag)
+        strip.addEventListener('pointermove', (e) => {
+          const i = thumbIndexAtX(thumbs, e.clientX);
+          if (i >= 0 && i !== lastIdx) showIdx(i);
+        });
+        strip.addEventListener('pointerleave', () => hide());
+      } else {
+        // Mobile: tap a thumb → open the frosted lightbox at that image
+        thumbs.forEach((thumb, idx) => {
+          thumb.addEventListener('click', () => openLightbox(card, strip, idx));
+        });
+        // Slide across the strip while the lightbox is open → scrub the image
+        strip.addEventListener('pointermove', (e) => {
+          if (!lightbox || !lightbox.classList.contains('is-open') || activeCard !== card) return;
+          const i = thumbIndexAtX(thumbs, e.clientX);
+          if (i >= 0 && i !== lastIdx) { lastIdx = i; setLbActive(i); }
+        });
+      }
+    });
+  }
+
+  initImagePreview();
+  document.addEventListener('astro:after-swap', initImagePreview);
+
+  // Cards are always open (no accordion). Leaving a card just clears the shared
+  // scrub preview so the next hover starts clean.
+  function initCardLeave() {
+    const preview = document.getElementById('desktop-preview');
+    document.querySelectorAll<HTMLElement>('.project-card').forEach(card => {
+      card.addEventListener('mouseleave', () => {
+        preview?.classList.remove('is-visible');
+        card.classList.remove('is-previewing');
+        card.querySelectorAll<HTMLElement>('.project-card__thumb-item').forEach(t => t.classList.remove('is-active'));
+      });
+    });
+  }
+
+  initCardLeave();
+  document.addEventListener('astro:after-swap', initCardLeave);
+</script>

@@ -2,7 +2,8 @@
 import Icon from './Icon.astro';
 import { getCollection } from 'astro:content';
 import PageLayout from '../layouts/PageLayout.astro';
-import ProjectCard from './ProjectCard.astro';
+import ProjectStackCard from './ProjectStackCard.astro';
+import ImageLightbox from './ImageLightbox.astro';
 import Arrow from './Arrow.astro';
 
 export interface Props {
@@ -42,6 +43,7 @@ const tabGroups = allStudios
   }))
   .filter(g => g.projects.length > 0);
 const showTabs = tabGroups.length > 1;
+const studioMap = Object.fromEntries(allStudios.map(st => [st.id, st.data.displayName]));
 
 // 3-column intro copy now lives in the category's YAML (editable inline). Sub-views
 // without their own category record (e.g. the Work studio tabs) fall back to a
@@ -129,13 +131,19 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
            collapses beneath it. -->
       <header class="project-top-header category-hero-header page-toggle-header" id="project-top-header">
         <h1 class="project-card__title category-hero-title">{title}</h1>
-        <button class="page-toggle-btn" data-page-toggle="category-intro-panel" aria-expanded="true" aria-label={`Toggle ${title} details`} type="button">
-          <Arrow />
-        </button>
+        <div class="category-hero-right">
+          <span class="category-count text-muted">{projects.length} {projects.length === 1 ? 'work' : 'works'}</span>
+          <button class="page-toggle-btn" data-page-toggle="category-intro-panel" aria-expanded="true" aria-label={`Toggle ${title} details`} type="button">
+            <Arrow />
+          </button>
+        </div>
       </header>
 
       <div class="category-intro-panel page-toggle-panel" id="category-intro-panel">
-      <!-- 3-Column Intro (mirrors the home page) -->
+      <!-- 3-Column Intro (mirrors the home page). On the phone the people row
+           is lifted above this with flex order — see the phone block below —
+           rather than being moved in the DOM, so the wider bands keep the
+           reading order they already had. -->
       <section class="category-intro">
         <p class="category-intro__tagline" data-edit={editable ? `categories/${categoryId}/tagline` : undefined}>{introTagline}</p>
         <div class="category-intro__body" id="category-intro-body">
@@ -192,9 +200,9 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
       <section class="cat-tabs-content">
         {tabGroups.map((g, i) => (
           <div class:list={["cat-tab-panel", i === 0 && "is-active"]} id={`cat-panel-${g.id}`} role="tabpanel" style={i === 0 ? undefined : 'display:none;'}>
-            <div class="cat-card-list">
+            <div class="cat-card-list project-cards-container">
               {g.projects.map(p => (
-                <ProjectCard project={p} tagMap={tagMap} catMap={catMap} showDescription={false} />
+                <ProjectStackCard project={p} tagMap={tagMap} catMap={catMap} studioMap={studioMap} />
               ))}
               {g.projects.length === 0 && <p class="cat-tab-empty text-muted">No projects in this group yet.</p>}
             </div>
@@ -202,14 +210,15 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
         ))}
       </section>
     ) : (
-      <div class="cat-card-list" style="margin-top: 24px;">
+      <div class="cat-card-list project-cards-container">
         {projects.map(p => (
-          <ProjectCard project={p} tagMap={tagMap} catMap={catMap} showDescription={false} />
+          <ProjectStackCard project={p} tagMap={tagMap} catMap={catMap} studioMap={studioMap} />
         ))}
         {projects.length === 0 && <p class="cat-tab-empty text-muted">No projects in this category yet.</p>}
       </div>
     )}
 
+    <ImageLightbox />
   </article>
 
   <style>
@@ -379,16 +388,6 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
 
     }
 
-    /* ── Full-width slider (below the intro, like the home page) ── */
-    .category-slider {
-      width: 100%;
-    }
-    .category-slider .project-slider {
-      min-height: 0;
-      aspect-ratio: 16 / 9;
-      max-height: 70vh;
-    }
-
     /* ── Header — identical rhythm to the home hero: same top padding,
        8px to the paragraph section, static (home's title doesn't stick) ── */
     .project-top-header {
@@ -419,18 +418,6 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
       .category-detail {
         padding-top: 68px;
       }
-    }
-
-    /* ── Right Column (Sticky Slider) ── */
-    .project-col-right {
-      position: sticky;
-      top: calc(clamp(4rem, 6vh, 5rem) + 48px + 100px); /* Stick below the project title */
-    }
-
-    .category-projects-list {
-      border-top: 1px solid var(--_tokens---color--line-soft);
-      display: flex;
-      flex-direction: column;
     }
 
     /* ── Project group tabs (same look as the About page tabs) ── */
@@ -511,43 +498,6 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
       display: flex;
       flex-direction: column;
       gap: 12px;
-    }
-
-    /* Switch-style Row (Premium Typography & Hover) */
-    .switch-row {
-      position: relative;
-      display: block;
-      text-decoration: none;
-      color: var(--_tokens---color--fg);
-      padding: 1.5rem 0;
-      border-bottom: 1px solid var(--_tokens---color--line-soft);
-      z-index: 1;
-      transition: background-color var(--_tokens---motion--base);
-    }
-    .switch-row:first-child {
-      border-top: 1px solid var(--_tokens---color--line-soft);
-    }
-    @media (hover: hover) {
-      .switch-row:hover {
-      background-color: color-mix(in srgb, var(--_tokens---color--fg) 3%, transparent);
-    }
-    }
-    .switch-row__content {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      position: relative;
-      z-index: 5;
-      pointer-events: none; /* Let hover hit the row exactly */
-      padding: 0 24px;
-    }
-    .switch-row__name {
-      font-size: var(--_tokens---type--medium);
-      font-weight: var(--_tokens---weight--base);
-      letter-spacing: -0.02em;
-      line-height: 1.1;
-      margin: 0;
-      opacity: 0.6;
     }
 
     /* ── People UI ── */
@@ -696,127 +646,202 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
         aspect-ratio: 1 / 1;
       }
     }
-    
-    .project-card__pill {
-      display: inline-flex;
+
+    /* The count sits with the fold control, the way it does on the projects
+       page — the header says what this is and how much of it there is. */
+    .category-hero-right {
+      display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 12px;
+      flex: 0 0 auto;
+    }
+    .category-count {
       font-size: var(--_tokens---type--micro);
-      font-weight: var(--_tokens---weight--base);
-      color: var(--_tokens---color--fg);
-      text-decoration: none;
-      border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
-      border-radius: var(--_tokens---radius--pill);
-      padding: 8px 14px;
       white-space: nowrap;
-      flex-shrink: 0;
-      transition: background-color var(--_tokens---motion--base) ease, border-color var(--_tokens---motion--base) ease, color var(--_tokens---motion--base) ease;
-    }
-    .project-card__pill svg {
-    --icon-size: 0.85em; transition: transform var(--_tokens---motion--base) ease;
-  }
-    @media (hover: hover) {
-      .switch-row:hover .project-card__pill {
-      background-color: var(--_tokens---color--fg);
-      color: var(--_tokens---color--bg);
-      border-color: var(--_tokens---color--fg);
-    }
-    }
-    @media (hover: hover) {
-      .switch-row:hover .project-card__pill svg { transform: translate(2px, -2px); }
     }
 
-    /* Hover Reveal Image (Cursor Tracking) */
-    .hover-reveal-img {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 400px; /* Adjust size as needed */
-      aspect-ratio: 16/10;
-      pointer-events: none;
-      opacity: 0;
-      transform: translate(-50%, -50%) scale(0.8); /* Center on cursor, scale down initially */
-      z-index: 4; /* Below the text (z-index 5) but above background */
-      transition: opacity var(--_tokens---motion--slow) ease, transform var(--_tokens---motion--slow) cubic-bezier(0.16, 1, 0.3, 1);
-      overflow: hidden;
-      border-radius: 8px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-    }
-    .hover-reveal-img img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    @media (hover: hover) {
-      .switch-row:hover .hover-reveal-img {
-      opacity: 1;
-      transform: translate(-50%, -50%) scale(1);
-    }
+    /* ══ Phone: the projects-page chassis ═══════════════════════════════
+       Same shape as /projects, with the category's own copy in place of the
+       search. Reading order runs bottom-to-top: breadcrumb, then the category
+       card, then the studio tabs, then the works stacking upward away from
+       your thumb. The two fixed elements sit exactly where the search and the
+       selector sit on the projects page, so the two pages feel like one.
+
+       Heights are measured rather than guessed — the card holds a people row
+       and a paragraph that Read More can grow, so nothing here can be a fixed
+       number. The script below writes --cat-card-h and --cat-tabs-h. */
+    @media (max-width: 699.98px) {
+      /* ── Top card: the category name, and how many works are under it ── */
+      .category-hero-header.project-top-header {
+        flex-wrap: nowrap;
+        align-items: flex-start;
+        gap: 10px;
+        padding-block: 2px 6px;
+        margin-bottom: 0;
+      }
+      .category-hero-title {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+      .category-hero-right {
+        flex: 0 0 auto;
+        padding-top: 4px;
+      }
+      /* Nothing folds on this band, so there is no control for it and no
+         state to remember. */
+      .page-toggle-btn[data-page-toggle="category-intro-panel"] {
+        display: none;
+      }
+      #category-intro-panel {
+        max-height: none !important;
+        opacity: 1 !important;
+        overflow: visible !important;
+        margin-top: 0 !important;
+        border-bottom: none;
+      }
+
+      /* ── Bottom card: people on top, then the short line and the copy ── */
+      .category-intro-panel {
+        position: fixed;
+        left: 12px;
+        right: 12px;
+        bottom: calc(var(--cat-dock-h, 66px) + 6px);
+        z-index: 95;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin: 0;
+        padding: 8px 0 10px;
+        background-color: var(--_tokens---color--bg);
+      }
+      .category-people {
+        /* People on top of the bottom card. Visual order only — the DOM keeps
+           the reading order the wider bands use.
+
+           One scrolling row, not the 5-column grid the wider bands use: nine
+           collaborators wrapped to a second row there, and every extra row is
+           height taken straight off the works above. */
+        order: -1;
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: none;
+        margin: 0;
+        gap: 8px;
+        padding-bottom: 2px;
+      }
+      .category-people__person {
+        flex: 0 0 auto;
+      }
+      .category-people__avatar {
+        width: 44px;
+        height: 44px;
+      }
+      .category-people__divider {
+        flex: 0 0 auto;
+        align-self: stretch;
+      }
+      .category-people::-webkit-scrollbar { display: none; }
+      .category-intro {
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .category-intro__tagline {
+        margin: 0;
+        font-size: var(--_tokens---type--micro);
+        font-weight: var(--_tokens---weight--strong);
+        line-height: 1.35;
+      }
+      .category-intro__body {
+        display: block;
+        gap: 0;
+        margin: 0;
+      }
+      .category-intro__desc {
+        margin: 0;
+        font-size: var(--_tokens---type--ultrathin);
+        line-height: 1.45;
+      }
+      /* Collapsed, the copy is a two-line hook. Read More opens the rest into
+         a scrolling block rather than letting the card grow without limit. */
+      .category-intro__body:not(.is-expanded) .category-intro__column:first-child .category-intro__desc {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .category-intro__body.is-expanded {
+        max-height: 38dvh;
+        overflow-y: auto;
+      }
+      .category-intro__body.is-expanded .category-intro__column + .category-intro__column {
+        margin-top: 6px;
+      }
+      .category-readmore-btn {
+        margin-top: 4px;
+      }
+
+      /* ── The studio tabs take the selector's slot, right above the card ── */
+      .cat-tabs {
+        position: fixed;
+        left: 12px;
+        right: 12px;
+        bottom: calc(var(--cat-dock-h, 66px) + var(--cat-card-h, 150px) + 18px);
+        z-index: 95;
+        margin: 0 !important;
+        padding-block: 6px;
+        background-color: var(--_tokens---color--bg);
+      }
+      .cat-tabs__bar {
+        margin: 0;
+        overflow-x: auto;
+        scrollbar-width: none;
+        flex-wrap: nowrap;
+      }
+      .cat-tabs__bar::-webkit-scrollbar { display: none; }
+
+      /* One surface behind the whole bottom stack. Without it the works show
+         through the gaps between the breadcrumb, the card and the tabs.
+         z-index 80, below the fixed children at 95 and above the cards. */
+      .category-detail::after {
+        content: '';
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: calc(var(--cat-dock-h, 66px) + var(--cat-card-h, 150px) + var(--cat-tabs-h, 0px) + 24px);
+        background-color: var(--_tokens---color--bg);
+        z-index: 80;
+        pointer-events: none;
+      }
+
+      /* Clear the stack, and give the works a full screen to settle at the
+         bottom of — the same inverted list the projects page uses. */
+      .category-detail {
+        padding-bottom: calc(var(--cat-dock-h, 66px) + var(--cat-card-h, 150px) + var(--cat-tabs-h, 0px) + 36px);
+      }
+      .cat-card-list.project-cards-container {
+        --stack-clear: calc(var(--cat-dock-h, 66px) + var(--cat-card-h, 150px) + var(--cat-tabs-h, 0px) + 72px);
+        margin-top: 0;
+        /* The works stack upward out of the bottom card, same as the projects
+           page. Stated here rather than relying on the shared rule: this
+           components own .cat-card-list carries a scoping attribute and wins
+           on specificity over the global one, whatever the source order. */
+        display: flex;
+        flex-direction: column-reverse;
+        justify-content: flex-start;
+        gap: 10px;
+      }
+      .cat-tabs-content {
+        margin-top: 0;
+      }
+      .category-sticky-header {
+        margin-bottom: 0;
+      }
     }
 
-    @media (max-width: 1023.98px) {
-      /* Mobile fallback: disable hover reveal */
-      .hover-reveal-img { display: none !important; }
-      .switch-row__content { padding: 0 16px; }
-    }
-
-    /* Slider Styles */
-    .project-slider {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      min-height: 50vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      background: color-mix(in srgb, var(--_tokens---color--fg) 3%, transparent);
-      border-radius: 4px;
-    }
-    .slider-image {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      opacity: 0;
-      transition: opacity var(--_tokens---motion--slow) ease-in-out;
-    }
-    .slider-image.active {
-      opacity: 1;
-      z-index: 1;
-    }
-    .slider-controls {
-      position: absolute;
-      bottom: 16px;
-      right: 16px;
-      display: flex;
-      gap: 8px;
-      z-index: 10;
-    }
-    .slider-btn {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: var(--_tokens---color--bg);
-      color: var(--_tokens---color--fg);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 15%, transparent);
-      cursor: pointer;
-      transition: all var(--_tokens---motion--base);
-    }
-    @media (hover: hover) {
-      .slider-btn:hover {
-      background: var(--_tokens---color--fg);
-      color: var(--_tokens---color--bg);
-    }
-    }
-    .slider-btn svg {
-    --icon-size: 20px;
-  }
   </style>
 
   <script>
@@ -971,5 +996,65 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
       initIntroReadMore();
       initHeadingScrollTop();
     });
+
+    // ── Phone: measure the fixed bottom stack ─────────────────────────
+    // The category card holds a people row and a paragraph Read More can
+    // grow, so its height is not a number anyone can write down. Everything
+    // that has to clear it — the tabs above it, the seal behind it, the
+    // padding under the works — reads these two variables instead.
+    function measureCategoryStack() {
+      const root = document.querySelector('.category-detail') as HTMLElement | null;
+      if (!root) return;
+      const card = document.getElementById('category-intro-panel');
+      const tabs = document.querySelector('.cat-tabs') as HTMLElement | null;
+      if (!window.matchMedia('(max-width: 699.98px)').matches) {
+        root.style.removeProperty('--cat-card-h');
+        root.style.removeProperty('--cat-tabs-h');
+        root.style.removeProperty('--cat-dock-h');
+        return;
+      }
+      // The breadcrumb docks to the bottom on this band and its height moves
+      // with the device's safe area, so it is measured rather than assumed.
+      const dock = document.querySelector('.page-breadcrumb') as HTMLElement | null;
+      root.style.setProperty('--cat-dock-h', Math.round(dock?.getBoundingClientRect().height ?? 66) + 'px');
+      root.style.setProperty('--cat-card-h', Math.round(card?.getBoundingClientRect().height ?? 0) + 'px');
+      root.style.setProperty('--cat-tabs-h', Math.round(tabs?.getBoundingClientRect().height ?? 0) + 'px');
+    }
+
+    function initCategoryStackMeasure() {
+      measureCategoryStack();
+      window.addEventListener('resize', measureCategoryStack, { passive: true });
+      const card = document.getElementById('category-intro-panel');
+      if (card && 'ResizeObserver' in window) {
+        new ResizeObserver(() => measureCategoryStack()).observe(card);
+      }
+      // Read More changes the card height; re-measure after the class lands.
+      document.getElementById('category-readmore-btn')
+        ?.addEventListener('click', () => requestAnimationFrame(measureCategoryStack));
+    }
+
+    initCategoryStackMeasure();
+    document.addEventListener('astro:after-swap', initCategoryStackMeasure);
+
+    // ── The card pills go somewhere ───────────────────────────────────
+    // A category page has no search of its own, so a pill here hands the
+    // query to the projects page rather than sitting there inert. The
+    // projects page already reads ?q= on load.
+    function initCategoryPillLinks() {
+      document.querySelectorAll('.cat-card-list').forEach(list => {
+        if ((list as any)._pillsWired) return;
+        (list as any)._pillsWired = true;
+        list.addEventListener('click', (e: Event) => {
+          const pill = (e.target as HTMLElement)?.closest('.project-card__filter-pill') as HTMLElement | null;
+          if (!pill) return;
+          const value = pill.dataset.filterValue;
+          if (!value) return;
+          window.location.href = '/projects?q=' + encodeURIComponent(value);
+        });
+      });
+    }
+
+    initCategoryPillLinks();
+    document.addEventListener('astro:after-swap', initCategoryPillLinks);
   </script>
 </PageLayout>
