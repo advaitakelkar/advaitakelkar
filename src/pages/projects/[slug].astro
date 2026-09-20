@@ -1311,16 +1311,25 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       max-height: none !important;
       overflow: visible !important;
     }
-    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card__desc > :global(.desc-scroll),
-    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card__desc > :global(p:first-child) {
-      max-height: 12vh;
-      overflow-y: auto;
-      scrollbar-width: none;
+    /* Scoped to 700-1023 only. Below 700 the description is no longer in the
+       narrow column beside the image — it sits full width under both, where
+       it has no reason to scroll inside 12vh and every reason to let the
+       script decide whether a Read more pill is needed at all. */
+    @media (min-width: 700px) {
+      .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card__desc > :global(.desc-scroll),
+      .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card__desc > :global(p:first-child) {
+        max-height: 12vh;
+        overflow-y: auto;
+        scrollbar-width: none;
+      }
+      .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card__desc > :global(.desc-scroll)::-webkit-scrollbar,
+      .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card__desc > :global(p:first-child)::-webkit-scrollbar {
+        display: none;
+      }
     }
-    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card__desc > :global(.desc-scroll)::-webkit-scrollbar,
-    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card__desc > :global(p:first-child)::-webkit-scrollbar {
-      display: none;
-    }
+    /* No pill on either band below 1024. The rule above this block already
+       forces the description open with !important, which beats the script's
+       inline clip — so there is never anything for a Read more to expand. */
     .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-readmore-btn {
       display: none !important;
     }
@@ -4116,6 +4125,54 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   .project-readmore-btn[aria-expanded="true"] .project-readmore-arrow {
     transform: rotate(135deg);
   }
+
+
+  /* ══ Phone: two columns up top, the words underneath ════════════════
+     The two columns stay and the image stays on the right — but on a 375px
+     screen that left column is 170px wide, and the description was living in
+     it, clipped to 12vh with its own internal scroll and no Read more pill.
+     A paragraph does not belong in a 170px column.
+
+     So the row keeps the short stuff — the tagline beside the image — and the
+     description drops below both columns at full width, where it reads. The
+     Read more pill comes back with it, because at full width the text clips
+     rather than scrolling inside itself.
+
+     .project-col-left and .project-card-info are already display:contents on
+     this band; row2 and the text block join them, which is what lets these
+     three children be placed in the outer grid directly. */
+  @media (max-width: 699.98px) {
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card__row2,
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card__text-block {
+      display: contents;
+    }
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card__intro {
+      grid-column: 1;
+      grid-row: 1;
+      margin: 0;
+    }
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-col-right {
+      grid-column: 2;
+      grid-row: 1;
+    }
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-desc-readmore {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-prompt-btn {
+      grid-column: 1 / -1;
+      grid-row: 3;
+      justify-self: start;
+    }
+    /* Everything that used to sit at rows 2 and 3 moves down by the two rows
+       the description and the pill now occupy. */
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card-info :global(.prompt-box.is-open) {
+      grid-row: 4;
+    }
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-card-name-pagination-row {
+      grid-row: 5;
+    }
+  }
 </style>
 
 <script>
@@ -4197,6 +4254,13 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
     // Full scrollHeight
     const fullHeight = clip.scrollHeight;
+
+    // A pill that expands the text by a few pixels is a pill that lies. The
+    // child count alone is not enough of a test: a description whose second
+    // block is an empty paragraph passes it, and the button then toggled
+    // between 205px and 206px. fullHeight was already being measured here and
+    // then thrown away — this is what it was for.
+    if (fullHeight - collapsedHeight < 8) { btn.style.display = 'none'; return; }
 
     // Set collapsed
     clip.style.maxHeight = collapsedHeight + 'px';
