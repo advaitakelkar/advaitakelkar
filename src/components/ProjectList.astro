@@ -215,7 +215,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
         const scrubImgs = visibleProjectImages(p.id, p.data?.passcode, scrubImgsRaw);
         return (
         <div
-          class="project-card"
+          class:list={["project-card", isLocked && "is-locked"]}
           data-name={p.data.name}
           data-loc={p.data.location ?? ''}
           data-year={p.data.year ?? ''}
@@ -490,7 +490,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   }
 
   .projects-collapsed-search::placeholder {
-    font-weight: var(--_tokens---weight--base);
+    font-weight: var(--_tokens---weight--light);
     color: color-mix(in srgb, var(--_tokens---color--fg) 34%, transparent);
     -webkit-text-fill-color: color-mix(in srgb, var(--_tokens---color--fg) 34%, transparent);
     opacity: 1;
@@ -583,7 +583,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   }
 
   .projects-search-input::placeholder {
-    font-weight: var(--_tokens---weight--base);
+    font-weight: var(--_tokens---weight--light);
     color: color-mix(in srgb, var(--_tokens---color--fg) 34%, transparent);
     -webkit-text-fill-color: color-mix(in srgb, var(--_tokens---color--fg) 34%, transparent);
     opacity: 1;
@@ -897,14 +897,39 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     margin: 0;
   }
 
-  .project-card__stack-name.is-locked {
-    opacity: 0.45;
+  /* ── Protected vs live projects ──────────────────────────────────────
+     A locked project is still listed — the point is that it exists, not
+     that it is readable — so the whole card recedes rather than only its
+     title. Before this, muting stopped at the name and the intro, summary
+     and pills below it were rendered at full strength, so a protected card
+     read as live from the second line down.
+
+     Carried on the text, not the card, so the border and background keep
+     the list's rhythm and a locked row does not punch a hole in it. The
+     arrow stays more legible than the copy: it is the one thing you can
+     still act on. */
+  .project-card.is-locked .project-card__stack-name,
+  .project-card.is-locked .project-card__intro,
+  .project-card.is-locked .project-card__desc,
+  .project-card.is-locked .project-card__bottom-bar {
+    opacity: 0.32;
+    transition: opacity var(--_tokens---motion--base) ease;
+  }
+
+  .project-card.is-locked .project-card__pill {
+    opacity: 0.55;
   }
 
   @media (hover: hover) {
-    .project-card:hover .project-card__stack-name.is-locked {
-    opacity: 0.65;
-  }
+    .project-card.is-locked:hover .project-card__stack-name,
+    .project-card.is-locked:hover .project-card__intro,
+    .project-card.is-locked:hover .project-card__desc,
+    .project-card.is-locked:hover .project-card__bottom-bar {
+      opacity: 0.5;
+    }
+    .project-card.is-locked:hover .project-card__pill {
+      opacity: 1;
+    }
   }
 
   .project-card__stack-right {

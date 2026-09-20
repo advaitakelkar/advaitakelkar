@@ -64,7 +64,7 @@ if (p.id === 'ai-works') {
 const shownImgs = visibleProjectImages(p.id, p.data?.passcode, allImgs);
 ---
 
-<a href={`/projects/${p.id}`} class="pcard" data-name={p.data.name}>
+<a href={`/projects/${p.id}`} class:list={["pcard", isLocked && "is-locked"]} data-name={p.data.name}>
   <div class="pcard__row-first">
     <h2 class:list={["pcard__name", isLocked && "is-locked"]}>{p.data.name}</h2>
     <div class="pcard__right-wrap">
@@ -128,8 +128,23 @@ const shownImgs = visibleProjectImages(p.id, p.data?.passcode, allImgs);
     transition: opacity var(--_tokens---motion--base) ease;
   }
 
-  .pcard__name.is-locked {
-    opacity: 0.45;
+  /* Same rule as the projects list: a protected project recedes as a whole
+     card, not just its title, so the two surfaces agree on what "locked"
+     looks like. Muting stopped at the name here too, leaving the meta line
+     at full strength underneath it. */
+  .pcard.is-locked .pcard__name,
+  .pcard.is-locked .pcard__meta-left,
+  .pcard.is-locked .pcard__meta-right {
+    opacity: 0.32;
+    transition: opacity var(--_tokens---motion--base) ease;
+  }
+
+  @media (hover: hover) {
+    .pcard.is-locked:hover .pcard__name,
+    .pcard.is-locked:hover .pcard__meta-left,
+    .pcard.is-locked:hover .pcard__meta-right {
+      opacity: 0.5;
+    }
   }
 
   .pcard__right-wrap {
