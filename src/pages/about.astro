@@ -1816,9 +1816,13 @@ const skillsets = [
       opacity: 0.7;
       transition: opacity var(--_tokens---motion--base) ease;
     }
-    .about-page .profile-header.is-tab .profile-name {
-      font-size: var(--_tokens---type--small);
-      font-weight: var(--_tokens---weight--strong);
+    /* One size for every heading on this band, and it is the name's. Open or
+       docked, outer or inner, they are all the same kind of thing — a way
+       into a section — so none of them is set smaller than another. */
+    .about-page .profile-header .profile-name {
+      font-size: var(--_tokens---type--medium);
+      font-weight: var(--_tokens---weight--base);
+      letter-spacing: -0.02em;
     }
     /* The face belongs to the open identity. Closed, the identity is a tab
        like the other two and carries an arrow instead. */
@@ -1902,10 +1906,11 @@ const skillsets = [
       border: none;
       background: none;
       border-radius: 0;
-      padding: 7px 0;
-      font-size: var(--_tokens---type--micro);
-      font-weight: var(--_tokens---weight--strong);
-      letter-spacing: 0;
+      padding: 6px 0;
+      font-size: var(--_tokens---type--medium);
+      font-weight: var(--_tokens---weight--base);
+      letter-spacing: -0.02em;
+      line-height: 1.1;
       color: var(--_tokens---color--fg);
       white-space: nowrap;
     }
@@ -2297,8 +2302,11 @@ const skillsets = [
       page!.style.removeProperty('--ab-sub-bot-h');
     }
 
-    // Two passes on purpose: the classes decide how tall each tab is, so the
-    // heights cannot be read in the same frame they are set.
+    // One pass, synchronously. The classes decide how tall each tab is, but
+    // reading a rect forces the style recalc that makes them current, so the
+    // offsets can be written before the browser paints. Deferring to a frame
+    // was visible: for one frame the tabs were position:fixed with no offset
+    // yet, which piled all four of them on top of each other.
     function layout() {
       if (!phone.matches) { clearInline(); return; }
       const active = page!.dataset.panel || 'intro';
@@ -2312,7 +2320,7 @@ const skillsets = [
         btn?.setAttribute('aria-expanded', i === ai ? 'true' : 'false');
       });
 
-      requestAnimationFrame(() => {
+      {
         const dock = Math.round(
           document.querySelector('.page-breadcrumb')?.getBoundingClientRect().height ?? 66
         );
@@ -2348,6 +2356,9 @@ const skillsets = [
           page!.style.setProperty('--ab-top-seal-h', top + 'px');
           return;
         }
+        // The open section keeps no offset of its own — it is in the flow.
+        subEl(SUB_ORDER.find(k => subEl(k)?.classList.contains('is-active')) ?? '')
+          ?.setAttribute('style', '');
         const openHeader = headerEl('career');
         const headerBottom = top + Math.round(openHeader?.getBoundingClientRect().height ?? 0);
         const activeSub = SUB_ORDER.find(k => subEl(k)?.classList.contains('is-active')) ?? SUB_ORDER[0];
@@ -2380,7 +2391,7 @@ const skillsets = [
           '--ab-top-seal-h',
           (subTop + Math.round(bar?.getBoundingClientRect().height ?? 0)) + 'px'
         );
-      });
+      }
     }
 
     function show(key: string) {
@@ -2436,7 +2447,7 @@ const skillsets = [
       // the one it is replacing.
       SUB_ORDER.forEach(key => {
         subEl(key)?.addEventListener('click', () => {
-          if (phone.matches) requestAnimationFrame(layout);
+          if (phone.matches) layout();
         });
       });
       // Typing in the skill search should bring its section forward.
