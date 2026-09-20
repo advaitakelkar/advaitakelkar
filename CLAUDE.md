@@ -592,6 +592,12 @@ The identity tab is the exception: open, it is a card carrying the face at the
 right corner and the role on the next line; closed, it is a row with an arrow
 like the other two.
 
+All six headings sit at one size, the identity name's, because they are the
+same kind of thing. That leaves weight as the only axis for marking which one
+is open, which is what `--weight--mid` (600) exists for — the one documented
+exception to the three-weight scale. See the note in `tokens.css`; do not
+reach for it anywhere size is still free to move.
+
 **The offsets are computed in script, not written as a rule per state.** Three
 tabs give nine top/bottom positions, every one of them a sum of measured
 heights — the identity tab is a tall card when open and a single row when
