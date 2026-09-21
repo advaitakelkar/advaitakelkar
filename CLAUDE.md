@@ -909,17 +909,30 @@ times. Laid out flat, XBKC read as fifty-one works for one flat.
 
 `template: "renders"` in the YAML, and the images go in `views:` — each with
 the `room` it belongs to, the chosen `image`, and the `variations` behind it.
-`src/components/RenderRooms.astro` is the whole template:
+`src/components/RenderRooms.astro` is the whole template. Three controls,
+each answering a different question:
 
-- **a tab per room**, in the order the rooms first appear, drawn as Journey's
-  pill row is drawn — the open one inverted;
-- **one image in the middle**, which walks that room's frames on its own:
-  every view, and every variation of each. The variations are the point of a
-  render study and nobody clicks through thirty-eight of them;
-- **a ring** that is the clock — one rAF drives both it and the advance, so
-  the bar can never disagree with what is on screen;
-- **a rail** of that room's frames, which also drives it. Arrows on a
-  pointer, swipe on a phone, and either one pauses.
+| | question | where |
+|---|---|---|
+| tabs | which room | an **All** pill first, then the rooms |
+| rail | which view of it | the covers, along the bottom |
+| column | which take of it | the variations, top right, **on demand** |
+
+**Variations are not shown until you ask.** They are alternates of one
+picture, not more pictures, and a grid of thirty-eight of them is a render
+study nobody asked to read. Click a cover and that view's takes appear beside
+it; change room and they fold away again.
+
+**All is a mark, not a word** — an arrow in a circle, like the All tab on a
+category page. It names no room, and it shows every view's cover.
+
+**The tabs wrap, they do not scroll sideways**, the way the footer's pill
+cloud wraps: a row that scrolls hides the rooms you have not thought to look
+for. The covers are the only thing that scrolls.
+
+The page also carries the same **filter pills** a card does — year, city,
+status, category, studio, discipline — so a renders project is searchable on
+the same facts as everything else.
 
 **A card with views shows the cover alone.** A thumbnail strip that repeats
 the same room six times says only "renders".

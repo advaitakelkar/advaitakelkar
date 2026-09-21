@@ -3,21 +3,21 @@
  * The renders template — a visualisation project, shown as rooms.
  *
  * A rendering project is not a set of pictures. It is a set of ROOMS, each
- * rendered from one or more views, and each view rendered several times. Laid
- * out flat, XBKC read as fifty-one works for one flat. Here the shape of the
- * work is the shape of the page:
+ * rendered from one or more VIEWS, and each view rendered several times.
+ * Laid out flat, XBKC read as fifty-one works for one flat.
  *
- *   a tab per room  →  one image in the middle  →  the variations behind it
+ * The page separates the three so that each one answers a different question:
  *
- * The tabs are the same object as Journey's on About: a scrolling row of
- * pills, the open one inverted. The middle is one image at a time, and it
- * walks that room's frames on its own — every view, and every variation of
- * each view — because the variations are the point of a render study and
- * nobody clicks through thirty-eight of them.
+ *   tabs    which room            an All pill first, then the rooms
+ *   rail    which view of it      the covers, along the bottom
+ *   column  which take of it      the variations, top right, on demand
  *
- * One layout at every width. The image takes the space it can get, the rail
- * sits under it, and the only thing that changes across the ladder is how
- * much room the image has.
+ * **Variations are not shown until you ask.** They are alternates of one
+ * picture, not more pictures, and a grid of thirty-eight of them is a render
+ * study nobody asked to read. Pick a view and its takes appear beside it.
+ *
+ * The tabs wrap rather than scroll sideways, the way the footer's pill cloud
+ * wraps: a row that scrolls hides the rooms you have not thought of yet.
  */
 import Icon from './Icon.astro';
 
@@ -27,115 +27,90 @@ export interface Props {
 }
 const { views, name } = Astro.props;
 
-/* Group into rooms, in the order the rooms first appear. A view with no room
-   named falls into one called after the project, so a half-filled YAML still
-   renders rather than throwing. */
-const rooms: Array<{ label: string; frames: Array<{ src: string; view: string; n: number; of: number }> }> = [];
+/* Rooms in the order they first appear. A view with no room named falls into
+   one called after the project, so a half-filled YAML still renders. */
+const rooms: string[] = [];
 for (const v of views) {
-  const label = v.room || name;
-  let room = rooms.find(r => r.label === label);
-  if (!room) { room = { label, frames: [] }; rooms.push(room); }
-  const set = [v.image, ...(v.variations ?? [])];
-  set.forEach((src, i) => room!.frames.push({
-    src,
-    view: v.label || label,
-    n: i + 1,
-    of: set.length,
-  }));
+  const r = v.room || name;
+  if (!rooms.includes(r)) rooms.push(r);
 }
-const total = rooms.reduce((a, r) => a + r.frames.length, 0);
+const indexed = views.map((v, i) => ({
+  i,
+  room: v.room || name,
+  label: v.label || v.room || name,
+  image: v.image,
+  variations: v.variations ?? [],
+}));
+const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
 ---
 
 <section class="rr" data-rr aria-label={`${name} — rooms`}>
-  <!-- The rooms. One row, scrolling sideways on a narrow screen. -->
+  <!-- Rooms. All first, as a mark rather than a word — it is not a room. -->
   <div class="rr__tabs" role="tablist" aria-label="Rooms">
-    {rooms.map((r, i) => (
-      <button
-        class:list={["rr__tab", i === 0 && "is-active"]}
-        role="tab"
-        type="button"
-        data-rr-tab={i}
-        aria-selected={i === 0 ? 'true' : 'false'}
-      >
-        <span>{r.label}</span>
-        <span class="rr__tab-count">{r.frames.length}</span>
+    <button class="rr__tab rr__tab--all is-active" role="tab" type="button" data-rr-room="all" aria-selected="true" aria-label="All rooms">
+      <Icon name="arrow" />
+    </button>
+    {rooms.map(r => (
+      <button class="rr__tab" role="tab" type="button" data-rr-room={r} aria-selected="false">
+        <span>{r}</span>
+        <span class="rr__tab-n">{indexed.filter(v => v.room === r).length}</span>
       </button>
     ))}
   </div>
 
-  <!-- The work. One image, and the ring that says how long it has. -->
-  <div class="rr__stage">
-    <button class="rr__nav rr__nav--prev" type="button" aria-label="Previous frame" data-rr-prev>
-      <Icon name="chevron" dir="w" />
-    </button>
-
-    <div class="rr__frame" data-rr-frame>
-      {rooms.map((r, ri) => r.frames.map((f, fi) => (
-        <img
-          class:list={["rr__img", ri === 0 && fi === 0 && "is-on"]}
-          src={f.src}
-          alt={`${name} — ${f.view}`}
-          data-rr-room={ri}
-          data-rr-index={fi}
-          loading={ri === 0 && fi < 2 ? 'eager' : 'lazy'}
-          decoding="async"
-        />
+  <div class="rr__body">
+    <!-- The work. -->
+    <div class="rr__stage" data-rr-stage>
+      {indexed.map(v => (
+        <img class="rr__img" src={v.image} alt={`${name} — ${v.label}`} data-rr-view={v.i} data-rr-take="0" loading={v.i === 0 ? 'eager' : 'lazy'} decoding="async" />
+      ))}
+      {indexed.flatMap(v => v.variations.map((src, k) => (
+        <img class="rr__img" src={src} alt={`${name} — ${v.label}, take ${k + 2}`} data-rr-view={v.i} data-rr-take={k + 1} loading="lazy" decoding="async" />
       )))}
     </div>
 
-    <button class="rr__nav rr__nav--next" type="button" aria-label="Next frame" data-rr-next>
-      <Icon name="chevron" dir="e" />
-    </button>
+    <!-- The takes of the view you are on. Empty, and out of the way, until
+         you pick one. -->
+    <aside class="rr__takes" data-rr-takes hidden aria-label="Variations">
+      <span class="rr__takes-label" data-rr-takes-label></span>
+      <div class="rr__takes-list" data-rr-takes-list></div>
+    </aside>
   </div>
 
-  <!-- Where you are: the view, which variation of it, and the ring. -->
   <div class="rr__bar">
-    <span class="rr__where" data-rr-where>{rooms[0]?.frames[0]?.view ?? ''}</span>
-    <div class="rr__right">
-      <span class="rr__count"><span data-rr-pos>1</span> / <span data-rr-total>{rooms[0]?.frames.length ?? 0}</span></span>
-      <button class="rr__play" type="button" aria-label="Pause" aria-pressed="true" data-rr-play>
-        <svg class="rr__ring" viewBox="0 0 24 24" aria-hidden="true">
-          <circle class="rr__ring-track" cx="12" cy="12" r="9" />
-          <circle class="rr__ring-fill" cx="12" cy="12" r="9" data-rr-ring />
-        </svg>
-      </button>
-    </div>
+    <span class="rr__where" data-rr-where></span>
+    <span class="rr__count" data-rr-count></span>
   </div>
 
-  <!-- The variations of the view you are on, as a rail you can also drive. -->
-  <div class="rr__rail" data-rr-rail></div>
-  <p class="rr__total">{rooms.length} rooms · {views.length} views · {total} frames</p>
+  <!-- The covers of the active tab. One per view, and the only thing that
+       scrolls. -->
+  <div class="rr__rail" data-rr-rail>
+    {indexed.map(v => (
+      <button class="rr__cover" type="button" data-rr-cover={v.i} data-rr-room={v.room} aria-label={v.label}>
+        <img src={v.image} alt="" loading="lazy" decoding="async" />
+        <span class="rr__cover-label">{v.label}</span>
+      </button>
+    ))}
+  </div>
+
+  <p class="rr__total">{rooms.length} rooms · {views.length} views · {totalTakes} frames</p>
 </section>
 
 <style is:global>
-  /* Global, not scoped: the rail's thumbnails are built in script and a
-     runtime node carries no data-astro-cid-*, so a scoped rule would silently
-     fail to match it. Every selector is .rr-prefixed. */
-  .rr {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    width: 100%;
-    min-width: 0;
-  }
+  /* Global, not scoped: the takes column is built in script, and a runtime
+     node carries no data-astro-cid-*, so a scoped rule would silently fail to
+     match it. Every selector is .rr-prefixed. */
+  .rr { display: flex; flex-direction: column; gap: 10px; width: 100%; min-width: 0; }
 
   /* ── Rooms ─────────────────────────────────────────────────────────── */
-  .rr__tabs {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
-    gap: 4px;
-    overflow-x: auto;
-    scrollbar-width: none;
-    padding: 0;
-  }
-  .rr__tabs::-webkit-scrollbar { display: none; }
+  /* Wrapping, like the footer's pill cloud. A row that scrolls sideways
+     hides the rooms you have not thought to look for. */
+  .rr__tabs { display: flex; flex-wrap: wrap; gap: 4px; }
 
   .rr__tab {
     display: inline-flex;
     align-items: center;
     gap: var(--_tokens---pill-gap--xs);
-    flex: 0 0 auto;
     padding: var(--_tokens---pill-pad--xs);
     border: var(--_tokens---pill-border);
     border-radius: var(--_tokens---radius--pill);
@@ -151,38 +126,32 @@ const total = rooms.reduce((a, r) => a + r.frames.length, 0);
                 color var(--_tokens---motion--base) ease,
                 border-color var(--_tokens---motion--base) ease;
   }
-  .rr__tab-count {
-    font-size: var(--_tokens---type--ultrathin);
-    opacity: 0.55;
+  /* All is a mark, not a word — it names no room. Round, and the same height
+     as the pills beside it rather than a size of its own. */
+  .rr__tab--all {
+    justify-content: center;
+    width: calc(max(1lh, 14px) + 18px);
+    padding-inline: 0;
+    border-radius: 50%;
+    --icon-size: var(--_tokens---arrow--sm);
   }
+  .rr__tab-n { font-size: var(--_tokens---type--ultrathin); opacity: 0.55; }
   .rr__tab.is-active {
     background-color: var(--_tokens---color--fg);
     border-color: var(--_tokens---color--fg);
     color: var(--_tokens---color--bg);
   }
-  .rr__tab.is-active .rr__tab-count { opacity: 0.7; }
-  @media (hover: hover) {
-    .rr__tab:hover { border-color: var(--_tokens---color--fg); }
-  }
+  .rr__tab.is-active .rr__tab-n { opacity: 0.7; }
+  @media (hover: hover) { .rr__tab:hover { border-color: var(--_tokens---color--fg); } }
 
-  /* ── The stage ─────────────────────────────────────────────────────── */
+  /* ── The work, and the takes beside it ─────────────────────────────── */
+  .rr__body { display: flex; gap: 8px; align-items: stretch; min-width: 0; }
+
   .rr__stage {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-  }
-
-  /* The frames are stacked and cross-faded, so the box never collapses
-     between two images and the page does not jump on every change. The
-     height is the viewport minus the chrome above and below it, which is
-     what keeps one layout working at every width. */
-  .rr__frame {
     position: relative;
     flex: 1 1 auto;
     min-width: 0;
-    height: clamp(260px, 52vh, 720px);
+    height: clamp(240px, 46vh, 620px);
     background-color: color-mix(in srgb, var(--_tokens---color--fg) 4%, transparent);
     border-radius: var(--_tokens---radius--small);
     overflow: hidden;
@@ -199,132 +168,102 @@ const total = rooms.reduce((a, r) => a + r.frames.length, 0);
   }
   .rr__img.is-on { opacity: 1; }
 
-  .rr__nav {
+  /* Top right, one below the other. It has no width at all until a view is
+     picked, so the image keeps the whole page until then. */
+  .rr__takes {
     flex: 0 0 auto;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    padding: 0;
-    border: var(--_tokens---pill-border);
-    border-radius: 50%;
-    background: none;
-    color: var(--_tokens---color--fg);
-    cursor: pointer;
-    --icon-size: 14px;
-    opacity: 0.55;
-    transition: opacity var(--_tokens---motion--base) ease,
-                border-color var(--_tokens---motion--base) ease;
-  }
-  @media (hover: hover) {
-    .rr__nav:hover { opacity: 1; border-color: var(--_tokens---color--fg); }
-  }
-
-  /* ── The bar ───────────────────────────────────────────────────────── */
-  .rr__bar {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    min-width: 0;
-  }
-  .rr__where {
-    font-size: var(--_tokens---type--micro);
-    color: var(--_tokens---color--muted);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .rr__right {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex: 0 0 auto;
-  }
-  .rr__count {
-    font-size: var(--_tokens---type--micro);
-    color: var(--_tokens---color--muted);
-    font-variant-numeric: tabular-nums;
-  }
-  .rr__play {
-    display: inline-flex;
-    width: 22px;
-    height: 22px;
-    padding: 0;
-    border: 0;
-    background: none;
-    cursor: pointer;
-    color: var(--_tokens---color--fg);
-  }
-  /* Exempt from the icon family on purpose, like the slider and project
-     countdown rings: it animates its own stroke-dashoffset. */
-  .rr__ring { width: 100%; height: 100%; transform: rotate(-90deg); }
-  .rr__ring circle {
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 2;
-  }
-  .rr__ring-track { opacity: 0.2; }
-  .rr__ring-fill {
-    stroke-dasharray: 56.5;
-    stroke-dashoffset: 56.5;
-    transition: stroke-dashoffset 80ms linear;
-  }
-  .rr__play[aria-pressed="false"] .rr__ring-fill { stroke-dashoffset: 56.5; }
-
-  /* ── The rail ──────────────────────────────────────────────────────── */
-  .rr__rail {
-    display: flex;
+    flex-direction: column;
     gap: 4px;
-    overflow-x: auto;
+    width: 92px;
+    max-height: clamp(240px, 46vh, 620px);
+    overflow-y: auto;
     scrollbar-width: none;
-    min-height: 44px;
+    align-self: flex-start;
   }
-  .rr__rail::-webkit-scrollbar { display: none; }
-  .rr__thumb {
-    flex: 0 0 auto;
-    width: 62px;
-    height: 44px;
+  .rr__takes::-webkit-scrollbar { display: none; }
+  .rr__takes[hidden] { display: none; }
+  .rr__takes-label {
+    font-size: var(--_tokens---type--ultrathin);
+    color: var(--_tokens---color--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .rr__takes-list { display: flex; flex-direction: column; gap: 4px; }
+  .rr__take {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
     padding: 0;
     border: 1px solid transparent;
     border-radius: 3px;
     background: none;
     overflow: hidden;
     cursor: pointer;
-    opacity: 0.45;
+    opacity: 0.5;
     transition: opacity var(--_tokens---motion--base) ease,
                 border-color var(--_tokens---motion--base) ease;
   }
-  .rr__thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .rr__thumb.is-on {
-    opacity: 1;
-    border-color: var(--_tokens---color--fg);
-  }
-  @media (hover: hover) {
-    .rr__thumb:hover { opacity: 1; }
-  }
+  .rr__take img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .rr__take.is-on { opacity: 1; border-color: var(--_tokens---color--fg); }
+  @media (hover: hover) { .rr__take:hover { opacity: 1; } }
 
-  .rr__total {
-    margin: 0;
-    font-size: var(--_tokens---type--ultrathin);
+  /* ── The line under it ─────────────────────────────────────────────── */
+  .rr__bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-width: 0;
+    font-size: var(--_tokens---type--micro);
     color: var(--_tokens---color--muted);
   }
+  .rr__where { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rr__count { flex: 0 0 auto; font-variant-numeric: tabular-nums; }
 
-  /* Taller image on the wide band, where the page has the height to give. */
-  @media (min-width: 1024px) {
-    .rr__frame { height: clamp(360px, 60vh, 760px); }
-    .rr__nav { width: 44px; height: 44px; --icon-size: 16px; }
-    .rr__thumb { width: 84px; height: 58px; }
-    .rr__rail { min-height: 58px; }
+  /* ── The covers ────────────────────────────────────────────────────── */
+  .rr__rail { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+  .rr__rail::-webkit-scrollbar { display: none; }
+  .rr__cover {
+    position: relative;
+    flex: 0 0 auto;
+    width: 104px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    background: none;
+    overflow: hidden;
+    cursor: pointer;
+    opacity: 0.55;
+    transition: opacity var(--_tokens---motion--base) ease,
+                border-color var(--_tokens---motion--base) ease;
   }
-  /* The arrows are a pointer affordance; a phone swipes instead. */
-  @media (max-width: 699.98px) {
-    .rr__nav { display: none; }
+  .rr__cover[hidden] { display: none; }
+  .rr__cover img { width: 100%; height: 70px; object-fit: cover; display: block; }
+  .rr__cover-label {
+    display: block;
+    padding: 3px 4px 4px;
+    font-size: var(--_tokens---type--ultrathin);
+    line-height: 1.1;
+    color: var(--_tokens---color--fg);
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .rr__cover.is-on { opacity: 1; border-color: var(--_tokens---color--fg); }
+  @media (hover: hover) { .rr__cover:hover { opacity: 1; } }
+
+  .rr__total { margin: 0; font-size: var(--_tokens---type--ultrathin); color: var(--_tokens---color--muted); }
+
+  @media (min-width: 1024px) {
+    .rr__stage { height: clamp(360px, 58vh, 740px); }
+    .rr__takes { width: 132px; max-height: clamp(360px, 58vh, 740px); }
+    .rr__cover { width: 132px; }
+    .rr__cover img { height: 88px; }
   }
   @media (prefers-reduced-motion: reduce) {
     .rr__img { transition: none; }
-    .rr__ring-fill { transition: none; }
   }
 </style>
 
@@ -335,106 +274,91 @@ const total = rooms.reduce((a, r) => a + r.frames.length, 0);
     root.dataset.rrWired = '1';
 
     const imgs = Array.from(root.querySelectorAll<HTMLImageElement>('.rr__img'));
-    const tabs = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-rr-tab]'));
-    const rail = root.querySelector<HTMLElement>('[data-rr-rail]');
+    const covers = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-rr-cover]'));
+    const tabs = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-rr-room]')).filter(b => b.classList.contains('rr__tab'));
+    const takes = root.querySelector<HTMLElement>('[data-rr-takes]');
+    const takesList = root.querySelector<HTMLElement>('[data-rr-takes-list]');
+    const takesLabel = root.querySelector<HTMLElement>('[data-rr-takes-label]');
     const where = root.querySelector<HTMLElement>('[data-rr-where]');
-    const pos = root.querySelector<HTMLElement>('[data-rr-pos]');
-    const totalEl = root.querySelector<HTMLElement>('[data-rr-total]');
-    const ring = root.querySelector<SVGCircleElement>('[data-rr-ring]');
-    const play = root.querySelector<HTMLButtonElement>('[data-rr-play]');
-    if (!imgs.length) return;
+    const count = root.querySelector<HTMLElement>('[data-rr-count]');
+    if (!imgs.length || !covers.length) return;
 
-    // Frames, grouped by room, in DOM order.
-    const byRoom: HTMLImageElement[][] = [];
-    imgs.forEach(im => {
-      const r = Number(im.dataset.rrRoom);
-      (byRoom[r] ||= []).push(im);
-    });
+    const frame = (view: number, take: number) =>
+      imgs.find(im => Number(im.dataset.rrView) === view && Number(im.dataset.rrTake) === take);
+    const takesOf = (view: number) =>
+      imgs.filter(im => Number(im.dataset.rrView) === view && Number(im.dataset.rrTake) > 0);
 
-    const DWELL = 2600;                       // ms a frame holds
-    const CIRC = 56.5;                        // the ring's circumference
-    let room = 0, at = 0, playing = true, t0 = 0, raf = 0;
+    let room = 'all';
+    let view = Number(covers[0].dataset.rrCover);
+    let take = 0;
 
-    function show() {
-      const frames = byRoom[room] ?? [];
-      imgs.forEach(im => im.classList.remove('is-on'));
-      const on = frames[at];
-      if (on) {
-        on.classList.add('is-on');
-        // The next frame is decoded before it is needed, so a cross-fade
-        // never lands on an empty box.
-        const nxt = frames[(at + 1) % frames.length];
-        if (nxt && nxt.loading === 'lazy') { nxt.loading = 'eager'; nxt.src = nxt.src; }
-        if (where) where.textContent = on.alt.split('—').slice(1).join('—').trim() || on.alt;
-      }
-      if (pos) pos.textContent = String(at + 1);
-      if (totalEl) totalEl.textContent = String(frames.length);
-      rail?.querySelectorAll('.rr__thumb').forEach((b, i) =>
-        b.classList.toggle('is-on', i === at));
-      rail?.querySelector<HTMLElement>('.rr__thumb.is-on')
-        ?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-      t0 = performance.now();
+    function shown() {
+      return covers.filter(c => !c.hidden);
     }
 
-    function buildRail() {
-      if (!rail) return;
-      rail.innerHTML = '';
-      (byRoom[room] ?? []).forEach((im, i) => {
+    function paint() {
+      const on = frame(view, take);
+      imgs.forEach(im => im.classList.toggle('is-on', im === on));
+      covers.forEach(c => c.classList.toggle('is-on', Number(c.dataset.rrCover) === view));
+      const list = shown();
+      const at = list.findIndex(c => Number(c.dataset.rrCover) === view);
+      const label = covers.find(c => Number(c.dataset.rrCover) === view)?.getAttribute('aria-label') ?? '';
+      if (where) where.textContent = take === 0 ? label : `${label} — take ${take + 1}`;
+      if (count) count.textContent = `${at + 1} / ${list.length}`;
+      root.querySelector<HTMLElement>('.rr__cover.is-on')
+        ?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      takesList?.querySelectorAll('.rr__take').forEach((b, i) =>
+        b.classList.toggle('is-on', i === take - 1));
+    }
+
+    /* The takes column is built only when there is something to put in it,
+       and taken down again when there is not — its width is the image's. */
+    function buildTakes() {
+      if (!takes || !takesList) return;
+      const list = takesOf(view);
+      takesList.innerHTML = '';
+      if (!list.length) { takes.hidden = true; return; }
+      takes.hidden = false;
+      if (takesLabel) takesLabel.textContent = `${list.length} more`;
+      list.forEach((im, i) => {
         const b = document.createElement('button');
         b.type = 'button';
-        b.className = 'rr__thumb' + (i === at ? ' is-on' : '');
-        b.setAttribute('aria-label', `Frame ${i + 1}`);
+        b.className = 'rr__take';
+        b.setAttribute('aria-label', `Take ${i + 2}`);
         const t = document.createElement('img');
         t.src = im.src; t.alt = ''; t.loading = 'lazy'; t.decoding = 'async';
         b.appendChild(t);
-        b.addEventListener('click', () => { at = i; show(); });
-        rail.appendChild(b);
+        b.addEventListener('click', () => { take = i + 1; paint(); });
+        takesList.appendChild(b);
       });
     }
 
-    function setRoom(i: number) {
-      room = i; at = 0;
-      tabs.forEach((b, n) => {
-        b.classList.toggle('is-active', n === i);
-        b.setAttribute('aria-selected', n === i ? 'true' : 'false');
+    function setView(v: number, openTakes: boolean) {
+      view = v; take = 0;
+      if (openTakes) buildTakes();
+      else if (takes) { takes.hidden = true; }
+      paint();
+    }
+
+    function setRoom(r: string) {
+      room = r;
+      tabs.forEach(b => {
+        const on = b.dataset.rrRoom === r;
+        b.classList.toggle('is-active', on);
+        b.setAttribute('aria-selected', String(on));
       });
-      tabs[i]?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-      buildRail();
-      show();
+      covers.forEach(c => { c.hidden = !(r === 'all' || c.dataset.rrRoom === r); });
+      const first = shown()[0];
+      if (first) setView(Number(first.dataset.rrCover), false);
     }
 
-    const step = (d: number) => {
-      const frames = byRoom[room] ?? [];
-      at = (at + d + frames.length) % frames.length;
-      show();
-    };
+    tabs.forEach(b => b.addEventListener('click', () => setRoom(b.dataset.rrRoom!)));
+    // Clicking a cover is the ask: it opens that view's takes beside it.
+    covers.forEach(c => c.addEventListener('click', () => setView(Number(c.dataset.rrCover), true)));
 
-    // The ring is the clock. One rAF drives both it and the advance, so the
-    // bar can never disagree with what is on screen.
-    function tick(now: number) {
-      raf = requestAnimationFrame(tick);
-      if (!playing) return;
-      const p = Math.min(1, (now - t0) / DWELL);
-      if (ring) ring.style.strokeDashoffset = String(CIRC * (1 - p));
-      if (p >= 1) step(1);
-    }
-
-    function setPlaying(on: boolean) {
-      playing = on;
-      play?.setAttribute('aria-pressed', String(on));
-      play?.setAttribute('aria-label', on ? 'Pause' : 'Play');
-      if (on) t0 = performance.now();
-      else if (ring) ring.style.strokeDashoffset = String(CIRC);
-    }
-
-    tabs.forEach((b, i) => b.addEventListener('click', () => setRoom(i)));
-    root.querySelector('[data-rr-prev]')?.addEventListener('click', () => { step(-1); setPlaying(false); });
-    root.querySelector('[data-rr-next]')?.addEventListener('click', () => { step(1); setPlaying(false); });
-    play?.addEventListener('click', () => setPlaying(!playing));
-
-    // Swipe the stage sideways to walk the frames. It owns the gesture, so
-    // the page-level swipe between Home / About / Projects leaves it alone.
-    const stage = root.querySelector<HTMLElement>('.rr__stage');
+    // Swipe the image to walk the covers of the room you are in. The stage
+    // owns the gesture, so the page-level swipe leaves it alone.
+    const stage = root.querySelector<HTMLElement>('[data-rr-stage]');
     if (stage) {
       stage.setAttribute('data-swipe-own', '');
       let x0 = 0, y0 = 0, live = false;
@@ -448,19 +372,14 @@ const total = rooms.reduce((a, r) => a + r.frames.length, 0);
         const t = e.changedTouches[0];
         const dx = t.clientX - x0, dy = t.clientY - y0;
         if (Math.abs(dx) < 40 || Math.abs(dx) <= Math.abs(dy)) return;
-        step(dx < 0 ? 1 : -1);
-        setPlaying(false);
+        const list = shown();
+        const at = list.findIndex(c => Number(c.dataset.rrCover) === view);
+        const next = list[(at + (dx < 0 ? 1 : -1) + list.length) % list.length];
+        if (next) setView(Number(next.dataset.rrCover), false);
       }, { passive: true });
     }
 
-    // Nothing animates while the page cannot be seen.
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) { cancelAnimationFrame(raf); raf = 0; }
-      else if (!raf) { t0 = performance.now(); raf = requestAnimationFrame(tick); }
-    });
-
-    setRoom(0);
-    raf = requestAnimationFrame(tick);
+    setRoom('all');
   }
 
   initRenderRooms();
