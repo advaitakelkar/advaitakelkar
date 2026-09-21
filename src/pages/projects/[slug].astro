@@ -4857,19 +4857,28 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     }
   }
 
-  /* The description reads in the page on a phone, not behind a Read more.
-     The pill exists because the fixed bottom card has no room for a
-     paragraph; this description is not in that card (see the phone-card
-     script), so the pill is a control for a thing that is already open. */
+  /* On a phone the description sits in the bottom card, under the subtitle,
+     open — no Read more. The pill exists to keep a paragraph out of a fixed
+     strip; here the paragraph is the point, so the strip grows for it and
+     scrolls if the writing is long. The card measures its own height, so
+     everything above it moves up on its own. */
   @media (max-width: 699.98px) {
     .project-detail[data-renders="true"] #project-readmore-btn {
       display: none !important;
     }
-    .project-detail[data-renders="true"] .project-desc-readmore,
-    .project-detail[data-renders="true"] .project-card__desc {
+    .project-detail[data-renders="true"] .project-phone-card .project-desc-readmore {
       display: block !important;
       max-height: none !important;
       overflow: visible !important;
+    }
+    .project-detail[data-renders="true"] .project-phone-card .project-card__desc {
+      display: block !important;
+      max-height: 32vh !important;
+      overflow-y: auto !important;
+      scrollbar-width: none;
+    }
+    .project-detail[data-renders="true"] .project-phone-card .project-card__desc::-webkit-scrollbar {
+      display: none;
     }
   }
 
@@ -4889,10 +4898,10 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     .renders-section {
       padding-bottom: calc(var(--pp-card-h, 80px) + var(--pp-dock-h, 66px) + 16px);
     }
-    /* The image takes what is left between the tabs and that card. */
-    .project-detail[data-renders="true"] .rr__frame {
-      height: clamp(220px, 44vh, 460px);
-    }
+    /* The stage's own height lives in RenderRooms.astro. A rule for it
+       cannot be written here: this file's <style> is scoped, so every
+       selector gets this page's data-astro-cid-*, and .rr__stage carries the
+       component's instead — the rule is emitted and never matches. */
   }
 </style>
 
@@ -6349,16 +6358,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       if (cid) actions.setAttribute(cid.name, '');
     }
 
-    /* A renders page keeps its description in the page. The card is a fixed
-       strip at the bottom of the screen and the description is the only long
-       thing on it, so behind a Read more is the only way it fits there — and
-       on a visualisation the few lines of context are worth reading before
-       the rooms, not after tapping for them. */
-    const parts = detail.dataset.renders === 'true'
-      ? PHONE_CARD_PARTS.filter(sel => sel !== '.project-desc-readmore')
-      : PHONE_CARD_PARTS;
-
-    parts.forEach(sel => {
+    PHONE_CARD_PARTS.forEach(sel => {
       const el = detail.querySelector(sel) as HTMLElement | null;
       if (!el) return;
       rememberHome(el);

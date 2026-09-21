@@ -933,12 +933,23 @@ Every line of text sits **under** the pictures, one line each: where you are,
 then what the whole set holds. The takes are `position: absolute` inside the
 stage, so opening them costs the render no width.
 
-**On a phone the description reads in the page**, not behind a Read more.
-That pill exists because the fixed bottom card has no room for a paragraph;
-a renders page keeps its description out of that card, so the pill would be a
-control for something already open. On a visualisation the few lines of
-context are worth reading before the rooms rather than after tapping for
-them.
+**On a phone the description reads open, in the bottom card under the
+subtitle** — no Read more. That pill exists to keep a paragraph out of a
+fixed strip; here the paragraph is the point, so the strip grows for it and
+the description scrolls at 32vh if the writing is long. The card measures its
+own height into `--pp-card-h`, so everything above it moves up on its own.
+
+**The stage's height is what is left over, not its 3:2.** Everything else on
+that band is fixed furniture — the name, the tabs, the line, the rail — and
+the cap subtracts it plus the card. Without it the stage held its ratio and
+pushed the last line under the card, on a page too short to scroll it back
+out.
+
+**A rule for anything `.rr__*` cannot be written in `[slug].astro`.** That
+file's `<style>` is scoped, so every selector picks up the page's
+`data-astro-cid-*`, and those elements carry the component's — the rule is
+emitted and silently never matches. It took a measured `max-height` of
+`690.2px` (the component's own 85vh) to notice.
 
 **No captions under the thumbnails.** They are pictures of rooms, and a row
 of them captioned "Master Bedroom / Master Washroom / Guest Washroom" is a

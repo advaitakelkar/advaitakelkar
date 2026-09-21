@@ -116,7 +116,7 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
   /* Global, not scoped: the takes column is built in script, and a runtime
      node carries no data-astro-cid-*, so a scoped rule would silently fail to
      match it. Every selector is .rr-prefixed. */
-  .rr { display: flex; flex-direction: column; gap: 6px; width: 100%; min-width: 0; }
+  .rr { display: flex; flex-direction: column; gap: 5px; width: 100%; min-width: 0; }
 
   /* ── Rooms ─────────────────────────────────────────────────────────── */
   /* Wrapping, like the footer's pill cloud. A row that scrolls sideways
@@ -161,7 +161,7 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
   @media (hover: hover) { .rr__tab:hover { border-color: var(--_tokens---color--fg); } }
 
   /* ── The work, and the takes beside it ─────────────────────────────── */
-  .rr__body { display: flex; gap: 6px; align-items: flex-start; min-width: 0; }
+  .rr__body { display: flex; gap: 5px; align-items: flex-start; min-width: 0; }
 
   /* No box behind the picture. `object-fit: contain` in a fixed-height frame
      left tall grey bands above and below every landscape render, and a tinted
@@ -272,7 +272,7 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
   .rr__cover.is-on { opacity: 1; border-color: var(--_tokens---color--fg); }
   @media (hover: hover) { .rr__cover:hover { opacity: 1; } }
 
-  .rr__total { margin: 0; font-size: var(--_tokens---type--ultrathin); color: var(--_tokens---color--muted); }
+  .rr__total { margin: 0; font-size: var(--_tokens---type--ultrathin); color: var(--_tokens---color--muted); line-height: 1.2; }
 
   @media (min-width: 1024px) {
     .rr__takes { width: 116px; }
@@ -280,14 +280,31 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
     .rr__cover img { height: 104px; }
     .rr__tab { font-size: var(--_tokens---type--micro); padding: 4px 11px; }
   }
-  /* Edge to edge on the phone. The 12px page gutter is there so text does
-     not touch the bezel; a render is not text, and the 24px it was spending
-     is 6% of the picture. */
+  /* On the phone the picture keeps the page's grid — it lines up with the
+     tabs above it and the covers below, rather than bleeding past both. It
+     ran edge to edge for a moment and was the one thing on the page that did.
+
+     Its height is what is left over, not its 3:2. Everything else on this
+     band is fixed furniture — the name, the tabs, the line, the rail — and
+     the card at the bottom measures its own height into --pp-card-h. Without
+     the cap the stage held its ratio and pushed the last line under the card,
+     on a page too short to scroll it back out. The 280 is that furniture,
+     measured: at 375x812 it leaves the stage 231px, which is within 3px of
+     the 3:2 it wants anyway — so the cap only bites on a shorter screen. */
   @media (max-width: 699.98px) {
     .rr__stage {
-      margin-inline: calc(var(--_tokens---layout--gutter) * -1);
+      max-height: calc(100dvh - var(--pp-card-h, 200px) - var(--pp-dock-h, 66px) - 280px);
+      min-height: 140px;
+    }
+    /* Five covers across, measured from the row rather than guessed at: the
+       width less the four gaps between them, split five ways. Three at a
+       time showed a third of a thirteen-view flat and made the rail feel
+       like a queue instead of an index. */
+    .rr__cover {
+      flex: 0 0 calc((100% - 12px) / 5);
       width: auto;
     }
+    .rr__cover img { height: 48px; }
   }
 
   @media (prefers-reduced-motion: reduce) {
