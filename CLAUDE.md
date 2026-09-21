@@ -918,9 +918,10 @@ each answering a different question:
 | rail | which view of it | the covers, along the bottom |
 | column | which take of it | the variations, over the picture's top right, **on demand** |
 
-The people sit at the right end of the tab row from 700px up — beside the
-work rather than at the end of a paragraph. Below that the row has no width
-to spare and they stay where the page put them.
+The people sit at the top right of the copy from 700px up, **on the
+subtitle's line** — absolute, so they take no height from a column whose
+measure is already set, and `right: 0` is the page's edge because only the
+text block carries the 80ch cap. Below 700 they stay where the page put them.
 
 Every line of text sits **under** the pictures, one line each: where you are,
 then what the whole set holds. The takes are `position: absolute` inside the
