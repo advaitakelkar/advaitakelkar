@@ -448,7 +448,7 @@ const skillsets = [
       <!-- Career Header (Dropdown toggle) -->
       <header class="profile-header career-header page-toggle-header">
         <h1 class="profile-name">
-          <span data-scramble>Professional Journey</span>
+          <span data-scramble>Journey</span>
         </h1>
         <button class="page-toggle-btn" data-page-toggle="about-career-panel" aria-expanded="true" aria-label="Toggle career details" type="button">
           <Arrow />
@@ -1827,7 +1827,11 @@ const skillsets = [
     .about-page .education-header,
     .about-page .career-header,
     .about-page .skillset-header {
-      position: static !important;
+      /* Sticky, with the offsets written by the script — see initAboutPhonePanels.
+         Opaque, because a docked row has the page scrolling under it. */
+      position: sticky;
+      z-index: 60;
+      background-color: var(--_tokens---color--bg);
       display: flex !important;
       align-items: center;
       justify-content: flex-start !important;
@@ -1946,7 +1950,7 @@ const skillsets = [
     .about-page {
       /* Clear the docked nav bar, and nothing more: the page scrolls. */
       padding-top: 0;
-      padding-bottom: calc(var(--ab-dock-h, 66px) + 24px);
+      padding-bottom: calc(var(--ab-dock-h, 66px) + var(--ab-bot-h, 0px) + 24px);
     }
     .about-page .about-section--intro {
       padding-top: 0;
@@ -2196,15 +2200,20 @@ const skillsets = [
     setupScrollToTop();
   });
 
-  // ── Phone: three disclosures, one below the other ───────────────────
-  // Education, Professional Journey and Skillset each keep their own arrow and
-  // open in place, which is what the wider bands already do — the only thing
-  // this adds is where the bio lives and which sections start closed.
+  // ── Phone: three sections, one open, the closed ones docked ─────────
+  // Education, Journey and Skillset. Exactly one is open; the closed rows
+  // above it stack at the TOP of the screen and the closed rows below it
+  // stack at the BOTTOM, above the nav bar. So all three titles are on
+  // screen however far you scroll, and each one stays on the side of the
+  // open section it lives on — the order never changes, and a title is
+  // always where you last saw it.
   //
-  // It replaced two earlier attempts. First the headings themselves were the
-  // navigation and relocated above or below whichever was open; then a fixed
-  // bar of three pills switched between them. Both worked, and both asked the
-  // reader to learn something before they could use the page.
+  // It is `position: sticky` doing the work, not a fixed bar: a docked row
+  // occupies its own place in the flow and only pins once the scroll reaches
+  // it, so nothing has to be reserved for it and the page reads normally
+  // when it is short. The offsets ARE computed, because they are sums of
+  // measured row heights and the bottom stack also clears the nav dock,
+  // whose height moves with the device's safe area.
   function initAboutPhonePanels() {
     const page = document.querySelector('.about-page') as HTMLElement | null;
     if (!page) return;
@@ -2234,30 +2243,78 @@ const skillsets = [
       page!.style.setProperty('--ab-dock-h', Math.round(dock?.getBoundingClientRect().height ?? 66) + 'px');
     }
 
+    // In page order. The index of the open one is what decides which rows
+    // dock up and which dock down, so the order is the model here.
+    const rows = ['about-top-grid', 'about-career-panel', 'skillset-panel']
+      .map(id => {
+        const btn = document.querySelector<HTMLElement>('[data-page-toggle="' + id + '"]');
+        return { btn, hdr: btn?.closest('.page-toggle-header') as HTMLElement | null };
+      })
+      .filter(r => r.btn && r.hdr);
+    const isOpen = (r: any) => r.btn.getAttribute('aria-expanded') !== 'false';
+
+    // One at a time. Opening a section closes whichever was open, so the one
+    // you want is never buried under two others you have to collapse first.
+    // The clicks are synthetic, so re-entry is guarded rather than trusted.
+    function solo(keep: number) {
+      if ((page as any)._solo) return;
+      (page as any)._solo = true;
+      rows.forEach((r, i) => { if (i !== keep && isOpen(r)) r.btn!.click(); });
+      (page as any)._solo = false;
+    }
+
+    // Rows up to and including the open one stick to the top, each below the
+    // one before it; the rest stick to the bottom, above the nav dock. With
+    // nothing open they all dock down, which is the page as a table of
+    // contents.
+    function dock() {
+      if (!phone.matches) {
+        rows.forEach(r => { r.hdr!.style.top = ''; r.hdr!.style.bottom = ''; });
+        page!.style.removeProperty('--ab-bot-h');
+        return;
+      }
+      const open = rows.findIndex(isOpen);
+      const h = rows.map(r => r.hdr!.getBoundingClientRect().height);
+      const dockH = parseFloat(getComputedStyle(page!).getPropertyValue('--ab-dock-h')) || 66;
+      let up = 0;
+      for (let i = 0; i <= open; i++) {
+        rows[i].hdr!.style.bottom = '';
+        rows[i].hdr!.style.top = Math.round(up) + 'px';
+        up += h[i];
+      }
+      let down = 0;
+      for (let i = rows.length - 1; i > open; i--) {
+        rows[i].hdr!.style.top = '';
+        rows[i].hdr!.style.bottom = Math.round(dockH + down) + 'px';
+        down += h[i];
+      }
+      // What the page has to clear so the footer is not left under the stack.
+      page!.style.setProperty('--ab-bot-h', Math.round(down) + 'px');
+    }
+
     // Education is open; the other two start closed, so the page opens as the
     // person and their studies rather than as three screens of everything.
     function collapseOnce() {
       if ((page as any)._collapsed || !phone.matches) return;
       (page as any)._collapsed = true;
-      ['about-career-panel', 'skillset-panel'].forEach(id => {
-        const btn = document.querySelector<HTMLElement>('[data-page-toggle="' + id + '"]');
-        if (btn && btn.getAttribute('aria-expanded') !== 'false') btn.click();
-      });
+      solo(0);
     }
 
     function apply() {
       placeSearch();
       measure();
       if (phone.matches) collapseOnce();
+      dock();
     }
 
     if (!(page as any)._phoneTabsWired) {
       (page as any)._phoneTabsWired = true;
       phone.addEventListener('change', apply);
-      window.addEventListener('resize', measure, { passive: true });
+      const remeasure = () => { measure(); dock(); };
+      window.addEventListener('resize', remeasure, { passive: true });
       if ('ResizeObserver' in window) {
         const el = document.querySelector('.page-breadcrumb');
-        if (el) new ResizeObserver(() => measure()).observe(el);
+        if (el) new ResizeObserver(remeasure).observe(el);
       }
       // Above 700 the field sits outside the section, so focusing it opens
       // the pills it filters. On the phone it is inside, and reaching it
@@ -2265,6 +2322,19 @@ const skillsets = [
       search?.addEventListener('focus', () => {
         const btn = document.querySelector<HTMLElement>('[data-page-toggle="skillset-panel"]');
         if (!phone.matches && btn?.getAttribute('aria-expanded') === 'false') btn.click();
+      });
+
+      // The global toggle wiring has already flipped aria-expanded by the time
+      // this runs, so the state read here is the new one, not the one being
+      // replaced. The panel animates over --motion--slow; re-docking after it
+      // settles catches the height the row ends up at.
+      rows.forEach((r, i) => {
+        r.hdr!.addEventListener('click', () => {
+          if ((page as any)._solo || !phone.matches) return;
+          if (isOpen(r)) solo(i);
+          dock();
+          setTimeout(dock, 450);
+        });
       });
     }
 

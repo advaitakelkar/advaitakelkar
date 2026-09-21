@@ -577,12 +577,23 @@ Anything the category list must inherit from the shared stack is restated on
 adds no specificity, so a same-class override only wins on source order, and a
 scoped rule outranks a global one outright.
 
-### About: three dropdowns, drawn as project rows
+### About: three sections, one open, the closed ones docked
 
-Below 700px About is three disclosures one below the other — Education,
-Professional Journey, Skillset. A title, an arrow, a panel, in that order.
-Nothing docks, nothing relocates, nothing has to be selected before it can be
-read: you open what you want and scroll.
+Below 700px About is three sections — Education, Journey, Skillset — and
+exactly one is open. The closed rows ABOVE it stack at the top of the screen
+and the closed rows BELOW it stack at the bottom, above the nav dock, so all
+three titles stay on screen however far you scroll and each stays on the side
+of the open section it lives on. The order never changes, so a title is
+always where you last saw it.
+
+`position: sticky` does that, not a fixed bar: a docked row keeps its place
+in the flow and only pins once the scroll reaches it, so nothing has to be
+reserved for it and a short page reads normally. The offsets are computed,
+because each is a sum of measured row heights and the bottom stack also has
+to clear the nav dock, whose height moves with the device's safe area. The
+script writes them inline and publishes `--ab-bot-h` so the page can clear
+the bottom stack; above 700 it clears all of it and the three sections go
+back to being independent.
 
 **A closed section is the same object as a collapsed project card**, so it is
 drawn with that card's geometry rather than a second one invented for this
@@ -596,17 +607,14 @@ gap, exactly as the project list does.
 The name, the role, the bio and its three buttons are the page header above
 all three. They describe the person, not a section, so they sit outside every
 dropdown and are always present — **at every width**, not just on the phone.
-Professional Journey's four sections stay a horizontal pill row at the top of
+Journey's four sections stay a horizontal pill row at the top of
 its panel.
 
-Two earlier arrangements stood here and are worth not repeating. First the
-three headings WERE the navigation and moved above or below whichever was
-open, so all three stayed on screen at any scroll; then a fixed bar of three
-pills switched between them. Both worked. Both asked the reader to learn the
-page before they could use it, and the first needed a script to compute nine
-top/bottom positions from measured heights because a CSS matrix of that cannot
-be kept correct. `--ab-dock-h` is all that survives — the breadcrumb dock's
-measured height, which the page padding still reads.
+A fixed bar of three pills stood here once and should not come back: it put
+the navigation somewhere other than where the sections are, so the page had
+two places saying the same thing. An earlier version of the docking moved the
+headings in the DOM rather than sticking them, which is the same picture for
+much more machinery.
 
 **The markup is the same at every width** — only the drawing changes. The
 identity header is no longer a disclosure at all; Education carries its own
