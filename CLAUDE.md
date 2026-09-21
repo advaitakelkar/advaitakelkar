@@ -608,7 +608,22 @@ The name, the role, the bio and its three buttons are the page header above
 all three. They describe the person, not a section, so they sit outside every
 dropdown and are always present — **at every width**, not just on the phone.
 Journey's four sections stay a horizontal pill row at the top of
-its panel.
+its panel, and a horizontal **swipe** across the section moves through them —
+the row already looks like a sequence, so the gesture it looks like should
+work. A swipe that is mostly vertical is the page scrolling, one shorter than
+48px is a tap that wandered, and one starting inside the pill row is that row
+scrolling; all three are ignored.
+
+**Switching a section does not move the page.** The titles are docked, so the
+only thing that changes is what sits between them; scrolling as well costs
+the reader their place, and swiping through four sections would walk the page
+back to the top each time.
+
+Skillset's search **docks above the nav bar** and its pills grow UP out of it
+— the same chassis as /projects, where the controls are fixed at the bottom
+and the list runs `column-reverse`. The field is `position: fixed`, which
+escapes the panel's `overflow: hidden`, so a `:has()` rule hides it while the
+section is shut.
 
 A fixed bar of three pills stood here once and should not come back: it put
 the navigation somewhere other than where the sections are, so the page had

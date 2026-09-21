@@ -1828,10 +1828,13 @@ const skillsets = [
     .about-page .career-header,
     .about-page .skillset-header {
       /* Sticky, with the offsets written by the script — see initAboutPhonePanels.
-         Opaque, because a docked row has the page scrolling under it. */
+         Opaque, because a docked row has the page scrolling under it — and
+         !important because the fixed-top-bar rule above still forces
+         .profile-header transparent, which wins on source order otherwise
+         and let the career rows read straight through the docked title. */
       position: sticky;
       z-index: 60;
-      background-color: var(--_tokens---color--bg);
+      background-color: var(--_tokens---color--bg) !important;
       display: flex !important;
       align-items: center;
       justify-content: flex-start !important;
@@ -1870,14 +1873,39 @@ const skillsets = [
       display: contents;
     }
     /* The field moved into the panel (see the script), so the closed row is
-       a title and an arrow like every other one. */
+       a title and an arrow like every other one — and it docks above the nav
+       bar rather than sitting at the end of the pills, so it is in reach
+       whatever you have scrolled to. Same chassis as /projects: the control
+       is fixed at the bottom and the content grows UP out of it. */
     .about-page .skillset-panel__search {
+      position: fixed;
+      left: var(--_tokens---layout--gutter);
+      right: var(--_tokens---layout--gutter);
+      bottom: var(--ab-dock-h, 66px);
+      z-index: 95;
       display: block;
-      margin-top: 16px;
+      margin: 0;
+      /* Opaque, and wider than the field, so the pills scroll under the bar
+         rather than through the field's own 6% tint. */
+      padding: 8px 0;
+      background-color: var(--_tokens---color--bg);
     }
     .about-page .skillset-panel__search .skillset-search-input {
       width: 100%;
       height: 44px;
+    }
+    /* A fixed child escapes its parent's overflow, so the field would hang
+       over the page with the section shut. */
+    .about-page .profile-header:has(.page-toggle-btn[aria-expanded="false"]) + .page-toggle-panel .skillset-panel__search {
+      display: none;
+    }
+    /* Pills stack up from the field, so the last row is the one beside it and
+       the cloud never runs off the bottom of the screen. */
+    .about-page .skillset-panel {
+      padding-bottom: calc(var(--ab-dock-h, 66px) + 64px);
+    }
+    .about-page .skillset-cloud {
+      flex-direction: column-reverse;
     }
     /* One hairline per row. The panel draws the line that closes an OPEN
        section; a closed one is a single row and the header's line is it. */
@@ -2035,13 +2063,18 @@ const skillsets = [
         }
       });
 
-      // Reset scroll position of career section to start from top
+      // A swipe can select a pill that is scrolled off the row, so bring it
+      // back. `nearest` means a pill already in view does not move the page.
+      if (window.matchMedia('(max-width: 699.98px)').matches) {
+        (tab as HTMLElement).scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      }
+
       if (careerSection) {
         if (window.matchMedia('(max-width: 699.98px)').matches) {
-          // On the phone the section's heading is pinned and the rows are
-          // docked, so there is nothing to scroll INTO view — scrolling to
-          // the section's box just pushes the new content under the stack.
-          window.scrollTo({ top: 0 });
+          // Hold the scroll. The titles are docked, so switching sections
+          // changes only what is between them — moving the page as well
+          // costs you the place you were reading from, and swiping through
+          // four sections would walk the page back to the top each time.
         } else if (window.matchMedia('(max-width: 1023.98px)').matches) {
           const y = careerSection.getBoundingClientRect().top + window.pageYOffset - 48;
           window.scrollTo({ top: y, behavior: 'smooth' });
@@ -2051,6 +2084,42 @@ const skillsets = [
       }
     });
   });
+
+  // --- Journey: swipe between its four sections ----------------------
+  // The pills are a row on the phone and the sections behind them are a
+  // sequence, so the gesture the row already looks like should move through
+  // it. Horizontal only: a swipe that is mostly vertical is the page being
+  // scrolled, and a short one is a tap that wandered.
+  const careerPanel = document.getElementById('about-career-panel');
+  if (careerPanel && tabs.length > 1) {
+    const MIN = 48;   // px of travel before it counts as a swipe
+    let x0 = 0, y0 = 0, tracking = false;
+
+    careerPanel.addEventListener('touchstart', (e) => {
+      if (e.touches.length !== 1) { tracking = false; return; }
+      x0 = e.touches[0].clientX;
+      y0 = e.touches[0].clientY;
+      tracking = true;
+    }, { passive: true });
+
+    careerPanel.addEventListener('touchend', (e) => {
+      if (!tracking) return;
+      tracking = false;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - x0;
+      const dy = t.clientY - y0;
+      if (Math.abs(dx) < MIN || Math.abs(dx) <= Math.abs(dy)) return;
+      // A sideways drag inside the pill row is that row scrolling, not a
+      // section change.
+      if ((t.target as HTMLElement)?.closest?.('.about-tabs-container')) return;
+      const list = Array.from(tabs) as HTMLElement[];
+      const at = list.findIndex((b) => b.classList.contains('is-active'));
+      // Swipe left to go forward, the way a deck of cards reads.
+      const next = at + (dx < 0 ? 1 : -1);
+      if (next < 0 || next >= list.length) return;
+      list[next].click();
+    }, { passive: true });
+  }
 
   // --- Skillset cloud: same row engine as the footer's project cloud ---
   const skillCloud = document.getElementById('skillset-cloud');
