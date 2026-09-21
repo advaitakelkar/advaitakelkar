@@ -94,7 +94,15 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
        scrolls. -->
   <div class="rr__rail" data-rr-rail>
     {indexed.map(v => (
-      <button class="rr__cover" type="button" data-rr-cover={v.i} data-rr-room={v.room} aria-label={v.label}>
+      <button
+        class="rr__cover"
+        type="button"
+        data-rr-cover={v.i}
+        data-rr-room={v.room}
+        data-short={v.label}
+        data-full={v.label === v.room ? v.room : `${v.room} · ${v.label}`}
+        aria-label={v.label === v.room ? v.room : `${v.room} · ${v.label}`}
+      >
         <img src={v.image} alt="" loading="lazy" decoding="async" />
         <span class="rr__cover-label">{v.label}</span>
       </button>
@@ -312,8 +320,25 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
     const takesOf = (view: number) =>
       imgs.filter(im => Number(im.dataset.rrView) === view && Number(im.dataset.rrTake) > 0);
 
+    /* All arrives in a different order every load, the way the footer's pill
+       cloud and the skillset reshuffle do. Thirteen views in one fixed order
+       means the last four are the ones nobody ever sees; shuffled, the tab
+       reads as the flat rather than as a list with a beginning and an end.
+       A named room keeps its own order — View 01 before View 02 is the
+       sequence the work was made in, and that one means something.
+
+       Shuffled once per load, not per click, so leaving All and coming back
+       does not move the ground under you. */
+    const rail = root.querySelector<HTMLElement>('[data-rr-rail]');
+    const naturalOrder = covers.slice();
+    const allOrder = covers.slice();
+    for (let i = allOrder.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [allOrder[i], allOrder[j]] = [allOrder[j], allOrder[i]];
+    }
+
     let room = 'all';
-    let view = Number(covers[0].dataset.rrCover);
+    let view = Number(allOrder[0].dataset.rrCover);
     let take = 0;
 
     /* All plays by itself. It is the tab you land on and it holds every
@@ -326,8 +351,12 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
     let playing = true, t0 = 0, raf = 0;
     const canPlay = () => room === 'all' && take === 0;
 
+    /* Rail order, not the order the markup was written in — All reshuffles
+       its covers, so the counter and the autoplay have to walk what is on
+       screen. */
     function shown() {
-      return covers.filter(c => !c.hidden);
+      return Array.from(rail?.children ?? [])
+        .filter((c): c is HTMLButtonElement => c instanceof HTMLButtonElement && !c.hidden);
     }
 
     function paint() {
@@ -336,7 +365,8 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
       covers.forEach(c => c.classList.toggle('is-on', Number(c.dataset.rrCover) === view));
       const list = shown();
       const at = list.findIndex(c => Number(c.dataset.rrCover) === view);
-      const label = covers.find(c => Number(c.dataset.rrCover) === view)?.getAttribute('aria-label') ?? '';
+      const cov = covers.find(c => Number(c.dataset.rrCover) === view);
+      const label = (room === 'all' ? cov?.dataset.full : cov?.dataset.short) ?? '';
       if (where) where.textContent = take === 0 ? label : `${label} — take ${take + 1}`;
       if (count) count.textContent = `${at + 1} / ${list.length}`;
       root.querySelector<HTMLElement>('.rr__cover.is-on')
@@ -404,6 +434,17 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
         const on = b.dataset.rrRoom === r;
         b.classList.toggle('is-active', on);
         b.setAttribute('aria-selected', String(on));
+      });
+      // Re-append in the order this tab wants. appendChild MOVES a node, so
+      // the rail is reordered rather than rebuilt and the listeners survive.
+      (r === 'all' ? allOrder : naturalOrder).forEach(c => rail?.appendChild(c));
+      /* In All the covers need their room's name on them: three rooms have a
+         "View 01" and shuffling puts them next to each other. Inside a room
+         the room is the tab you are standing in, so the short label is
+         enough. */
+      covers.forEach(c => {
+        const t = c.querySelector<HTMLElement>('.rr__cover-label');
+        if (t) t.textContent = (r === 'all' ? c.dataset.full : c.dataset.short) ?? '';
       });
       covers.forEach(c => { c.hidden = !(r === 'all' || c.dataset.rrRoom === r); });
       const first = shown()[0];
