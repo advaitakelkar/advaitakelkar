@@ -438,9 +438,15 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
       });
     }
 
+    /* In a named room the takes are always up. You went to Living to look at
+       the living room, and the alternates of the view you are on are the
+       thing to compare — asking for a click first hides them behind a step
+       nobody knows to take. All is the exception: it is playing through the
+       whole flat, and a column of takes changing every three seconds under a
+       picture you did not choose is noise. There they open on a click. */
     function setView(v: number, openTakes: boolean) {
       view = v; take = 0;
-      if (openTakes) buildTakes();
+      if (openTakes || room !== 'all') buildTakes();
       else if (takes) { takes.hidden = true; }
       paint();
     }

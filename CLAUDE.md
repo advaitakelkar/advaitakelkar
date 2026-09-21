@@ -926,10 +926,15 @@ Every line of text sits **under** the pictures, one line each: where you are,
 then what the whole set holds. The takes are `position: absolute` inside the
 stage, so opening them costs the render no width.
 
-**Variations are not shown until you ask.** They are alternates of one
-picture, not more pictures, and a grid of thirty-eight of them is a render
-study nobody asked to read. Click a cover and that view's takes appear beside
-it; change room and they fold away again.
+**In a named room the takes are always up.** You went to Living to look at
+the living room, and the alternates of the view you are on are the thing to
+compare — asking for a click first hides them behind a step nobody knows to
+take. A view with no alternates shows nothing, so the column is never an
+empty promise.
+
+**All is the exception.** It is playing through the whole flat, and a column
+of takes changing every three seconds under a picture you did not choose is
+noise. There they open on a click, and clicking stops the play.
 
 **All is a mark, not a word** — an arrow in a circle, like the All tab on a
 category page. It names no room, and it shows every view's cover.
