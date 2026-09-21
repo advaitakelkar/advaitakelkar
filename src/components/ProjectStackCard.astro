@@ -66,8 +66,14 @@ if (p.id === 'ai-works') {
   if (p.data.multiImage) allImgs.push(...(p.data.multiImage as string[]));
 }
 
+/* A project with `views` shows its cover and nothing else here. The strip is
+   meant to say what a project contains; on a rendering project every view is
+   the same room several times, so a row of them says only "renders". */
+const hasViews = !!(p.data as any).views?.length;
 // Scrub shows only the curated set when a project defines one
-const scrubImgsRaw: string[] = (p.data.scrubImages as string[] | undefined)?.length
+const scrubImgsRaw: string[] = hasViews
+  ? [p.data.coverImage].filter(Boolean) as string[]
+  : (p.data.scrubImages as string[] | undefined)?.length
   ? (p.data.scrubImages as string[])
   : allImgs;
 const isLocked = isProjectLocked(p.id, p.data?.passcode);

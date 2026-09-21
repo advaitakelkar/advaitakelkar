@@ -83,6 +83,20 @@ const projects = defineCollection({
     // If set, the project-list scrub draws from these instead of all images
     // (e.g. renders only, no sketches). The project page still shows everything.
     scrubImages: z.array(z.string()).optional(),
+    /* ── Views, for a project that is renders rather than photographs ──────
+       A rendering project does not have N images; it has N VIEWS, and each
+       view was rendered several times. Those alternates are variations of one
+       picture, not more pictures — listing them flat made XBKC read as 51
+       works when it is thirteen.
+
+       So a view carries its chosen image and the variations behind it. The
+       deck shows the chosen ones, one per view, and a card shows the cover
+       alone: a thumbnail strip of the same room six times says nothing. */
+    views: z.array(z.object({
+      label: z.string().optional(),
+      image: z.string(),
+      variations: z.array(z.string()).optional(),
+    })).optional(),
     // Team members shown as avatar circles + names on the project page.
     // Names must match the PEOPLE registry in projects/[slug].astro.
     // Defaults to Advaita only when omitted.

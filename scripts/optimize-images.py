@@ -15,7 +15,7 @@ Run: python3 scripts/optimize-images.py
 import io
 import os
 import sys
-from PIL import Image
+from PIL import Image, ImageOps
 
 ROOT = "public/images"
 PHOTO_MAX = 1600
@@ -37,6 +37,10 @@ def optimize(path: str) -> int:
     try:
         im = Image.open(path)
         im.load()
+        # A phone photo taken upright is stored landscape with an EXIF
+        # orientation flag. Resizing the stored frame and re-encoding without
+        # the flag lays the picture on its side — bake the rotation in first.
+        im = ImageOps.exif_transpose(im)
     except Exception:
         return 0
 

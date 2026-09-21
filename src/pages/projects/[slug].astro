@@ -24,9 +24,19 @@ const { data } = project;
 const tags = await Promise.all((data.tags ?? []).map(t => getEntry(t)));
 const category = data.category ? await getEntry(data.category) : null;
 
-const gallery = (data.multiImage ?? []).filter(Boolean);
-let allImages = [data.coverImage, ...gallery].filter(Boolean);
+/* A project with `views` is renders, not photographs: the deck shows the one
+   chosen image per view, and the alternates hang off it as variations rather
+   than padding the count. See the note on the schema. */
+const views = (data.views ?? []).filter((v: any) => v?.image);
+const gallery = views.length
+  ? views.map((v: any) => v.image)
+  : (data.multiImage ?? []).filter(Boolean);
+let allImages = views.length ? gallery : [data.coverImage, ...gallery].filter(Boolean);
 let hasImages = allImages.length > 0;
+/* Keyed by the image the deck shows, so the client can find a view's
+   alternates from whatever is on screen without carrying an index around. */
+const variationsByImage: Record<string, string[]> = {};
+views.forEach((v: any) => { if (v.variations?.length) variationsByImage[v.image] = v.variations; });
 
 const firstTag = tags.find(t => t);
 const yearLoc = [data.year, data.location].filter(Boolean).join(', ');
@@ -415,7 +425,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                      keeps #deck-grid and this becomes the parallel-wired
                      #deck-grid-mobile-scrub (desktop column layout). -->
                 {hasImages && (
-                  <div class="deck-grid deck-grid--mobile-scrub" id={isTabLayout ? "deck-grid" : "deck-grid-mobile-scrub"} data-images={JSON.stringify(allImages)}>
+                  <div class="deck-grid deck-grid--mobile-scrub" id={isTabLayout ? "deck-grid" : "deck-grid-mobile-scrub"} data-images={JSON.stringify(allImages)} data-variations={Object.keys(variationsByImage).length ? JSON.stringify(variationsByImage) : undefined}>
                     {allImages.map((img, idx) => (
                       <button
                         type="button"
@@ -489,7 +499,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
           <!-- CARD DECK SECTION: INSIDE the dropdown container so when closed it collapses completely inside -->
           {hasImages && isCardPage && !isTabLayout && (
             <section class="card-deck-section">
-              <div class="deck-grid" id="deck-grid" data-images={JSON.stringify(allImages)}>
+              <div class="deck-grid" id="deck-grid" data-images={JSON.stringify(allImages)} data-variations={Object.keys(variationsByImage).length ? JSON.stringify(variationsByImage) : undefined}>
                 {allImages.map((img, idx) => {
                   const filename = img.substring(img.lastIndexOf('/') + 1);
                   const ext = filename.substring(filename.lastIndexOf('.'));
@@ -712,67 +722,10 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         </div>
       )}
 
-      {!isOriginalCardPage && !isScarpinPage && !(data.chapters?.length) && (
-        <div class="project-metadata-sections">
-          <section class="project-design-section">
-            <div class="project-header-title-row project-design-header" id="project-design-click">
-              <h3 class="project-section-subtitle">Design</h3>
-              <button class="project-detail-collapse-btn" id="project-design-toggle" aria-controls="project-design-panel" type="button" aria-expanded="false" aria-label="Toggle design details">
-                <Arrow class="toggle-icon-minus" style="display: none;" />
-                <Arrow class="toggle-icon-plus" />
-              </button>
-            </div>
-            
-            <div class="project-design-content" id="project-design-panel">
-              {realText(data.design) && <div set:html={data.design} />}
-              <div class="project-design-grid">
-                {data.program && (<div class="project-design-item">
-                  <span class="design-label">Program</span>
-                  <span class="design-val">{data.program}</span>
-                </div>)}
-                <div class="project-design-item">
-                  <span class="design-label">Collaborator</span>
-                  <span class="design-val">{data.collaborator ?? 'Self-initiated'}</span>
-                </div>
-                {category && (
-                  <div class="project-design-item">
-                    <span class="design-label">Category</span>
-                    <span class="design-val">{category.data.displayName}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </section>
-
-          <section class="project-making-section">
-            <div class="project-header-title-row project-making-header" id="project-making-click">
-              <h3 class="project-section-subtitle">Making</h3>
-              <button class="project-detail-collapse-btn" id="project-making-toggle" aria-controls="project-making-panel" type="button" aria-expanded="false" aria-label="Toggle making details">
-                <Arrow class="toggle-icon-minus" style="display: none;" />
-                <Arrow class="toggle-icon-plus" />
-              </button>
-            </div>
-            
-            <div class="project-making-content" id="project-making-panel">
-              {realText(data.making) && <div set:html={data.making} />}
-              <div class="project-making-grid">
-                {data.client && (<div class="project-making-item">
-                  <span class="design-label">Client</span>
-                  <span class="design-val">{data.client}</span>
-                </div>)}
-                {data.size && (<div class="project-making-item">
-                  <span class="design-label">Size</span>
-                  <span class="design-val">{data.size}</span>
-                </div>)}
-                {data.location && (<div class="project-making-item">
-                  <span class="design-label">Location</span>
-                  <span class="design-val">{data.location}</span>
-                </div>)}
-              </div>
-            </div>
-          </section>
-        </div>
-      )}
+      {/* The Design and Making panels are gone. They were two display-scale
+          headings over label/value grids restating what the pills already
+          say, and on a phone they ran straight through their own rows.
+          Their facts live in the pills; the section is to be redesigned. */}
 
       {/* SCARPIN: Person-based accordion tabs (replace Design/Making) */}
       {isScarpinPage && scarpinSliders.length > 0 && (
