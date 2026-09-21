@@ -782,10 +782,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
           one image. */}
       {isRenders && (
         <section class="renders-section">
-          {/* The people move in here from 1024 up (see initRendersPeople at
-              the end of this file): stacked at the top of the picture column,
-              beside the work rather than at the end of a paragraph. */}
-          <div class="renders-people" id="renders-people-slot"></div>
           <RenderRooms views={data.views ?? []} name={data.name} />
         </section>
       )}
@@ -4785,8 +4781,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     padding-bottom: 24px;
   }
 
-  .renders-people:empty { display: none; }
-
   /* By id: the phone card moves this button into itself and styles it there,
      and those rules outrank an attribute-plus-class selector. There is no
      prompt behind a visualisation — the renders are the work, not a text
@@ -4795,51 +4789,20 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     display: none !important;
   }
 
-  /* ── Wide: the copy on the left, the work on the right ──────────────
-     A passage set across a 1440px page runs past 140 characters a line,
-     twice what anyone reads comfortably. The copy takes a column and stops
-     at 80ch; the pictures take the other, with the people stacked at the top
-     of it. */
+  /* One column at every width: the copy, then the work under it. It was two
+     on the wide band for a moment — copy left, pictures right — which halved
+     a render to 647px so a paragraph could sit beside it. The pictures are
+     the project; they get the page.
+
+     The passage still stops at 80ch. Set across 1440px it ran past 140
+     characters a line, twice what anyone reads comfortably. */
   @media (min-width: 1024px) {
-    .project-detail[data-renders="true"] {
-      display: grid !important;
-      grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
-      column-gap: 32px;
-      align-items: start;
-    }
-    /* display:block, not the contents the card layout gives it — with
-       `contents` the wrap vanishes and every piece of the copy is placed in
-       the grid on its own, which put the description in row 2, 860px down
-       the page. One item, one column. */
-    .project-detail[data-renders="true"] .project-dashboard-wrap {
-      display: block !important;
-      grid-column: 1;
-      grid-row: 1;
+    .project-detail[data-renders="true"] .project-card__text-block,
+    .project-detail[data-renders="true"] .project-card__intro {
       max-width: 80ch;
     }
-    .project-detail[data-renders="true"] .renders-section {
-      grid-column: 2;
-      grid-row: 1;
-      padding-top: 0;
-    }
-    /* One circle below the other, at the top of the column. */
-    .renders-people .project-people {
-      display: flex !important;
-      flex-direction: column !important;
-      align-items: flex-start;
-      gap: 8px;
-      margin: 0 0 10px !important;
-    }
-    /* The divider between professors and students is a vertical hairline in
-       a row; in a column it has to lie down. */
-    .renders-people .project-people__divider {
-      width: 100% !important;
-      height: 1px !important;
-    }
   }
-  /* The phone card is fixed over the bottom of the page, so the rail and the
-     bar have to clear it — otherwise the last thing you can see of a room is
-     its middle. */
+
   @media (max-width: 699.98px) {
     /* The header is fixed on this band, and the page pads itself by a number
        measured for the deck layout's header rather than this one — which left
@@ -6611,30 +6574,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   initProjectPhoneCard();
   document.addEventListener('astro:after-swap', initProjectPhoneCard);
 
-  /* ── Renders: the people move to the top of the picture column ────────
-     From 1024 up the page is copy on the left and work on the right, and the
-     people belong with the work rather than at the end of a paragraph. Moved
-     rather than duplicated, and moved back below 1024 where the page stacks
-     and they read fine where they were. */
-  function initRendersPeople() {
-    const detail = document.querySelector<HTMLElement>('.project-detail[data-renders="true"]');
-    const slot = document.getElementById('renders-people-slot');
-    const people = document.getElementById('project-people-panel');
-    if (!detail || !slot || !people) return;
-    const home = people.parentElement;
-    const wide = window.matchMedia('(min-width: 1024px)');
-    const place = () => {
-      const target = wide.matches ? slot : home;
-      if (target && people.parentElement !== target) target.appendChild(people);
-    };
-    if (!detail.dataset.rpWired) {
-      detail.dataset.rpWired = '1';
-      wide.addEventListener('change', place);
-    }
-    place();
-  }
-  initRendersPeople();
-  document.addEventListener('astro:after-swap', initRendersPeople);
 
 
 </script>

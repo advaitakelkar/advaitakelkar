@@ -948,8 +948,13 @@ the same facts as everything else.
 **A card with views shows the cover alone.** A thumbnail strip that repeats
 the same room six times says only "renders".
 
-One layout at every width. The one thing that fights it is the page around
-it: the card-page chassis is built to stand text beside a single image, with
+**One column at every width**: the copy, then the work under it. It was two
+on the wide band for a moment — copy left, pictures right — which halved a
+render to 647px so a paragraph could sit beside it. The pictures are the
+project; they get the page. The passage still stops at 80ch, because set
+across 1440px it ran past 140 characters a line.
+
+The one thing that fights the layout is the page around it: the card-page chassis is built to stand text beside a single image, with
 fixed heights, its own grid rows, a fixed header the deck rolls under, and
 several `display: … !important` rules on the picture parts. So the renders
 block sits at the **end** of `[slug].astro`'s stylesheet, hides the scrub by
