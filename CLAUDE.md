@@ -771,6 +771,17 @@ Three global scripts are injected into every page via `Base.astro`:
    surfaces over the page rather than part of it. Journey's panel carries it
    too, because it owns the same gesture one level down.
 
+0b. **Keyboard scroll (phone only).** A field marked `data-scroll-end` takes
+   the page to the end of the document when it is focused — the projects
+   search and the skillset search. Both sit at the bottom of a list that grows
+   UP out of them, so when the keyboard opens over the page, the end of that
+   list, which is the part you are filtering, goes under it and you type at a
+   list you cannot see. It scrolls three times: immediately, when the visual
+   viewport reports its new height, and once on a timer for browsers that
+   never fire that event. The document's height is different before and after
+   the keyboard arrives, and all three calls land on the same place, so the
+   extras cost a no-op.
+
 
 1. **Arrow rotation:** On hover over any `a, button, .project-card` etc., the `.link-arrow` SVG inside rotates to a random angle (smooth cubic-bezier transition).
 
