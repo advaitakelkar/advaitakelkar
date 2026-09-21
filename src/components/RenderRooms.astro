@@ -88,7 +88,6 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
         data-rr-room={v.room}
         data-short={v.label}
         data-room={v.room}
-        data-full={v.label === v.room ? v.room : `${v.room} · ${v.label}`}
         aria-label={v.label === v.room ? v.room : `${v.room} · ${v.label}`}
       >
         <img src={v.image} alt="" loading="lazy" decoding="async" />
@@ -377,7 +376,11 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
       const list = shown();
       const at = list.findIndex(c => Number(c.dataset.rrCover) === view);
       const cov = covers.find(c => Number(c.dataset.rrCover) === view);
-      const label = (room === 'all' ? cov?.dataset.full : cov?.dataset.short) ?? '';
+      /* The room in All, the view number inside a room — the same rule the
+         thumbnails follow, so the line and the caption under the picture you
+         are on always say the same thing. The full name stays on aria-label,
+         where a screen reader still needs to tell five Living views apart. */
+      const label = (room === 'all' ? cov?.dataset.room : cov?.dataset.short) ?? '';
       if (where) where.textContent = take === 0 ? label : `${label} — take ${take + 1}`;
       if (count) count.textContent = `${at + 1} / ${list.length}`;
       root.querySelector<HTMLElement>('.rr__cover.is-on')
@@ -460,9 +463,8 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
          nothing you can see. Inside a room the room is the tab you are
          standing in, so the view number is exactly what is left to say.
 
-         The line under the pictures still carries both: that one says where
-         you are, and there the room alone would be ambiguous across five
-         Living views. */
+         The line under the pictures follows the same rule, so it and the
+         caption under the picture you are on never disagree. */
       covers.forEach(c => {
         const t = c.querySelector<HTMLElement>('.rr__cover-label');
         if (t) t.textContent = (r === 'all' ? c.dataset.room : c.dataset.short) ?? '';
