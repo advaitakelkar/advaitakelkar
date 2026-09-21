@@ -79,7 +79,15 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
 
   <div class="rr__bar">
     <span class="rr__where" data-rr-where></span>
-    <span class="rr__count" data-rr-count></span>
+    <span class="rr__right">
+      <span class="rr__count" data-rr-count></span>
+      <button class="rr__play" type="button" aria-label="Pause" aria-pressed="true" data-rr-play hidden>
+        <svg class="rr__ring" viewBox="0 0 24 24" aria-hidden="true">
+          <circle class="rr__ring-track" cx="12" cy="12" r="9" />
+          <circle class="rr__ring-fill" cx="12" cy="12" r="9" data-rr-ring />
+        </svg>
+      </button>
+    </span>
   </div>
 
   <!-- The covers of the active tab. One per view, and the only thing that
@@ -100,24 +108,24 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
   /* Global, not scoped: the takes column is built in script, and a runtime
      node carries no data-astro-cid-*, so a scoped rule would silently fail to
      match it. Every selector is .rr-prefixed. */
-  .rr { display: flex; flex-direction: column; gap: 10px; width: 100%; min-width: 0; }
+  .rr { display: flex; flex-direction: column; gap: 6px; width: 100%; min-width: 0; }
 
   /* ── Rooms ─────────────────────────────────────────────────────────── */
   /* Wrapping, like the footer's pill cloud. A row that scrolls sideways
      hides the rooms you have not thought to look for. */
-  .rr__tabs { display: flex; flex-wrap: wrap; gap: 4px; }
+  .rr__tabs { display: flex; flex-wrap: wrap; gap: 3px; }
 
   .rr__tab {
     display: inline-flex;
     align-items: center;
     gap: var(--_tokens---pill-gap--xs);
-    padding: var(--_tokens---pill-pad--xs);
+    padding: 3px 9px;
     border: var(--_tokens---pill-border);
     border-radius: var(--_tokens---radius--pill);
     background: none;
     color: var(--_tokens---color--fg);
     font-family: inherit;
-    font-size: var(--_tokens---type--micro);
+    font-size: var(--_tokens---type--ultrathin);
     font-weight: var(--_tokens---weight--base);
     line-height: 1.1;
     white-space: nowrap;
@@ -130,7 +138,7 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
      as the pills beside it rather than a size of its own. */
   .rr__tab--all {
     justify-content: center;
-    width: calc(max(1lh, 14px) + 18px);
+    width: calc(max(1lh, 12px) + 12px);
     padding-inline: 0;
     border-radius: 50%;
     --icon-size: var(--_tokens---arrow--sm);
@@ -145,15 +153,19 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
   @media (hover: hover) { .rr__tab:hover { border-color: var(--_tokens---color--fg); } }
 
   /* ── The work, and the takes beside it ─────────────────────────────── */
-  .rr__body { display: flex; gap: 8px; align-items: stretch; min-width: 0; }
+  .rr__body { display: flex; gap: 6px; align-items: flex-start; min-width: 0; }
 
+  /* No box behind the picture. `object-fit: contain` in a fixed-height frame
+     left tall grey bands above and below every landscape render, and a tinted
+     rectangle is not the work. The stage takes the renders' own proportion
+     instead, so the frame IS the picture and there is nothing to fill. */
   .rr__stage {
     position: relative;
     flex: 1 1 auto;
     min-width: 0;
-    height: clamp(240px, 46vh, 620px);
-    background-color: color-mix(in srgb, var(--_tokens---color--fg) 4%, transparent);
-    border-radius: var(--_tokens---radius--small);
+    aspect-ratio: 3 / 2;
+    max-height: 62vh;
+    background: none;
     overflow: hidden;
   }
   .rr__img {
@@ -175,8 +187,8 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
     display: flex;
     flex-direction: column;
     gap: 4px;
-    width: 92px;
-    max-height: clamp(240px, 46vh, 620px);
+    width: 76px;
+    max-height: 62vh;
     overflow-y: auto;
     scrollbar-width: none;
     align-self: flex-start;
@@ -213,21 +225,30 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
+    gap: 8px;
     min-width: 0;
-    font-size: var(--_tokens---type--micro);
+    font-size: var(--_tokens---type--ultrathin);
     color: var(--_tokens---color--muted);
   }
   .rr__where { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .rr__count { flex: 0 0 auto; font-variant-numeric: tabular-nums; }
+  .rr__right { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+  .rr__count { font-variant-numeric: tabular-nums; }
+  .rr__play { display: inline-flex; width: 16px; height: 16px; padding: 0; border: 0; background: none; cursor: pointer; color: var(--_tokens---color--fg); }
+  .rr__play[hidden] { display: none; }
+  /* Exempt from the icon family on purpose, like the slider and project
+     countdown rings: it animates its own stroke-dashoffset. */
+  .rr__ring { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .rr__ring circle { fill: none; stroke: currentColor; stroke-width: 2.5; }
+  .rr__ring-track { opacity: 0.2; }
+  .rr__ring-fill { stroke-dasharray: 56.5; stroke-dashoffset: 56.5; transition: stroke-dashoffset 80ms linear; }
 
   /* ── The covers ────────────────────────────────────────────────────── */
-  .rr__rail { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+  .rr__rail { display: flex; gap: 3px; overflow-x: auto; scrollbar-width: none; }
   .rr__rail::-webkit-scrollbar { display: none; }
   .rr__cover {
     position: relative;
     flex: 0 0 auto;
-    width: 104px;
+    width: 84px;
     padding: 0;
     border: 1px solid transparent;
     border-radius: 3px;
@@ -239,7 +260,7 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
                 border-color var(--_tokens---motion--base) ease;
   }
   .rr__cover[hidden] { display: none; }
-  .rr__cover img { width: 100%; height: 70px; object-fit: cover; display: block; }
+  .rr__cover img { width: 100%; height: 54px; object-fit: cover; display: block; }
   .rr__cover-label {
     display: block;
     padding: 3px 4px 4px;
@@ -257,13 +278,14 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
   .rr__total { margin: 0; font-size: var(--_tokens---type--ultrathin); color: var(--_tokens---color--muted); }
 
   @media (min-width: 1024px) {
-    .rr__stage { height: clamp(360px, 58vh, 740px); }
-    .rr__takes { width: 132px; max-height: clamp(360px, 58vh, 740px); }
-    .rr__cover { width: 132px; }
-    .rr__cover img { height: 88px; }
+    .rr__takes { width: 110px; }
+    .rr__cover { width: 116px; }
+    .rr__cover img { height: 76px; }
+    .rr__tab { font-size: var(--_tokens---type--micro); padding: 4px 11px; }
   }
   @media (prefers-reduced-motion: reduce) {
     .rr__img { transition: none; }
+    .rr__ring-fill { transition: none; }
   }
 </style>
 
@@ -281,6 +303,8 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
     const takesLabel = root.querySelector<HTMLElement>('[data-rr-takes-label]');
     const where = root.querySelector<HTMLElement>('[data-rr-where]');
     const count = root.querySelector<HTMLElement>('[data-rr-count]');
+    const play = root.querySelector<HTMLButtonElement>('[data-rr-play]');
+    const ring = root.querySelector<SVGCircleElement>('[data-rr-ring]');
     if (!imgs.length || !covers.length) return;
 
     const frame = (view: number, take: number) =>
@@ -291,6 +315,16 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
     let room = 'all';
     let view = Number(covers[0].dataset.rrCover);
     let take = 0;
+
+    /* All plays by itself. It is the tab you land on and it holds every
+       view, so it reads as the project rather than a list to work through.
+       A named room does not: you went there to look at that room, and
+       something moving under you is then an interruption. Takes stop it for
+       the same reason — you opened them to compare, not to be walked past. */
+    const DWELL = 3000;
+    const CIRC = 56.5;
+    let playing = true, t0 = 0, raf = 0;
+    const canPlay = () => room === 'all' && take === 0;
 
     function shown() {
       return covers.filter(c => !c.hidden);
@@ -309,6 +343,30 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
         ?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
       takesList?.querySelectorAll('.rr__take').forEach((b, i) =>
         b.classList.toggle('is-on', i === take - 1));
+      if (play) play.hidden = !canPlay();
+      t0 = performance.now();
+      if (ring) ring.style.strokeDashoffset = String(CIRC);
+    }
+
+    function tick(now: number) {
+      raf = requestAnimationFrame(tick);
+      if (!playing || !canPlay()) return;
+      const p = Math.min(1, (now - t0) / DWELL);
+      if (ring) ring.style.strokeDashoffset = String(CIRC * (1 - p));
+      if (p >= 1) {
+        const list = shown();
+        const at = list.findIndex(c => Number(c.dataset.rrCover) === view);
+        const next = list[(at + 1) % list.length];
+        if (next) { view = Number(next.dataset.rrCover); take = 0; paint(); }
+      }
+    }
+
+    function setPlaying(on: boolean) {
+      playing = on;
+      play?.setAttribute('aria-pressed', String(on));
+      play?.setAttribute('aria-label', on ? 'Pause' : 'Play');
+      t0 = performance.now();
+      if (!on && ring) ring.style.strokeDashoffset = String(CIRC);
     }
 
     /* The takes column is built only when there is something to put in it,
@@ -355,6 +413,7 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
     tabs.forEach(b => b.addEventListener('click', () => setRoom(b.dataset.rrRoom!)));
     // Clicking a cover is the ask: it opens that view's takes beside it.
     covers.forEach(c => c.addEventListener('click', () => setView(Number(c.dataset.rrCover), true)));
+    play?.addEventListener('click', () => setPlaying(!playing));
 
     // Swipe the image to walk the covers of the room you are in. The stage
     // owns the gesture, so the page-level swipe leaves it alone.
@@ -379,7 +438,14 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
       }, { passive: true });
     }
 
+    // Nothing animates while the page cannot be seen.
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) { cancelAnimationFrame(raf); raf = 0; }
+      else if (!raf) { t0 = performance.now(); raf = requestAnimationFrame(tick); }
+    });
+
     setRoom('all');
+    raf = requestAnimationFrame(tick);
   }
 
   initRenderRooms();

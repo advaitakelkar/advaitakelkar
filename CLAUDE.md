@@ -926,6 +926,17 @@ it; change room and they fold away again.
 **All is a mark, not a word** — an arrow in a circle, like the All tab on a
 category page. It names no room, and it shows every view's cover.
 
+**All plays by itself; a named room does not.** All is the tab you land on
+and it holds every view, so it reads as the project rather than a list to
+work through. You go to a named room to look at that room, and something
+moving under you is then an interruption — as it is once you have opened a
+view's takes to compare them. The ring is only there when it is running.
+
+**No box behind the picture.** A fixed-height frame with `object-fit:
+contain` left tall tinted bands above and below every landscape render, and a
+tinted rectangle is not the work. The stage takes the renders' own proportion
+instead, so there is nothing to fill.
+
 **The tabs wrap, they do not scroll sideways**, the way the footer's pill
 cloud wraps: a row that scrolls hides the rooms you have not thought to look
 for. The covers are the only thing that scrolls.
