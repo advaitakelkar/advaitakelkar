@@ -921,7 +921,13 @@ each answering a different question:
 The people sit at the top right of the copy from 700px up, **on the
 subtitle's line** — absolute, so they take no height from a column whose
 measure is already set, and `right: 0` is the page's edge because only the
-text block carries the 80ch cap. Below 700 they stay where the page put them.
+text block carries the 80ch cap. On a phone the subtitle has moved into the
+fixed bottom card, so they go to the end of the **name's** line instead,
+where they are a flex child rather than an overlay.
+
+They are **one line tall** either way (`max(1lh, 16px)`, the same measure the
+All pill is built on), so they sit in the text rather than beside it. A
+credit, not a cast list.
 
 Every line of text sits **under** the pictures, one line each: where you are,
 then what the whole set holds. The takes are `position: absolute` inside the

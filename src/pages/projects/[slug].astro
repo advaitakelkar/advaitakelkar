@@ -306,6 +306,12 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
               <h1 class="project-name-title" id="project-name-click">
                 <span class="project-name-main">{data.name}</span>
               </h1>
+              {isRenders && (
+                /* Phone: the faces land here, on the name's line. Above 700
+                   they go to the slot beside the subtitle instead — see
+                   initRendersPeople. */
+                <div class="renders-people renders-people--title" id="renders-people-title"></div>
+              )}
               {(isTabLayout || isOriginalCardPage) && (
                 <button class="page-toggle-btn project-detail-collapse-btn" id="project-name-toggle" type="button" aria-expanded="true" aria-label="Toggle project details">
                   <Arrow />
@@ -4807,19 +4813,33 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     right: 0;
     z-index: 1;
   }
+  /* On the name's line it is a flex child, not an overlay: the row is the
+     name and this, so it can simply take the end of it. */
+  .renders-people--title {
+    position: static;
+    margin-left: auto;
+    flex: 0 0 auto;
+  }
   .renders-people:empty { display: none; }
   .renders-people .project-people {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap;
-    gap: 6px;
+    gap: 4px;
     margin: 0 !important;
   }
   .renders-people .project-people__name { display: none; }
-  .renders-people .project-people__avatar { width: 34px; height: 34px; }
+  /* Exactly one line tall, so the faces sit in the text they are beside
+     rather than beside it — the same 1lh the All pill is built on. A credit,
+     not a cast list. */
+  .renders-people .project-people__avatar {
+    width: max(1lh, 16px);
+    height: max(1lh, 16px);
+    min-width: max(1lh, 16px);
+  }
   .renders-people .project-people__divider {
     width: 1px !important;
-    height: 20px !important;
+    height: max(1lh, 16px) !important;
     align-self: center;
   }
 
@@ -6615,12 +6635,15 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   function initRendersPeople() {
     const detail = document.querySelector<HTMLElement>('.project-detail[data-renders="true"]');
     const slot = document.getElementById('renders-people-slot');
+    const titleSlot = document.getElementById('renders-people-title');
     const people = document.getElementById('project-people-panel');
     if (!detail || !slot || !people) return;
-    const home = people.parentElement;
     const wide = window.matchMedia('(min-width: 700px)');
+    /* Beside the subtitle on a wide page, on the name's own line on a phone —
+       where the subtitle has moved into the fixed bottom card and the name is
+       the only thing left at the top to sit with. */
     const place = () => {
-      const target = wide.matches ? slot : home;
+      const target = wide.matches ? slot : (titleSlot ?? slot);
       if (target && people.parentElement !== target) target.appendChild(people);
     };
     if (!detail.dataset.rpWired) {
