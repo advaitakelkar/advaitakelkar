@@ -915,19 +915,36 @@ Three systems hold this work. They **nest** rather than mirror — `Drive ⊂ We
 
 ```
 HUB/
-  00 Projects/          ← the project database (heavy source files)
-    Website/            ← 45 folders: projects live on the site
-    ALL/                ← 15 folders: everything else
-    _DELETE/            ← quarantine: 01_Confirmed_Duplicates, 02_Old_Working_Folders,
-                          03_Superseeded, 04_Backup_Files
-    Project-PDFs/
+  00 Projects/          ← the archive: every project, heavy source files
+  00 Selected/          ← the curated set: what is worth publishing
   01 Websites/          ← the GitHub repos (this one included)
 ```
 
-Every project folder lives in **exactly one** of `Website/` or `ALL/` — they are
-mutually exclusive, never copies. Nothing sits loose at the top level.
-Membership is decided by Notion's `Category` (filled = published), which is
-itself written from this repo's YAML, so the split is derived, not hand-kept.
+**`00 Projects` and `00 Selected` are the same tree.** Bucket, then studio,
+then project, with ARCHV going straight to projects because it has no studios:
+
+```
+ARCHV/<Project>
+Academic/<BArch|MArch>/<Project>
+Freelancer/<ADVT|NMS|Studio Stumbles|Various>/<Project>
+Work/<823|ANLA|FKD>/<Project>
+```
+
+Those are the three axes the Notion contract already uses, so a folder's path
+is its bucket and studio and nothing has to be kept in step by hand. An older
+version of this file described `Website/`, `ALL/` and `_DELETE/` under
+`00 Projects`; that split is gone — verified against the live mount
+20 Sep 2026.
+
+`00 Selected` holds **only the folders that have something in it** — it is
+being built up, so a project with nothing chosen yet has no folder rather than
+an empty one. Two folders sit outside the project tree and keep their
+underscore so they sort first and read as staging: `_brand` (the logo files)
+and `_unattributed` (assets whose project is not yet known).
+
+Eighteen of its folders carry a `SOURCE.csv` — `new_name, original_name, tool,
+source, sha256`. That is the provenance of a curated file, including which
+were pulled from a GPT library; carry it through whatever publishes them.
 
 Project folder *names* repeat between `00 Projects/` and `01 Websites/` — that's
 expected: Drive holds the source files, the repo holds the web-sized images
