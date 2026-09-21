@@ -45,15 +45,6 @@ const tagNames = tags.filter(Boolean).map((t: any) => t.data.name);
 const axisLabels = new Set(
   [categoryLabel, studioLabel, ...tagNames].filter(Boolean).map(v => pillKey(String(v)))
 );
-const filterPills = [
-  ...[data.year, data.location, data.status]
-    .filter(Boolean)
-    .filter(v => !axisLabels.has(pillKey(String(v)))),
-  categoryLabel,
-  studioLabel,
-  ...tagNames,
-].filter(Boolean).map(String);
-
 // People registry — avatar portrait per collaborator (files in /images/people/)
 const PEOPLE: Record<string, string> = {
   'Advaita Kelkar':  '/images/people/advaita-kelkar.jpg',
@@ -122,6 +113,29 @@ const template = projectTemplate(project.id, category?.id, data.template);
 const isOriginalCardPage = template.cards;
 const isTabChapterPage = template.chapters;
 const isTabLayout = template.tabs;
+
+/* The phone hides the Design / Making panels — they are display-scale
+   headings over label/value grids, which on a 390px column collide with
+   everything around them. So the facts they carried join the pills, which is
+   where every other page already puts them. Deduped against the three axis
+   labels, and against each other: "Freelancer" as both category and
+   collaborator is one pill, not two. */
+const tabFacts = template.tabs ? [data.program, data.collaborator, data.client] : [];
+const seenPill = new Set<string>();
+const filterPills = [
+  ...[data.year, data.location, data.status]
+    .filter(Boolean)
+    .filter(v => !axisLabels.has(pillKey(String(v)))),
+  categoryLabel,
+  studioLabel,
+  ...tagNames,
+  ...tabFacts.filter(Boolean).filter(v => !axisLabels.has(pillKey(String(v)))),
+].filter(Boolean).map(String).filter(v => {
+  const k = pillKey(v);
+  if (seenPill.has(k)) return false;
+  seenPill.add(k);
+  return true;
+});
 const isCardPage = template.cardLayout;
 const isScarpinPage = project.id === 'scarpin';
 
@@ -293,7 +307,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
             </button>
 
             <div class="project-card__metaline">
-              {isOriginalCardPage ? (
+              {(isOriginalCardPage || isTabLayout) ? (
                 <div class="project-meta-row project-meta-row--pills">
                   {filterPills.map(v => (
                     <a
@@ -525,7 +539,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
             </button>
 
             <div class="project-card__metaline">
-              {isOriginalCardPage ? (
+              {(isOriginalCardPage || isTabLayout) ? (
                 <div class="project-meta-row project-meta-row--pills">
                   {filterPills.map(v => (
                     <a
@@ -4260,6 +4274,32 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
      the row you read last. Heights are measured, not written down: the nav
      dock moves with the device's safe area. */
   @media (max-width: 699.98px) {
+    /* ── Tab-layout pages get the card page's phone shape ───────────────
+       These ten were left behind when the project pages were rebuilt: the
+       deck stayed a single 72px filmstrip across the top and the Design /
+       Making panels stayed at display scale, so "Design" and "Making" ran
+       straight through the label/value rows beneath them.
+
+       The deck element is shared — on a tab page `#deck-grid` IS the scrub —
+       and the scrub rules make it a flex row, so the grid columns the phone
+       block sets were being declared at something that is not a grid.
+       Forcing display and clearing the fixed item height hands these pages
+       the same full-height three-across deck every other project has. */
+    .project-detail[data-tab-layout="true"] :global(#deck-grid) {
+      display: grid !important;
+      order: 0 !important;
+      margin: 0 !important;
+    }
+    .project-detail[data-tab-layout="true"] :global(#deck-grid .deck-card-item) {
+      height: auto !important;
+      aspect-ratio: 2/3 !important;
+    }
+    /* The panels' facts are pills now (see filterPills), so the panels
+       themselves are a second copy at display scale. */
+    .project-detail[data-tab-layout="true"] .project-metadata-sections {
+      display: none !important;
+    }
+
     .project-design-content,
     .project-making-content {
       max-height: none !important;
