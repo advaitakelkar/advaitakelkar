@@ -593,8 +593,9 @@ card padding plus 4 of header padding. The panel keeps the line that closes an
 OPEN section and drops it when closed, so three shut sections stack with no
 gap, exactly as the project list does.
 
-The name, the role, the bio and its three buttons lift into the page header
-above all three, so they read once rather than from inside a section.
+The name, the role, the bio and its three buttons are the page header above
+all three. They describe the person, not a section, so they sit outside every
+dropdown and are always present — **at every width**, not just on the phone.
 Professional Journey's four sections stay a horizontal pill row at the top of
 its panel.
 
@@ -607,9 +608,14 @@ top/bottom positions from measured heights because a CSS matrix of that cannot
 be kept correct. `--ab-dock-h` is all that survives — the breadcrumb dock's
 measured height, which the page padding still reads.
 
-Above 700px none of this applies: the Education title is hidden, the bio goes
-back to the top of the left column, and the page is three independent fold
-toggles beside the two-column education grid.
+**The markup is the same at every width** — only the drawing changes. The
+identity header is no longer a disclosure at all; Education carries its own
+title and arrow like the other two, and its panel is one full-width column.
+That top block used to be an equal two-column grid, bio left and education
+right, opened by an arrow on the name. Nothing relocates in script any more:
+an earlier version moved the bio up beside the name below 700 and back into
+the grid above it, which is two layouts to keep in step for no gain now that
+the bio belongs above the sections at both.
 
 ## CSS Conventions
 

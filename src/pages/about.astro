@@ -337,7 +337,7 @@ const skillsets = [
     <!-- Continuous scroll page — no section snapping -->
     <section class="about-section-snap about-section--intro">
 
-      <!-- Full-width profile header: title left, toggle right -->
+      <!-- Full-width profile header: name, face, role. Not a disclosure. -->
       <header class="profile-header intro-header page-toggle-header">
         <h1 class="profile-name">
           <span data-scramble>Adi (Advaita) Kelkar</span>
@@ -347,17 +347,48 @@ const skillsets = [
           <p class="profile-role" data-scramble data-edit="pages/about/role">{aboutRole}</p>
           <p class="profile-degree" data-edit="pages/about/degree">{aboutDegree}</p>
         </div>
-        <button class="page-toggle-btn" data-page-toggle="about-top-grid" aria-expanded="true" aria-label="Toggle about details" type="button">
-          <Arrow />
-        </button>
       </header>
 
-      <!-- Equal two-column grid: left = photo+role+degree+bio, right = education.
-           Collapsible via the name toggle (page-toggle-panel, id below). -->
-      {/* Phone only: Education, Professional Journey and Skillset are three
-           disclosures one below the other, so this panel needs its own title
-           and arrow like the other two. Above 700 the panel sits directly
-           under the name and needs neither. */}
+      {/* The bio and its three buttons describe the person, not the studies,
+           so they sit with the name and outside every dropdown — always
+           present, at every width. */}
+      <div class="about-bio__text" id="bio-text-container">
+        <p data-edit="pages/about/bioLead" data-edit-html set:html={aboutBioLead} />
+
+        <div class="bio-collapsed-content" id="bio-collapsed-content" style="display: none;">
+          {aboutBioMore.map((para, i) => (
+            <p data-edit={`pages/about/bioMore.${i}`}>{para}</p>
+          ))}
+        </div>
+
+        <div class="bio-buttons-row">
+          <button class="bio-read-more-btn" id="bio-read-more-btn" type="button">
+            <span>Read More</span>
+            <Arrow class="bio-read-more-arrow" />
+          </button>
+
+          {hasCv && (
+            <a href="/Adi-Advaita-Kelkar-CV-Sept-2026.pdf" class="about-link-row" target="_blank" rel="noopener">
+              <span class="about-link-row__text">Resume</span>
+              <span class="about-link-row__arrow" aria-hidden="true">
+                <Arrow />
+              </span>
+            </a>
+          )}
+
+          <button class="about-link-row" id="about-portfolio-status" type="button" aria-expanded="false">
+            <span class="about-link-row__text">
+              Portfolio <span class="about-link-row__status" hidden>(Under progress)</span>
+            </span>
+            <span class="about-link-row__arrow" aria-hidden="true">
+              <Arrow />
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Education: its own disclosure, a peer of Professional Journey and
+           Skillset rather than the panel hanging off the identity header. -->
       <header class="profile-header education-header page-toggle-header">
         <h2 class="profile-name">Education</h2>
         <button class="page-toggle-btn" data-page-toggle="about-top-grid" aria-expanded="true" aria-label="Toggle education" type="button">
@@ -366,44 +397,6 @@ const skillsets = [
       </header>
 
       <div class="about-top-grid page-toggle-panel" id="about-top-grid">
-
-        <!-- LEFT COLUMN: photo + role + degree + bio text + read more -->
-        <div class="about-top-left">
-          <div class="about-bio__text" id="bio-text-container">
-            <p data-edit="pages/about/bioLead" data-edit-html set:html={aboutBioLead} />
-
-            <div class="bio-collapsed-content" id="bio-collapsed-content" style="display: none;">
-              {aboutBioMore.map((para, i) => (
-                <p data-edit={`pages/about/bioMore.${i}`}>{para}</p>
-              ))}
-            </div>
-
-            <div class="bio-buttons-row">
-              <button class="bio-read-more-btn" id="bio-read-more-btn" type="button">
-                <span>Read More</span>
-                <Arrow class="bio-read-more-arrow" />
-              </button>
-
-              {hasCv && (
-                <a href="/Adi-Advaita-Kelkar-CV-Sept-2026.pdf" class="about-link-row" target="_blank" rel="noopener">
-                  <span class="about-link-row__text">Resume</span>
-                  <span class="about-link-row__arrow" aria-hidden="true">
-                    <Arrow />
-                  </span>
-                </a>
-              )}
-
-              <button class="about-link-row" id="about-portfolio-status" type="button" aria-expanded="false">
-                <span class="about-link-row__text">
-                  Portfolio <span class="about-link-row__status" hidden>(Under progress)</span>
-                </span>
-                <span class="about-link-row__arrow" aria-hidden="true">
-                  <Arrow />
-                </span>
-              </button>
-            </div>
-          </div>
-        </div>
 
         <!-- RIGHT COLUMN: education pills (top is intentionally open) -->
         <div class="about-top-right">
@@ -709,10 +702,14 @@ const skillsets = [
   }
 
   /* ══ Equal two-column top grid ══════════════════════════════ */
+  /* One column. This was an equal two-column grid — bio left, education
+     right — until the bio lifted out of it; what is left is the education
+     list, which reads as the Education section's panel and is full width
+     like the two panels below it. */
   .about-top-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 40px;
+    grid-template-columns: 1fr;
+    gap: 24px;
     align-items: stretch;
     padding-top: 24px;
     padding-bottom: 24px;
@@ -733,13 +730,6 @@ const skillsets = [
   /* Same, for the section below it. */
   .skillset-panel {
     border-bottom: none;
-  }
-
-  .about-top-left {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    min-width: 0;
   }
 
   .about-top-right {
@@ -763,6 +753,7 @@ const skillsets = [
     margin-bottom: 0;
   }
 
+  .education-header,
   .career-header {
     margin-top: clamp(2rem, 5vh, 3.5rem);
     margin-bottom: 0;
@@ -910,12 +901,6 @@ const skillsets = [
 
   .about-bio__text p:last-of-type { margin-bottom: 0; }
 
-  @media (max-width: 1023.98px) {
-    .about-top-grid {
-      grid-template-columns: 1fr;
-      gap: 24px;
-    }
-  }
 
   .about-link-row__text {
     font-size: inherit;
@@ -1781,13 +1766,6 @@ const skillsets = [
     gap: 2px;
   }
 
-  /* Phone only. Declared here, before the compact block turns it on, because
-     the two are the same single class — a media query adds no specificity, so
-     source order is what decides. Above 700 the education panel sits directly
-     under the name and needs no title of its own. */
-  .education-header {
-    display: none;
-  }
 
   @media (max-width: 699.98px) {
     /* ══ Phone: three disclosures, one below the other ═════════════════
@@ -2230,22 +2208,6 @@ const skillsets = [
     if (!page) return;
     const phone = window.matchMedia('(max-width: 699.98px)');
 
-    // The bio and its three buttons describe the person, not the Education
-    // section they sit inside, so on the phone they move up beside the name
-    // and stay above all three. Moved rather than duplicated, and moved back
-    // above 700 where the panel's two-column layout expects them first.
-    const bio = page.querySelector('.about-bio__text') as HTMLElement | null;
-    const bioHome = bio?.parentElement ?? null;
-    function placeBio() {
-      if (!bio) return;
-      const header = page!.querySelector('.intro-header');
-      if (phone.matches) {
-        if (header && bio.previousElementSibling !== header) header.after(bio);
-      } else if (bioHome && bio.parentElement !== bioHome) {
-        bioHome.prepend(bio);
-      }
-    }
-
     function measure() {
       if (!phone.matches) {
         page!.style.removeProperty('--ab-dock-h');
@@ -2268,7 +2230,6 @@ const skillsets = [
     }
 
     function apply() {
-      placeBio();
       measure();
       if (phone.matches) collapseOnce();
     }
