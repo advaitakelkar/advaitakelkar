@@ -609,9 +609,11 @@ const skillsets = [
       </div>
 
       <!-- Skillset — its own collapsible section, a peer of Professional
-           Journey rather than a block nested inside its panel. The search
-           sits in the HEADER, not the panel, so it stays usable while the
-           section is closed; typing re-opens the section (wired below). -->
+           Journey rather than a block nested inside its panel. Above 700 the
+           search sits in the HEADER, so it stays usable while the section is
+           closed; typing re-opens it (wired below). On the phone it moves
+           into the panel under the pills, because a closed row there is a
+           project row and a field parked in one is not. -->
       <header class="profile-header skillset-header page-toggle-header">
         <h1 class="profile-name">
           <span data-scramble>Skillset</span>
@@ -652,6 +654,8 @@ const skillsets = [
               )),
             ])}
           </div>
+          <!-- Phone: the search lands here, under the pills it filters. -->
+          <div class="skillset-panel__search" id="skillset-panel-search"></div>
       </div>
 
       <!-- Project Quick Search & Footer -->
@@ -1219,12 +1223,8 @@ const skillsets = [
     min-width: 0;
   }
 
-  @media (max-width: 699.98px) {
-    /* Keep the search usable at phone widths without pushing the toggle off
-       the row: let the field shrink instead of the row wrapping. */
-    .skillset-header__right { gap: 10px; }
-    .skillset-header .skillset-search-input { width: clamp(96px, 38vw, 200px); }
-  }
+  /* Empty above 700 — the field is in the header there. */
+  .skillset-panel__search:empty { display: none; }
 
   .skillset-subtitle {
     font-size: var(--_tokens---type--small);
@@ -1859,19 +1859,21 @@ const skillsets = [
       flex: 0 0 auto;
       --icon-size: var(--_tokens---arrow--md);
     }
-    /* Flattened so the arrow can sit in the line of text while the search
-       still runs to the right edge — the wrapper exists for the desktop
-       layout and would otherwise carry both to the far side together. */
+    /* Flattened so the arrow can sit in the line of text, the way it does on
+       the other two rows — the wrapper exists for the desktop layout, where
+       it carries the field and the arrow to the far side together. */
     .about-page .skillset-header__right {
       display: contents;
     }
-    .about-page .skillset-header .page-toggle-btn {
-      order: 0;
+    /* The field moved into the panel (see the script), so the closed row is
+       a title and an arrow like every other one. */
+    .about-page .skillset-panel__search {
+      display: block;
+      margin-top: 16px;
     }
-    .about-page .skillset-header .skillset-search-input {
-      order: 1;
-      margin-left: auto;
-      width: clamp(84px, 32vw, 140px);
+    .about-page .skillset-panel__search .skillset-search-input {
+      width: 100%;
+      height: 44px;
     }
     /* One hairline per row. The panel draws the line that closes an OPEN
        section; a closed one is a single row and the header's line is it. */
@@ -2208,6 +2210,20 @@ const skillsets = [
     if (!page) return;
     const phone = window.matchMedia('(max-width: 699.98px)');
 
+    // The search filters the pills, so on the phone it belongs with them
+    // rather than parked in the closed row — a closed section there is drawn
+    // as a project row, and a field sitting in one reads as chrome. Above 700
+    // it goes back to the header, where it stays reachable while the section
+    // is shut. Moved, not duplicated: one input, one listener, one value.
+    const search = document.getElementById('skill-search');
+    const searchHome = search?.parentElement ?? null;
+    const searchSlot = document.getElementById('skillset-panel-search');
+    function placeSearch() {
+      if (!search) return;
+      const target = phone.matches ? searchSlot : searchHome;
+      if (target && search.parentElement !== target) target.prepend(search);
+    }
+
     function measure() {
       if (!phone.matches) {
         page!.style.removeProperty('--ab-dock-h');
@@ -2230,6 +2246,7 @@ const skillsets = [
     }
 
     function apply() {
+      placeSearch();
       measure();
       if (phone.matches) collapseOnce();
     }
@@ -2242,10 +2259,12 @@ const skillsets = [
         const el = document.querySelector('.page-breadcrumb');
         if (el) new ResizeObserver(() => measure()).observe(el);
       }
-      // Typing in the skill search opens its section.
-      document.getElementById('skill-search')?.addEventListener('focus', () => {
+      // Above 700 the field sits outside the section, so focusing it opens
+      // the pills it filters. On the phone it is inside, and reaching it
+      // means the section is already open.
+      search?.addEventListener('focus', () => {
         const btn = document.querySelector<HTMLElement>('[data-page-toggle="skillset-panel"]');
-        if (phone.matches && btn?.getAttribute('aria-expanded') === 'false') btn.click();
+        if (!phone.matches && btn?.getAttribute('aria-expanded') === 'false') btn.click();
       });
     }
 
