@@ -1306,12 +1306,8 @@ const skillsets = [
   }
   .skill-pill.skill-pill--label .proj-bubble__name { color: var(--_tokens---color--bg); }
 
-  /* Non-matching pills fade back while a search is running; the cloud keeps
-     its shape rather than reflowing on every keystroke. */
-  .skillset-cloud.has-search .skill-pill { opacity: 0.25; }
-  .skillset-cloud.has-search .skill-pill.is-match { opacity: 1; }
-  .skillset-cloud.has-search .skill-pill.skill-pill--label { opacity: 0.35; }
-  .skillset-cloud.has-search .skill-pill.skill-pill--label.is-match { opacity: 1; }
+  /* `has-search` is a state marker now, not a dimmer: a search REMOVES the
+     pills that do not match, so nothing is left on screen to fade back. */
 
 
   .skill-pill {
@@ -1904,9 +1900,11 @@ const skillsets = [
     .about-page .skillset-panel {
       padding-bottom: calc(var(--ab-dock-h, 66px) + 64px);
     }
-    .about-page .skillset-cloud {
-      flex-direction: column-reverse;
-    }
+    /* The cloud reads top-down: Languages leads, every group stacks BELOW
+       it, and a search shortens the stack from the bottom. It ran
+       column-reverse for a moment so the rows would grow up out of the
+       docked field — which put Languages at the bottom and the reading order
+       backwards, for a neatness nobody asked for. */
     /* One hairline per row. The panel draws the line that closes an OPEN
        section; a closed one is a single row and the header's line is it. */
     .about-page .profile-header:has(.page-toggle-btn[aria-expanded="false"]) + .page-toggle-panel {
@@ -2134,16 +2132,56 @@ const skillsets = [
     const rows = initBubbleRows({ grid: skillCloud, pillSelector: '.skill-pill' });
     rows.build();
 
-    // Search dims rather than hides, so the cloud keeps its shape and the
-    // rows never have to be rebuilt mid-typing.
+    /* Search REDUCES the cloud rather than dimming it. Typing "hindi" leaves
+       "Languages / Hindi" and nothing else, so the answer is the only thing
+       on screen instead of one lit pill among fifty greyed ones. The rows
+       repack each keystroke, and because the cloud is column-reverse on the
+       phone the stack collapses DOWNWARD, toward the field you are typing in.
+
+       A group's label survives only if one of its skills matched, and it is
+       never the match on its own — it is the heading that makes "Hindi" mean
+       something. Each pill's data-keywords already carries its category, so
+       typing a category name matches all of its skills and the whole group
+       stays.
+
+       The pills that drop out are MOVED to a detached holder, not hidden in
+       place: the row engine ends its pass with `innerHTML = ''`, so anything
+       still inside the cloud when it runs is destroyed, and a filtered pill
+       has to come back when the query changes. */
+    const allSkillPills = Array.from(skillCloud.querySelectorAll<HTMLElement>('.skill-pill'));
+    const skillStash = document.createElement('div');
+    skillStash.hidden = true;
+    skillCloud.parentElement?.appendChild(skillStash);
+
     const skillSearch = document.getElementById('skill-search') as HTMLInputElement | null;
     const applySearch = (raw: string) => {
       const q = raw.trim().toLowerCase();
       skillCloud.classList.toggle('has-search', !!q);
-      skillCloud.querySelectorAll<HTMLElement>('.skill-pill').forEach((pill) => {
-        const hay = pill.dataset.keywords ?? '';
-        pill.classList.toggle('is-match', !!q && hay.includes(q));
-      });
+
+      const keep = new Set<HTMLElement>();
+      if (!q) {
+        allSkillPills.forEach((p) => keep.add(p));
+      } else {
+        // Walk in DOM order: a label opens a group, the pills after it are
+        // its members, and the next label closes it.
+        let label: HTMLElement | null = null;
+        let group: HTMLElement[] = [];
+        const close = () => {
+          const hits = group.filter((p) => (p.dataset.keywords ?? '').includes(q));
+          hits.forEach((p) => keep.add(p));
+          if (label && hits.length) keep.add(label);
+        };
+        allSkillPills.forEach((p) => {
+          if (p.hasAttribute('data-static')) { close(); label = p; group = []; }
+          else group.push(p);
+        });
+        close();
+      }
+
+      // Restore the full order first, so the engine packs the groups in the
+      // order they are written rather than the order they last survived in.
+      allSkillPills.forEach((p) => (keep.has(p) ? skillCloud : skillStash).appendChild(p));
+      rows.rebuild();
     };
     /* The search lives in the header, outside the collapsible panel, so it
        stays usable when the section is shut. Typing therefore has to open it
@@ -2176,8 +2214,8 @@ const skillsets = [
       window.clearTimeout(skillResizeTimer);
       skillResizeTimer = window.setTimeout(() => {
         // Skip while collapsed; the transitionend above rebuilds on reopen.
-        if (skillsetOpen()) rows.rebuild();
-        applySearch(skillSearch?.value ?? '');
+        // applySearch repacks, so calling rebuild as well would do it twice.
+        if (skillsetOpen()) applySearch(skillSearch?.value ?? '');
       }, 180);
     });
   }

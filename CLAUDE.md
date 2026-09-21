@@ -619,11 +619,24 @@ only thing that changes is what sits between them; scrolling as well costs
 the reader their place, and swiping through four sections would walk the page
 back to the top each time.
 
-Skillset's search **docks above the nav bar** and its pills grow UP out of it
-— the same chassis as /projects, where the controls are fixed at the bottom
-and the list runs `column-reverse`. The field is `position: fixed`, which
+Skillset's search **docks above the nav bar** — `position: fixed`, which
 escapes the panel's `overflow: hidden`, so a `:has()` rule hides it while the
-section is shut.
+section is shut. The cloud itself reads top-down: Languages leads and every
+group stacks below it. It ran `column-reverse` for a moment so the rows would
+grow up out of the field; that put Languages at the bottom and the reading
+order backwards, which is not worth the neatness.
+
+**The search reduces the cloud, it does not dim it.** Typing `hindi` leaves
+`Languages / Hindi` and nothing else. A group's label survives only if one of
+its skills matched — it is the heading that makes "Hindi" mean something, not
+a match in its own right — and because each pill's `data-keywords` carries its
+category, typing a category name keeps the whole group.
+
+The filtered pills are **moved to a detached holder**, not hidden in place.
+The row engine ends its pass with `innerHTML = ''`, so anything still inside
+the cloud when it runs is destroyed, and a filtered pill has to come back when
+the query changes. Restore the full order before every repack, or the groups
+come out in the order they last survived in.
 
 A fixed bar of three pills stood here once and should not come back: it put
 the navigation somewhere other than where the sections are, so the page had
