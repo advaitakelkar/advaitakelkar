@@ -354,11 +354,15 @@ const skillsets = [
 
       <!-- Equal two-column grid: left = photo+role+degree+bio, right = education.
            Collapsible via the name toggle (page-toggle-panel, id below). -->
-      {/* Phone only: the other two sections are titled, so this one is too.
-           Above 700 the panel sits directly under the name and needs no
-           second heading. */}
-      <header class="profile-header education-header">
+      {/* Phone only: Education, Professional Journey and Skillset are three
+           disclosures one below the other, so this panel needs its own title
+           and arrow like the other two. Above 700 the panel sits directly
+           under the name and needs neither. */}
+      <header class="profile-header education-header page-toggle-header">
         <h2 class="profile-name">Education</h2>
+        <button class="page-toggle-btn" data-page-toggle="about-top-grid" aria-expanded="true" aria-label="Toggle education" type="button">
+          <Arrow />
+        </button>
       </header>
 
       <div class="about-top-grid page-toggle-panel" id="about-top-grid">
@@ -656,16 +660,6 @@ const skillsets = [
             ])}
           </div>
       </div>
-
-      {/* Phone only. One row of pills that never moves: whichever you press
-           swaps the content above it. The section headings used to be the
-           navigation and they relocated as you used them, so the control you
-           wanted was never twice in the same place. */}
-      <nav class="about-tabbar" aria-label="About sections">
-        <button class="about-tabbar__btn is-active" data-section="intro" type="button">Education</button>
-        <button class="about-tabbar__btn" data-section="career" type="button">Journey</button>
-        <button class="about-tabbar__btn" data-section="skillset" type="button">Skillset</button>
-      </nav>
 
       <!-- Project Quick Search & Footer -->
       <div class="skillset-footer-wrap" style="padding-top: clamp(2rem, 6vh, 4rem); padding-bottom: 80px; width: 100%;">
@@ -1789,26 +1783,25 @@ const skillsets = [
 
   /* Phone only. Declared here, before the compact block turns it on, because
      the two are the same single class — a media query adds no specificity, so
-     source order is what decides. */
-  .about-tabbar {
-    display: none;
-  }
+     source order is what decides. Above 700 the education panel sits directly
+     under the name and needs no title of its own. */
   .education-header {
     display: none;
   }
 
   @media (max-width: 699.98px) {
-    /* ══ Phone: one row of pills, and the content above it ═════════════
-       The identity header is the page header and stays put. Below it sits
-       whichever of the three sections the bar has selected. The bar is docked
-       above the nav and never moves.
+    /* ══ Phone: three disclosures, one below the other ═════════════════
+       Education, Professional Journey and Skillset each have a title, an
+       arrow and a panel, stacked in that order. Nothing docks, nothing
+       relocates, nothing has to be selected before it can be read — you open
+       what you want and scroll.
 
-       It replaces a model where the three section headings WERE the
-       navigation and relocated above or below the open one as you used them.
-       That was legible once you knew it, but the control you wanted was never
-       twice in the same place. */
+       This replaced two earlier attempts. First the headings themselves were
+       the navigation and moved above or below whichever was open; then a
+       fixed bar of three pills switched between them. Both worked, and both
+       asked the reader to learn something before they could use the page. */
 
-    /* ── The identity header is the page header ────────────────────── */
+    /* ── The name, the role and the bio are the page header ─────────── */
     .about-page .intro-header {
       grid-template-columns: 1fr auto;
       grid-template-areas:
@@ -1823,12 +1816,12 @@ const skillsets = [
       width: 46px;
       height: 46px;
     }
-    /* Nothing folds from here any more; the bar below does the switching. */
-    .about-page .page-toggle-btn {
+    /* The header is not a disclosure — its panel's contents moved out of it. */
+    .about-page .intro-header .page-toggle-btn {
       display: none !important;
     }
 
-    /* The bio sits with the name, above whichever section is open. */
+    /* The bio sits with the name, above all three sections. */
     .about-page .about-bio__text {
       margin: 0 0 6px;
       padding: 0;
@@ -1845,72 +1838,81 @@ const skillsets = [
       flex-wrap: wrap;
     }
 
-    /* ── Each section is titled, and only the open one's title shows ─── */
-    .about-page[data-panel="intro"] .education-header {
-      display: flex;
-    }
+    /* ── The three titles, drawn as project rows ─────────────────────
+       A closed section here is the same object as a collapsed project card
+       on /projects, so it is drawn with that card's geometry rather than a
+       second one invented for this page: name at --type--medium in the body
+       weight, one line with an ellipsis, the arrow immediately after the
+       text instead of marooned on the far edge, and a single hairline under
+       the row. The numbers are the card's own — 10px/8px of card padding
+       plus 4px of header padding, which is the 14px/12px below. */
     .about-page .education-header,
     .about-page .career-header,
     .about-page .skillset-header {
       position: static !important;
+      display: flex !important;
+      align-items: center;
+      justify-content: flex-start !important;
+      gap: 8px !important;
       width: 100% !important;
       margin: 0 !important;
-      padding-block: 0 0 12px !important;
+      padding-block: 14px 12px !important;
       border: none !important;
+      border-bottom: 1px solid var(--_tokens---color--line-soft) !important;
       opacity: 1;
     }
-    .about-page[data-panel="intro"] .career-header,
-    .about-page[data-panel="intro"] .skillset-header,
-    .about-page[data-panel="career"] .skillset-header,
-    .about-page[data-panel="career"] .education-header,
-    .about-page[data-panel="skillset"] .career-header,
-    .about-page[data-panel="skillset"] .education-header {
-      display: none !important;
-    }
-    /* Skillset keeps its search, which is why its heading still renders. */
     .about-page .education-header .profile-name,
-    .about-page .skillset-header .profile-name,
-    .about-page .career-header .profile-name {
+    .about-page .career-header .profile-name,
+    .about-page .skillset-header .profile-name {
       font-size: var(--_tokens---type--medium);
-      font-weight: var(--_tokens---weight--mid);
-      letter-spacing: -0.02em;
+      font-weight: var(--_tokens---weight--base);
+      letter-spacing: -0.01em;
+      line-height: 1.2;
+      white-space: nowrap;
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 0 1 auto;
+      min-width: 0;
     }
+    .about-page .education-header .page-toggle-btn,
+    .about-page .career-header .page-toggle-btn,
+    .about-page .skillset-header .page-toggle-btn {
+      flex: 0 0 auto;
+      --icon-size: var(--_tokens---arrow--md);
+    }
+    /* Flattened so the arrow can sit in the line of text while the search
+       still runs to the right edge — the wrapper exists for the desktop
+       layout and would otherwise carry both to the far side together. */
     .about-page .skillset-header__right {
-      gap: 8px;
+      display: contents;
+    }
+    .about-page .skillset-header .page-toggle-btn {
+      order: 0;
     }
     .about-page .skillset-header .skillset-search-input {
+      order: 1;
+      margin-left: auto;
       width: clamp(84px, 32vw, 140px);
     }
-
-    /* ── One panel shows; the other two are gone, not collapsed ───────
-       The global toggle writes max-height and opacity inline, so display is
-       the only property that reliably decides this. */
-    .about-page[data-panel] .page-toggle-panel {
-      display: none !important;
-    }
-    .about-page[data-panel="intro"] #about-top-grid,
-    .about-page[data-panel="career"] #about-career-panel,
-    .about-page[data-panel="skillset"] #skillset-panel {
-      display: block !important;
-      max-height: none !important;
-      opacity: 1 !important;
-      overflow: visible !important;
+    /* One hairline per row. The panel draws the line that closes an OPEN
+       section; a closed one is a single row and the header's line is it. */
+    .about-page .profile-header:has(.page-toggle-btn[aria-expanded="false"]) + .page-toggle-panel {
       border-bottom: none;
-      margin-top: 0 !important;
+      margin-top: 0;
+      margin-bottom: 0;
+      padding-block: 0;
     }
 
     /* ── Professional Journey's four sections: a row, not a stack ─────
-       Same reasoning one level down. They were four pills that docked above
-       and below the open one; they are one horizontal row at the top of the
-       section now, in a fixed order, scrolling sideways if they have to. */
-    .about-page[data-panel="career"] .about-tabs-container {
+       One horizontal row at the top of the section, in a fixed order,
+       scrolling sideways if a narrower phone needs it to. At 4px gaps and
+       8px of padding all four full names fit 375px — 360 against 363. */
+    .about-tabs-container {
       position: static;
       display: flex;
       flex-direction: row;
       flex-wrap: nowrap;
-      /* 4px, not 6: the four full names plus their arrows came to 370 against
-         351 of room, so Timeline hung off the edge. It still scrolls sideways
-         if a narrower phone needs it to. */
       gap: 4px;
       overflow-x: auto;
       scrollbar-width: none;
@@ -1918,10 +1920,10 @@ const skillsets = [
       padding: 0 !important;
       background: none;
     }
-    .about-page[data-panel="career"] .about-tabs-container::-webkit-scrollbar {
+    .about-tabs-container::-webkit-scrollbar {
       display: none;
     }
-    .about-page[data-panel="career"] .about-tab-btn {
+    .about-page .about-tab-btn {
       position: static !important;
       display: inline-flex;
       width: auto;
@@ -1944,90 +1946,28 @@ const skillsets = [
                   border-color var(--_tokens---motion--base) ease,
                   color var(--_tokens---motion--base) ease;
     }
-    .about-page[data-panel="career"] .about-tab-btn.is-active {
+    .about-page .about-tab-btn.is-active {
       background-color: var(--_tokens---color--fg);
       border-color: var(--_tokens---color--fg);
       color: var(--_tokens---color--bg);
     }
-    .about-page[data-panel="career"] .about-tab-btn .pill-arrow {
+    .about-page .about-tab-btn .pill-arrow {
       --icon-size: var(--_tokens---arrow--sm);
       opacity: 0.55;
     }
-    .about-page[data-panel="career"] .about-tab-btn.is-active .pill-arrow {
+    .about-page .about-tab-btn.is-active .pill-arrow {
       opacity: 1;
       transform: none;
     }
-    /* Rows have room for the real names; the abbreviations were for pills
-       that had to fit a narrow bar. */
-    .about-page[data-panel="career"] .tab-label-full  { display: inline; }
-    .about-page[data-panel="career"] .tab-label-short { display: none; }
-    .about-page[data-panel="career"] .about-tab-panel {
-      display: none !important;
-    }
-    .about-page[data-panel="career"] .about-tab-panel.is-active {
-      display: flex !important;
-    }
+    .about-page .tab-label-full  { display: inline; }
+    .about-page .tab-label-short { display: none; }
 
-    /* ── The bar ──────────────────────────────────────────────────────
-       Three pills of equal share, docked above the nav, in one fixed order.
-       The active one is inverted the way an active tab is everywhere else. */
-    .about-page .about-tabbar {
-      position: fixed;
-      left: 12px;
-      right: 12px;
-      bottom: calc(var(--ab-dock-h, 66px) + 6px);
-      z-index: 95;
-      display: flex;
-      gap: 6px;
-      padding: 6px 0;
-      background-color: var(--_tokens---color--bg);
-    }
-    .about-page .about-tabbar__btn {
-      flex: 1 1 0;
-      min-width: 0;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 40px;
-      padding: 0 10px;
-      font-family: var(--_tokens---font--mono);
-      font-size: var(--_tokens---type--micro);
-      letter-spacing: 0.05em;
-      white-space: nowrap;
-      cursor: pointer;
-      color: var(--_tokens---color--muted);
-      border: 1px solid var(--_tokens---color--line-soft);
-      border-radius: var(--_tokens---radius--pill);
-      background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
-      transition: background-color var(--_tokens---motion--base) ease,
-                  border-color var(--_tokens---motion--base) ease,
-                  color var(--_tokens---motion--base) ease;
-    }
-    .about-page .about-tabbar__btn.is-active {
-      background-color: var(--_tokens---color--fg);
-      border-color: var(--_tokens---color--fg);
-      color: var(--_tokens---color--bg);
-    }
-
-    /* One surface behind the bar and the nav, at z-index 80: above the page,
-       below the bar at 95. */
-    .about-page::after {
-      content: '';
-      position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      height: calc(var(--ab-dock-h, 66px) + var(--ab-bar-h, 44px) + 12px);
-      background-color: var(--_tokens---color--bg);
-      z-index: 80;
-      pointer-events: none;
-    }
+    /* ── Housekeeping for this band ────────────────────────────────── */
     .about-page {
+      /* Clear the docked nav bar, and nothing more: the page scrolls. */
       padding-top: 0;
-      padding-bottom: calc(var(--ab-dock-h, 66px) + var(--ab-bar-h, 44px) + 24px);
+      padding-bottom: calc(var(--ab-dock-h, 66px) + 24px);
     }
-    /* The breadcrumb docks to the bottom on this band, so the old top
-       clearance is 56px of nothing. */
     .about-page .about-section--intro {
       padding-top: 0;
     }
@@ -2276,55 +2216,24 @@ const skillsets = [
     setupScrollToTop();
   });
 
-  // ── Phone: one row of pills, and the content above it ───────────────
-  // The identity header is the page header and stays. Below it sits whichever
-  // of the three sections the bar has selected. The bar itself never moves.
+  // ── Phone: three disclosures, one below the other ───────────────────
+  // Education, Professional Journey and Skillset each keep their own arrow and
+  // open in place, which is what the wider bands already do — the only thing
+  // this adds is where the bio lives and which sections start closed.
   //
-  // This replaces a model where the three section headings WERE the
-  // navigation and relocated above or below the open one as you used them —
-  // legible once you knew it, but it meant the control you wanted was never
-  // twice in the same place.
+  // It replaced two earlier attempts. First the headings themselves were the
+  // navigation and relocated above or below whichever was open; then a fixed
+  // bar of three pills switched between them. Both worked, and both asked the
+  // reader to learn something before they could use the page.
   function initAboutPhonePanels() {
     const page = document.querySelector('.about-page') as HTMLElement | null;
     if (!page) return;
     const phone = window.matchMedia('(max-width: 699.98px)');
-    const bar = page.querySelector('.about-tabbar') as HTMLElement | null;
-    const SECTIONS = ['intro', 'career', 'skillset'];
-
-    function show(name: string) {
-      page!.dataset.panel = name;
-      bar?.querySelectorAll<HTMLElement>('.about-tabbar__btn').forEach(b => {
-        const on = b.dataset.section === name;
-        b.classList.toggle('is-active', on);
-        b.setAttribute('aria-pressed', String(on));
-      });
-      // The skill cloud lays itself out in rows and cannot measure while its
-      // panel is display:none, so it is told to look again once shown.
-      window.dispatchEvent(new Event('resize'));
-      window.scrollTo({ top: 0 });
-    }
-
-    function measure() {
-      if (!phone.matches) {
-        page!.style.removeProperty('--ab-dock-h');
-        page!.style.removeProperty('--ab-bar-h');
-        return;
-      }
-      const h = (sel: string, fallback: number) => {
-        const el = document.querySelector(sel);
-        return Math.round(el?.getBoundingClientRect().height ?? fallback);
-      };
-      // The nav bar's height moves with the device's safe area, so it is
-      // measured rather than written down.
-      page!.style.setProperty('--ab-dock-h', h('.page-breadcrumb', 66) + 'px');
-      page!.style.setProperty('--ab-bar-h', h('.about-tabbar', 44) + 'px');
-    }
 
     // The bio and its three buttons describe the person, not the Education
-    // section they happened to sit inside, so on the phone they move up into
-    // the page header and stay on screen whichever section is selected. Moved
-    // rather than duplicated, and moved back above 700 where the panel's own
-    // two-column layout expects them.
+    // section they sit inside, so on the phone they move up beside the name
+    // and stay above all three. Moved rather than duplicated, and moved back
+    // above 700 where the panel's two-column layout expects them first.
     const bio = page.querySelector('.about-bio__text') as HTMLElement | null;
     const bioHome = bio?.parentElement ?? null;
     function placeBio() {
@@ -2337,50 +2246,45 @@ const skillsets = [
       }
     }
 
+    function measure() {
+      if (!phone.matches) {
+        page!.style.removeProperty('--ab-dock-h');
+        return;
+      }
+      // The nav bar's height moves with the device's safe area.
+      const dock = document.querySelector('.page-breadcrumb');
+      page!.style.setProperty('--ab-dock-h', Math.round(dock?.getBoundingClientRect().height ?? 66) + 'px');
+    }
+
+    // Education is open; the other two start closed, so the page opens as the
+    // person and their studies rather than as three screens of everything.
+    function collapseOnce() {
+      if ((page as any)._collapsed || !phone.matches) return;
+      (page as any)._collapsed = true;
+      ['about-career-panel', 'skillset-panel'].forEach(id => {
+        const btn = document.querySelector<HTMLElement>('[data-page-toggle="' + id + '"]');
+        if (btn && btn.getAttribute('aria-expanded') !== 'false') btn.click();
+      });
+    }
+
     function apply() {
       placeBio();
-      if (phone.matches) {
-        if (!page!.dataset.panel) show('intro');
-        else show(page!.dataset.panel);
-      } else {
-        delete page!.dataset.panel;
-        // Hand the three sections back to the global fold toggles, open.
-        document.querySelectorAll<HTMLElement>('.about-page .page-toggle-btn')
-          .forEach(b => b.setAttribute('aria-expanded', 'true'));
-      }
       measure();
+      if (phone.matches) collapseOnce();
     }
 
     if (!(page as any)._phoneTabsWired) {
       (page as any)._phoneTabsWired = true;
-      bar?.addEventListener('click', (e: Event) => {
-        const btn = (e.target as HTMLElement)?.closest('.about-tabbar__btn') as HTMLElement | null;
-        if (!btn || !phone.matches) return;
-        show(btn.dataset.section || 'intro');
-      });
-      // The section headings still work as a way in — pressing one selects it
-      // rather than folding it, so the two never disagree.
-      SECTIONS.forEach(name => {
-        const header = document.querySelector<HTMLElement>(
-          name === 'intro' ? '.intro-header' : '.' + name + '-header'
-        );
-        header?.addEventListener('click', (e: Event) => {
-          if (!phone.matches) return;
-          if ((e.target as HTMLElement).closest('input, a')) return;
-          e.stopPropagation();
-          e.preventDefault();
-          show(name);
-        }, true);
-      });
       phone.addEventListener('change', apply);
       window.addEventListener('resize', measure, { passive: true });
       if ('ResizeObserver' in window) {
-        const ro = new ResizeObserver(() => measure());
-        ['.about-tabbar', '.page-breadcrumb']
-          .forEach(sel => { const el = document.querySelector(sel); if (el) ro.observe(el); });
+        const el = document.querySelector('.page-breadcrumb');
+        if (el) new ResizeObserver(() => measure()).observe(el);
       }
+      // Typing in the skill search opens its section.
       document.getElementById('skill-search')?.addEventListener('focus', () => {
-        if (phone.matches && page!.dataset.panel !== 'skillset') show('skillset');
+        const btn = document.querySelector<HTMLElement>('[data-page-toggle="skillset-panel"]');
+        if (phone.matches && btn?.getAttribute('aria-expanded') === 'false') btn.click();
       });
     }
 
