@@ -1907,26 +1907,27 @@ const skillsets = [
       background-color: var(--_tokens---color--bg);
     }
     .about-page[data-panel="career"] .about-tab-btn {
-      display: flex;
-      width: 100%;
-      justify-content: space-between;
+      display: inline-flex;
+      width: auto;
+      justify-content: flex-start;
       align-items: center;
-      gap: 8px;
-      border: none;
-      background: none;
-      border-radius: 0;
-      /* One step below the three page headings, and indented under them, so
-         the stack reads as what it is: four sections inside Professional
-         Journey rather than four more peers of it. The indent is padding, not
-         a left offset, so the docked row's surface still reaches the gutter
-         and nothing shows through beside it. */
-      padding: 6px 0 6px 18px;
+      gap: var(--_tokens---pill-gap);
+      /* A pill, not a row. As full-width rows at 0.7 opacity they read as a
+         faint list rather than as four controls; a pill states what it is and
+         the fill carries the difference instead of a dimmer. */
+      padding: var(--_tokens---pill-pad--sm);
       font-size: var(--_tokens---type--small);
       font-weight: var(--_tokens---weight--base);
-      letter-spacing: -0.02em;
+      letter-spacing: -0.01em;
       line-height: 1.2;
       color: var(--_tokens---color--fg);
       white-space: nowrap;
+      border: var(--_tokens---pill-border--mid);
+      border-radius: var(--_tokens---radius--pill);
+      background-color: color-mix(in srgb, var(--_tokens---color--fg) 5%, transparent);
+      transition: background-color var(--_tokens---motion--base) ease,
+                  border-color var(--_tokens---motion--base) ease,
+                  color var(--_tokens---motion--base) ease;
     }
     /* Rows have room for the real names; the abbreviations were for pills. */
     .about-page[data-panel="career"] .tab-label-full  { display: inline; }
@@ -1936,9 +1937,14 @@ const skillsets = [
        and the four inner labels being a step smaller is not a reason for
        their arrows to be. Sized from --type--medium rather than 1em so the
        inner arrows do not shrink with their own text. */
-    .about-page .page-toggle-btn .link-arrow,
-    .about-page .about-tab-btn .pill-arrow {
+    .about-page .page-toggle-btn .link-arrow {
       --icon-size: var(--_tokens---type--medium);
+    }
+    /* The section pills carry a pill's arrow. They shared the headings' 26px
+       one while they were full-width rows; inside a pill that is the whole
+       control. */
+    .about-page[data-panel="career"] .about-tab-btn .pill-arrow {
+      --icon-size: var(--_tokens---arrow--sm);
     }
     .about-page[data-panel="career"] .about-tab-btn .pill-arrow {
       opacity: 1;
@@ -1946,21 +1952,21 @@ const skillsets = [
     .about-page[data-panel="career"] .about-tab-btn:not(.is-active) {
       position: fixed;
       left: 12px;
-      right: 12px;
+      /* right:auto, so the pill is as wide as its own label rather than the
+         screen. It was a full-width bar with one word at the left of it. */
+      right: auto;
       width: auto;
       z-index: 95;
-      background-color: var(--_tokens---color--bg);
-      opacity: 0.7;
+      opacity: 1;
     }
+    /* The open one is inverted, the way an active tab is everywhere else on
+       the site. */
     .about-page[data-panel="career"] .about-tab-btn.is-active {
       position: static;
       opacity: 1;
-      /* The pill's inverted fill is for a pill. As a row, the open section is
-         marked the way every other open heading on this page is marked:
-         same size, one step of weight. */
-      background-color: transparent;
-      color: var(--_tokens---color--fg);
-      border-color: transparent;
+      background-color: var(--_tokens---color--fg);
+      border-color: var(--_tokens---color--fg);
+      color: var(--_tokens---color--bg);
       font-weight: var(--_tokens---weight--mid);
     }
     /* Open points down, closed points north-east — the same two states the
