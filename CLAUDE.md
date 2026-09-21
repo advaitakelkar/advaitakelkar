@@ -927,6 +927,13 @@ Every line of text sits **under** the pictures, one line each: where you are,
 then what the whole set holds. The takes are `position: absolute` inside the
 stage, so opening them costs the render no width.
 
+**No captions under the thumbnails.** They are pictures of rooms, and a row
+of them captioned "Master Bedroom / Master Washroom / Guest Washroom" is a
+list of words in front of the thing the words describe. The line under the
+picture names the one you are on — the room in All, the view number inside a
+room — and the outline says which thumbnail that is. The full name stays on
+`aria-label`.
+
 **In a named room the takes are always up.** You went to Living to look at
 the living room, and the alternates of the view you are on are the thing to
 compare — asking for a click first hides them behind a step nobody knows to
