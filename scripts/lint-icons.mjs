@@ -37,6 +37,7 @@ const EXEMPT_CLASSES = [
   'timer-ring',          // project + lightbox countdowns, same
   'vgw__svg',            // Virtual Gods wheel — geometry derived from YAML
   'ad__spark',           // admin sparkline
+  'rr__ring',            // renders-template dwell countdown, same as the others
 ];
 
 /** Icon classes whose size is owned by a parent box, so width:100% is right. */

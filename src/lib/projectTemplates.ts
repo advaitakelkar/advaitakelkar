@@ -11,7 +11,7 @@
  * Play Pod was in this set and is not an AI series, so it renders with the
  * tabs template alongside the other freelance work.
  */
-export type ProjectTemplate = 'auto' | 'tabs' | 'cards' | 'ai-works' | 'chapters';
+export type ProjectTemplate = 'auto' | 'tabs' | 'cards' | 'ai-works' | 'chapters' | 'renders';
 
 const aiWorksProjects = new Set([
   'alt-verse',
@@ -44,11 +44,26 @@ export function projectTemplate(slug: string, category?: string, template?: Proj
   // 'ai-works' is the written name; `cards` is what the page reads.
   if (template === 'ai-works') template = 'cards';
 
+    /* ── renders ────────────────────────────────────────────────────────
+     A visualisation project is not a set of pictures, it is a set of ROOMS,
+     and each room was rendered several times. The page is one image at a
+     time with a tab per room, and inside a room it walks the views and the
+     variations of each. See the `views` field on the schema. */
+  const renders = template === 'renders';
+
   const cards = template ? template === 'cards' : aiWorksProjects.has(slug);
   const chapters = template ? template === 'chapters' : ['habersham-hall', 'scad-design-built'].includes(slug);
   const tabs = template
     ? template !== 'cards'
     : ['work', 'archv', 'academic'].includes(category ?? '') || chapters || tabProjects.has(slug) || slug === 'scarpin';
 
-  return { cards, chapters, tabs, cardLayout: !!template || cards || tabs || category === 'freelancer' };
+  return {
+    cards,
+    chapters,
+    renders,
+    // A renders page draws its own middle; it must not also get the tab
+    // layout's filmstrip and panels.
+    tabs: renders ? false : tabs,
+    cardLayout: !!template || cards || tabs || category === 'freelancer',
+  };
 }

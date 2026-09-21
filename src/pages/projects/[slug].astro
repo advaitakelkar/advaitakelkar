@@ -6,6 +6,7 @@ import path from 'node:path';
 import { getCollection, getEntry } from 'astro:content';
 import PageLayout from '../../layouts/PageLayout.astro';
 import VGScrollExhibition from '../../components/VGScrollExhibition.astro';
+import RenderRooms from '../../components/RenderRooms.astro';
 import { isPlaceholder, realText, publicFileExists } from '../../lib/content';
 import Arrow from '../../components/Arrow.astro';
 
@@ -123,6 +124,9 @@ const template = projectTemplate(project.id, category?.id, data.template);
 const isOriginalCardPage = template.cards;
 const isTabChapterPage = template.chapters;
 const isTabLayout = template.tabs;
+/* A visualisation project draws its own middle — rooms, one image, the
+   variations behind it. See RenderRooms.astro. */
+const isRenders = template.renders && (data.views?.length ?? 0) > 0;
 
 /* The phone hides the Design / Making panels — they are display-scale
    headings over label/value grids, which on a 390px column collide with
@@ -287,6 +291,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       data-project-id={project.id}
       data-project-name={data.name}
       data-is-card={isCardPage ? "true" : "false"}
+      data-renders={isRenders ? "true" : "false"}
       data-is-scarpin={isScarpinPage ? "true" : "false"}
       data-category={category ? category.id : ''}
       data-tab-layout={isTabLayout ? "true" : "false"}
@@ -497,7 +502,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
           </div>
 
           <!-- CARD DECK SECTION: INSIDE the dropdown container so when closed it collapses completely inside -->
-          {hasImages && isCardPage && !isTabLayout && (
+          {hasImages && isCardPage && !isTabLayout && !isRenders && (
             <section class="card-deck-section">
               <div class="deck-grid" id="deck-grid" data-images={JSON.stringify(allImages)} data-variations={Object.keys(variationsByImage).length ? JSON.stringify(variationsByImage) : undefined}>
                 {allImages.map((img, idx) => {
@@ -769,6 +774,17 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
 
 
+
+      {/* The rooms sit OUTSIDE the dashboard grid. Inside it they landed in
+          the same cell as the text column, which places its own grid-row on
+          the wide band, and the two drew over each other. This is the page's
+          middle; it does not belong in a layout built to stand text beside
+          one image. */}
+      {isRenders && (
+        <section class="renders-section">
+          <RenderRooms views={data.views ?? []} name={data.name} />
+        </section>
+      )}
 
       <!-- Fullscreen Lightbox: card pages get a horizontally scrolling deck -->
       {isCardPage && (
@@ -4698,6 +4714,94 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   .project-meta-row--pills .project-card__filter-pill:focus-visible {
     outline: 2px solid currentColor;
     outline-offset: 2px;
+  }
+  /* ══ The renders template ════════════════════════════════════════════
+     Deliberately the LAST block in this stylesheet. A renders page borrows
+     the card-page chassis for its header, pills, copy and people, and that
+     chassis is built to stand text beside one image — fixed heights, its own
+     grid rows, and several `display: … !important` rules on the picture
+     parts. Equal specificity and !important on both sides means source order
+     decides, so these have to come after all of them.
+
+     What the template needs from the page is the words. The pictures are
+     RenderRooms.astro's job, so every other picture surface stands down. */
+  .project-detail[data-renders="true"] .project-col-right,
+  .project-detail[data-renders="true"] .project-slider-wrapper,
+  .project-detail[data-renders="true"] .card-deck-section,
+  .project-detail[data-renders="true"] .gallery-view-row,
+  .project-detail[data-renders="true"] .project-card-name-pagination-row {
+    display: none !important;
+  }
+  /* By id, because the card-page rule that shows the scrub carries an extra
+     :not() and therefore outranks an attribute-plus-class selector however
+     late it comes. An id ends the argument. */
+  .project-detail[data-renders="true"] #deck-grid-mobile-scrub,
+  .project-detail[data-renders="true"] #deck-grid {
+    display: none !important;
+  }
+
+  /* Stack. The grid's columns exist to put text next to a picture that is
+     not here, and its text column places its own grid-row, so an auto-placed
+     child landed in the same row and drew over it. */
+  .project-detail[data-renders="true"] {
+    display: flex !important;
+    flex-direction: column;
+    /* `gap` is a grid AND a flex property, so the grid's row gap carried over
+       and opened 145px between the copy and the rooms. */
+    gap: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  .project-detail[data-renders="true"] .project-content-grid,
+  .project-detail[data-renders="true"] .project-col-left,
+  .project-detail[data-renders="true"] .project-card-info,
+  .project-detail[data-renders="true"] .project-card__row2,
+  .project-detail[data-renders="true"] .project-card__text-block {
+    display: block !important;
+    grid-row: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  .project-detail[data-renders="true"] .project-card__desc {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  .project-detail[data-renders="true"] .project-people {
+    margin-top: 16px !important;
+  }
+
+  .renders-section {
+    width: 100%;
+    min-width: 0;
+    padding-top: 8px;
+    padding-bottom: 24px;
+  }
+  /* The phone card is fixed over the bottom of the page, so the rail and the
+     bar have to clear it — otherwise the last thing you can see of a room is
+     its middle. */
+  @media (max-width: 699.98px) {
+    /* The header is fixed on this band, and the page pads itself by a number
+       measured for the deck layout's header rather than this one — which left
+       145px of nothing, and then hid the room tabs under it when the padding
+       was cut. The header is fixed so a full-height deck can roll under it;
+       nothing rolls under anything here, so it simply scrolls with the page
+       and the clearance stops being a number anyone has to keep right. */
+    .project-detail[data-renders="true"] .project-dashboard-wrap {
+      position: static !important;
+    }
+    .project-detail[data-renders="true"] {
+      padding-top: 0 !important;
+    }
+    .renders-section {
+      padding-bottom: calc(var(--pp-card-h, 80px) + var(--pp-dock-h, 66px) + 16px);
+    }
+    /* The image takes what is left between the tabs and that card. */
+    .project-detail[data-renders="true"] .rr__frame {
+      height: clamp(220px, 44vh, 460px);
+    }
   }
 </style>
 

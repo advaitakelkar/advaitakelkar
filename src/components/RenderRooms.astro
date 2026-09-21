@@ -1,0 +1,468 @@
+---
+/**
+ * The renders template — a visualisation project, shown as rooms.
+ *
+ * A rendering project is not a set of pictures. It is a set of ROOMS, each
+ * rendered from one or more views, and each view rendered several times. Laid
+ * out flat, XBKC read as fifty-one works for one flat. Here the shape of the
+ * work is the shape of the page:
+ *
+ *   a tab per room  →  one image in the middle  →  the variations behind it
+ *
+ * The tabs are the same object as Journey's on About: a scrolling row of
+ * pills, the open one inverted. The middle is one image at a time, and it
+ * walks that room's frames on its own — every view, and every variation of
+ * each view — because the variations are the point of a render study and
+ * nobody clicks through thirty-eight of them.
+ *
+ * One layout at every width. The image takes the space it can get, the rail
+ * sits under it, and the only thing that changes across the ladder is how
+ * much room the image has.
+ */
+import Icon from './Icon.astro';
+
+export interface Props {
+  views: Array<{ room?: string; label?: string; image: string; variations?: string[] }>;
+  name: string;
+}
+const { views, name } = Astro.props;
+
+/* Group into rooms, in the order the rooms first appear. A view with no room
+   named falls into one called after the project, so a half-filled YAML still
+   renders rather than throwing. */
+const rooms: Array<{ label: string; frames: Array<{ src: string; view: string; n: number; of: number }> }> = [];
+for (const v of views) {
+  const label = v.room || name;
+  let room = rooms.find(r => r.label === label);
+  if (!room) { room = { label, frames: [] }; rooms.push(room); }
+  const set = [v.image, ...(v.variations ?? [])];
+  set.forEach((src, i) => room!.frames.push({
+    src,
+    view: v.label || label,
+    n: i + 1,
+    of: set.length,
+  }));
+}
+const total = rooms.reduce((a, r) => a + r.frames.length, 0);
+---
+
+<section class="rr" data-rr aria-label={`${name} — rooms`}>
+  <!-- The rooms. One row, scrolling sideways on a narrow screen. -->
+  <div class="rr__tabs" role="tablist" aria-label="Rooms">
+    {rooms.map((r, i) => (
+      <button
+        class:list={["rr__tab", i === 0 && "is-active"]}
+        role="tab"
+        type="button"
+        data-rr-tab={i}
+        aria-selected={i === 0 ? 'true' : 'false'}
+      >
+        <span>{r.label}</span>
+        <span class="rr__tab-count">{r.frames.length}</span>
+      </button>
+    ))}
+  </div>
+
+  <!-- The work. One image, and the ring that says how long it has. -->
+  <div class="rr__stage">
+    <button class="rr__nav rr__nav--prev" type="button" aria-label="Previous frame" data-rr-prev>
+      <Icon name="chevron" dir="w" />
+    </button>
+
+    <div class="rr__frame" data-rr-frame>
+      {rooms.map((r, ri) => r.frames.map((f, fi) => (
+        <img
+          class:list={["rr__img", ri === 0 && fi === 0 && "is-on"]}
+          src={f.src}
+          alt={`${name} — ${f.view}`}
+          data-rr-room={ri}
+          data-rr-index={fi}
+          loading={ri === 0 && fi < 2 ? 'eager' : 'lazy'}
+          decoding="async"
+        />
+      )))}
+    </div>
+
+    <button class="rr__nav rr__nav--next" type="button" aria-label="Next frame" data-rr-next>
+      <Icon name="chevron" dir="e" />
+    </button>
+  </div>
+
+  <!-- Where you are: the view, which variation of it, and the ring. -->
+  <div class="rr__bar">
+    <span class="rr__where" data-rr-where>{rooms[0]?.frames[0]?.view ?? ''}</span>
+    <div class="rr__right">
+      <span class="rr__count"><span data-rr-pos>1</span> / <span data-rr-total>{rooms[0]?.frames.length ?? 0}</span></span>
+      <button class="rr__play" type="button" aria-label="Pause" aria-pressed="true" data-rr-play>
+        <svg class="rr__ring" viewBox="0 0 24 24" aria-hidden="true">
+          <circle class="rr__ring-track" cx="12" cy="12" r="9" />
+          <circle class="rr__ring-fill" cx="12" cy="12" r="9" data-rr-ring />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- The variations of the view you are on, as a rail you can also drive. -->
+  <div class="rr__rail" data-rr-rail></div>
+  <p class="rr__total">{rooms.length} rooms · {views.length} views · {total} frames</p>
+</section>
+
+<style is:global>
+  /* Global, not scoped: the rail's thumbnails are built in script and a
+     runtime node carries no data-astro-cid-*, so a scoped rule would silently
+     fail to match it. Every selector is .rr-prefixed. */
+  .rr {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* ── Rooms ─────────────────────────────────────────────────────────── */
+  .rr__tabs {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 0;
+  }
+  .rr__tabs::-webkit-scrollbar { display: none; }
+
+  .rr__tab {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--_tokens---pill-gap--xs);
+    flex: 0 0 auto;
+    padding: var(--_tokens---pill-pad--xs);
+    border: var(--_tokens---pill-border);
+    border-radius: var(--_tokens---radius--pill);
+    background: none;
+    color: var(--_tokens---color--fg);
+    font-family: inherit;
+    font-size: var(--_tokens---type--micro);
+    font-weight: var(--_tokens---weight--base);
+    line-height: 1.1;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color var(--_tokens---motion--base) ease,
+                color var(--_tokens---motion--base) ease,
+                border-color var(--_tokens---motion--base) ease;
+  }
+  .rr__tab-count {
+    font-size: var(--_tokens---type--ultrathin);
+    opacity: 0.55;
+  }
+  .rr__tab.is-active {
+    background-color: var(--_tokens---color--fg);
+    border-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+  }
+  .rr__tab.is-active .rr__tab-count { opacity: 0.7; }
+  @media (hover: hover) {
+    .rr__tab:hover { border-color: var(--_tokens---color--fg); }
+  }
+
+  /* ── The stage ─────────────────────────────────────────────────────── */
+  .rr__stage {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  /* The frames are stacked and cross-faded, so the box never collapses
+     between two images and the page does not jump on every change. The
+     height is the viewport minus the chrome above and below it, which is
+     what keeps one layout working at every width. */
+  .rr__frame {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+    height: clamp(260px, 52vh, 720px);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 4%, transparent);
+    border-radius: var(--_tokens---radius--small);
+    overflow: hidden;
+  }
+  .rr__img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    opacity: 0;
+    transition: opacity var(--_tokens---motion--base) ease;
+    pointer-events: none;
+  }
+  .rr__img.is-on { opacity: 1; }
+
+  .rr__nav {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: var(--_tokens---pill-border);
+    border-radius: 50%;
+    background: none;
+    color: var(--_tokens---color--fg);
+    cursor: pointer;
+    --icon-size: 14px;
+    opacity: 0.55;
+    transition: opacity var(--_tokens---motion--base) ease,
+                border-color var(--_tokens---motion--base) ease;
+  }
+  @media (hover: hover) {
+    .rr__nav:hover { opacity: 1; border-color: var(--_tokens---color--fg); }
+  }
+
+  /* ── The bar ───────────────────────────────────────────────────────── */
+  .rr__bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-width: 0;
+  }
+  .rr__where {
+    font-size: var(--_tokens---type--micro);
+    color: var(--_tokens---color--muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .rr__right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+  }
+  .rr__count {
+    font-size: var(--_tokens---type--micro);
+    color: var(--_tokens---color--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .rr__play {
+    display: inline-flex;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    color: var(--_tokens---color--fg);
+  }
+  /* Exempt from the icon family on purpose, like the slider and project
+     countdown rings: it animates its own stroke-dashoffset. */
+  .rr__ring { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .rr__ring circle {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+  }
+  .rr__ring-track { opacity: 0.2; }
+  .rr__ring-fill {
+    stroke-dasharray: 56.5;
+    stroke-dashoffset: 56.5;
+    transition: stroke-dashoffset 80ms linear;
+  }
+  .rr__play[aria-pressed="false"] .rr__ring-fill { stroke-dashoffset: 56.5; }
+
+  /* ── The rail ──────────────────────────────────────────────────────── */
+  .rr__rail {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    min-height: 44px;
+  }
+  .rr__rail::-webkit-scrollbar { display: none; }
+  .rr__thumb {
+    flex: 0 0 auto;
+    width: 62px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    background: none;
+    overflow: hidden;
+    cursor: pointer;
+    opacity: 0.45;
+    transition: opacity var(--_tokens---motion--base) ease,
+                border-color var(--_tokens---motion--base) ease;
+  }
+  .rr__thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .rr__thumb.is-on {
+    opacity: 1;
+    border-color: var(--_tokens---color--fg);
+  }
+  @media (hover: hover) {
+    .rr__thumb:hover { opacity: 1; }
+  }
+
+  .rr__total {
+    margin: 0;
+    font-size: var(--_tokens---type--ultrathin);
+    color: var(--_tokens---color--muted);
+  }
+
+  /* Taller image on the wide band, where the page has the height to give. */
+  @media (min-width: 1024px) {
+    .rr__frame { height: clamp(360px, 60vh, 760px); }
+    .rr__nav { width: 44px; height: 44px; --icon-size: 16px; }
+    .rr__thumb { width: 84px; height: 58px; }
+    .rr__rail { min-height: 58px; }
+  }
+  /* The arrows are a pointer affordance; a phone swipes instead. */
+  @media (max-width: 699.98px) {
+    .rr__nav { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .rr__img { transition: none; }
+    .rr__ring-fill { transition: none; }
+  }
+</style>
+
+<script>
+  function initRenderRooms() {
+    const root = document.querySelector<HTMLElement>('[data-rr]');
+    if (!root || root.dataset.rrWired) return;
+    root.dataset.rrWired = '1';
+
+    const imgs = Array.from(root.querySelectorAll<HTMLImageElement>('.rr__img'));
+    const tabs = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-rr-tab]'));
+    const rail = root.querySelector<HTMLElement>('[data-rr-rail]');
+    const where = root.querySelector<HTMLElement>('[data-rr-where]');
+    const pos = root.querySelector<HTMLElement>('[data-rr-pos]');
+    const totalEl = root.querySelector<HTMLElement>('[data-rr-total]');
+    const ring = root.querySelector<SVGCircleElement>('[data-rr-ring]');
+    const play = root.querySelector<HTMLButtonElement>('[data-rr-play]');
+    if (!imgs.length) return;
+
+    // Frames, grouped by room, in DOM order.
+    const byRoom: HTMLImageElement[][] = [];
+    imgs.forEach(im => {
+      const r = Number(im.dataset.rrRoom);
+      (byRoom[r] ||= []).push(im);
+    });
+
+    const DWELL = 2600;                       // ms a frame holds
+    const CIRC = 56.5;                        // the ring's circumference
+    let room = 0, at = 0, playing = true, t0 = 0, raf = 0;
+
+    function show() {
+      const frames = byRoom[room] ?? [];
+      imgs.forEach(im => im.classList.remove('is-on'));
+      const on = frames[at];
+      if (on) {
+        on.classList.add('is-on');
+        // The next frame is decoded before it is needed, so a cross-fade
+        // never lands on an empty box.
+        const nxt = frames[(at + 1) % frames.length];
+        if (nxt && nxt.loading === 'lazy') { nxt.loading = 'eager'; nxt.src = nxt.src; }
+        if (where) where.textContent = on.alt.split('—').slice(1).join('—').trim() || on.alt;
+      }
+      if (pos) pos.textContent = String(at + 1);
+      if (totalEl) totalEl.textContent = String(frames.length);
+      rail?.querySelectorAll('.rr__thumb').forEach((b, i) =>
+        b.classList.toggle('is-on', i === at));
+      rail?.querySelector<HTMLElement>('.rr__thumb.is-on')
+        ?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      t0 = performance.now();
+    }
+
+    function buildRail() {
+      if (!rail) return;
+      rail.innerHTML = '';
+      (byRoom[room] ?? []).forEach((im, i) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'rr__thumb' + (i === at ? ' is-on' : '');
+        b.setAttribute('aria-label', `Frame ${i + 1}`);
+        const t = document.createElement('img');
+        t.src = im.src; t.alt = ''; t.loading = 'lazy'; t.decoding = 'async';
+        b.appendChild(t);
+        b.addEventListener('click', () => { at = i; show(); });
+        rail.appendChild(b);
+      });
+    }
+
+    function setRoom(i: number) {
+      room = i; at = 0;
+      tabs.forEach((b, n) => {
+        b.classList.toggle('is-active', n === i);
+        b.setAttribute('aria-selected', n === i ? 'true' : 'false');
+      });
+      tabs[i]?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      buildRail();
+      show();
+    }
+
+    const step = (d: number) => {
+      const frames = byRoom[room] ?? [];
+      at = (at + d + frames.length) % frames.length;
+      show();
+    };
+
+    // The ring is the clock. One rAF drives both it and the advance, so the
+    // bar can never disagree with what is on screen.
+    function tick(now: number) {
+      raf = requestAnimationFrame(tick);
+      if (!playing) return;
+      const p = Math.min(1, (now - t0) / DWELL);
+      if (ring) ring.style.strokeDashoffset = String(CIRC * (1 - p));
+      if (p >= 1) step(1);
+    }
+
+    function setPlaying(on: boolean) {
+      playing = on;
+      play?.setAttribute('aria-pressed', String(on));
+      play?.setAttribute('aria-label', on ? 'Pause' : 'Play');
+      if (on) t0 = performance.now();
+      else if (ring) ring.style.strokeDashoffset = String(CIRC);
+    }
+
+    tabs.forEach((b, i) => b.addEventListener('click', () => setRoom(i)));
+    root.querySelector('[data-rr-prev]')?.addEventListener('click', () => { step(-1); setPlaying(false); });
+    root.querySelector('[data-rr-next]')?.addEventListener('click', () => { step(1); setPlaying(false); });
+    play?.addEventListener('click', () => setPlaying(!playing));
+
+    // Swipe the stage sideways to walk the frames. It owns the gesture, so
+    // the page-level swipe between Home / About / Projects leaves it alone.
+    const stage = root.querySelector<HTMLElement>('.rr__stage');
+    if (stage) {
+      stage.setAttribute('data-swipe-own', '');
+      let x0 = 0, y0 = 0, live = false;
+      stage.addEventListener('touchstart', (e) => {
+        live = e.touches.length === 1;
+        if (live) { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }
+      }, { passive: true });
+      stage.addEventListener('touchend', (e) => {
+        if (!live) return;
+        live = false;
+        const t = e.changedTouches[0];
+        const dx = t.clientX - x0, dy = t.clientY - y0;
+        if (Math.abs(dx) < 40 || Math.abs(dx) <= Math.abs(dy)) return;
+        step(dx < 0 ? 1 : -1);
+        setPlaying(false);
+      }, { passive: true });
+    }
+
+    // Nothing animates while the page cannot be seen.
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) { cancelAnimationFrame(raf); raf = 0; }
+      else if (!raf) { t0 = performance.now(); raf = requestAnimationFrame(tick); }
+    });
+
+    setRoom(0);
+    raf = requestAnimationFrame(tick);
+  }
+
+  initRenderRooms();
+  document.addEventListener('astro:after-swap', initRenderRooms);
+</script>

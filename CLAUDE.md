@@ -901,6 +901,39 @@ renders them as dashed outlines rather than faking one. `publicFileExists()`
 gates every film, methodology sheet and render, so absent assets drop their
 whole section instead of 404-ing.
 
+## The renders template
+
+A visualisation project is not a set of pictures. It is a set of **rooms**,
+each rendered from one or more **views**, and each view rendered several
+times. Laid out flat, XBKC read as fifty-one works for one flat.
+
+`template: "renders"` in the YAML, and the images go in `views:` — each with
+the `room` it belongs to, the chosen `image`, and the `variations` behind it.
+`src/components/RenderRooms.astro` is the whole template:
+
+- **a tab per room**, in the order the rooms first appear, drawn as Journey's
+  pill row is drawn — the open one inverted;
+- **one image in the middle**, which walks that room's frames on its own:
+  every view, and every variation of each. The variations are the point of a
+  render study and nobody clicks through thirty-eight of them;
+- **a ring** that is the clock — one rAF drives both it and the advance, so
+  the bar can never disagree with what is on screen;
+- **a rail** of that room's frames, which also drives it. Arrows on a
+  pointer, swipe on a phone, and either one pauses.
+
+**A card with views shows the cover alone.** A thumbnail strip that repeats
+the same room six times says only "renders".
+
+One layout at every width. The one thing that fights it is the page around
+it: the card-page chassis is built to stand text beside a single image, with
+fixed heights, its own grid rows, a fixed header the deck rolls under, and
+several `display: … !important` rules on the picture parts. So the renders
+block sits at the **end** of `[slug].astro`'s stylesheet, hides the scrub by
+**id** (the rule that shows it carries an extra `:not()` and outranks an
+attribute-plus-class selector however late it comes), stacks the page instead
+of gridding it, and un-fixes the header on the phone — nothing rolls under
+anything here.
+
 ## Notion / Drive / Website sync
 
 Three systems hold this work. They **nest** rather than mirror — `Drive ⊂ Website ⊂ Notion` — so a project missing from Drive is normal, not drift.

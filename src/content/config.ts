@@ -71,7 +71,7 @@ const projects = defineCollection({
     status: z.string().optional(),
     featured: z.boolean().default(false),
     passcode: z.string().optional(),
-    template: z.enum(['auto', 'tabs', 'cards', 'ai-works', 'chapters']).optional(),
+    template: z.enum(['auto', 'tabs', 'cards', 'ai-works', 'chapters', 'renders']).optional(),
     design: z.string().optional(),
     making: z.string().optional(),
     smallIntro: z.string().optional(),
@@ -93,6 +93,9 @@ const projects = defineCollection({
        deck shows the chosen ones, one per view, and a card shows the cover
        alone: a thumbnail strip of the same room six times says nothing. */
     views: z.array(z.object({
+      // The room this view is of. The renders template makes one tab per
+      // room, in the order the rooms first appear here.
+      room: z.string().optional(),
       label: z.string().optional(),
       image: z.string(),
       variations: z.array(z.string()).optional(),
