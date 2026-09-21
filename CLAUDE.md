@@ -999,6 +999,18 @@ live domain. An older note here claimed neither could; that is out of date.
 
 ## Common Gotchas
 
+- **Never set a form field below 16px on the phone.** Safari on iPhone zooms
+  the whole page in when you focus an input smaller than that, and nothing
+  zooms it back — you are left pinching out of a page you only wanted to type
+  in. Every field on this site was set in `--type--micro` (12–14px), so every
+  one of them did it. The floor is enforced once, in `tokens.css`, for the
+  compact band. It carries `!important` because each field sizes itself from
+  a class inside a scoped component block, and a class beats an element
+  selector whatever the source order; that rule is not a style preference
+  competing with them, it is the platform's threshold. The other fix,
+  `maximum-scale=1` on the viewport meta, works by taking pinch-zoom away
+  from everyone — a real accessibility cost to solve a typography one.
+
 - **Always `pnpm`**, never `npm` or `yarn`
 - **Build before pushing** to catch TypeScript/Astro errors: `pnpm build`
 - **Google Drive lag:** If git index.lock errors appear, `rm -f .git/index.lock`

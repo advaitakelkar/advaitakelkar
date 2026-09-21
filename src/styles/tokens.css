@@ -691,3 +691,29 @@ html {
   -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 2.5rem), transparent);
   mask-image: linear-gradient(to bottom, #000 calc(100% - 2.5rem), transparent);
 }
+
+/* ── iOS zooms into a field whose text is under 16px ─────────────────────
+   Safari on iPhone scales the whole page in when you focus an input smaller
+   than 16px, and nothing scales it back — you are left pinching out of a
+   page you only wanted to type in. Every field here is set in --type--micro
+   (12–14px), so every one of them did it: the skillset search, the projects
+   search, the footer's quick search, the site lock.
+
+   16px is a threshold, not a preference. At or above it the zoom does not
+   fire; one pixel below it does. The alternative, `maximum-scale=1` on the
+   viewport meta, works by taking pinch-zoom away from everyone, which is a
+   real accessibility cost to fix a typography one.
+
+   Compact band only, so the designed size survives everywhere the zoom is
+   not a behaviour. */
+@media (max-width: 699.98px) {
+  input,
+  textarea,
+  select {
+    /* !important because every field sets its own size from a class inside a
+       scoped component block, and a class beats an element selector whatever
+       the source order. This is not a style preference competing with those —
+       it is the platform's threshold, and the one thing that must win. */
+    font-size: 16px !important;
+  }
+}
