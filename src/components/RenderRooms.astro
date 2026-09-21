@@ -87,6 +87,7 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
         data-rr-cover={v.i}
         data-rr-room={v.room}
         data-short={v.label}
+        data-room={v.room}
         data-full={v.label === v.room ? v.room : `${v.room} · ${v.label}`}
         aria-label={v.label === v.room ? v.room : `${v.room} · ${v.label}`}
       >
@@ -453,13 +454,18 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
       // Re-append in the order this tab wants. appendChild MOVES a node, so
       // the rail is reordered rather than rebuilt and the listeners survive.
       (r === 'all' ? allOrder : naturalOrder).forEach(c => rail?.appendChild(c));
-      /* In All the covers need their room's name on them: three rooms have a
-         "View 01" and shuffling puts them next to each other. Inside a room
-         the room is the tab you are standing in, so the short label is
-         enough. */
+      /* A THUMBNAIL in All is captioned with its room and nothing else. The
+         view number is the sequence inside a room, and All is not in a room —
+         it is the flat, shuffled, so "View 03" on a thumbnail there numbers
+         nothing you can see. Inside a room the room is the tab you are
+         standing in, so the view number is exactly what is left to say.
+
+         The line under the pictures still carries both: that one says where
+         you are, and there the room alone would be ambiguous across five
+         Living views. */
       covers.forEach(c => {
         const t = c.querySelector<HTMLElement>('.rr__cover-label');
-        if (t) t.textContent = (r === 'all' ? c.dataset.full : c.dataset.short) ?? '';
+        if (t) t.textContent = (r === 'all' ? c.dataset.room : c.dataset.short) ?? '';
       });
       covers.forEach(c => { c.hidden = !(r === 'all' || c.dataset.rrRoom === r); });
       const first = shown()[0];
