@@ -916,7 +916,15 @@ each answering a different question:
 |---|---|---|
 | tabs | which room | an **All** pill first, then the rooms |
 | rail | which view of it | the covers, along the bottom |
-| column | which take of it | the variations, top right, **on demand** |
+| column | which take of it | the variations, over the picture's top right, **on demand** |
+
+The people sit at the right end of the tab row from 700px up — beside the
+work rather than at the end of a paragraph. Below that the row has no width
+to spare and they stay where the page put them.
+
+Every line of text sits **under** the pictures, one line each: where you are,
+then what the whole set holds. The takes are `position: absolute` inside the
+stage, so opening them costs the render no width.
 
 **Variations are not shown until you ask.** They are alternates of one
 picture, not more pictures, and a grid of thirty-eight of them is a render

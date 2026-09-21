@@ -45,6 +45,7 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
 ---
 
 <section class="rr" data-rr aria-label={`${name} — rooms`}>
+  <div class="rr__top">
   <!-- Rooms. All first, as a mark rather than a word — it is not a room. -->
   <div class="rr__tabs" role="tablist" aria-label="Rooms">
     <button class="rr__tab rr__tab--all is-active" role="tab" type="button" data-rr-room="all" aria-selected="true" aria-label="All rooms">
@@ -57,10 +58,20 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
       </button>
     ))}
   </div>
+    {/* The people land here from 700 up — top right, level with the rooms.
+        The page moves them in; see initRendersPeople in projects/[slug]. */}
+    <div class="rr__people" data-rr-people></div>
+  </div>
 
   <div class="rr__body">
     <!-- The work. -->
     <div class="rr__stage" data-rr-stage>
+      <!-- The takes of the view you are on, over the picture's top right
+           corner. Out of the flow, so opening them costs the render no
+           width — it stays as big as the page allows. -->
+      <aside class="rr__takes" data-rr-takes hidden aria-label="Variations">
+        <div class="rr__takes-list" data-rr-takes-list></div>
+      </aside>
       {indexed.map(v => (
         <img class="rr__img" src={v.image} alt={`${name} — ${v.label}`} data-rr-view={v.i} data-rr-take="0" loading={v.i === 0 ? 'eager' : 'lazy'} decoding="async" />
       ))}
@@ -69,25 +80,6 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
       )))}
     </div>
 
-    <!-- The takes of the view you are on. Empty, and out of the way, until
-         you pick one. -->
-    <aside class="rr__takes" data-rr-takes hidden aria-label="Variations">
-      <span class="rr__takes-label" data-rr-takes-label></span>
-      <div class="rr__takes-list" data-rr-takes-list></div>
-    </aside>
-  </div>
-
-  <div class="rr__bar">
-    <span class="rr__where" data-rr-where></span>
-    <span class="rr__right">
-      <span class="rr__count" data-rr-count></span>
-      <button class="rr__play" type="button" aria-label="Pause" aria-pressed="true" data-rr-play hidden>
-        <svg class="rr__ring" viewBox="0 0 24 24" aria-hidden="true">
-          <circle class="rr__ring-track" cx="12" cy="12" r="9" />
-          <circle class="rr__ring-fill" cx="12" cy="12" r="9" data-rr-ring />
-        </svg>
-      </button>
-    </span>
   </div>
 
   <!-- The covers of the active tab. One per view, and the only thing that
@@ -109,6 +101,20 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
     ))}
   </div>
 
+  <!-- Everything the page has to say sits under the pictures, a line each:
+       where you are, then what the whole set holds. -->
+  <div class="rr__bar">
+    <span class="rr__where" data-rr-where></span>
+    <span class="rr__right">
+      <span class="rr__count" data-rr-count></span>
+      <button class="rr__play" type="button" aria-label="Pause" aria-pressed="true" data-rr-play hidden>
+        <svg class="rr__ring" viewBox="0 0 24 24" aria-hidden="true">
+          <circle class="rr__ring-track" cx="12" cy="12" r="9" />
+          <circle class="rr__ring-fill" cx="12" cy="12" r="9" data-rr-ring />
+        </svg>
+      </button>
+    </span>
+  </div>
   <p class="rr__total">{rooms.length} rooms · {views.length} views · {totalTakes} frames</p>
 </section>
 
@@ -121,7 +127,10 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
   /* ── Rooms ─────────────────────────────────────────────────────────── */
   /* Wrapping, like the footer's pill cloud. A row that scrolls sideways
      hides the rooms you have not thought to look for. */
-  .rr__tabs { display: flex; flex-wrap: wrap; gap: 3px; }
+  .rr__top { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
+  .rr__tabs { display: flex; flex-wrap: wrap; gap: 3px; flex: 1 1 auto; min-width: 0; }
+  .rr__people { flex: 0 0 auto; }
+  .rr__people:empty { display: none; }
 
   .rr__tab {
     display: inline-flex;
@@ -172,7 +181,10 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
     flex: 1 1 auto;
     min-width: 0;
     aspect-ratio: 3 / 2;
-    max-height: 62vh;
+    /* High enough that the width, not the cap, decides the size on a normal
+       screen — at 1440x900 the 3:2 box wants 719px and 76vh was clipping it
+       to 684. The cap is only there for a short, wide window. */
+    max-height: 85vh;
     background: none;
     overflow: hidden;
   }
@@ -188,27 +200,24 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
   }
   .rr__img.is-on { opacity: 1; }
 
-  /* Top right, one below the other. It has no width at all until a view is
-     picked, so the image keeps the whole page until then. */
+  /* Over the picture's top-right corner, one below the other. Out of the
+     flow on purpose: opening the takes costs the render no width, so the
+     work stays as big as the page allows. */
   .rr__takes {
-    flex: 0 0 auto;
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    z-index: 2;
     display: flex;
     flex-direction: column;
     gap: 4px;
-    width: 76px;
-    max-height: 62vh;
+    width: 84px;
+    max-height: calc(100% - 12px);
     overflow-y: auto;
     scrollbar-width: none;
-    align-self: flex-start;
   }
   .rr__takes::-webkit-scrollbar { display: none; }
   .rr__takes[hidden] { display: none; }
-  .rr__takes-label {
-    font-size: var(--_tokens---type--ultrathin);
-    color: var(--_tokens---color--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-  }
   .rr__takes-list { display: flex; flex-direction: column; gap: 4px; }
   .rr__take {
     display: block;
@@ -256,7 +265,7 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
   .rr__cover {
     position: relative;
     flex: 0 0 auto;
-    width: 84px;
+    width: 116px;
     padding: 0;
     border: 1px solid transparent;
     border-radius: 3px;
@@ -268,7 +277,7 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
                 border-color var(--_tokens---motion--base) ease;
   }
   .rr__cover[hidden] { display: none; }
-  .rr__cover img { width: 100%; height: 54px; object-fit: cover; display: block; }
+  .rr__cover img { width: 100%; height: 74px; object-fit: cover; display: block; }
   .rr__cover-label {
     display: block;
     padding: 3px 4px 4px;
@@ -286,11 +295,21 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
   .rr__total { margin: 0; font-size: var(--_tokens---type--ultrathin); color: var(--_tokens---color--muted); }
 
   @media (min-width: 1024px) {
-    .rr__takes { width: 110px; }
-    .rr__cover { width: 116px; }
-    .rr__cover img { height: 76px; }
+    .rr__takes { width: 116px; }
+    .rr__cover { width: 164px; }
+    .rr__cover img { height: 104px; }
     .rr__tab { font-size: var(--_tokens---type--micro); padding: 4px 11px; }
   }
+  /* Edge to edge on the phone. The 12px page gutter is there so text does
+     not touch the bezel; a render is not text, and the 24px it was spending
+     is 6% of the picture. */
+  @media (max-width: 699.98px) {
+    .rr__stage {
+      margin-inline: calc(var(--_tokens---layout--gutter) * -1);
+      width: auto;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .rr__img { transition: none; }
     .rr__ring-fill { transition: none; }
@@ -308,7 +327,6 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
     const tabs = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-rr-room]')).filter(b => b.classList.contains('rr__tab'));
     const takes = root.querySelector<HTMLElement>('[data-rr-takes]');
     const takesList = root.querySelector<HTMLElement>('[data-rr-takes-list]');
-    const takesLabel = root.querySelector<HTMLElement>('[data-rr-takes-label]');
     const where = root.querySelector<HTMLElement>('[data-rr-where]');
     const count = root.querySelector<HTMLElement>('[data-rr-count]');
     const play = root.querySelector<HTMLButtonElement>('[data-rr-play]');
@@ -407,7 +425,6 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
       takesList.innerHTML = '';
       if (!list.length) { takes.hidden = true; return; }
       takes.hidden = false;
-      if (takesLabel) takesLabel.textContent = `${list.length} more`;
       list.forEach((im, i) => {
         const b = document.createElement('button');
         b.type = 'button';

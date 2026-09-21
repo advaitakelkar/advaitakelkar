@@ -4789,6 +4789,24 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     display: none !important;
   }
 
+  /* The people, once they are in the renders tab row: a tight row of faces
+     at its right end rather than the wide, spaced row the copy block gives
+     them. */
+  .rr__people .project-people {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap;
+    gap: 6px;
+    margin: 0 !important;
+  }
+  .rr__people .project-people__name { display: none; }
+  .rr__people .project-people__avatar { width: 34px; height: 34px; }
+  .rr__people .project-people__divider {
+    width: 1px !important;
+    height: 20px !important;
+    align-self: center;
+  }
+
   /* One column at every width: the copy, then the work under it. It was two
      on the wide band for a moment — copy left, pictures right — which halved
      a render to 647px so a paragraph could sit beside it. The pictures are
@@ -6573,6 +6591,30 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   shuffleMetaPills();
   initProjectPhoneCard();
   document.addEventListener('astro:after-swap', initProjectPhoneCard);
+
+  /* ── Renders: the people sit top right, level with the rooms ───────────
+     From 700 up they move into the tab row's right end — beside the work
+     rather than at the end of a paragraph. Below that the row has no width
+     to spare, so they stay where the page put them. Moved, not duplicated. */
+  function initRendersPeople() {
+    const detail = document.querySelector<HTMLElement>('.project-detail[data-renders="true"]');
+    const slot = detail?.querySelector<HTMLElement>('[data-rr-people]');
+    const people = document.getElementById('project-people-panel');
+    if (!detail || !slot || !people) return;
+    const home = people.parentElement;
+    const wide = window.matchMedia('(min-width: 700px)');
+    const place = () => {
+      const target = wide.matches ? slot : home;
+      if (target && people.parentElement !== target) target.appendChild(people);
+    };
+    if (!detail.dataset.rpWired) {
+      detail.dataset.rpWired = '1';
+      wide.addEventListener('change', place);
+    }
+    place();
+  }
+  initRendersPeople();
+  document.addEventListener('astro:after-swap', initRendersPeople);
 
 
 
