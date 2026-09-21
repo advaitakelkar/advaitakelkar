@@ -1828,6 +1828,23 @@ const skillsets = [
       display: none !important;
     }
 
+    /* The bio sits with the name, above whichever section is open. */
+    .about-page .about-bio__text {
+      margin: 0 0 6px;
+      padding: 0;
+      border: none;
+    }
+    .about-page .about-bio__text > :global(p) {
+      font-size: var(--_tokens---type--micro);
+      line-height: 1.5;
+      margin: 0 0 8px;
+    }
+    .about-page .bio-buttons-row {
+      margin: 0;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
     /* ── Each section is titled, and only the open one's title shows ─── */
     .about-page[data-panel="intro"] .education-header {
       display: flex;
@@ -2303,7 +2320,25 @@ const skillsets = [
       page!.style.setProperty('--ab-bar-h', h('.about-tabbar', 44) + 'px');
     }
 
+    // The bio and its three buttons describe the person, not the Education
+    // section they happened to sit inside, so on the phone they move up into
+    // the page header and stay on screen whichever section is selected. Moved
+    // rather than duplicated, and moved back above 700 where the panel's own
+    // two-column layout expects them.
+    const bio = page.querySelector('.about-bio__text') as HTMLElement | null;
+    const bioHome = bio?.parentElement ?? null;
+    function placeBio() {
+      if (!bio) return;
+      const header = page!.querySelector('.intro-header');
+      if (phone.matches) {
+        if (header && bio.previousElementSibling !== header) header.after(bio);
+      } else if (bioHome && bio.parentElement !== bioHome) {
+        bioHome.prepend(bio);
+      }
+    }
+
     function apply() {
+      placeBio();
       if (phone.matches) {
         if (!page!.dataset.panel) show('intro');
         else show(page!.dataset.panel);
