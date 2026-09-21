@@ -335,6 +335,22 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
       [allOrder[i], allOrder[j]] = [allOrder[j], allOrder[i]];
     }
 
+    /* Which take of each view a ROOM opens on — one roll per view, kept for
+       the visit. A render study's alternates are all the picture, and always
+       opening on the first meant the other thirty-eight were work nobody
+       arrived at.
+
+       All does not roll. It is the flat as it is meant to be seen, playing
+       through the chosen frame of each view; the alternates are something
+       you go into a room for. */
+    const roll = new Map<number, number>();
+    covers.forEach(c => {
+      const v = Number(c.dataset.rrCover);
+      const n = takesOf(v).length;
+      roll.set(v, n ? Math.floor(Math.random() * (n + 1)) : 0);
+    });
+    const takeFor = (v: number) => (room === 'all' ? 0 : roll.get(v) ?? 0);
+
     let room = 'all';
     let view = Number(allOrder[0].dataset.rrCover);
     let take = 0;
@@ -347,7 +363,7 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
     const DWELL = 3000;
     const CIRC = 56.5;
     let playing = true, t0 = 0, raf = 0;
-    const canPlay = () => room === 'all' && take === 0;
+    const canPlay = () => room === 'all' && (takes?.hidden ?? true);
 
     /* Rail order, not the order the markup was written in — All reshuffles
        its covers, so the counter and the autoplay have to walk what is on
@@ -389,7 +405,7 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
         const list = shown();
         const at = list.findIndex(c => Number(c.dataset.rrCover) === view);
         const next = list[(at + 1) % list.length];
-        if (next) { view = Number(next.dataset.rrCover); take = 0; paint(); }
+        if (next) { view = Number(next.dataset.rrCover); take = takeFor(view); paint(); }
       }
     }
 
@@ -429,7 +445,7 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
        whole flat, and a column of takes changing every three seconds under a
        picture you did not choose is noise. There they open on a click. */
     function setView(v: number, openTakes: boolean) {
-      view = v; take = 0;
+      view = v; take = takeFor(v);
       if (openTakes || room !== 'all') buildTakes();
       else if (takes) { takes.hidden = true; }
       paint();
@@ -445,6 +461,14 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
       // Re-append in the order this tab wants. appendChild MOVES a node, so
       // the rail is reordered rather than rebuilt and the listeners survive.
       (r === 'all' ? allOrder : naturalOrder).forEach(c => rail?.appendChild(c));
+      /* The thumbnail shows whatever the stage will show, so the rail and
+         the picture never disagree about which frame a view is on. */
+      covers.forEach(c => {
+        const v = Number(c.dataset.rrCover);
+        const src = frame(v, r === 'all' ? 0 : roll.get(v) ?? 0)?.src;
+        const thumb = c.querySelector('img');
+        if (src && thumb && thumb.src !== src) thumb.src = src;
+      });
       /* No captions under the thumbnails. They are pictures of rooms — a row
          of them captioned "Master Bedroom / Master Washroom / Guest Washroom"
          is a list of words in front of the thing the words describe. The line

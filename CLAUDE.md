@@ -934,6 +934,16 @@ picture names the one you are on — the room in All, the view number inside a
 room — and the outline says which thumbnail that is. The full name stays on
 `aria-label`.
 
+**A room opens on a different take each visit.** One roll per view, kept for
+the visit, and the thumbnail is set to match so the rail and the stage never
+disagree about which frame a view is on. A render study's alternates are all
+the picture; always opening on the first meant the other thirty-eight were
+work nobody arrived at.
+
+**All does not roll.** It is the flat as it is meant to be seen, playing
+through the chosen frame of each view; the alternates are something you go
+into a room for.
+
 **In a named room the takes are always up.** You went to Living to look at
 the living room, and the alternates of the view you are on are the thing to
 compare — asking for a click first hides them behind a step nobody knows to
