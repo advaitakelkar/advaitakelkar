@@ -26,6 +26,10 @@ const tabProjects = new Set([
   'carlo',
   'concrt',
   'goonj',
+  // Freelance work like the rest of this list. It was left off only because
+  // it had no images to build a deck from, which made it the one page in the
+  // group rendering the plain layout.
+  'gully',
   'human-pods',
   'nat-geo-humans',
   'pet-pod',
