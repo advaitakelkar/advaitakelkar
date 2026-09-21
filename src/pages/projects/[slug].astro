@@ -4857,6 +4857,22 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     }
   }
 
+  /* The description reads in the page on a phone, not behind a Read more.
+     The pill exists because the fixed bottom card has no room for a
+     paragraph; this description is not in that card (see the phone-card
+     script), so the pill is a control for a thing that is already open. */
+  @media (max-width: 699.98px) {
+    .project-detail[data-renders="true"] #project-readmore-btn {
+      display: none !important;
+    }
+    .project-detail[data-renders="true"] .project-desc-readmore,
+    .project-detail[data-renders="true"] .project-card__desc {
+      display: block !important;
+      max-height: none !important;
+      overflow: visible !important;
+    }
+  }
+
   @media (max-width: 699.98px) {
     /* The header is fixed on this band, and the page pads itself by a number
        measured for the deck layout's header rather than this one — which left
@@ -6333,7 +6349,16 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       if (cid) actions.setAttribute(cid.name, '');
     }
 
-    PHONE_CARD_PARTS.forEach(sel => {
+    /* A renders page keeps its description in the page. The card is a fixed
+       strip at the bottom of the screen and the description is the only long
+       thing on it, so behind a Read more is the only way it fits there — and
+       on a visualisation the few lines of context are worth reading before
+       the rooms, not after tapping for them. */
+    const parts = detail.dataset.renders === 'true'
+      ? PHONE_CARD_PARTS.filter(sel => sel !== '.project-desc-readmore')
+      : PHONE_CARD_PARTS;
+
+    parts.forEach(sel => {
       const el = detail.querySelector(sel) as HTMLElement | null;
       if (!el) return;
       rememberHome(el);

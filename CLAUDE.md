@@ -933,6 +933,13 @@ Every line of text sits **under** the pictures, one line each: where you are,
 then what the whole set holds. The takes are `position: absolute` inside the
 stage, so opening them costs the render no width.
 
+**On a phone the description reads in the page**, not behind a Read more.
+That pill exists because the fixed bottom card has no room for a paragraph;
+a renders page keeps its description out of that card, so the pill would be a
+control for something already open. On a visualisation the few lines of
+context are worth reading before the rooms rather than after tapping for
+them.
+
 **No captions under the thumbnails.** They are pictures of rooms, and a row
 of them captioned "Master Bedroom / Master Washroom / Guest Washroom" is a
 list of words in front of the thing the words describe. The line under the
