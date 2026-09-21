@@ -577,52 +577,39 @@ Anything the category list must inherit from the shared stack is restated on
 adds no specificity, so a same-class override only wins on source order, and a
 scoped rule outranks a global one outright.
 
-### About: three tabs, and the open one between them
+### About: three dropdowns, drawn as project rows
 
-The same idea as the category pages, arranged differently because About has no
-list to scroll. Below 700px each of its three headings — the identity,
-Professional Journey, Skillset — is a tab, and exactly one section is open.
-The tabs BEFORE the open one dock to the top of the screen, the tabs AFTER it
-dock to the bottom above the breadcrumb, and the open heading pins between
-them. Open the last tab and all three sit at the top; open the first and two
-sit at the bottom. The order never changes, so a tab is always where you last
-saw it, and all three are on screen however far you scroll.
+Below 700px About is three disclosures one below the other — Education,
+Professional Journey, Skillset. A title, an arrow, a panel, in that order.
+Nothing docks, nothing relocates, nothing has to be selected before it can be
+read: you open what you want and scroll.
 
-The identity tab is the exception: open, it is a card carrying the face at the
-right corner and the role on the next line; closed, it is a row with an arrow
-like the other two.
+**A closed section is the same object as a collapsed project card**, so it is
+drawn with that card's geometry rather than a second one invented for this
+page: the name at `--type--medium` in the body weight, one line with an
+ellipsis, the arrow immediately after the text instead of marooned on the far
+edge, and one hairline under the row. The numbers are the card's own — 10/8 of
+card padding plus 4 of header padding. The panel keeps the line that closes an
+OPEN section and drops it when closed, so three shut sections stack with no
+gap, exactly as the project list does.
 
-All six headings sit at one size, the identity name's, because they are the
-same kind of thing. That leaves weight as the only axis for marking which one
-is open, which is what `--weight--mid` (600) exists for — the one documented
-exception to the three-weight scale. See the note in `tokens.css`; do not
-reach for it anywhere size is still free to move.
+The name, the role, the bio and its three buttons lift into the page header
+above all three, so they read once rather than from inside a section.
+Professional Journey's four sections stay a horizontal pill row at the top of
+its panel.
 
-**The offsets are computed in script, not written as a rule per state.** Three
-tabs give nine top/bottom positions, every one of them a sum of measured
-heights — the identity tab is a tall card when open and a single row when
-closed, and the breadcrumb dock moves with the safe area. A CSS matrix of that
-cannot be kept correct. The script sets each tab's `top` or `bottom` directly
-and publishes `--ab-top-h`, `--ab-bot-h` and `--ab-dock-h` for the page
-padding and the two seals. It measures in a second frame, because the classes
-it sets are what decide the heights it needs to read.
+Two earlier arrangements stood here and are worth not repeating. First the
+three headings WERE the navigation and moved above or below whichever was
+open, so all three stayed on screen at any scroll; then a fixed bar of three
+pills switched between them. Both worked. Both asked the reader to learn the
+page before they could use it, and the first needed a script to compute nine
+top/bottom positions from measured heights because a CSS matrix of that cannot
+be kept correct. `--ab-dock-h` is all that survives — the breadcrumb dock's
+measured height, which the page padding still reads.
 
-Above 700px none of this applies: `data-panel` is removed, the inline offsets
-are cleared, and the page goes back to three independent fold toggles.
-
-Professional Journey's own four sections — Work EXP, Exhibitions, Press,
-Timeline — stack by the same rule one level down. The ones before the open
-section dock under the outer top stack, the ones after it dock above the outer
-bottom stack, and the open one pins between them. They stop being pills on
-this band: a pill row that scrolls sideways hides whichever section you are
-not looking at, which is the opposite of what the arrangement is for. The
-second level publishes `--ab-sub-anchor`, `--ab-sub-top-h` and
-`--ab-sub-bot-h`, and the seals and the page padding read both levels.
-
-Switching an inner section has to re-run the layout. The existing tab handler
-swaps `is-active` synchronously, so the phone layout hooks the same click and
-measures a frame later, on the new state rather than the one being replaced.
-
+Above 700px none of this applies: the Education title is hidden, the bio goes
+back to the top of the left column, and the page is three independent fold
+toggles beside the two-column education grid.
 
 ## CSS Conventions
 
