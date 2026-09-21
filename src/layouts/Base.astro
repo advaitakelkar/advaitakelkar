@@ -672,6 +672,36 @@ const shareImage = new URL(ogImage ?? '/images/people/advaita-kelkar.jpg', Astro
          viewport reports the new height, and once on a timer for the
          browsers that never fire that event. All three land on the same
          place, so the extra calls cost a no-op scroll. */
+      /* ── Phone: publish where the keyboard's top edge is ───────────────
+         `position: fixed` is measured against the LAYOUT viewport, which the
+         keyboard does not change, so a bottom-docked control keeps sitting
+         where the keyboard now is. iOS then scrolls the page to bring the
+         focused field into view, which lifts the whole bottom stack — nav bar
+         included — and leaves a band of empty page between it and the
+         keyboard. You lose that height twice: once to the nav bar you cannot
+         reach while typing, once to the gap.
+
+         visualViewport knows the real inset. `--kb-h` is that number, and
+         `data-kb="open"` on the root lets the two docked layouts re-anchor to
+         the keyboard instead of to the bottom of a viewport that is no longer
+         visible. The 120px floor keeps Safari's own toolbars from reading as
+         a keyboard. */
+      function initKeyboardInset() {
+        const vv = window.visualViewport;
+        if (!vv || document.documentElement.dataset.kbWired) return;
+        document.documentElement.dataset.kbWired = '1';
+        const sync = () => {
+          const inset = Math.max(0, window.innerHeight - (vv.height + vv.offsetTop));
+          const open = inset > 120;
+          document.documentElement.setAttribute('data-kb', open ? 'open' : 'closed');
+          document.documentElement.style.setProperty('--kb-h', (open ? Math.round(inset) : 0) + 'px');
+        };
+        vv.addEventListener('resize', sync);
+        vv.addEventListener('scroll', sync);
+        sync();
+      }
+      initKeyboardInset();
+
       function initKeyboardScroll() {
         if (document.body.dataset.kbScroll) return;
         document.body.dataset.kbScroll = '1';

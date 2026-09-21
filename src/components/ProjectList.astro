@@ -1176,6 +1176,21 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       pointer-events: none;
     }
 
+    /* ── With the keyboard up, re-anchor to the keyboard ────────────────
+       The stack is search, selector and nav bar, in 168px. The nav bar is
+       behind the keyboard and cannot be pressed, so it gives its 62px back:
+       the search sits on the keyboard's top edge, the selector above it, and
+       everything the nav was covering is list. See --kb-h in Base.astro. */
+    :global(html[data-kb="open"]) .projects-search-bar {
+      bottom: calc(var(--kb-h, 0px) + 8px);
+    }
+    :global(html[data-kb="open"]) .filter-bar {
+      bottom: calc(var(--kb-h, 0px) + 66px);
+    }
+    :global(html[data-kb="open"]) .projects-page::after {
+      height: calc(var(--kb-h, 0px) + 114px);
+    }
+
     /* The selector sits directly above the search, not up at the top of the
        page — the two controls belong together, within one thumb's reach. */
     .filter-bar {
@@ -1210,6 +1225,12 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     /* Clear the whole bottom stack: breadcrumb, search and selector. */
     .projects-page {
       padding-bottom: 186px;
+    }
+    /* With the keyboard up the stack is shorter by the nav bar but stands on
+       the keyboard, so the clearance is measured from there instead. Without
+       this the scroll-to-end lands the last cards behind the keyboard. */
+    :global(html[data-kb="open"]) .projects-page {
+      padding-bottom: calc(var(--kb-h, 0px) + 124px);
     }
 }
 </style>

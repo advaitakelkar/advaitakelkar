@@ -784,6 +784,23 @@ Three global scripts are injected into every page via `Base.astro`:
    the keyboard arrives, and all three calls land on the same place, so the
    extras cost a no-op.
 
+0c. **Keyboard inset (phone only).** `position: fixed` is measured against the
+   LAYOUT viewport, which a keyboard does not change, so a bottom-docked
+   control keeps sitting where the keyboard now is; iOS then scrolls the page
+   to reveal the focused field, lifting the whole bottom stack — nav bar
+   included — and leaving a band of empty page between it and the keyboard.
+   You lose that height twice.
+
+   `visualViewport` knows the real inset. Base publishes it as **`--kb-h`**
+   on the root with **`data-kb="open"`**, and the two docked layouts
+   re-anchor: the breadcrumb dock steps out (`translateY(100%)` — it is
+   behind the keyboard and unreachable anyway), the projects search sits on
+   the keyboard's top edge with the selector above it, and the skillset
+   search takes `max(--kb-h, --ab-dock-h)`. Bottom clearances are measured
+   from the same number, or the scroll-to-end above lands the last rows
+   behind the keyboard. The 120px floor keeps Safari's own toolbars from
+   reading as a keyboard.
+
 
 1. **Arrow rotation:** On hover over any `a, button, .project-card` etc., the `.link-arrow` SVG inside rotates to a random angle (smooth cubic-bezier transition).
 
