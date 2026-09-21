@@ -61,7 +61,11 @@ data.quadrants.forEach((q: any, qi: number) => {
     const tiles: Tile[] = [];
     const items: LbItem[] = [];
     members.forEach((m: any) => {
-      if (m.module) {
+      /* The YAML naming a module does not mean the pipeline built one — check
+         the file, the way every other list in this component does. A missing
+         module renders as the dashed "lost" tile, which is what the absence
+         is supposed to look like. */
+      if (m.module && publicFileExists(asset(`modules/${m.module}.mp4`))) {
         const media = asset(`modules/${m.module}.mp4`);
         const thumb = asset(`modules/${m.module}.jpg`);
         tiles.push({ video: media, poster: thumb, name: m.name, sub: m.architect, lb: items.length });

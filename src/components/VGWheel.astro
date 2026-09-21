@@ -12,10 +12,19 @@
 // keyboard focus, middle-click, and deep links with no custom interaction code:
 // the page script just listens for hashchange.
 
+import { publicFileExists } from '../lib/content';
+
 export interface Props {
   quadrants: any[];
 }
 const { quadrants } = Astro.props;
+
+/* Every other part of this exhibition gates its assets, so a missing file
+   drops its section rather than 404-ing. The wheel's three <image> layers did
+   not: they are painted inside a node that has to render either way, so an
+   absent thumbnail left a request for a file that is not there. The node's
+   ring and halo are the wheel; the thumbnail is the fill. */
+const thumb = (rel: string) => publicFileExists(rel) ? rel : null;
 
 const CX = 500, CY = 500;
 const R_MODULE = 400, R_MERGER = 268, R_WORLD = 132;
@@ -108,7 +117,7 @@ const built = quadrants.map((q) => {
             aria-label={`${q.label} — the world`}
           >
             <circle class="vgw__halo" cx={q.world.x} cy={q.world.y} r={RAD_WORLD} />
-            {q.film && (
+            {q.film && thumb(`/images/virtual-gods/vg/films/${q.film}.jpg`) && (
               <image
                 href={`/images/virtual-gods/vg/films/${q.film}.jpg`}
                 x={q.world.x - RAD_WORLD} y={q.world.y - RAD_WORLD}
@@ -130,6 +139,7 @@ const built = quadrants.map((q) => {
               aria-label={`${p.label} — fusion`}
             >
               <circle class="vgw__halo" cx={p.x} cy={p.y} r={RAD_MERGER} />
+              {thumb(`/images/virtual-gods/vg/mergers/${p.slug}.jpg`) && (
               <image
                 href={`/images/virtual-gods/vg/mergers/${p.slug}.jpg`}
                 x={p.x - RAD_MERGER} y={p.y - RAD_MERGER}
@@ -138,6 +148,7 @@ const built = quadrants.map((q) => {
                 clip-path={`url(#clip-${q.slug}-${p.slug})`}
                 loading="lazy" decoding="async"
               />
+              )}
               <circle class="vgw__ring" cx={p.x} cy={p.y} r={RAD_MERGER} />
             </a>
           ))}
@@ -153,7 +164,7 @@ const built = quadrants.map((q) => {
               aria-label={`${m.name} — ${m.architect}`}
             >
               <circle class="vgw__halo" cx={m.x} cy={m.y} r={RAD_MODULE} />
-              {m.module ? (
+              {m.module && thumb(`/images/virtual-gods/vg/modules/${m.module}.jpg`) ? (
                 <image
                   href={`/images/virtual-gods/vg/modules/${m.module}.jpg`}
                   x={m.x - RAD_MODULE} y={m.y - RAD_MODULE}

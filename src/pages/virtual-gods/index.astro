@@ -43,7 +43,11 @@ for (const q of data.quadrants) {
   const members = q.pairs.flatMap((p: any) => p.members);
   const items: any[] = [];
 
-  members.filter((m: any) => m.module)
+  /* `m.module` says the YAML names one; it does not say the pipeline built
+     it. Every other list here checks the file, and these two trusted the
+     name — which is why clearing the web assets left the scene data pointing
+     at videos that are not there. */
+  members.filter((m: any) => m.module && publicFileExists(asset(`modules/${m.module}.mp4`)))
     .forEach((m: any) => items.push(vid(`modules/${m.module}`, `${m.name} — ${m.architect}`, 'Modules')));
 
   q.pairs.filter((p: any) => publicFileExists(asset(`mergers/${p.slug}.mp4`)))
@@ -82,7 +86,7 @@ for (const q of data.quadrants) {
     publicFilesLike(`/images/virtual-gods/vg/mergers/${p.slug}`, 'module-', '.mp4')
       .forEach((s, i) => pItems.push(vid(`mergers/${p.slug}/${s}`, `Fusion step ${i + 1}`, 'Steps')));
 
-    p.members.filter((m: any) => m.module)
+    p.members.filter((m: any) => m.module && publicFileExists(asset(`modules/${m.module}.mp4`)))
       .forEach((m: any) => pItems.push(vid(`modules/${m.module}`, `${m.name} — ${m.architect}`, 'Modules')));
 
     if (p.film && publicFileExists(asset(`films/${p.film}.mp4`))) {
@@ -100,7 +104,12 @@ for (const q of data.quadrants) {
   }
 }
 
-const first = scenes.overview.items[0];
+/* Every asset here is gated by publicFileExists, so a run with no web assets
+   built (or with them cleared out) leaves this empty — and reading .media off
+   it took the whole page build down. The frame renders without a source
+   instead, the same way every other section here drops when its files are
+   absent. */
+const first = scenes.overview.items[0] ?? null;
 ---
 
 <ExhibitionLayout
@@ -125,12 +134,14 @@ const first = scenes.overview.items[0];
       </div>
 
       <div class="vg__frame">
-        <video class="vg__video" data-vg-video src={first.media} poster={first.thumb} preload="metadata" loop muted playsinline></video>
+        {first
+          ? <video class="vg__video" data-vg-video src={first.media} poster={first.thumb} preload="metadata" loop muted playsinline></video>
+          : <video class="vg__video" data-vg-video preload="metadata" loop muted playsinline></video>}
         <img class="vg__img" data-vg-img src="" alt="" hidden />
       </div>
 
       <div class="vg__meta">
-        <span class="vg__caption" data-vg-caption>{first.label}</span>
+        <span class="vg__caption" data-vg-caption>{first?.label ?? ''}</span>
         <span class="vg__pos"><span data-vg-pos>1</span> / <span data-vg-total>{scenes.overview.items.length}</span></span>
       </div>
 
