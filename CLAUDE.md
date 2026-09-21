@@ -740,7 +740,23 @@ colour schemes 1/18 each (~5.6%).
 
 ## Global Scripts (Base.astro)
 
-Two global scripts are injected into every page via `Base.astro`:
+Three global scripts are injected into every page via `Base.astro`:
+
+0. **Page swipe (phone only).** Home → About → Projects, in the order the nav
+   bar lists them. Swipe left to go forward; the ends do not wrap. Only those
+   three routes — every other page is somewhere you arrived FROM one of them,
+   and a stray swipe there would throw away wherever you were.
+
+   The guards are what make it usable rather than infuriating. It has to be
+   mostly horizontal (1.5×) and travel 60px. **A gesture that STARTS inside
+   something which scrolls sideways belongs to that thing** — the home slider,
+   Journey's pill row, a card's thumbnail strip — so the handler walks up the
+   ancestors looking for real overflow rather than keeping a list of selectors
+   that will drift. `data-swipe-own` opts a region out by hand, for the two
+   cases overflow cannot answer: the nav panel and the lightbox, which are
+   surfaces over the page rather than part of it. Journey's panel carries it
+   too, because it owns the same gesture one level down.
+
 
 1. **Arrow rotation:** On hover over any `a, button, .project-card` etc., the `.link-arrow` SVG inside rotates to a random angle (smooth cubic-bezier transition).
 
