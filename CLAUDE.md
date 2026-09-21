@@ -733,20 +733,22 @@ colour schemes 1/18 each (~5.6%).
 - **Trigger:** `.breadcrumb__dropdown-trigger` — shows "Pages" or current project name; 55% opacity when idle
 - **Desktop:** two-column grid — categories on left, projects on right (revealed on category hover)
 - **Mobile:** single reversed list (DOM reversed + `scrollTop = scrollHeight` on open so Home is nearest thumb)
-- **Mobile bar — the mark:** five controls, always the same five slots at the
-  same widths: Back (40), a round **mark** (40), two named pills (92 each),
-  Pages (78). The mark is whichever of Home / About / Projects you are on,
-  drawn as its own glyph — house, square, circle — and the page it displaces
-  takes the pill the mark gave up. You do not need to be told the name of the
-  page you are looking at, and the two pills left over are the two places you
-  can go. On a project, a category or admin none of the three is active, so
-  Home keeps the mark and the Pages pill names where you actually are.
+- **Mobile bar — the mark:** Back (40), Home, About, Projects, Pages (78).
+  Whichever of the three you are on **shrinks to a 40px circle in its own
+  slot** and shows its glyph instead of its word — house, square, circle —
+  and the other two grow to take the width it gave up (92 each). You do not
+  need to be told the name of the page you are looking at, and the two words
+  left are the two places you can go.
 
-  It is `order`, not DOM order: `.breadcrumb__list` is `display: contents`,
-  so every control is a child of the bar and one class moves the mark to
-  second place (Back pins itself in front with `order: -2`). Each page is a
-  fresh document, so the swap cannot be animated across a navigation — the
-  existing `bc-active-in` fade on the active fill is what softens it.
+  **Nothing reorders.** The three hold their positions and the control itself
+  shrinks or grows, so what changes is the shape under your thumb rather than
+  where everything sits. The mark was briefly given `order: -1` to sit beside
+  Back, which made all three jump a slot on every navigation.
+
+  On a project, a category or admin none of the three is active, so Home
+  keeps the mark and the Pages pill names where you actually are. Each page
+  is a fresh document, so the swap cannot be animated across a navigation —
+  the existing `bc-active-in` fade on the active fill is what softens it.
 - **Frosted glass** on the dropdown panel (same formula as SideNav)
 - **Full invert on hover:** `background-color: var(--_tokens---color--fg); color: var(--_tokens---color--bg)`
 
