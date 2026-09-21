@@ -47,6 +47,14 @@ let nextProjectUrl     = '';
 // Simple active rule: a project is highlighted ONLY when you're on that
 // project's page. On every other page no project is marked — the current
 // page pill (Home / About / Projects / Category) is the single highlight.
+/* On the phone the bar carries a round MARK beside Back, and the mark is
+   whichever of the three pages you are on — Home's house, About's square,
+   Projects' circle. The page it displaces takes the pill the mark gave up,
+   so the row always holds the same five controls and only their roles swap.
+   Anywhere else (a project, a category, admin) there is no mark to show, so
+   Home keeps it and the dropdown beside it names where you actually are. */
+const markPage = isAbout ? 'about' : isProjectsIndex ? 'projects' : 'home';
+
 const activeProject = isProjectPage
   ? projects.find(p => p.id === normalizedPath.split('/').filter(Boolean)[1])
   : null;
@@ -88,24 +96,19 @@ if (activeProject) {
         Category = triangle. One shape each, same stroke, no detail. */}
     <a
       href="/"
-      class:list={["breadcrumb__link", "breadcrumb__link--home", isHome && "is-active"]}
+      class:list={["breadcrumb__link", "breadcrumb__link--home", isHome && "is-active", markPage === 'home' && "is-mark"]}
       aria-label="Home"
     >
       <Icon name="home" class="crumb-icon" />
-      {/* Home is the one destination that needs no word — it reads as a mark
-          on a phone, and giving it back its space lets the three named pills
-          beside it breathe. The circle is compact-only; desktop keeps the
-          house-and-label pair, where "Projects" already owns the circle. */}
-      <Icon name="circle" class="crumb-icon crumb-icon--compact" />
       <span class="crumb-full">Home</span>
     </a>
     <span class="breadcrumb__sep" aria-hidden="true">/</span>
-    <a href="/about" class:list={["breadcrumb__link", isAbout && "is-active"]}>
+    <a href="/about" class:list={["breadcrumb__link", isAbout && "is-active", markPage === 'about' && "is-mark"]} aria-label="About">
       <Icon name="square" class="crumb-icon" />
       <span class="crumb-full">About</span>
     </a>
     <span class="breadcrumb__sep" aria-hidden="true">/</span>
-    <a href="/projects" class:list={["breadcrumb__link", isProjectsIndex && "is-active"]}>
+    <a href="/projects" class:list={["breadcrumb__link", isProjectsIndex && "is-active", markPage === 'projects' && "is-mark"]} aria-label="Projects">
       <Icon name="circle" class="crumb-icon" />
       <span class="crumb-full">Projects</span>
     </a>
@@ -351,15 +354,6 @@ if (activeProject) {
     font-weight: var(--_tokens---weight--base);
   }
 
-  /* Compact-only mark — see .breadcrumb__link--home in the mobile block.
-     Qualified by the link because .crumb-icon carries display:inline-block at
-     the same specificity and sits later in the file; without the extra class
-     the circle simply won on source order and rode up onto the desktop bar,
-     where Home keeps its house and Projects owns the circle. */
-  .breadcrumb__link .crumb-icon--compact {
-    display: none;
-  }
-
   /* Icon is always visible and static on the left */
   .crumb-icon {
     --icon-size: 12px;
@@ -410,23 +404,37 @@ if (activeProject) {
     .crumb-icon {
       display: none;
     }
-    .breadcrumb__link.breadcrumb__link--home .crumb-icon--compact {
+    /* ── The mark ───────────────────────────────────────────────────
+       The page you are on is a symbol in a circle beside Back, not a word in
+       the row: you do not need to be told the name of the page you are
+       looking at, and the two named pills left over are the two places you
+       can go. Its own glyph, so the shape changes with the page — house,
+       square, circle.
+
+       A mark, not a word: a fixed circle rather than an equal share, and the
+       same 40px as Back beside it — it was 42 against Back's 40, which on two
+       round controls sitting together reads as a mistake. */
+    .breadcrumb__link.is-mark .crumb-icon {
       display: inline-block;
       --icon-size: 15px;
     }
-    .breadcrumb__link--home .crumb-full {
+    .breadcrumb__link.is-mark .crumb-full {
       display: none;
     }
-    /* A mark, not a word: a fixed circle rather than an equal share, and the
-       same circle as Back beside it — it was 42 wide against Back's 40, which
-       on two round controls sitting together reads as a mistake. */
-    .breadcrumb__link--home {
+    .breadcrumb__link.is-mark {
       flex: 0 0 40px;
       width: 40px;
       height: 40px;
       min-height: 40px;
       padding-inline: 0;
       border-radius: 50%;
+      /* Second in the row whichever page it is. The list is display:contents,
+         so every control is a child of the bar and `order` can move one
+         without touching the DOM — Back pins itself in front of it. */
+      order: -1;
+    }
+    .breadcrumb__back {
+      order: -2;
     }
     .crumb-full {
       max-width: none;
@@ -466,8 +474,8 @@ if (activeProject) {
     .breadcrumb__dropdown-trigger {
       width: 100%;
     }
-    /* The three named pills: one share each of what the circles leave. */
-    .breadcrumb__link:not(.breadcrumb__link--home) {
+    /* The named pills: one share each of what the circles leave. */
+    .breadcrumb__link:not(.is-mark) {
       flex: 1 1 0;
       min-width: 0;
     }
