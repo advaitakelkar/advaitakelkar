@@ -243,7 +243,7 @@ if (isScarpinPage && !hasImages && scarpinSliders.length > 0) {
    inactive thumbnails with alpha instead of draining them to grey — the
    costume colour IS the character, so grey throws away what the grid is
    for. Two projects, one list; add a slug to widen it. */
-const portraitProjects = ['sups-cards', 'hanma-fam'];
+const portraitProjects = ['sups-cards', 'hanma-fam', 'indian-royals'];
 const isPortraits = portraitProjects.includes(project.id);
 
 /* The name under a frame, derived from its filename — so the filenames are the
@@ -414,14 +414,19 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                         </button>
                       </div>
                     )}
-                    {/* Mobile-only "Prompt" pill — reveals the Midjourney prompt box
-                        (hidden behind the pill on small screens; JS hides the pill
+                    {/* "Prompt" pill / dropdown tab — reveals the Midjourney prompt box
+                        (hidden behind the pill on small screens and portrait deck pages; JS hides the pill
                         when the description has no prompt box). */}
                     {data.description && (
-                      <button class="project-prompt-btn" id="project-prompt-btn" type="button" aria-expanded="false">
-                        <span>Prompt</span>
-                        <Arrow class="project-prompt-arrow" />
-                      </button>
+                      <div class="project-prompt-wrap" id="project-prompt-wrap">
+                        <button class="project-prompt-btn" id="project-prompt-btn" type="button" aria-expanded="false">
+                          <span>Prompt</span>
+                          <Arrow class="project-prompt-arrow" />
+                        </button>
+                        <button class="project-prompt-close-btn" id="project-prompt-close-btn" type="button" aria-label="Close prompt" hidden>
+                          <Icon name="close" />
+                        </button>
+                      </div>
                     )}
 
                     {/* Virtual Gods keeps the standard ARCHV page; the one-page
@@ -1901,6 +1906,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     transform: rotate(135deg);
   }
   @media (min-width: 1024px) {
+    .project-prompt-wrap,
     .project-prompt-btn {
       display: none;
     }
@@ -3269,13 +3275,20 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
 
   /* Prompt dropdown tab on desktop for portraits */
+  .project-detail[data-portraits="true"] .project-prompt-wrap {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 6px;
+    width: fit-content;
+    margin: 12px 0 6px 0;
+  }
   .project-detail[data-portraits="true"] .project-prompt-btn {
     display: inline-flex !important;
     cursor: pointer;
     align-items: center;
     gap: var(--_tokens---pill-gap--xs);
     width: fit-content;
-    margin: 12px 0 6px 0;
+    margin: 0 !important;
     font-size: var(--_tokens---type--micro);
     font-weight: var(--_tokens---weight--base);
     color: var(--_tokens---color--fg);
@@ -3294,6 +3307,32 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
   .project-detail[data-portraits="true"] .project-prompt-btn[aria-expanded="true"] .project-prompt-arrow {
     transform: rotate(135deg);
+  }
+  .project-detail[data-portraits="true"] .project-prompt-close-btn {
+    display: none;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border: var(--_tokens---pill-border--mid);
+    border-radius: var(--_tokens---radius--pill);
+    padding: 0;
+    background: transparent;
+    color: var(--_tokens---color--fg);
+    --icon-size: 11px;
+    transition: background-color var(--_tokens---motion--base) ease, border-color var(--_tokens---motion--base) ease, color var(--_tokens---motion--base) ease;
+  }
+  .project-detail[data-portraits="true"] .project-prompt-btn[aria-expanded="true"] + .project-prompt-close-btn,
+  .project-detail[data-portraits="true"] .project-prompt-close-btn:not([hidden]) {
+    display: inline-flex !important;
+  }
+  @media (hover: hover) {
+    .project-detail[data-portraits="true"] .project-prompt-close-btn:hover {
+      background-color: var(--_tokens---color--fg);
+      color: var(--_tokens---color--bg);
+      border-color: var(--_tokens---color--fg);
+    }
   }
 
   /* Prompt box: closed by default on load, reveals when is-open */
@@ -3386,8 +3425,12 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     /* Fixed left scrub gallery */
     .project-detail[data-portraits="true"] .deck-grid--mobile-scrub {
       display: grid !important;
-      grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)) !important;
+      grid-template-columns: repeat(7, 1fr) !important;
       gap: 6px !important;
+      row-gap: 6px !important;
+      column-gap: 6px !important;
+      align-content: start !important;
+      justify-content: start !important;
       margin: 10px 0 0 !important;
       flex: 0 0 280px !important;
       height: 280px !important;
@@ -3399,6 +3442,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       display: none;
     }
     .project-detail[data-portraits="true"] .deck-grid--mobile-scrub .deck-card-item {
+      width: 100% !important;
       height: auto !important;
       aspect-ratio: 3/4 !important;
       cursor: pointer;
@@ -4500,6 +4544,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       grid-column: 1 / -1;
       grid-row: 2;
     }
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-content-grid--card .project-prompt-wrap,
     .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .project-content-grid--card .project-prompt-btn {
       grid-column: 1 / -1;
       grid-row: 3;
@@ -5009,6 +5054,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
      What the template needs from the page is the words. The pictures are
      RenderRooms.astro's job, so every other picture surface stands down. */
+  .project-detail[data-renders="true"] .project-prompt-wrap,
   .project-detail[data-renders="true"] .project-prompt-btn,
   .project-detail[data-renders="true"] .project-col-right,
   .project-detail[data-renders="true"] .project-slider-wrapper,
@@ -5069,6 +5115,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
      and those rules outrank an attribute-plus-class selector. There is no
      prompt behind a visualisation — the renders are the work, not a text
      that produced them. */
+  .project-detail[data-renders="true"] #project-prompt-wrap,
   .project-detail[data-renders="true"] #project-prompt-btn {
     display: none !important;
   }
@@ -5774,21 +5821,38 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     // prompt box). On portrait pages it sits right under the description as a
     // dropdown tab closed on load; on mobile it relocates below the pagination row.
     const promptBtn = document.getElementById('project-prompt-btn');
+    const promptWrap = document.getElementById('project-prompt-wrap') || promptBtn;
+    const promptCloseBtn = document.getElementById('project-prompt-close-btn');
     const promptBox = (document.querySelector('.project-card__desc .prompt-box') || document.querySelector('.prompt-box')) as HTMLElement | null;
     if (promptBtn) {
       if (!promptBox) {
-        promptBtn.style.display = 'none';
+        if (promptWrap) promptWrap.style.display = 'none';
+        else promptBtn.style.display = 'none';
       } else {
         const isPortraitsPage = detailEl?.getAttribute('data-portraits') === 'true';
-        if (isPortraitsPage) {
-          promptBtn.after(promptBox);
+        if (isPortraitsPage && promptWrap) {
+          promptWrap.after(promptBox);
         }
+
+        const closePrompt = () => {
+          promptBtn.setAttribute('aria-expanded', 'false');
+          promptBox.classList.remove('is-open');
+          if (promptCloseBtn) promptCloseBtn.hidden = true;
+        };
+
+        promptCloseBtn?.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          closePrompt();
+        });
 
         promptBtn.addEventListener('click', () => {
           const open = promptBtn.getAttribute('aria-expanded') === 'true';
-          promptBtn.setAttribute('aria-expanded', String(!open));
-          promptBox.classList.toggle('is-open', !open);
-          if (!open && isPortraitsPage) {
+          const nextOpen = !open;
+          promptBtn.setAttribute('aria-expanded', String(nextOpen));
+          promptBox.classList.toggle('is-open', nextOpen);
+          if (promptCloseBtn) promptCloseBtn.hidden = !nextOpen;
+          if (nextOpen && isPortraitsPage) {
             requestAnimationFrame(() => {
               const descScroll = document.querySelector('.project-detail[data-portraits="true"] .desc-scroll');
               if (descScroll) {
