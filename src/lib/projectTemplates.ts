@@ -25,7 +25,7 @@
  * spellings work — XBKC still says 'renders'.
  */
 export type ProjectTemplate =
-  | 'auto' | 'tabs' | 'cards' | 'ai-works' | 'chapters' | 'renders' | 'project-01';
+  | 'auto' | 'tabs' | 'cards' | 'ai-works' | 'ai-portrait' | 'ai-landscape' | 'chapters' | 'renders' | 'project-01';
 
 const aiWorksProjects = new Set([
   'alt-verse',
@@ -54,6 +54,10 @@ const tabProjects = new Set([
 ]);
 
 export function projectTemplate(slug: string, category?: string, template?: ProjectTemplate) {
+  const namedSeries = template === 'ai-portrait' || template === 'ai-landscape' ||
+    ['sups-cards', 'hanma-fam', 'indian-royals', 'alt-verse', 'architect-x-architects'].includes(slug);
+  const frame = template === 'ai-landscape' || (template !== 'ai-portrait' && slug === 'architect-x-architects') ? 'landscape' : 'portrait';
+  if (template === 'ai-portrait' || template === 'ai-landscape') template = 'cards';
   if (template === 'auto') template = undefined;
   // 'ai-works' is the written name; `cards` is what the page reads.
   if (template === 'ai-works') template = 'cards';
@@ -74,6 +78,9 @@ export function projectTemplate(slug: string, category?: string, template?: Proj
     : ['work', 'archv', 'academic'].includes(category ?? '') || chapters || tabProjects.has(slug) || slug === 'scarpin';
 
   return {
+    namedSeries,
+    frame,
+    name: renders ? 'project-01' : cards ? (namedSeries ? `ai-${frame}` : 'ai-works') : chapters ? 'chapters' : 'tabs',
     cards,
     chapters,
     renders,

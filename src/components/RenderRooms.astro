@@ -20,6 +20,7 @@
  * wraps: a row that scrolls hides the rooms you have not thought of yet.
  */
 import Icon from './Icon.astro';
+import { projectThumbnail } from '../lib/projectImages';
 import ImageLightbox from './ImageLightbox.astro';
 
 export interface Props {
@@ -105,7 +106,7 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
                   data-alt={`${name} — ${v.label}`}
                   aria-label={v.label}
                 >
-                  <img src={v.image} alt={`${name} — ${v.label}`} loading="lazy" decoding="async" />
+                  <img src={projectThumbnail(v.image)} alt={`${name} — ${v.label}`} loading="lazy" decoding="async" />
                 </button>
               ))}
             </div>
@@ -130,10 +131,10 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
         <div class="rr__takes-list" data-rr-takes-list></div>
       </aside>
       {indexed.map(v => (
-        <img class="rr__img" src={v.image} alt={`${name} — ${v.label}`} data-rr-view={v.i} data-rr-take="0" loading={v.i === 0 ? 'eager' : 'lazy'} decoding="async" />
+        <img class="rr__img" src={v.i === 0 ? v.image : undefined} data-src={v.image} data-thumb={projectThumbnail(v.image)} alt={`${name} — ${v.label}`} data-rr-view={v.i} data-rr-take="0" loading={v.i === 0 ? 'eager' : 'lazy'} decoding="async" />
       ))}
       {indexed.flatMap(v => v.variations.map((src, k) => (
-        <img class="rr__img" src={src} alt={`${name} — ${v.label}, take ${k + 2}`} data-rr-view={v.i} data-rr-take={k + 1} loading="lazy" decoding="async" />
+        <img class="rr__img" data-src={src} data-thumb={projectThumbnail(src)} alt={`${name} — ${v.label}, take ${k + 2}`} data-rr-view={v.i} data-rr-take={k + 1} loading="lazy" decoding="async" />
       )))}
     </div>
 
@@ -152,7 +153,7 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
         data-room={v.room}
         aria-label={v.label === v.room ? v.room : `${v.room} · ${v.label}`}
       >
-        <img src={v.image} alt="" loading="lazy" decoding="async" />
+        <img src={projectThumbnail(v.image)} alt="" loading="lazy" decoding="async" />
       </button>
     ))}
   </div>
@@ -681,6 +682,7 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
 
     function paint() {
       const on = frame(view, take);
+      if (on && !on.getAttribute('src') && on.dataset.src) on.src = on.dataset.src;
       imgs.forEach(im => im.classList.toggle('is-on', im === on));
       covers.forEach(c => c.classList.toggle('is-on', Number(c.dataset.rrCover) === view));
       const list = shown();
@@ -754,7 +756,7 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
         b.className = 'rr__take';
         b.setAttribute('aria-label', `Take ${i + 2}`);
         const t = document.createElement('img');
-        t.src = im.src; t.alt = ''; t.loading = 'lazy'; t.decoding = 'async';
+        t.src = im.dataset.thumb || im.dataset.src || im.src; t.alt = ''; t.loading = 'lazy'; t.decoding = 'async';
         b.appendChild(t);
         b.addEventListener('click', () => { take = i + 1; paint(); });
         takesList.appendChild(b);
@@ -788,7 +790,7 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
          the picture never disagree about which frame a view is on. */
       covers.forEach(c => {
         const v = Number(c.dataset.rrCover);
-        const src = frame(v, r === 'all' ? 0 : roll.get(v) ?? 0)?.src;
+        const src = frame(v, r === 'all' ? 0 : roll.get(v) ?? 0)?.dataset.thumb;
         const thumb = c.querySelector('img');
         if (src && thumb && thumb.src !== src) thumb.src = src;
       });

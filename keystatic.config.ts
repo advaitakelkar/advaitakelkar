@@ -36,7 +36,12 @@ export default config({
         template: fields.select({ label: 'Page template', options: [
           { label: 'Automatic (existing layout)', value: 'auto' },
           { label: 'Project tabs', value: 'tabs' },
-          { label: 'Image cards', value: 'cards' },
+          { label: 'AI Portrait — named image series', value: 'ai-portrait' },
+          { label: 'AI Landscape — named image series', value: 'ai-landscape' },
+          { label: 'AI Gallery — image cards', value: 'ai-works' },
+          { label: 'Project 01 — views and variations', value: 'project-01' },
+          { label: 'Image cards (legacy)', value: 'cards' },
+          { label: 'Renders (legacy)', value: 'renders' },
           { label: 'Chapters', value: 'chapters' },
         ], defaultValue: 'auto' }),
         design: fields.text({ label: 'Design (optional HTML)', multiline: true }),

@@ -73,7 +73,7 @@ const projects = defineCollection({
     passcode: z.string().optional(),
     // 'ai-works' and 'project-01' are the written names for `cards` and
     // `renders`. See projectTemplates.ts.
-    template: z.enum(['auto', 'tabs', 'cards', 'ai-works', 'chapters', 'renders', 'project-01']).optional(),
+    template: z.enum(['auto', 'tabs', 'cards', 'ai-works', 'ai-portrait', 'ai-landscape', 'chapters', 'renders', 'project-01']).optional(),
     design: z.string().optional(),
     making: z.string().optional(),
     smallIntro: z.string().optional(),
@@ -121,6 +121,7 @@ const projects = defineCollection({
       tool: z.string().optional(),
       // Sampler, steps, upscales. The part the fold opens to.
       detail: z.string().optional(),
+      caption: z.string().optional(),
     })).optional(),
     /* Project Template 01 only: how the groups behind `views` are chosen
        between. 'tabs' is a row of pills and suits a flat with eight rooms;
