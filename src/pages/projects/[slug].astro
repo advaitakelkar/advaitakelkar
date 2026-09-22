@@ -237,11 +237,21 @@ if (isScarpinPage && !hasImages && scarpinSliders.length > 0) {
 }
 
 // Derive a display name from an image filename (same rules as the client script)
+/* The name under a frame, derived from its filename — so the filenames are the
+   contract. Three copies of this exist (here, the deck markup below, and the
+   client script); keep them in step.
+
+   The prefix strip takes ADVT_<CODE>_ one code segment at a time. It was
+   `^ADVT_[A-Z_]+_`, which is greedy across underscores and therefore ate any
+   single-letter segment following the code: ADVT_SP_X_23_01 came back as "23".
+   Requiring 2–4 letters a segment still clears ADVT_SP_, ADVT_HF_, ADVT_SIH_,
+   ADVT_RP_, ADVT_FOD_ and the two-segment ADVT_AV_GF_, and leaves a
+   one-letter name part alone. */
 const cardNameFromUrl = (url: string): string => {
   const filename = url.substring(url.lastIndexOf('/') + 1);
   const ext = filename.substring(filename.lastIndexOf('.'));
   let name = filename.slice(0, filename.length - ext.length);
-  name = name.replace(/^ADVT_[A-Z_]+_/, '').replace(/^ADVT_SP_\s*/, '').trim();
+  name = name.replace(/^ADVT_(?:[A-Z]{2,4}_)+/, '').replace(/^ADVT_SP_\s*/, '').trim();
   name = name.replace(/\s+\d+\s*$/, '').replace(/\s*\d+$/, '').trim();
   name = name.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2').replace(/[_-]+/g, ' ').trim();
   return name || data.name;
@@ -276,12 +286,26 @@ const LOGO_RULES: Array<{ match: RegExp; src: string; mono: boolean }> = [
   { match: /martian|cyborg/i,                                    src: '/images/logos/dc.png',              mono: true },
   { match: /corleone|hagen|clemenza/i,                           src: '/images/logos/godfather.png',       mono: true },
 ];
-const logoProjects = ['sups-cards', 'sups-in-the-hinterland', 'alt-verse'];
+/* sups-cards is deliberately NOT here. Its frames are studio portraits on
+   black, and a publisher mark laid over one covers the picture it is
+   describing — the character is already the subject, so the logo says
+   nothing the face has not. The Hinterland and Alt-Verse frames are wide
+   scenes with room in the corner for it. */
+const logoProjects = ['sups-in-the-hinterland', 'alt-verse'];
 const logoFor = (url: string): { src: string; mono: boolean } | null => {
   if (!logoProjects.includes(project.id)) return null;
   const name = cardNameFromUrl(url);
   return LOGO_RULES.find(r => r.match.test(name)) ?? null;
 };
+
+/* ── The portrait series ───────────────────────────────────────────────────
+   One face per frame, named. These pages put the sitter's name in the meta
+   row beside the counter rather than across the picture, and dim the
+   inactive thumbnails with alpha instead of draining them to grey — the
+   costume colour IS the character, so grey throws away what the grid is
+   for. Two projects, one list; add a slug to widen it. */
+const portraitProjects = ['sups-cards', 'hanma-fam'];
+const isPortraits = portraitProjects.includes(project.id);
 ---
 
 <PageLayout
@@ -302,6 +326,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       data-category={category ? category.id : ''}
       data-tab-layout={isTabLayout ? "true" : "false"}
       data-original-card={isOriginalCardPage ? "true" : "false"}
+      data-portraits={isPortraits ? "true" : "false"}
     >
       
       {isCardPage ? (
@@ -466,6 +491,14 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                 <!-- Card Name & Pagination in left column (horizontally aligned with image bottom) -->
                 <div class="project-card-name-pagination-row">
                   <div class="page-active-logo" id="page-active-logo" aria-hidden="true"></div>
+                  {/* The sitter's name, at the left end of the meta row. On a
+                      portrait series the frame IS a named person, so the name
+                      belongs with the other facts about the frame — not set
+                      across the picture, which covers the face it names. It
+                      sits outside the counter wrap because that wrap carries
+                      `margin-left: auto` and rides the right edge; the name
+                      holds the left. Same element at every width. */}
+                  {isPortraits && <div class="page-card-name" id="page-card-name">{firstCardName}</div>}
                   <div class="project-detail__pagination-wrap">
                     <div class="project-detail__pagination" id="page-pagination">
                       1 / {allImages.length}
@@ -498,8 +531,10 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                 <div class="project-detail__active-wrap" id="page-active-wrap" role="button" tabindex="0" aria-label={`Open ${data.name} image gallery`} style="cursor: pointer;" title="Click to open fullscreen modal">
                   <img class="project-detail__active-img" id="page-active-img" src={allImages[0]} alt={data.name} />
 
-                  <!-- Active card name on the image — only for original curated card sets -->
-                  {isOriginalCardPage && <h2 class="project-card__overlay-name" id="page-overlay-name">{firstCardName}</h2>}
+                  <!-- Active card name on the image — only for original curated
+                       card sets, and not on the portrait series, which puts the
+                       name in the meta row beside the counter instead. -->
+                  {isOriginalCardPage && !isPortraits && <h2 class="project-card__overlay-name" id="page-overlay-name">{firstCardName}</h2>}
 
                   <!-- Active card's team/publisher logo — top-right (desktop) -->
                   <span class="page-active-card-logo" id="page-active-card-logo" aria-hidden="true"></span>
@@ -526,7 +561,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                   const filename = img.substring(img.lastIndexOf('/') + 1);
                   const ext = filename.substring(filename.lastIndexOf('.'));
                   let name = filename.slice(0, filename.length - ext.length);
-                  name = name.replace(/^ADVT_[A-Z_]+_/, '').replace(/^ADVT_SP_\s*/, '').trim();
+                  name = name.replace(/^ADVT_(?:[A-Z]{2,4}_)+/, '').replace(/^ADVT_SP_\s*/, '').trim();
                   name = name.replace(/\s+\d+\s*$/, '').replace(/\s*\d+$/, '').trim();
                   name = name.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2').replace(/[_-]+/g, ' ').trim();
                   
@@ -2412,6 +2447,31 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     font-weight: var(--_tokens---weight--strong);
   }
 
+  /* The sitter's name on a portrait page — left end of the meta row, opposite
+     the counter. Set in the counter's own mono micro so the row reads as one
+     line of facts about the frame rather than a heading stuck to a number;
+     it takes the fg colour because it is the thing being named, while the
+     counter stays muted. Truncates rather than wrapping: a second line would
+     move the row's baseline every time the name got longer, and the row sits
+     on a border that would move with it. */
+  .page-card-name {
+    font-family: var(--_tokens---font--mono);
+    font-size: var(--_tokens---type--micro);
+    font-weight: var(--_tokens---weight--strong);
+    color: var(--_tokens---color--fg);
+    letter-spacing: 0.02em;
+    /* Set as the name is written, not upper-cased. Everything else in this
+       column — Direction, Gallery View, the pills — is title case, so a
+       shouting name was the one thing in the panel in a different voice.
+       It also matters that these are names: RA'S AL GHUL loses the shape
+       that tells you it is one. */
+    min-width: 0;
+    flex: 0 1 auto;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   .project-card-name-pagination-row {
     display: flex;
     justify-content: space-between; /* active-card logo left, pagination + ring right */
@@ -3174,6 +3234,35 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   .deck-card-item.is-active img:not(.deck-card-logo) {
     filter: grayscale(0) !important;
     opacity: 1 !important;
+  }
+
+  /* ── The portrait grid is dimmed, not drained ──────────────────────────
+     Everywhere else an inactive thumbnail goes to grey, which separates the
+     active one by removing colour from the rest. That does not work here:
+     these are costumed characters on identical black, so hue is most of what
+     tells one thumbnail from another. Drained to grey the grid becomes a
+     hundred and thirty-two grey heads and you cannot find anyone in it.
+
+     So the inactive frames keep their colour and recede on alpha instead.
+     The active one still reads, because it is the only one at full strength
+     and it also carries the lifted border the shared rule gives it. */
+  .project-detail[data-portraits="true"] .deck-card-inner img:not(.deck-card-logo) {
+    filter: none;
+    opacity: 0.45;
+  }
+  .project-detail[data-portraits="true"] .deck-card-item.is-active img:not(.deck-card-logo) {
+    filter: none !important;
+    opacity: 1 !important;
+  }
+  .project-detail[data-portraits="true"] .deck-card-item:focus img:not(.deck-card-logo) {
+    filter: none;
+    opacity: 1;
+  }
+  @media (hover: hover) {
+    .project-detail[data-portraits="true"] .deck-card-item:hover img:not(.deck-card-logo) {
+      filter: none;
+      opacity: 1;
+    }
   }
 
   .deck-card-item:focus img:not(.deck-card-logo) {
@@ -5031,6 +5120,9 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
     const pageActiveImg = document.getElementById('page-active-img') as HTMLImageElement | null;
     const pageOverlayName = document.getElementById('page-overlay-name');
+    // Portrait series: the name sits beside the counter instead of over the
+    // picture. Only one of the two exists on any given page.
+    const pageCardName = document.getElementById('page-card-name');
     const pagePagination = document.getElementById('page-pagination');
     const pageActiveWrap = document.getElementById('page-active-wrap');
 
@@ -5105,7 +5197,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       const filename = url.substring(url.lastIndexOf('/') + 1);
       const ext = filename.substring(filename.lastIndexOf('.'));
       let name = filename.slice(0, filename.length - ext.length);
-      name = name.replace(/^ADVT_[A-Z_]+_/, '').replace(/^ADVT_SP_\s*/, '').trim();
+      name = name.replace(/^ADVT_(?:[A-Z]{2,4}_)+/, '').replace(/^ADVT_SP_\s*/, '').trim();
       name = name.replace(/\s+\d+\s*$/, '').replace(/\s*\d+$/, '').trim();
       name = name.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2').replace(/[_-]+/g, ' ').trim();
       if (!name || /^\d+$/.test(name) || name.length <= 1) return projectName;
@@ -5206,6 +5298,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
       if (pageActiveImg) pageActiveImg.src = activeUrl;
       if (pageOverlayName) scrambleTo(pageOverlayName, activeName);
+      if (pageCardName) scrambleTo(pageCardName, activeName);
       if (pagePagination) pagePagination.textContent = `${currentPos + 1} / ${images.length}`;
 
       // Active card's logo — beside the pagination (fg-tinted) and on the big
@@ -5309,6 +5402,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
           setNameLabel(activeName);
           if (pageActiveImg) pageActiveImg.src = activeUrl;
           if (pageOverlayName) scrambleTo(pageOverlayName, activeName);
+          if (pageCardName) scrambleTo(pageCardName, activeName);
           if (pagePagination) pagePagination.textContent = `${currentPos + 1} / ${images.length}`;
           updateScrubActiveState();
           stopAutoplay();
