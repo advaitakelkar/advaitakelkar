@@ -1290,6 +1290,59 @@ what comes next. It does not loop and it does not re-order — `initDeckLoop` is
 already skipped on series pages, so the grid is a fixed thing you move through
 rather than a belt that moves past you.
 
+### The series page lays out its own grid
+
+Every rule in this section used to be an override of the card chassis, and
+each one was fought by the next. The chassis declares `auto auto 1fr` and
+places the two columns across rows 2–3, so the row actually holding the
+picture is a **share of free space rather than a size that fits its
+contents**. A picture taller than that row overflowed it; `min-height: 0` on
+the spanning column removed its contribution to row sizing; a margin on the
+deck lost to `.project-detail #deck-grid { margin: 0 !important }`; and the
+copy column collapsed to 24px on the way through.
+
+So a series page states the whole grid rather than correcting it — four
+items, three rows, every one `auto` and every placement explicit:
+
+| row | |
+|---|---|
+| 1 | the header, both columns |
+| 2 | the copy \| the picture |
+| 3 | the scrub, both columns |
+
+Nothing depends on what the chassis put where, and **row 2 grows to whichever
+column is taller** — which is what makes the scrub clear the picture with no
+measuring and no margin.
+
+Two things this only works with:
+
+- **It goes on `.project-detail`.** `.project-content-grid--card` and
+  `.project-dashboard-wrap` are both `display: contents`, so their own grid
+  properties are inert and the real grid is the article around them. That is
+  also why the deck becomes a grid item at all when the script moves it out.
+- **`min-height: auto` back on `.project-col-right`.** A grid item's
+  automatic minimum is exactly what tells an `auto` row how tall to be. The
+  chassis zeroes it, and with it zeroed row 2 sized to the copy alone (302)
+  while the picture beside it was 418, and the scrub ran 83px through the
+  photograph.
+
+**The picture is sized by its column's width, not by the copy's height.**
+Matching the copy read well at one viewport and was the wrong rule: the frame
+took the row's height, the ratio turned that into width, so a long
+description made a tall row and a tall row made a picture wider than its
+track, which spilled left across the words. Capping it with `max-width` did
+not help either — a flex item's `min-width: auto` is its content's minimum,
+which on a ratio box driven by height is that same overflowing width, and an
+automatic minimum **beats** `max-width`. Width first removes the failure mode
+instead of capping it.
+
+It sits at the **top** of its column, so when the copy runs longer the blank
+space falls under the picture rather than the picture growing to meet it.
+
+`max-height: 70vh` is the one cap and it is there for the portrait series: a
+2:3 frame at the full 628 of its column is 941px tall, a page of its own. A
+3:2 one is 419 and never reaches it, so the landscape pages are unaffected.
+
 `initLandscapeScrub()` does both halves:
 
 - **The move.** The deck lives in the left column, which is 418px wide — fine
@@ -1298,13 +1351,12 @@ rather than a belt that moves past you.
   up as a full-width grid item means `display: contents` on the two wrappers
   and an explicit column for every remaining child; `sendHome()` puts it back
   below 1024.
-- **`grid-column: 1 / -1` and `grid-row: 5`.** `.project-dashboard-wrap` AND
+- **`grid-column: 1 / -1` and `grid-row: 3`.** `.project-dashboard-wrap` AND
   `.project-content-grid--card` are both `display: contents`, so the real
   two-column grid is `.project-detail` itself and a deck moved out becomes a
   grid item of it — it sat in column one at 571px, the width it was trying to
-  escape. The chassis declares four rows, so an auto-placed deck landed in a
-  cell already spoken for and sat 83px under the picture; five is past the end
-  of the template.
+  escape. Row three is the page's own third row, from the template above, not
+  an implicit one past the end of somebody else's.
 - **The row pitch is measured from two real cells**, not computed from the
   ratio. The cell is sized by `aspect-ratio` off a fractional column width and
   the rounding over three rows shows a sliver of the fourth.

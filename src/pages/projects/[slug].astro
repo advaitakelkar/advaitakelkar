@@ -5964,61 +5964,100 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
      fixed count keeps the rows square with each other at every width in the
      band instead of reflowing from seven to five as the window narrows. */
   @media (min-width: 1024px) {
-    /* The two columns, now that the deck is not in one of them. The copy took
-       571 and the picture was left 452 — the wrong way round on a page whose
-       subject is a photograph.
+    /* ── The series page lays out its own grid ────────────────────────────
+       Everything below used to be an override of the card chassis, and each
+       one was fought by the next: the chassis declares `auto auto 1fr` and
+       places the two columns across rows 2-3, so the row actually holding
+       the picture is a share of free space rather than a size that fits its
+       contents. A picture taller than that row overflowed it, `min-height: 0`
+       on the spanning column removed its contribution to sizing, a margin on
+       the deck lost to `.project-detail #deck-grid { margin: 0 !important }`,
+       and the copy column collapsed to 24px on the way through.
 
-       The rule goes on `.project-detail`, NOT on `.project-content-grid--card`:
-       that element is `display: contents`, so its own
-       `grid-template-columns` is inert and the real two-column grid is the
-       article around it. Both the wrapper and the content grid are contents
-       here, which is also why the deck lands as a grid item when it is moved
-       out — see `grid-column` below. */
-    .project-detail[data-frame="landscape"][data-frame="landscape"] {
+       So this states the whole grid instead of correcting it. Four items,
+       three rows, every one of them `auto` and every placement explicit:
+
+         row 1   the header, both columns
+         row 2   the copy | the picture
+         row 3   the scrub, both columns
+
+       Nothing here depends on what the chassis put where, and row 2 grows to
+       whichever of the two columns is taller — which is what makes the scrub
+       clear the picture with no measuring and no margin.
+
+       It goes on `.project-detail`, not on `.project-content-grid--card`:
+       that element and `.project-dashboard-wrap` are both `display: contents`,
+       so their own grid properties are inert and the real grid is the article
+       around them. That is also why the deck becomes a grid item at all when
+       the script moves it out of the left column. */
+    .project-detail[data-portraits="true"][data-portraits="true"] {
       grid-template-columns: minmax(0, 4fr) minmax(0, 6fr) !important;
+      grid-template-rows: auto auto auto !important;
+      align-items: start !important;
     }
-    /* The picture is sized by the COPY, not by the column. Let it take the
-       full 628 of its track and its 3:2 makes it 419 tall against 302 of
-       text — it then hangs 83px over the scrub below, because the chassis's
-       row was laid out for the shorter of the two.
+    .project-detail[data-portraits="true"][data-portraits="true"] > .project-top-header,
+    .project-detail[data-portraits="true"][data-portraits="true"] .project-top-header {
+      grid-row: 1 !important;
+      grid-column: 1 / -1 !important;
+    }
+    .project-detail[data-portraits="true"][data-portraits="true"] .project-col-left {
+      grid-row: 2 !important;
+      grid-column: 1 !important;
+    }
+    .project-detail[data-portraits="true"][data-portraits="true"] .project-col-right {
+      grid-row: 2 !important;
+      grid-column: 2 !important;
+    }
 
-       So it keeps the row's height and takes whatever width that allows,
-       pushed to the right of its track: the top edge and the right edge stay
-       where they are, and the bottom lines up with the last line of the copy
-       beside it. Nothing overlaps and the two columns read as one block. */
-    .project-detail[data-frame="landscape"][data-frame="landscape"] .project-col-right,
-    .project-detail[data-frame="landscape"][data-frame="landscape"] .project-slider-wrapper {
-      align-items: flex-end !important;
-      justify-content: flex-end !important;
+    /* The picture is sized by its COLUMN'S WIDTH, not by the copy's height.
+
+       Matching the copy read well at one viewport and was the wrong rule:
+       the frame took the row's height and the ratio turned that into width,
+       so a long description made a tall row and a tall row made a picture
+       wider than its track, which spilled left across the words. Width first
+       removes the failure mode rather than capping it — the picture is one
+       column wide whatever the writing does.
+
+       It sits at the TOP of its column, so when the copy runs longer the
+       blank space falls under the picture instead of the picture growing to
+       meet it.
+
+       `max-height: 70vh` is the one cap, and it is there for the portrait
+       series: a 2:3 frame at the full 628 of its column is 941px tall, which
+       is a page of its own. A 3:2 one is 419 and never reaches the cap, so
+       the landscape pages are unaffected by it. */
+    .project-detail[data-portraits="true"][data-portraits="true"] .project-col-right,
+    .project-detail[data-portraits="true"][data-portraits="true"] .project-slider-wrapper {
+      align-items: flex-start !important;
+      justify-content: flex-start !important;
+      height: auto !important;
+      max-height: none !important;
+      /* Back to `auto`, deliberately. The chassis sets `min-height: 0` on
+         this column, and a grid item's automatic minimum is exactly what
+         tells an `auto` row how tall to be — zeroed, row two sized to the
+         COPY alone (302) while the picture beside it was 418, and the scrub
+         ran 83px through the photograph. */
+      min-height: auto !important;
     }
-    .project-detail[data-frame="landscape"][data-frame="landscape"] .project-detail__active-wrap {
-      width: auto !important;
-      margin-left: auto !important;
-      /* Capped by the column as well as by the row. Height alone is not a
-         cap: the frame takes the row's height and 3:2 turns that into width,
-         so a long description made a tall row, and a tall row made a picture
-         wider than its track — it spilled left across the copy and sat on
-         top of the words. Whichever of the two runs out first now wins, and
-         the picture is the largest 3:2 that fits beside the text. */
+    .project-detail[data-portraits="true"][data-portraits="true"] .project-detail__active-wrap {
+      width: 100% !important;
+      height: auto !important;
       max-width: 100% !important;
-      max-height: 100% !important;
-      /* …and `min-width: auto` has to go, or that cap does nothing. A flex
-         item's automatic minimum size is its content's minimum, which on a
-         ratio box driven by the row's height IS the overflowing width — and
-         an automatic minimum beats `max-width`. So a long description still
-         produced a picture wider than its track, which is the state the cap
-         above was added to prevent. Zero is the only way to let it hold. */
+      max-height: 70vh !important;
+      /* `min-width: auto` is a flex item's automatic minimum size and it
+         beats `max-width`, so the caps above are only real with it at zero. */
       min-width: 0 !important;
       min-height: 0 !important;
+      margin: 0 !important;
+      align-self: flex-start !important;
     }
     .project-detail[data-frame="landscape"][data-frame="landscape"] .deck-grid--mobile-scrub {
-      grid-column: 1 / -1;
-      /* Row five, explicitly. `.project-detail`'s template declares four
-         rows, so a deck appended as the last child was auto-placed into a
-         cell that was already spoken for and sat 83px UNDER the picture.
-         Five is past the end of the template, which creates one implicit row
-         below everything the chassis laid out, whatever it put there. */
-      grid-row: 5;
+      /* Row three of the grid stated above — the page's own third row, not
+         an implicit one past the end of somebody else's template. Row two
+         grows to whichever column is taller, so this clears the picture by
+         construction rather than by a measured margin. */
+      grid-row: 3 !important;
+      grid-column: 1 / -1 !important;
       /* Six across, three rows deep, and it SCROLLS rather than running the
          page down: twenty-four houses at four rows is most of a second
          screen. The height is written by script, because three rows of a
