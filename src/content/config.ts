@@ -96,6 +96,32 @@ const projects = defineCollection({
        sits beside the copy as a texture rather than as something to watch;
        anything that needs sound is a film and belongs in the rail. */
     sideVideo: z.string().optional(),
+    /* How an AI project was actually made, as data rather than prose. One
+       entry per RUN: several projects were generated more than once — Alt
+       Verse exists as a Midjourney set and again as a local SDXL regen — and
+       the page names all of them rather than picking the latest.
+
+       `where` is the part that is hard to find out afterwards and easy to
+       state: 'local' is Adi's own machine, 'cloud' is a hosted service, and
+       'hybrid' is a project whose runs were split across both. */
+    pipeline: z.array(z.object({
+      // TXT2IMG, IMG2IMG, IMG2TEXT — what the run turned into what.
+      kind: z.string(),
+      // What the run WROTE. The masters are PNG throughout; the site serves
+      // webp, which is a publishing decision and not part of the pipeline.
+      ext: z.string().optional(),
+      model: z.string(),
+      // The family underneath, where the model name does not say it: SDXL,
+      // FLUX.2. Omitted for a hosted model that is its own family.
+      base: z.string().optional(),
+      // Render size, not the web-sized file in public/.
+      size: z.string().optional(),
+      where: z.enum(['local', 'cloud', 'hybrid']),
+      // What it was driven with — ComfyUI, Discord. Omitted when obvious.
+      tool: z.string().optional(),
+      // Sampler, steps, upscales. The part the fold opens to.
+      detail: z.string().optional(),
+    })).optional(),
     /* Project Template 01 only: how the groups behind `views` are chosen
        between. 'tabs' is a row of pills and suits a flat with eight rooms;
        'chapters' is a numbered column of dropdowns and suits a study read in
