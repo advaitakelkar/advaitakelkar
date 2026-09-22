@@ -947,9 +947,15 @@ studio pill is not a credit; it leaves the reader to infer a working
 relationship from a photograph.
 
 So a line above the subtitle now says it in words: **"In collaboration with
-{professors}, under {studio}"**. Nothing new is authored — the collaborator is
-whoever `professors:` already names on that project, and the studio is the
-`studio:` reference the breadcrumb already resolves.
+{studio}"**. The studio is the credit — naming the person as well and then the
+studio "under" them read as a chain of command rather than as working
+together, and the person is already there, their face on the same line.
+
+Spelled out, not the pill's abbreviation: `displayName` is "NMS" because that
+is what fits a filter chip, and this is a sentence. The studios collection
+carries the long form on `name` — "Nayan Mote Studio" — which nothing else
+renders. Falls back to the collaborators' own names for a project with people
+but no studio behind them.
 
 **The faces sit on that line, at 40px.** They were one line tall — 16-20px —
 which is right for something inside a sentence and wrong for a face: at that
@@ -962,11 +968,17 @@ never changes and it is not part of the rail — the rail is the work and it
 moves, this is a still to read the text against. It is one of the frames
 already in the rail, so it is marked decorative with an empty `alt`.
 
-This is the one row allowed out of the one-column rule below, and it does not
-contradict it: what that rule protects is the **render**, and the stage and
-rail are still the full page width. The still is 260px and the passage keeps
-its 80ch measure beside it. The row needs `display: grid !important` because
-the renders reset sets this whole column to `display: block !important`.
+**The still is absolutely positioned, not a grid cell.** It is 345px tall
+against about 200px of copy, so whichever grid row it sat in grew to its
+height: in row one it pushed the subtitle 334px clear of the credit above it,
+and spanning every row handed the same extra height back to all of them. Out
+of flow it can do neither, and the copy simply carries a right margin to keep
+clear of it. `.renders-people` must not be `width: 100%` for that margin to
+shrink it rather than push it out under the picture.
+
+This is the one thing allowed out of the one-column rule below, and it does
+not contradict it: what that rule protects is the **render**, and the stage
+and rail are still the full page width.
 
 **The cover has to be listed as a view.** With `views` set, `allImages` is the
 views alone — `coverImage` is no longer prepended — so a project converted

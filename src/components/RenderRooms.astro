@@ -435,8 +435,20 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
       const label = (room === 'all' && named ? cov?.dataset.room : cov?.dataset.short) ?? '';
       if (where) where.textContent = take === 0 ? label : `${label} — take ${take + 1}`;
       if (count) count.textContent = `${at + 1} / ${list.length}`;
-      root.querySelector<HTMLElement>('.rr__cover.is-on')
-        ?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      /* Keep the active cover in view INSIDE the rail, and move nothing else.
+         This was `scrollIntoView({ block: 'nearest' })`, which scrolls every
+         scrollable ancestor — including the document — whenever the rail is
+         not already fully on screen. paint() runs on every autoplay tick, so
+         a page left alone crept downward every three seconds until the rail
+         was in frame, repeatedly and while you were reading something else.
+         Setting the rail's own scrollLeft touches one axis of one element. */
+      const onCover = root.querySelector<HTMLElement>('.rr__cover.is-on');
+      if (rail && onCover) {
+        const left = onCover.offsetLeft;
+        const right = left + onCover.offsetWidth;
+        if (left < rail.scrollLeft) rail.scrollLeft = left;
+        else if (right > rail.scrollLeft + rail.clientWidth) rail.scrollLeft = right - rail.clientWidth;
+      }
       takesList?.querySelectorAll('.rr__take').forEach((b, i) =>
         b.classList.toggle('is-on', i === take - 1));
       if (play) play.hidden = !canPlay();

@@ -101,22 +101,29 @@ const peopleDividerAfter = professorCount > 0 && professorCount < people.length 
 
 /* ── The collaboration, said in words ─────────────────────────────────────
    Every Project Template 01 project so far was made inside somebody else's
-   practice — CARLO, SHLF and CONCRT with Nayan Mote at NMS, XBKC with Sneha
-   Desai at Studio Stumbles — and the page never said so. Two faces and a
-   studio pill in a filter row is not a credit; it leaves a reader to infer
-   the relationship from an avatar.
+   practice — CARLO, SHLF and CONCRT with Nayan Mote Studio, XBKC with Studio
+   Stumbles — and the page never said so. Two faces and a studio pill in a
+   filter row is not a credit; it leaves a reader to infer the relationship
+   from an avatar.
 
-   Both halves are already in the YAML, so nothing new is authored: the
-   collaborator is whoever `professors:` names on this project, and the
-   studio is the `studio:` reference the breadcrumb already resolves. */
+   The studio is the credit. Naming the person as well and then the studio
+   "under" them read as a chain of command rather than as working together,
+   which is not what these were. The person is already there — their face is
+   on the same line.
+
+   Spelled out, not the pill's abbreviation: `displayName` is "NMS" because
+   that is what fits a filter chip, and this is a sentence. The studios
+   collection carries the long form on `name`, which nothing else renders.
+   Falls back to the collaborators' own names for a project with people but
+   no studio behind them. */
 const collaborators = people.filter(isProfessor);
+const studioFullName = studioEntry?.data.name ?? studioLabel;
 const collabNames =
   collaborators.length <= 1
     ? collaborators.join('')
     : `${collaborators.slice(0, -1).join(', ')} and ${collaborators[collaborators.length - 1]}`;
-const collabCredit = collabNames
-  ? `In collaboration with ${collabNames}${studioLabel ? `, under ${studioLabel}` : ''}`
-  : '';
+const collabWith = studioFullName || collabNames;
+const collabCredit = collabWith ? `In collaboration with ${collabWith}` : '';
 
 // Build dynamic breadcrumbs based on category structure
 const dynamicCrumbs = [ { label: 'Home', href: '/' } ];
@@ -465,16 +472,19 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                     )}
                   </div>
 
-                  {/* One fixed picture to read the text against. Decorative —
-                      it is one of the frames already in the rail below, so it
-                      carries no information the page does not otherwise give,
-                      and an empty alt keeps it out of the screen reader's way. */}
-                  {sideImage && (
-                    <figure class="renders-aside">
-                      <img src={sideImage} alt="" loading="lazy" decoding="async" />
-                    </figure>
-                  )}
                 </div>
+
+                {/* One fixed picture to read the text against, in the second
+                    column beside the WHOLE copy block — the faces and credit,
+                    the subtitle and the description — not just beside the
+                    paragraph. A sibling of the copy rows, not a child of one.
+                    Decorative: it is one of the frames already in the rail
+                    below, so an empty alt keeps it out of the way. */}
+                {sideImage && (
+                  <figure class="renders-aside">
+                    <img src={sideImage} alt="" loading="lazy" decoding="async" />
+                  </figure>
+                )}
 
                 {/* People row — shown for freelancer/work (non-original) card pages.
                     Work pages hide it behind a "Credits" pill instead of always showing it. */}
@@ -5250,13 +5260,15 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   /* A line of its own above the subtitle: faces, then the credit beside
      them. Static and full width — it is a row in the copy column now, not an
      overlay pinned to a corner of it. */
+  /* No `width: 100%`. It is block-level, so it already fills the column — and
+     stated explicitly it stops the picture's clearance margin from shrinking
+     it, which pushed the credit's box out under the picture. */
   .renders-people {
     position: static;
     display: flex;
     align-items: center;
     flex-wrap: wrap;
     gap: 10px;
-    width: 100%;
     margin: 0 0 14px;
   }
   .renders-people--title {
@@ -5278,33 +5290,42 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
 
   /* ── The fixed picture beside the copy (wide band only) ────────────────
+     Two columns: the whole copy block on the left — faces and credit,
+     subtitle, description — and one still on the right.
+
+     Absolutely positioned, not a grid cell. As a grid item the picture is
+     345px tall against about 200px of copy, so whichever row it sits in grows
+     to its height: in row one it pushed the subtitle 334px clear of the
+     credit above it, and spanning every row handed the same extra height back
+     to all of them. Out of flow it cannot do either. The copy is given a
+     right margin to keep clear of it, which is the only thing the picture
+     costs the text.
+
      The standing rule for this template is one column at every width, and the
      reason is on the record: a two-column band once halved a render to 647px
      so a paragraph could sit beside it. That reason is about the RENDER, and
      nothing here touches it — the stage and the rail are still the full page
-     width, below. What sits beside the text is a still, at a fixed 260px, and
-     the text keeps its 80ch measure either side of it.
+     width, below. What sits beside the text is a still at a fixed 260px.
 
      1024 and up only. Below that the column is already the width of the page
      and there is nothing to spare. */
   .renders-aside { display: none; }
 
   @media (min-width: 1024px) {
-    /* !important because the renders reset above unwinds this whole column to
-       `display: block !important` — that reset is what keeps the template to
-       one column, and this is the one row allowed out of it. Same specificity,
-       later in the file, so it wins; if this stops working, check whether that
-       reset moved below it. */
-    .project-detail[data-renders="true"] .project-card__row2:has(.renders-aside) {
-      display: grid !important;
-      grid-template-columns: minmax(0, 1fr) 260px !important;
-      gap: var(--_tokens---space--micro);
-      align-items: start;
+    .project-detail[data-renders="true"] .project-card-info {
+      position: relative;
     }
-    .renders-aside {
+    /* Room for the picture, so a long line of copy never runs under it. */
+    .project-detail[data-renders="true"] .project-card-info:has(> .renders-aside) > *:not(.renders-aside) {
+      margin-right: calc(260px + var(--_tokens---space--medium));
+    }
+    .project-detail[data-renders="true"] .project-card-info > .renders-aside {
       display: block;
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 260px;
       margin: 0;
-      grid-column: 2;
     }
     .renders-aside img {
       width: 100%;
