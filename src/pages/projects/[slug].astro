@@ -5314,22 +5314,62 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   @media (min-width: 1024px) {
     .project-detail[data-renders="true"] .project-card-info {
       position: relative;
+      /* One number for the still's width — the copy's clearance is derived
+         from it, so the two can never drift apart. 360 rather than the 260
+         it started at: at 260 against a 1035px stage it read as a thumbnail
+         that had wandered up the page. */
+      --rr-aside-w: 360px;
+      /* …and one for the height it is allowed. The still is out of flow, so
+         it cannot push anything down: CARLO's is 480px tall against about
+         330px of copy and hung straight over the slider below, and SHLF's
+         overran by 50. Giving the copy block a floor reserves the room
+         instead, and the still is capped to it, so nothing can collide
+         however long or short the writing is. 420 keeps every one of the
+         four larger than the 260 they started at.
+
+         !important because the renders reset sets `min-height: 0 !important`
+         on this column; without it the floor never applied and the still was
+         capped to the copy instead — 216px wide on CARLO, smaller than the
+         260 this started at. */
+      min-height: var(--rr-aside-h) !important;
+      --rr-aside-h: 420px;
     }
-    /* Room for the picture, so a long line of copy never runs under it. */
+    /* Room for the picture, so a long line of copy never runs under it. The
+       gap is a fixed 32px rather than --space--medium, which clamps up to
+       6rem: at 1440 that put 86px of nothing between the text and the
+       picture, and the two stopped reading as one block. */
     .project-detail[data-renders="true"] .project-card-info:has(> .renders-aside) > *:not(.renders-aside) {
-      margin-right: calc(260px + var(--_tokens---space--medium));
+      margin-right: calc(var(--rr-aside-w) + 32px);
     }
+    /* Centred against the copy, not pinned to its top. The box spans the
+       full height of the copy block (top and bottom both 0) and the picture
+       centres inside it.
+
+       `safe center` and not plain `center`: CARLO's still is 480px tall
+       against about 330px of copy, and centring something taller than its
+       container pushes it out of BOTH ends — the top one being the filter
+       pills. The safe keyword falls back to start alignment exactly when the
+       item would overflow, so a short still centres and a tall one hangs
+       from the top as before. */
     .project-detail[data-renders="true"] .project-card-info > .renders-aside {
-      display: block;
+      display: flex;
+      align-items: safe center;
+      justify-content: center;
       position: absolute;
       top: 0;
+      bottom: 0;
       right: 0;
-      width: 260px;
+      width: var(--rr-aside-w);
       margin: 0;
     }
+    /* Fits inside the box rather than filling its width, so a tall still is
+       scaled down whole instead of cropped or spilling. CARLO lands at 315
+       wide, SHLF and the two landscape ones at the full 360. */
     .renders-aside img {
-      width: 100%;
+      width: auto;
       height: auto;
+      max-width: 100%;
+      max-height: 100%;
       display: block;
       border-radius: var(--_tokens---radius--small);
       /* Sits with the dimmed thumbnails rather than competing with the stage:

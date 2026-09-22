@@ -133,7 +133,16 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
   /* Global, not scoped: the takes column is built in script, and a runtime
      node carries no data-astro-cid-*, so a scoped rule would silently fail to
      match it. Every selector is .rr-prefixed. */
-  .rr { display: flex; flex-direction: column; gap: 5px; width: 100%; min-width: 0; }
+  /* padding-top, because the copy above ends on a paragraph and the stage
+     started immediately under it — the work needs a beat before it begins. */
+  .rr {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    width: 100%;
+    min-width: 0;
+    padding-top: var(--_tokens---space--small);
+  }
 
   /* ── Rooms ─────────────────────────────────────────────────────────── */
   /* Wrapping, like the footer's pill cloud. A row that scrolls sideways
@@ -189,10 +198,12 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
     flex: 1 1 auto;
     min-width: 0;
     aspect-ratio: 3 / 2;
-    /* High enough that the width, not the cap, decides the size on a normal
-       screen — at 1440x900 the 3:2 box wants 719px and 76vh was clipping it
-       to 684. The cap is only there for a short, wide window. */
-    max-height: 85vh;
+    /* The cap, not the width, decides the size on a wide screen. 85vh let the
+       3:2 box take 719px at 1440x900, which is a picture that fills the window
+       by itself; 68vh brings it to 612 and lets more of the page show at once.
+       It does NOT get the rail above the fold — that depends on how long the
+       copy above runs, and on these pages it still does not. */
+    max-height: 68vh;
     background: none;
     overflow: hidden;
   }

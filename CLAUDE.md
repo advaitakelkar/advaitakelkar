@@ -963,6 +963,18 @@ size two people are two grey dots. They were briefly moved into the filter
 row, which was worse in a different way: every other thing in that row is a
 link that runs a search, and a face is not one.
 
+**The still is 360px wide, centred in its column, 32px from the text**, and
+the copy block carries a 420px floor so it always has room. It is out of
+flow, so it cannot push anything down: CARLO's is 480px tall against about
+330px of copy and hung straight over the slider, and SHLF's overran by 50.
+The floor reserves the room and the picture is capped to it — CARLO lands at
+315 wide, the rest at the full 360, all larger than the 260 this started at.
+`align-items: safe center` does the centring: plain `center` pushes an item
+taller than its box out of **both** ends, the top one being the filter pills.
+
+Both `min-height` and the grid need `!important`, because the renders reset
+sets this column to `display: block !important; min-height: 0 !important`.
+
 **`sideImage:` puts one fixed picture beside the copy, 1024 and up only.** It
 never changes, and **it is deliberately not one of the `views`** — the rail is
 the work and it moves; this is the one still that does not. Listing it in both
