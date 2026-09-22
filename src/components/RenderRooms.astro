@@ -234,27 +234,67 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
   /* Scrolls sideways, like the card strip it is modelled on: nine panels at a
      readable size are wider than the column, and wrapping them into rows
      would turn a sequence into a grid — the order a to i is the argument. */
+  /* One bar, not a row of pictures. The nine share the width and touch, so the
+     strip reads as a single object you run along — which is what it is: a
+     scrubber. Nothing scrolls; nine that need scrolling would hide part of the
+     argument behind a gesture nobody is told about. */
   .rrc__strip {
     display: flex;
-    gap: 4px;
-    overflow-x: auto;
-    scrollbar-width: none;
-    overscroll-behavior-x: contain;
+    gap: 0;
+    width: 100%;
+    overflow: hidden;
   }
-  .rrc__strip::-webkit-scrollbar { display: none; }
   .rrc__panel {
-    flex: 0 0 auto;
-    width: 132px;
+    flex: 1 1 0;
+    min-width: 0;
     aspect-ratio: 1;
     padding: 0;
     border: 0;
     background: none;
     cursor: pointer;
-    border-radius: var(--_tokens---radius--xs);
     overflow: hidden;
-    transition: transform var(--_tokens---motion--base) ease;
+    /* No radius: rounded corners would put nine notches along a bar that is
+       meant to read as continuous. */
+    border-radius: 0;
   }
   .rrc__panel img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  /* ── The scrubbed panel, shown above its bar ─────────────────────────
+     ImageLightbox ships the element and fills it; the styles that place it
+     live with ProjectStackCard, which is not on a detail page, so on this
+     page the preview existed and was invisible. Restated here, and placed
+     differently on purpose: on the projects list it covers the left 60% of
+     the window, because there the cards are full-width rows and the preview
+     has nowhere else to be. Here each bar is its own scrubber, so the picture
+     belongs directly above the bar it came from — the script writes that
+     bar's position into the custom properties below. */
+  .rr--cards .project-card__hover-preview {
+    position: fixed;
+    left: var(--rrp-x, 0px);
+    width: var(--rrp-w, 100%);
+    top: var(--rrp-top, 0px);
+    height: var(--rrp-h, 40vh);
+    z-index: 95;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0 0 8px;
+    box-sizing: border-box;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--_tokens---motion--fast) ease;
+  }
+  .rr--cards .project-card__hover-preview.is-visible { opacity: 1; }
+  /* As big as the space above the bar allows, and never wider than the bar. */
+  .rr--cards .project-card__hover-preview-img {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.32);
+  }
+
   /* While a strip is being scrubbed the rest of its panels recede, so the one
      under the cursor is the one being previewed. ProjectStackCard carries this
      rule for the projects list and ships it with itself, so it is restated
@@ -262,15 +302,11 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
   .rrc.is-previewing .rrc__panel { opacity: 0.35; transition: opacity var(--_tokens---motion--fast) ease; }
   .rrc.is-previewing .rrc__panel.is-active { opacity: 1; }
 
-  @media (hover: hover) {
-    .rrc__panel:hover { transform: translateY(-3px); }
-  }
   .rrc__panel:focus-visible { outline: 2px solid var(--_tokens---color--fg); outline-offset: 2px; }
 
   @media (max-width: 699.98px) {
     .rrc__head { padding: 14px 0 8px; gap: 10px; }
     .rrc__name { font-size: var(--_tokens---type--small); }
-    .rrc__panel { width: 108px; }
   }
 
   /* ── Rooms ─────────────────────────────────────────────────────────── */
@@ -479,6 +515,46 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
   /* ── Chapters as cards ──────────────────────────────────────────────────
      Open and close a chapter, and show one panel full size. Separate from the
      stage/rail wiring below, which this mode does not render at all. */
+
+  /* Put the shared preview directly above whichever bar is being scrubbed.
+     ImageLightbox decides WHAT it shows and when; this only decides where,
+     because that component has one preview for a whole page and no idea which
+     of twelve bars the pointer is on. Measured on enter and on resize rather
+     than every move — the bar does not move while you run along it. */
+  function initRRPreview() {
+    const cards = document.querySelector('.rr--cards');
+    if (!cards || (cards as any)._pvWired) return;
+    (cards as any)._pvWired = true;
+    const preview = document.getElementById('desktop-preview');
+    if (!preview) return;
+
+    const placeOver = (strip: HTMLElement) => {
+      const r = strip.getBoundingClientRect();
+      /* The space between the top of the viewport and the bar, less a margin
+         so the picture never touches the breadcrumb — and clamped to the
+         window. A bar below the fold is further from the top of the viewport
+         than the viewport is tall, and measuring to it gave a 1004px picture
+         on a 900px screen. */
+      const top = 64;
+      const floor = Math.min(r.top, window.innerHeight);
+      const h = Math.max(120, floor - top - 10);
+      preview.style.setProperty('--rrp-x', `${Math.round(r.left)}px`);
+      preview.style.setProperty('--rrp-w', `${Math.round(r.width)}px`);
+      preview.style.setProperty('--rrp-top', `${top}px`);
+      preview.style.setProperty('--rrp-h', `${Math.round(h)}px`);
+    };
+
+    cards.querySelectorAll<HTMLElement>('.rrc__strip').forEach(strip => {
+      strip.addEventListener('pointerenter', () => placeOver(strip));
+      /* A bar low on a long page has little room above it; re-measuring on
+         scroll keeps the picture in the gap rather than off the top. */
+      strip.addEventListener('pointermove', () => {
+        if (preview.classList.contains('is-visible')) placeOver(strip);
+      }, { passive: true });
+    });
+  }
+  initRRPreview();
+  document.addEventListener('astro:after-swap', initRRPreview);
 
   function initRenderRooms() {
     const root = document.querySelector<HTMLElement>('[data-rr]');
