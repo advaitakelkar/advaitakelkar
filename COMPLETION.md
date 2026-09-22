@@ -52,8 +52,8 @@ Reference a known-good file: `src/content/projects/carlo.yaml`.
 - **15 projects have no `coverImage`** → they render with no cover in the index/feature.
 - Pages (`home.yaml`, `about.yaml`) — copy is real and in good shape. No placeholders.
 
-### Public now (10) — leave locked-list alone, but re-check content quality
-`alt-verse` · `architect-x-architects` · `carlo` · `concrt` · `dhal-ni-pol` · `future-of-dance` ·
+### Public now (9) — leave locked-list alone, but re-check content quality
+`alt-verse` · `architect-x-architects` · `carlo` · `concrt` · `dhal-ni-pol` ·
 `human-pods` · `indian-royals` · `sups-cards` · `sups-in-the-hinterland`
 
 ### Tier 0 — featured but locked (do first, 3)

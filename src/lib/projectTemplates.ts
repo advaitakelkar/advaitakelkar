@@ -30,7 +30,6 @@ export type ProjectTemplate =
 const aiWorksProjects = new Set([
   'alt-verse',
   'architect-x-architects',
-  'future-of-dance',
   'indian-royals',
   'sups-cards',
   'sups-in-the-hinterland',
