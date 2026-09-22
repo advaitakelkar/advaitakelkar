@@ -397,6 +397,13 @@ import Icon from './Icon.astro';
     // wiring listeners, so the scrub only ever tracks live elements.
     document.querySelectorAll<HTMLElement>('.project-card__thumbs-scroll').forEach(strip => {
       if ((strip as any)._pruned) return; (strip as any)._pruned = true;
+      /* A strip that says data-keep-all keeps every thumb, in the order it was
+         written. Pruning to five random frames is right for a card on the
+         projects list, where the strip teases a project — and wrong wherever
+         the strip IS the work and its order carries meaning. Deleuze and
+         Guattari's nine panels run a to i as an argument; five of them shuffled
+         is not a shorter version of that, it is a different thing. */
+      if (strip.hasAttribute('data-keep-all')) return;
       const items = Array.from(strip.children) as HTMLElement[];
       for (let i = items.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));

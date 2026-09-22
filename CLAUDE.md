@@ -961,10 +961,25 @@ Nothing here reuses `.project-card`'s classes. Those styles ship with
 `ProjectStackCard`, and that component is not on a project detail page, so
 they would never be loaded.
 
-**Clicking a panel opens a dialog inside the component.** The site's lightbox
-binds to `.project-card` and is not on this page, so the cards carry their
-own: Escape and a click off the picture close it, and the body is locked while
-it is open.
+**Every chapter is open, and the strip IS the projects-list scrub.** The card
+and its strip carry `.project-card`, `.project-card__thumbs-scroll` and
+`.project-card__thumb-item`, so `ImageLightbox` binds to them and the page
+gets the real thing for free — the desktop hover preview and the phone's
+frosted scrub lightbox — rather than a second preview built to look like it.
+`RenderRooms` includes that component once, in this mode only; XBKC renders
+neither the element nor the cards.
+
+**`data-keep-all` on the strip is what makes that safe.** `ImageLightbox`
+prunes every strip to five random thumbs in random order, which is right for a
+card teasing a project on the list and destroys this: five of the nine panels,
+shuffled, is not a shorter version of an argument that runs a to i. The
+attribute opts a strip out; without it on the projects list, cards there still
+prune to five.
+
+`.project-card`'s own styles are NOT loaded here — they ship with
+`ProjectStackCard`, which is not on a detail page — so the class is carried
+for the binding only and the layout is `.rrc__*`. The one rule that had to be
+restated is the scrub's greying of the panels you are not on.
 
 **The credit needs a collaborator, not just a studio.** It names the studio,
 but `professors:` is what decides whether it renders — Deleuze and Guattari is
