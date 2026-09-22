@@ -1536,14 +1536,51 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
      on these pages for that reason: nine cells taken modulo the set need no
      copies of it. */
   @media (max-width: 699.98px) {
-    .project-detail[data-portraits="true"] .deck-grid--mobile-scrub {
+    /* The id is in the selector because `.project-detail #deck-grid` further
+       down sets `margin: 0`, and an id beats any number of classes. The grid
+       has to be able to pull itself out of the page gutter, so it has to win
+       that one. */
+    .project-detail[data-portraits="true"] #deck-grid.deck-grid--mobile-scrub {
       display: grid !important;
       grid-template-columns: repeat(3, 1fr) !important;
-      grid-auto-rows: auto !important;
-      gap: 6px !important;
+      /* Each row is a third of the height the page can spare, written out
+         rather than left to `1fr`. The container's height is definite here
+         but the fr tracks would not resolve against it — they came back at
+         78px inside a 493px box — so the row size is computed directly and
+         the three of them add up to the space by construction.
+
+         --rr-grid-h is that space: the screen, less the fixed card and dock
+         below and the title above; with no gaps to subtract, a third of it is
+         the row. Sizing the rows from the cells' own ratio
+         instead put the block 1px past the card and the bottom row crossed
+         it; this cannot, whatever the pictures' proportions are. */
+      --rr-grid-h: calc(100dvh - var(--pp-card-h, 190px) - var(--pp-dock-h, 66px) - 66px);
+      grid-auto-rows: calc(var(--rr-grid-h) / 3) !important;
+      /* No gap at all: the nine touch, so the block reads as one picture cut
+         into nine rather than nine pictures set near each other. */
+      gap: 0 !important;
       max-height: none !important;
       overflow: visible !important;
-      align-content: start !important;
+      align-content: stretch !important;
+      /* Full bleed. The grid sat inside the page's 12px gutter, which costs
+         24px of the only dimension the cells have to grow in. `50% - 50vw`
+         cancels whatever padding the column carries without having to know
+         what it is. */
+      width: 100vw !important;
+      margin-left: calc(50% - 50vw) !important;
+      margin-right: calc(50% - 50vw) !important;
+    }
+    /* The cells fill their row instead of holding a ratio, so the pictures
+       take every pixel the grid was given. They crop to fill — object-fit is
+       already cover further up. */
+    .project-detail[data-portraits="true"] #deck-grid .deck-card-item[data-win] {
+      aspect-ratio: auto !important;
+      height: 100% !important;
+      min-height: 0 !important;
+    }
+    .project-detail[data-portraits="true"] #deck-grid .deck-card-item[data-win] .deck-card-inner {
+      aspect-ratio: auto !important;
+      height: 100% !important;
     }
     /* Only the nine in the window are drawn. The rest stay in the DOM — they
        carry the click wiring and the active class everything else reads. */
@@ -1556,7 +1593,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     .project-detail[data-portraits="true"] .deck-grid--mobile-scrub .deck-card-item[data-win="4"] {
       position: relative;
       z-index: 2;
-      transform: scale(1.28);
+      transform: scale(1.5);
       transition: transform var(--_tokens---motion--base) ease;
     }
     /* A shadow under the centre, so the 10% reads as the card being lifted
