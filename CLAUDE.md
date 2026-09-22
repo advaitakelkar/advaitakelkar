@@ -1059,6 +1059,37 @@ figure spans the whole copy block and the picture centres inside it, so a
 button positioned against the figure sits at the bottom of the column with
 several hundred pixels of nothing between it and the reel.
 
+**On a phone the reel is a third section of the bottom card**, behind a
+**Video** pill beside Read more. `data-chapters="true"` on `.project-detail`
+is what turns that on, and with it the phone card's shape changes:
+
+- **The subtitle is the only prose the card shows.** The description goes back
+  behind Read more — the opposite of the rooms projects above, and for a
+  reason the card can be measured for. A rooms card is a subtitle and a short
+  passage. A study's card also has to carry the reel, and three things open at
+  once in a fixed strip is most of the screen: shut it is 151px at 375×812,
+  with the reel open 510 and with the description open 417.
+- **One section at a time**, like Read more and Prompt already were.
+  `is-watching` joins `is-reading` and `is-prompting`, the open pill inverts,
+  and the ✕ closes whichever is up.
+- **It is the same `<video>` element, moved.** `buildProjectPhoneCard()` pulls
+  `.renders-aside__media` out of the figure and into a `.project-video-panel`
+  inside the card, and `sendHome()` puts it back above 700. One element, one
+  5.3MB file, and the sound control travels with it because it is that
+  video's own child.
+- **Its source attaches on the first tap and never before.** Above 1024 the
+  reel loads with the page because it *is* the picture there; on a phone
+  nobody pays 5.3MB for something behind a pill they did not press. It pauses
+  when the panel shuts.
+- **A tap on the sound control must not reach the panel handler**, or it
+  closes the thing it is toggling. The delegated listener returns early on
+  `.renders-aside__sound`.
+
+The "description reads open, no Read more" rules are written as
+`:not([data-chapters="true"])` rather than as a later override, because they
+are `!important` and a second `!important` rule of equal specificity would win
+on source order alone — which silently swaps the moment a block is moved.
+
 **The still is absolutely positioned, not a grid cell.** It is 345px tall
 against about 200px of copy, so whichever grid row it sat in grew to its
 height: in row one it pushed the subtitle 334px clear of the credit above it,

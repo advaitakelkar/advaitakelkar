@@ -164,6 +164,11 @@ const isRenders = template.renders && (data.views?.length ?? 0) > 0;
 const sideImage = isRenders ? (data.sideImage ?? null) : null;
 // The same slot, moving. `sideImage` is its poster when both are set.
 const sideVideo = isRenders ? ((data as any).sideVideo ?? null) : null;
+/* The chapters mode of Template 01. It reads as an argument rather than as a
+   set of rooms, and the phone card follows from that: the description is a
+   passage you choose to read, not a caption, so it goes back behind Read more
+   and the subtitle is the only prose the card shows by default. */
+const isChapters = isRenders && (data as any).groups === 'chapters';
 
 /* The phone hides the Design / Making panels — they are display-scale
    headings over label/value grids, which on a 390px column collide with
@@ -365,6 +370,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       data-tab-layout={isTabLayout ? "true" : "false"}
       data-original-card={isOriginalCardPage ? "true" : "false"}
       data-portraits={isPortraits ? "true" : "false"}
+      data-chapters={isChapters ? "true" : "false"}
     >
       
       {isCardPage ? (
@@ -455,6 +461,22 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                         </button>
                       </div>
                     )}
+                    {/* Phone only, and only where there is a reel to show. It
+                        sits beside Read more in the card's actions row, and
+                        the panel it opens holds the SAME video element that is
+                        fixed beside the copy on a wide page — moved into the
+                        card, not a second copy of a 5.3MB file. */}
+                    {sideVideo && (
+                      <button
+                        class="project-video-btn"
+                        id="project-video-btn"
+                        type="button"
+                        aria-expanded="false"
+                      >
+                        <span>Video</span>
+                        <Icon name="arrow" class="project-readmore-arrow" />
+                      </button>
+                    )}
                     {/* "Prompt" pill / dropdown tab — reveals the Midjourney prompt box
                         (hidden behind the pill on small screens and portrait deck pages; JS hides the pill
                         when the description has no prompt box). */}
@@ -515,7 +537,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                             for is an ambush. The control says which state you
                             are in and hands the other one over. */}
                         <button
-                          class="renders-aside__sound"
+                          class="renders-aside__sound tap-44"
                           type="button"
                           data-sound="off"
                           aria-pressed="false"
@@ -5145,6 +5167,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
        the row of filters two lines up. !important because their own rules
        carry it. */
     .project-detail .project-phone-actions .project-readmore-btn,
+    .project-detail .project-phone-actions .project-video-btn,
     .project-detail .project-phone-actions .project-prompt-btn {
       display: inline-flex !important;
       align-items: center !important;
@@ -5165,12 +5188,14 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       --icon-size: var(--_tokens---arrow--sm);
     }
     .project-detail .project-phone-actions .project-readmore-btn svg,
+    .project-detail .project-phone-actions .project-video-btn svg,
     .project-detail .project-phone-actions .project-prompt-btn svg {
       flex-shrink: 0;
       opacity: 0.55;
     }
     @media (hover: hover) {
       .project-detail .project-phone-actions .project-readmore-btn:hover,
+      .project-detail .project-phone-actions .project-video-btn:hover,
       .project-detail .project-phone-actions .project-prompt-btn:hover {
         color: var(--_tokens---color--fg) !important;
         border-color: color-mix(in srgb, var(--_tokens---color--fg) 32%, transparent) !important;
@@ -5181,14 +5206,65 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
        else on the site — you can see which section you are in without reading
        the button label. */
     .project-detail .project-phone-card.is-reading .project-phone-actions .project-readmore-btn,
+    .project-detail .project-phone-card.is-watching .project-phone-actions .project-video-btn,
     .project-detail .project-phone-card.is-prompting .project-phone-actions .project-prompt-btn {
       background: var(--_tokens---color--fg) !important;
       border-color: var(--_tokens---color--fg) !important;
       color: var(--_tokens---color--bg) !important;
     }
     .project-detail .project-phone-card.is-reading .project-phone-actions .project-readmore-btn svg,
+    .project-detail .project-phone-card.is-watching .project-phone-actions .project-video-btn svg,
     .project-detail .project-phone-card.is-prompting .project-phone-actions .project-prompt-btn svg {
       opacity: 1;
+    }
+
+    /* The reel's panel, the third thing the card can grow to. Closed it takes
+       no height at all, so the two shut sections stack with nothing between
+       them, exactly as the description does. 42vh rather than a pixel number
+       because the card also carries the name row, the meta line, the subtitle
+       and the actions, and what is left over is a fraction of the screen
+       rather than a constant. */
+    .project-detail .project-video-panel {
+      display: none;
+      margin-top: var(--_tokens---space--micro);
+    }
+    .project-detail .project-phone-card.is-watching .project-video-panel {
+      display: block;
+    }
+    .project-detail .project-video-panel .renders-aside__media {
+      position: relative;
+      margin: 0 auto;
+      max-height: 42vh;
+      width: fit-content;
+    }
+    .project-detail .project-video-panel video {
+      display: block;
+      width: auto;
+      height: auto;
+      max-width: 100%;
+      max-height: 42vh;
+      border-radius: var(--_tokens---radius--small);
+    }
+    /* Big enough to hit with a thumb. The desktop control is 0.8em in a
+       hover surface; this one is a target on glass. */
+    .project-detail .project-video-panel .renders-aside__sound {
+      position: absolute;
+      left: 8px;
+      bottom: 8px;
+      display: grid;
+      place-items: center;
+      padding: 8px;
+      border: 1px solid var(--_tokens---color--line);
+      border-radius: 999px;
+      background: var(--_tokens---color--bg-overlay);
+      color: var(--_tokens---color--fg);
+      --icon-size: var(--_tokens---arrow--md);
+    }
+    .project-detail .project-video-panel .rs-off,
+    .project-detail .project-video-panel .rs-on { grid-area: 1 / 1; }
+    .project-detail .project-video-panel .renders-aside__sound[data-sound="off"] .rs-on,
+    .project-detail .project-video-panel .renders-aside__sound[data-sound="on"] .rs-off {
+      display: none;
     }
 
     /* The ✕ stays a bare mark — it cancels, it is not a third filter. */
@@ -5684,21 +5760,36 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     }
   }
 
+  /* The Video pill is a phone control only. Above 700 the reel is the fixed
+     picture beside the copy and there is nothing to unfold. */
+  .project-video-btn { display: none; }
+
   /* On a phone the description sits in the bottom card, under the subtitle,
      open — no Read more. The pill exists to keep a paragraph out of a fixed
      strip; here the paragraph is the point, so the strip grows for it and
      scrolls if the writing is long. The card measures its own height, so
-     everything above it moves up on its own. */
+     everything above it moves up on its own.
+
+     `chapters` is the exception, and the reason is what the card holds. On a
+     rooms project the card is the subtitle and the passage, and the passage
+     is short. A study's card also has to carry the reel, and three things
+     open at once in a fixed strip is most of the screen — so there the
+     description goes back behind Read more, the subtitle is the only prose
+     the card shows by default, and the reel sits behind a Video pill on the
+     same row. Written as `:not([data-chapters])` rather than as a later
+     override because these rules are `!important` and a second !important
+     rule of equal specificity would win on source order alone — which is the
+     kind of thing that silently swaps when a block is moved. */
   @media (max-width: 699.98px) {
-    .project-detail[data-renders="true"] #project-readmore-btn {
+    .project-detail[data-renders="true"]:not([data-chapters="true"]) #project-readmore-btn {
       display: none !important;
     }
-    .project-detail[data-renders="true"] .project-phone-card .project-desc-readmore {
+    .project-detail[data-renders="true"]:not([data-chapters="true"]) .project-phone-card .project-desc-readmore {
       display: block !important;
       max-height: none !important;
       overflow: visible !important;
     }
-    .project-detail[data-renders="true"] .project-phone-card .project-card__desc {
+    .project-detail[data-renders="true"]:not([data-chapters="true"]) .project-phone-card .project-card__desc {
       display: block !important;
       max-height: 32vh !important;
       overflow-y: auto !important;
@@ -5706,6 +5797,29 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     }
     .project-detail[data-renders="true"] .project-phone-card .project-card__desc::-webkit-scrollbar {
       display: none;
+    }
+    /* Chapters: the pill is the control, so it has to be visible and the
+       description has to start shut. The renders reset above sets this column
+       to `display: block !important`, which the card's own collapsed rule
+       cannot beat, so the closed state is restated here. Open, it scrolls at
+       32vh like the others. */
+    .project-detail[data-chapters="true"] .project-phone-actions .project-video-btn,
+    .project-detail[data-chapters="true"] .project-phone-actions #project-readmore-btn {
+      display: inline-flex !important;
+    }
+    .project-detail[data-chapters="true"] .project-phone-card .project-desc-readmore {
+      display: none !important;
+    }
+    .project-detail[data-chapters="true"] .project-phone-card.is-reading .project-desc-readmore {
+      display: block !important;
+      max-height: none !important;
+      overflow: visible !important;
+    }
+    .project-detail[data-chapters="true"] .project-phone-card.is-reading .project-card__desc {
+      display: block !important;
+      max-height: 32vh !important;
+      overflow-y: auto !important;
+      scrollbar-width: none;
     }
   }
 
@@ -7209,7 +7323,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
     if (!phone) {
       if (card) {
-        [...PHONE_CARD_PARTS, '.prompt-box', '.copy-prompt-btn', '.project-readmore-btn', '.project-phone-close'].forEach(sel => {
+        [...PHONE_CARD_PARTS, '.prompt-box', '.copy-prompt-btn', '.project-readmore-btn',
+         '.project-phone-close', '.renders-aside__media', '.project-video-btn'].forEach(sel => {
           const el = detail.querySelector(sel) as HTMLElement | null;
           if (el) sendHome(el);
         });
@@ -7262,6 +7377,28 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     const prompt = detail.querySelector('.project-prompt-btn') as HTMLElement | null;
     if (readmore) { rememberHome(readmore); actions.appendChild(readmore); }
     if (prompt) actions.appendChild(prompt);
+
+    /* The reel, where there is one. The video that sits fixed beside the copy
+       above 1024 is MOVED into the card here rather than duplicated — one
+       element, one 5.3MB file, and the sound control comes with it because it
+       is that video's own child. `.renders-aside` is display:none on this
+       band, so the media has to leave the figure to be seen at all. */
+    const media = detail.querySelector('.renders-aside__media') as HTMLElement | null;
+    const videoBtn = detail.querySelector('.project-video-btn') as HTMLElement | null;
+    if (media && videoBtn) {
+      let panel = card.querySelector('.project-video-panel') as HTMLElement | null;
+      if (!panel) {
+        panel = document.createElement('div');
+        panel.className = 'project-video-panel';
+        const cid = Array.from(detail.attributes).find(a => a.name.startsWith('data-astro-cid-'));
+        if (cid) panel.setAttribute(cid.name, '');
+        card.appendChild(panel);
+      }
+      rememberHome(media);
+      if (media.parentElement !== panel) panel.appendChild(media);
+      rememberHome(videoBtn);
+      actions.appendChild(videoBtn);
+    }
     // The ✕ closes whichever section is open, so it belongs on the row that
     // opened it — at the far right of it, not floating over the card's corner.
     const close = detail.querySelector('.project-phone-close') as HTMLElement | null;
@@ -7476,12 +7613,28 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     (detail as any)._sectionsWired = true;
     const phone = () => window.matchMedia('(max-width: 699.98px)').matches;
 
-    const setSection = (name: 'reading' | 'prompting' | null) => {
+    const setSection = (name: 'reading' | 'prompting' | 'watching' | null) => {
       const card = detail.querySelector('.project-phone-card') as HTMLElement | null;
       if (!card) return;
       card.classList.toggle('is-reading', name === 'reading');
       card.classList.toggle('is-prompting', name === 'prompting');
+      card.classList.toggle('is-watching', name === 'watching');
       card.classList.toggle('is-open', name !== null);
+      /* The source is attached on the first open and never before it. Above
+         1024 the reel loads with the page because it is the fixed picture
+         there; on a phone it is a panel behind a pill, so nobody pays 5.3MB
+         for a video they did not ask to see. It pauses when the panel shuts —
+         audio playing under a closed panel is a sound with no source on
+         screen. */
+      const vid = detail.querySelector('video[data-side-video]') as HTMLVideoElement | null;
+      if (vid) {
+        if (name === 'watching') {
+          if (!vid.getAttribute('src')) vid.src = vid.dataset.sideVideo!;
+          vid.play().catch(() => {});
+        } else if (!window.matchMedia('(min-width: 1024px)').matches) {
+          vid.pause();
+        }
+      }
       const close = card.querySelector('.project-phone-close') as HTMLElement | null;
       if (close) close.hidden = name === null;
       // The buttons' own handlers never run on this band (the click is stopped
@@ -7493,6 +7646,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         ?.setAttribute('aria-expanded', String(name === 'reading'));
       detail.querySelector('.project-prompt-btn')
         ?.setAttribute('aria-expanded', String(name === 'prompting'));
+      detail.querySelector('.project-video-btn')
+        ?.setAttribute('aria-expanded', String(name === 'watching'));
       requestAnimationFrame(measureProjectPhoneCard);
     };
 
@@ -7501,6 +7656,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       if (!card) return null;
       if (card.classList.contains('is-reading')) return 'reading';
       if (card.classList.contains('is-prompting')) return 'prompting';
+      if (card.classList.contains('is-watching')) return 'watching';
       return null;
     };
 
@@ -7518,6 +7674,15 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         e.preventDefault();
         e.stopPropagation();
         setSection(current() === 'prompting' ? null : 'prompting');
+        return;
+      }
+      /* The sound control lives inside the panel, so a tap on it must not be
+         read as a tap on the panel and close what it is toggling. */
+      if (el.closest('.renders-aside__sound')) return;
+      if (el.closest('.project-video-btn')) {
+        e.preventDefault();
+        e.stopPropagation();
+        setSection(current() === 'watching' ? null : 'watching');
       }
     }, true);
   }
