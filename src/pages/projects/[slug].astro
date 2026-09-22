@@ -6026,6 +6026,18 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
        series: a 2:3 frame at the full 628 of its column is 941px tall, which
        is a page of its own. A 3:2 one is 419 and never reaches the cap, so
        the landscape pages are unaffected by it. */
+    /* The picture, then the row that names it. `column` because the script
+       appends the name/counter/timer row into this column on this band, and
+       the chassis lays it out as a row — the caption would sit beside the
+       photograph rather than under it. */
+    .project-detail[data-frame="landscape"][data-frame="landscape"] .project-col-right {
+      flex-direction: column !important;
+      gap: var(--_tokens---space--micro) !important;
+    }
+    .project-detail[data-frame="landscape"][data-frame="landscape"] .project-col-right > .project-card-name-pagination-row {
+      width: 100% !important;
+      margin: 0 !important;
+    }
     .project-detail[data-portraits="true"][data-portraits="true"] .project-col-right,
     .project-detail[data-portraits="true"][data-portraits="true"] .project-slider-wrapper {
       align-items: flex-start !important;
@@ -8108,14 +8120,29 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       ?? detail.querySelector<HTMLElement>('.project-content-grid');
     if (!grid) return;
     const mq = window.matchMedia('(min-width: 1024px)');
+    /* The phone band builds its own card out of these same parts, so nothing
+       here may touch them below 700 — `buildProjectPhoneCard` runs first and
+       this would undo it. */
+    const phone = window.matchMedia('(max-width: 699.98px)');
+    /* The name, the counter and the timer ring belong to the PICTURE, not to
+       the writing. They sat at the foot of the copy column, which put "16/48"
+       and a running timer under a paragraph about architects while the frame
+       they describe was in the other column. Moved under the image instead. */
+    const nameRow = detail.querySelector<HTMLElement>('.project-card-name-pagination-row');
+    const right = detail.querySelector<HTMLElement>('.project-col-right');
     const place = () => {
       if (mq.matches) {
         rememberHome(deck);
         if (deck.parentElement !== grid.parentElement || deck.previousElementSibling !== grid) {
           grid.after(deck);
         }
+        if (nameRow && right) {
+          rememberHome(nameRow);
+          if (nameRow.parentElement !== right) right.appendChild(nameRow);
+        }
       } else {
         sendHome(deck);
+        if (nameRow && !phone.matches) sendHome(nameRow);
       }
     };
     /* Six across, three rows showing, and the active row pinned to the top.

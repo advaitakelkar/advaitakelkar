@@ -768,10 +768,20 @@ Three global scripts are injected into every page via `Base.astro`:
    something which scrolls sideways belongs to that thing** — the home slider,
    Journey's pill row, a card's thumbnail strip — so the handler walks up the
    ancestors looking for real overflow rather than keeping a list of selectors
-   that will drift. `data-swipe-own` opts a region out by hand, for the two
-   cases overflow cannot answer: the nav panel and the lightbox, which are
-   surfaces over the page rather than part of it. Journey's panel carries it
-   too, because it owns the same gesture one level down.
+   that will drift. `data-swipe-own` opts a region out by hand, for the cases
+   overflow cannot answer: the nav panel and the lightbox, which are surfaces
+   over the page rather than part of it. Journey's panel carries it too,
+   because it owns the same gesture one level down.
+
+   **The home slider carries it as well, and the reason is worth knowing.**
+   The ancestor walk tests `overflow-x: auto | scroll`, and the featured
+   track is `hidden` with 4245px of slides inside 351px — it genuinely
+   scrolls, by scroll-snap and by script, it just does not say so in the one
+   property the guard reads. So a swipe across the featured projects was
+   caught by the page swipe and threw you on to About instead of moving to
+   the next project. Anything that scrolls with `overflow: hidden` needs the
+   attribute; "does it scroll" and "does its computed style admit it" are not
+   the same question.
 
 0b. **Keyboard scroll (phone only).** A field marked `data-scroll-end` takes
    the page to the end of the document when it is focused — the projects
