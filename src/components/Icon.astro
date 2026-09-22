@@ -45,8 +45,8 @@ import type { IconDir, IconName } from '../lib/icons';
 interface Props {
   name: IconName;
   dir?: IconDir;
-  /** Lock only. */
-  state?: 'closed' | 'open';
+  /** Lock ('closed' | 'open') and sound ('on' | 'off'). */
+  state?: 'closed' | 'open' | 'on' | 'off';
   class?: string;
   [key: string]: unknown;
 }
@@ -136,6 +136,25 @@ const rotStyle = !isArrow && turn !== 0 ? `--arrow-rot: ${turn}deg` : undefined;
       {state === 'open'
         ? <path d="M8 11V8a4 4 0 0 1 7.5-1.9" />
         : <path d="M8 11V8a4 4 0 0 1 8 0v3" />}
+    </>
+  )}
+
+  {/* One speaker, two states. The cone is a single flat-sided path so it
+      keeps the family's miter joins; `state="on"` adds the waves and
+      `state="off"` strikes it through. Default is off, because the one place
+      this is used starts muted. */}
+  {name === 'sound' && (
+    <>
+      <path d="M4 9h4l5-4v14l-5-4H4Z" />
+      {state === 'on'
+        ? <>
+            <path d="M16.5 9.5a4 4 0 0 1 0 5" />
+            <path d="M19 7a7.5 7.5 0 0 1 0 10" />
+          </>
+        : <>
+            <line x1="17" y1="9.5" x2="21" y2="14.5" />
+            <line x1="21" y1="9.5" x2="17" y2="14.5" />
+          </>}
     </>
   )}
 </svg>

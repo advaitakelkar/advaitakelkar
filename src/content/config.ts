@@ -90,6 +90,12 @@ const projects = defineCollection({
        work and it moves; this is a still to read the text against. Defaults
        to nothing, so a project without one simply keeps the full-width copy. */
     sideImage: z.string().optional(),
+    /* Same slot, moving. When set, the still is played instead of shown, and
+       `sideImage` becomes its poster — so a project declares one or the other
+       picture and never two competing ones. Muted and looping, because it
+       sits beside the copy as a texture rather than as something to watch;
+       anything that needs sound is a film and belongs in the rail. */
+    sideVideo: z.string().optional(),
     /* Project Template 01 only: how the groups behind `views` are chosen
        between. 'tabs' is a row of pills and suits a flat with eight rooms;
        'chapters' is a numbered column of dropdowns and suits a study read in

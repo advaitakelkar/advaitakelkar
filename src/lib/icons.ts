@@ -20,7 +20,8 @@ export type IconName =
   | 'home'
   | 'lock'
   | 'square'
-  | 'circle';
+  | 'circle'
+  | 'sound';
 
 /**
  * Degrees clockwise, measured from north-east — the orientation the site's
@@ -54,6 +55,7 @@ export const ICON_DRAWN_AT: Record<IconName, IconDir> = {
   lock: 'ne',
   square: 'ne',
   circle: 'ne',
+  sound: 'ne',
 };
 
 /** Rotation to apply to `name` so it points at `dir`, normalised to 0–359. */

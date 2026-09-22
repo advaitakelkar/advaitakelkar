@@ -1035,6 +1035,30 @@ room** — XBKC's Balcony was a room of one view, so that tab went with it, and
 the page reads 7 rooms · 12 views where it read 8 · 13. It is marked
 decorative with an empty `alt`.
 
+**`sideVideo:` fills the same slot with something moving**, and `sideImage`
+then becomes its poster — a project declares one picture for that slot, never
+two competing ones. Deleuze and Guattari uses it: the study *is* a sequence,
+and a single frame of it beside the copy was one of the 108 repeated, so the
+Instagram reel sits there instead and nothing in the rail is duplicated.
+
+Two rules come with it:
+
+- **It starts muted, with a control that says so.** `<Icon name="sound">` has
+  an `on` and an `off` state and the button carries both, stacked in one grid
+  cell so it never changes size as it flips. Muted is the only way a video may
+  autoplay and the only way it should — sound nobody asked for is an ambush.
+- **The source is attached in script, not in markup.** The figure is
+  `display: none` below 1024, but a hidden muted video is still a video: it
+  downloads anyway. The reel is 5.3MB, which is by a long way the heaviest
+  asset on the site and something a phone can never see. `data-side-video`
+  holds it until `matchMedia('(min-width: 1024px)')` matches, and the source is
+  dropped again on the way back down. Verified: zero requests for it at 375.
+
+The control hangs off a `.renders-aside__media` wrapper, not the figure. The
+figure spans the whole copy block and the picture centres inside it, so a
+button positioned against the figure sits at the bottom of the column with
+several hundred pixels of nothing between it and the reel.
+
 **The still is absolutely positioned, not a grid cell.** It is 345px tall
 against about 200px of copy, so whichever grid row it sat in grew to its
 height: in row one it pushed the subtitle 334px clear of the credit above it,

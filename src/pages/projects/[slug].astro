@@ -162,6 +162,8 @@ const isRenders = template.renders && (data.views?.length ?? 0) > 0;
 /* The fixed picture beside the copy. Only where it has room to exist without
    taking any from the work — see the CSS, which confines it to 1024 and up. */
 const sideImage = isRenders ? (data.sideImage ?? null) : null;
+// The same slot, moving. `sideImage` is its poster when both are set.
+const sideVideo = isRenders ? ((data as any).sideVideo ?? null) : null;
 
 /* The phone hides the Design / Making panels — they are display-scale
    headings over label/value grids, which on a 390px column collide with
@@ -486,10 +488,71 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                     paragraph. A sibling of the copy rows, not a child of one.
                     Decorative: it is one of the frames already in the rail
                     below, so an empty alt keeps it out of the way. */}
-                {sideImage && (
+                {(sideVideo || sideImage) && (
                   <figure class="renders-aside">
-                    <img src={sideImage} alt="" loading="lazy" decoding="async" />
+                    {sideVideo ? (
+                      /* The video and its control are one object. The figure
+                         spans the whole copy block and the picture centres
+                         inside it, so a control hung off the figure would sit
+                         at the bottom of the column, nowhere near the reel.
+
+                         The source is attached in script rather than in
+                         markup: the figure is display:none below 1024, but a
+                         hidden muted video is still a video and downloads
+                         anyway — 5.3MB a phone can never see. */
+                      <div class="renders-aside__media">
+                        <video
+                          data-side-video={sideVideo}
+                          poster={sideImage ?? undefined}
+                          autoplay
+                          muted
+                          loop
+                          playsinline
+                          preload="none"
+                        ></video>
+                        {/* Muted is the only way a video may start on its own,
+                            and the only way it should: sound you did not ask
+                            for is an ambush. The control says which state you
+                            are in and hands the other one over. */}
+                        <button
+                          class="renders-aside__sound"
+                          type="button"
+                          data-sound="off"
+                          aria-pressed="false"
+                          aria-label="Turn sound on"
+                        >
+                          <Icon name="sound" state="off" class="rs-off" />
+                          <Icon name="sound" state="on" class="rs-on" />
+                        </button>
+                      </div>
+                    ) : (
+                      <img src={sideImage} alt="" loading="lazy" decoding="async" />
+                    )}
                   </figure>
+                )}
+                {sideVideo && (
+                  <script is:inline set:html={`(function(){
+  var v = document.querySelector('.renders-aside video[data-side-video]');
+  if (!v) return;
+  var mq = window.matchMedia('(min-width: 1024px)');
+  function sync(){
+    if (mq.matches) { if (!v.src) { v.src = v.dataset.sideVideo; v.play().catch(function(){}); } }
+    else if (v.src) { v.pause(); v.removeAttribute('src'); v.load(); }
+  }
+  sync();
+  mq.addEventListener('change', sync);
+
+  var btn = document.querySelector('.renders-aside__sound');
+  if (!btn) return;
+  btn.addEventListener('click', function(){
+    var on = v.muted;
+    v.muted = !on;
+    if (on) v.play().catch(function(){});
+    btn.dataset.sound = on ? 'on' : 'off';
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    btn.setAttribute('aria-label', on ? 'Turn sound off' : 'Turn sound on');
+  });
+})();`} />
                 )}
 
                 {/* People row — shown for freelancer/work (non-original) card pages.
@@ -5488,7 +5551,17 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     /* Fits inside the box rather than filling its width, so a tall still is
        scaled down whole instead of cropped or spilling. CARLO lands at 315
        wide, SHLF and the two landscape ones at the full 360. */
-    .renders-aside img {
+    /* The media wrapper takes the picture's own size, so the control can be
+       hung off its corner rather than the column's. */
+    .renders-aside__media {
+      position: relative;
+      display: block;
+      max-width: 100%;
+      max-height: 100%;
+      min-height: 0;
+    }
+    .renders-aside img,
+    .renders-aside video {
       width: auto;
       height: auto;
       max-width: 100%;
@@ -5499,6 +5572,35 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
          it is there to be read against, not looked at. */
       opacity: 0.85;
     }
+    /* Inside the picture's bottom-left, not floating beside it: it belongs to
+       the reel and nothing else on the page has sound. The figure is already
+       absolute, so this positions against it. */
+    .renders-aside__sound {
+      position: absolute;
+      left: 8px;
+      bottom: 8px;
+      display: grid;
+      place-items: center;
+      padding: 6px;
+      border: 1px solid var(--_tokens---color--line);
+      border-radius: 999px;
+      background: var(--_tokens---color--bg-overlay);
+      color: var(--_tokens---color--fg);
+      cursor: pointer;
+      --icon-size: var(--_tokens---arrow--sm);
+      opacity: 0.55;
+      transition: opacity var(--motion--base) ease;
+    }
+    @media (hover: hover) {
+      .renders-aside__sound:hover { opacity: 1; }
+    }
+    .renders-aside__sound:focus-visible { opacity: 1; }
+    /* One button, two glyphs, stacked in the same cell — the state decides
+       which is drawn, so the control never changes size as it flips. */
+    .renders-aside__sound .rs-off,
+    .renders-aside__sound .rs-on { grid-area: 1 / 1; }
+    .renders-aside__sound[data-sound="off"] .rs-on,
+    .renders-aside__sound[data-sound="on"] .rs-off { display: none; }
   }
   .renders-people:empty { display: none; }
 
