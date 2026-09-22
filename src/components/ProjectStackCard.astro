@@ -66,13 +66,25 @@ if (p.id === 'ai-works') {
   if (p.data.multiImage) allImgs.push(...(p.data.multiImage as string[]));
 }
 
-/* A project with `views` shows its cover and nothing else here. The strip is
-   meant to say what a project contains; on a rendering project every view is
-   the same room several times, so a row of them says only "renders". */
-const hasViews = !!(p.data as any).views?.length;
+/* A project with `views` scrubs its VIEWS — one frame each, never the
+   variations behind them.
+
+   This used to show the cover alone, on the reasoning that a rendering
+   project is the same room several times and a row of it says only
+   "renders". That is true of the variations and not of the views: XBKC's
+   thirteen views are thirteen different places in the flat across eight
+   rooms, and showing one of them says as little about the project as
+   showing one photograph would of any other. The repeats the old rule was
+   guarding against are the `variations`, which stay out of the strip. */
+const viewImgs: string[] = ((p.data as any).views ?? [])
+  .map((v: any) => v?.image)
+  .filter(Boolean);
+const hasViews = viewImgs.length > 0;
 // Scrub shows only the curated set when a project defines one
 const scrubImgsRaw: string[] = hasViews
-  ? [p.data.coverImage].filter(Boolean) as string[]
+  // Cover first so the card opens on the picture it is known by, then each
+  // view's chosen frame. Deduped: the cover is usually one of the views.
+  ? [...new Set([p.data.coverImage, ...viewImgs].filter(Boolean))] as string[]
   : (p.data.scrubImages as string[] | undefined)?.length
   ? (p.data.scrubImages as string[])
   : allImgs;

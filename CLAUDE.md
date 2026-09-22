@@ -1000,8 +1000,13 @@ The page also carries the same **filter pills** a card does — year, city,
 status, category, studio, discipline — so a renders project is searchable on
 the same facts as everything else.
 
-**A card with views shows the cover alone.** A thumbnail strip that repeats
-the same room six times says only "renders".
+**A card with views scrubs the views, one frame each — never the variations.**
+The strip showed the cover alone for a while, on the reasoning that a
+thumbnail strip repeating the same room six times says only "renders". That
+is true of the variations and not of the views: XBKC's thirteen views are
+thirteen different places across eight rooms, and one of them says as little
+about the project as a single photograph would anywhere else. The repeats
+worth keeping out are the `variations`, and they stay out.
 
 **One column at every width**: the copy, then the work under it. It was two
 on the wide band for a moment — copy left, pictures right — which halved a
