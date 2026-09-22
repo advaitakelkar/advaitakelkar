@@ -938,6 +938,36 @@ When **no** view names a `room`, three things change, all of them in
   written sequence — cover, then 01 to 05, the order the work was made and
   photographed in. Shuffling gains nothing and throws that away.
 
+### The credit, the faces and the still
+
+**Every Project Template 01 project so far was made inside someone else's
+practice** — CARLO, SHLF and CONCRT with Nayan Mote at NMS, XBKC with Sneha
+Desai at Studio Stumbles — and the page never said so. Two avatars and a
+studio pill is not a credit; it leaves the reader to infer a working
+relationship from a photograph.
+
+So a line above the subtitle now says it in words: **"In collaboration with
+{professors}, under {studio}"**. Nothing new is authored — the collaborator is
+whoever `professors:` already names on that project, and the studio is the
+`studio:` reference the breadcrumb already resolves.
+
+**The faces sit on that line, at 40px.** They were one line tall — 16-20px —
+which is right for something inside a sentence and wrong for a face: at that
+size two people are two grey dots. They were briefly moved into the filter
+row, which was worse in a different way: every other thing in that row is a
+link that runs a search, and a face is not one.
+
+**`sideImage:` puts one fixed picture beside the copy, 1024 and up only.** It
+never changes and it is not part of the rail — the rail is the work and it
+moves, this is a still to read the text against. It is one of the frames
+already in the rail, so it is marked decorative with an empty `alt`.
+
+This is the one row allowed out of the one-column rule below, and it does not
+contradict it: what that rule protects is the **render**, and the stage and
+rail are still the full page width. The still is 260px and the passage keeps
+its 80ch measure beside it. The row needs `display: grid !important` because
+the renders reset sets this whole column to `display: block !important`.
+
 **The cover has to be listed as a view.** With `views` set, `allImages` is the
 views alone — `coverImage` is no longer prepended — so a project converted
 from `multiImage` loses its cover from the gallery unless it is the first

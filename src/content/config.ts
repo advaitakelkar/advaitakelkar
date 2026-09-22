@@ -85,6 +85,11 @@ const projects = defineCollection({
     // If set, the project-list scrub draws from these instead of all images
     // (e.g. renders only, no sketches). The project page still shows everything.
     scrubImages: z.array(z.string()).optional(),
+    /* Project Template 01 only, desktop only: one fixed picture beside the
+       copy. It never changes and it is not part of the rail — the rail is the
+       work and it moves; this is a still to read the text against. Defaults
+       to nothing, so a project without one simply keeps the full-width copy. */
+    sideImage: z.string().optional(),
     /* ── Views, for a project that is renders rather than photographs ──────
        A rendering project does not have N images; it has N VIEWS, and each
        view was rendered several times. Those alternates are variations of one

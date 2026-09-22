@@ -99,6 +99,25 @@ const professorCount = people.filter(isProfessor).length;
 // Index after which the single divider renders; -1 = no divider
 const peopleDividerAfter = professorCount > 0 && professorCount < people.length ? professorCount - 1 : -1;
 
+/* ── The collaboration, said in words ─────────────────────────────────────
+   Every Project Template 01 project so far was made inside somebody else's
+   practice — CARLO, SHLF and CONCRT with Nayan Mote at NMS, XBKC with Sneha
+   Desai at Studio Stumbles — and the page never said so. Two faces and a
+   studio pill in a filter row is not a credit; it leaves a reader to infer
+   the relationship from an avatar.
+
+   Both halves are already in the YAML, so nothing new is authored: the
+   collaborator is whoever `professors:` names on this project, and the
+   studio is the `studio:` reference the breadcrumb already resolves. */
+const collaborators = people.filter(isProfessor);
+const collabNames =
+  collaborators.length <= 1
+    ? collaborators.join('')
+    : `${collaborators.slice(0, -1).join(', ')} and ${collaborators[collaborators.length - 1]}`;
+const collabCredit = collabNames
+  ? `In collaboration with ${collabNames}${studioLabel ? `, under ${studioLabel}` : ''}`
+  : '';
+
 // Build dynamic breadcrumbs based on category structure
 const dynamicCrumbs = [ { label: 'Home', href: '/' } ];
 
@@ -127,6 +146,9 @@ const isTabLayout = template.tabs;
 /* A visualisation project draws its own middle — rooms, one image, the
    variations behind it. See RenderRooms.astro. */
 const isRenders = template.renders && (data.views?.length ?? 0) > 0;
+/* The fixed picture beside the copy. Only where it has room to exist without
+   taking any from the work — see the CSS, which confines it to 1024 and up. */
+const sideImage = isRenders ? (data.sideImage ?? null) : null;
 
 /* The phone hides the Design / Making panels — they are display-scale
    headings over label/value grids, which on a 390px column collide with
@@ -393,9 +415,13 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
             <div class="project-col-left">
               <div class="project-card-info">
                 {isRenders && (
-                  /* The faces land here from 700 up — top right of the copy,
-                     level with the subtitle. See initRendersPeople below. */
-                  <div class="renders-people" id="renders-people-slot"></div>
+                  /* A line of its own above the subtitle: the faces, then who
+                     they are and whose studio this was made in. The panel is
+                     moved in here by initRendersPeople; the credit is markup,
+                     so it renders even before that script runs. */
+                  <div class="renders-people" id="renders-people-slot">
+                    {collabCredit && <p class="renders-credit">{collabCredit}</p>}
+                  </div>
                 )}
                 <div class="project-card__row project-card__row2">
                   <div class="project-card__text-block">
@@ -438,6 +464,16 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                       </a>
                     )}
                   </div>
+
+                  {/* One fixed picture to read the text against. Decorative —
+                      it is one of the frames already in the rail below, so it
+                      carries no information the page does not otherwise give,
+                      and an empty alt keeps it out of the screen reader's way. */}
+                  {sideImage && (
+                    <figure class="renders-aside">
+                      <img src={sideImage} alt="" loading="lazy" decoding="async" />
+                    </figure>
+                  )}
                 </div>
 
                 {/* People row — shown for freelancer/work (non-original) card pages.
@@ -5203,39 +5239,148 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   .project-detail[data-renders="true"] .project-card-info {
     position: relative;
   }
+  /* ── The people, in the filter row ─────────────────────────────────────
+     The panel is moved into `.project-meta-row--pills` by script, so these
+     rules key off that row rather than off the old `.renders-people` slot —
+     the slot is no longer the parent, and styling it left the avatars at
+     their 72px default, which wrapped them onto a line of their own.
+
+     The slot rules stay below for the fallback case: a project with no pill
+     row still has somewhere to put its credits. */
+  /* A line of its own above the subtitle: faces, then the credit beside
+     them. Static and full width — it is a row in the copy column now, not an
+     overlay pinned to a corner of it. */
   .renders-people {
-    position: absolute;
-    top: 0;
-    right: 0;
-    z-index: 1;
+    position: static;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    width: 100%;
+    margin: 0 0 14px;
   }
-  /* On the name's line it is a flex child, not an overlay: the row is the
-     name and this, so it can simply take the end of it. */
   .renders-people--title {
     position: static;
-    margin-left: auto;
+    width: auto;
+    margin: 0;
     flex: 0 0 auto;
   }
+  /* Who they are and whose studio it was. Set in the same micro the pills use
+     so it reads as a fact about the project rather than as a sentence of the
+     description, and muted so the subtitle under it still leads. */
+  .renders-credit {
+    margin: 0;
+    font-size: var(--_tokens---type--micro);
+    line-height: 1.3;
+    color: var(--_tokens---color--muted);
+    flex: 1 1 12ch;
+    min-width: 0;
+  }
+
+  /* ── The fixed picture beside the copy (wide band only) ────────────────
+     The standing rule for this template is one column at every width, and the
+     reason is on the record: a two-column band once halved a render to 647px
+     so a paragraph could sit beside it. That reason is about the RENDER, and
+     nothing here touches it — the stage and the rail are still the full page
+     width, below. What sits beside the text is a still, at a fixed 260px, and
+     the text keeps its 80ch measure either side of it.
+
+     1024 and up only. Below that the column is already the width of the page
+     and there is nothing to spare. */
+  .renders-aside { display: none; }
+
+  @media (min-width: 1024px) {
+    /* !important because the renders reset above unwinds this whole column to
+       `display: block !important` — that reset is what keeps the template to
+       one column, and this is the one row allowed out of it. Same specificity,
+       later in the file, so it wins; if this stops working, check whether that
+       reset moved below it. */
+    .project-detail[data-renders="true"] .project-card__row2:has(.renders-aside) {
+      display: grid !important;
+      grid-template-columns: minmax(0, 1fr) 260px !important;
+      gap: var(--_tokens---space--micro);
+      align-items: start;
+    }
+    .renders-aside {
+      display: block;
+      margin: 0;
+      grid-column: 2;
+    }
+    .renders-aside img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: var(--_tokens---radius--small);
+      /* Sits with the dimmed thumbnails rather than competing with the stage:
+         it is there to be read against, not looked at. */
+      opacity: 0.85;
+    }
+  }
   .renders-people:empty { display: none; }
-  .renders-people .project-people {
+
+  /* Sized to be read, not to disappear. These were one line tall — 16-20px —
+     the right measure for something sitting inside a sentence and the wrong
+     one for a face: at that size two people are two grey dots.
+
+     In the row the constraint is different. A pill is 21px and the row
+     centres its children, so a taller face just makes that line of the row
+     taller and still belongs to it. 28px is the smallest size at which these
+     crops read as people; 32px from 700 up, where the row has the width to
+     carry it. Still a credit, not a cast list — the names stay hidden and
+     the group is one item at the end of the row. */
+  /* `.project-detail` on the front to outrank
+     `.project-detail .project-phone-card .project-people`, which styles the
+     standalone people row on a phone as a horizontal scroller and pulls it to
+     the head of its flex parent with order:-1. Inside the filter row that
+     rule would put the faces in front of the pills on a phone and behind them
+     on a desktop — the same element in two places depending on the width. */
+  .project-detail .project-meta-row--pills .project-people,
+  .project-detail .renders-people .project-people {
+    --rp-face: 32px;
+    order: 0 !important;
+    overflow: visible !important;
+    gap: 4px !important;
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap;
+    align-items: center;
     gap: 4px;
     margin: 0 !important;
+    flex: 0 0 auto;
+    /* The base rule is `width: 100%`, for the full cast list standing in a
+       column of its own. In the filter row that makes the group claim the
+       whole line and wrap onto one by itself, which is the opposite of
+       sitting with the pills. */
+    width: auto !important;
+    max-width: none !important;
   }
-  .renders-people .project-people__name { display: none; }
-  /* Exactly one line tall, so the faces sit in the text they are beside
-     rather than beside it — the same 1lh the All pill is built on. A credit,
-     not a cast list. */
-  .renders-people .project-people__avatar {
-    width: max(1lh, 16px);
-    height: max(1lh, 16px);
-    min-width: max(1lh, 16px);
+
+  @media (min-width: 700px) {
+    .project-detail .project-meta-row--pills .project-people,
+    .project-detail .renders-people .project-people { --rp-face: 40px; }
   }
-  .renders-people .project-people__divider {
+
+  .project-detail .project-meta-row--pills .project-people__name,
+  .project-detail .renders-people .project-people__name { display: none; }
+
+  .project-detail .project-meta-row--pills .project-people__person,
+  .project-detail .renders-people .project-people__person {
+    width: auto !important;
+    flex: 0 0 auto;
+  }
+
+  .project-detail .project-meta-row--pills .project-people__avatar,
+  .project-detail .renders-people .project-people__avatar {
+    width: var(--rp-face) !important;
+    height: var(--rp-face) !important;
+    min-width: var(--rp-face) !important;
+    aspect-ratio: 1;
+  }
+
+  .project-detail .project-meta-row--pills .project-people__divider,
+  .project-detail .renders-people .project-people__divider {
     width: 1px !important;
-    height: max(1lh, 16px) !important;
+    height: var(--rp-face) !important;
     align-self: center;
   }
 
@@ -7082,7 +7227,12 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     const row = document.querySelector('.project-meta-row--pills');
     if (!row || (row as any)._shuffled) return;
     (row as any)._shuffled = true;
-    const pills = Array.from(row.children);
+    /* Only the pills shuffle. On a renders page the people panel is moved
+       into this row and must stay at its end — a face dealt into the middle
+       of the filters reads as one of them, and it is a credit, not a filter.
+       Filtering by class rather than trusting call order, because this also
+       runs again on astro:after-swap. */
+    const pills = Array.from(row.children).filter(c => c.classList.contains('project-card__filter-pill'));
     for (let i = pills.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       row.insertBefore(pills[i], pills[j]);
@@ -7093,10 +7243,12 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   initProjectPhoneCard();
   document.addEventListener('astro:after-swap', initProjectPhoneCard);
 
-  /* ── Renders: the people sit top right, level with the rooms ───────────
-     From 700 up they move into the tab row's right end — beside the work
-     rather than at the end of a paragraph. Below that the row has no width
-     to spare, so they stay where the page put them. Moved, not duplicated. */
+  /* ── Renders: the people sit above the subtitle, with the credit ───────
+     They were briefly in the filter row. That row is a set of filters — every
+     other thing in it is a link that runs a search — and a face is not one,
+     so the group now has the line above the subtitle to itself, beside the
+     words saying who these people are. Bigger there, because nothing is
+     competing with them for the line. Moved, not duplicated. */
   function initRendersPeople() {
     const detail = document.querySelector<HTMLElement>('.project-detail[data-renders="true"]');
     const slot = document.getElementById('renders-people-slot');
@@ -7104,12 +7256,15 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     const people = document.getElementById('project-people-panel');
     if (!detail || !slot || !people) return;
     const wide = window.matchMedia('(min-width: 700px)');
-    /* Beside the subtitle on a wide page, on the name's own line on a phone —
+    /* Above the subtitle on a wide page, on the name's own line on a phone —
        where the subtitle has moved into the fixed bottom card and the name is
-       the only thing left at the top to sit with. */
+       the only thing left at the top to sit with.
+
+       Inserted first, not appended: the credit line is already in the slot as
+       markup, and the faces belong in front of the words that name them. */
     const place = () => {
       const target = wide.matches ? slot : (titleSlot ?? slot);
-      if (target && people.parentElement !== target) target.appendChild(people);
+      if (target && people.parentElement !== target) target.insertBefore(people, target.firstChild);
     };
     if (!detail.dataset.rpWired) {
       detail.dataset.rpWired = '1';
