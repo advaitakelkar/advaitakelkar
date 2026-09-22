@@ -6002,6 +6002,14 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
          the picture is the largest 3:2 that fits beside the text. */
       max-width: 100% !important;
       max-height: 100% !important;
+      /* …and `min-width: auto` has to go, or that cap does nothing. A flex
+         item's automatic minimum size is its content's minimum, which on a
+         ratio box driven by the row's height IS the overflowing width — and
+         an automatic minimum beats `max-width`. So a long description still
+         produced a picture wider than its track, which is the state the cap
+         above was added to prevent. Zero is the only way to let it hold. */
+      min-width: 0 !important;
+      min-height: 0 !important;
     }
     .project-detail[data-frame="landscape"][data-frame="landscape"] .deck-grid--mobile-scrub {
       grid-column: 1 / -1;
