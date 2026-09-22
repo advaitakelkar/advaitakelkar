@@ -942,20 +942,29 @@ When **no** view names a `room`, three things change, all of them in
 
 `groups:` chooses how the groups behind `views` are picked between.
 
-| | control | suits |
-|---|---|---|
-| `tabs` (default) | a row of pills | a flat with eight rooms — XBKC |
-| `chapters` | a numbered column of rows | a study read in order — Deleuze and Guattari |
+| | control | the work | suits |
+|---|---|---|---|
+| `tabs` (default) | a row of pills | one stage, one rail | a flat with eight rooms — XBKC |
+| `chapters` | a stack of cards | a strip inside each card | a study read in order — Deleuze and Guattari |
 
-Same data either way. A chapter is a position in an argument and is cited by
-its number, which a wrapping pill row flattens back into a filter bar; twelve
-plateaus want a list, eight rooms want pills.
+Same `views` data either way. The two modes render entirely separate markup —
+`chapters` has no stage and no rail at all.
 
-**On a phone the chapter list is a real dropdown** — one row showing where you
-are, the rest behind a tap, opening as an overlay so nothing reflows. It has
-to be: twelve rows are taller than the space above the bottom card, and even
-capped at 34vh the stage started *below* the card. The work was off the screen,
-pushed there by its own index.
+**`chapters` is the projects list's own shape**: a hairline between rows, the
+name large on the left, the pictures in a strip on the right. A chapter is a
+unit of an argument, so it gets a card rather than a tab that swaps the
+contents of one frame — and two can be open at once, which a tab row cannot
+do. There is no stage because in a card the strip IS the content; a big panel
+above twelve cards would show the same picture twice.
+
+Nothing here reuses `.project-card`'s classes. Those styles ship with
+`ProjectStackCard`, and that component is not on a project detail page, so
+they would never be loaded.
+
+**Clicking a panel opens a dialog inside the component.** The site's lightbox
+binds to `.project-card` and is not on this page, so the cards carry their
+own: Escape and a click off the picture close it, and the body is locked while
+it is open.
 
 **The credit needs a collaborator, not just a studio.** It names the studio,
 but `professors:` is what decides whether it renders — Deleuze and Guattari is

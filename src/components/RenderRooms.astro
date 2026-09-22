@@ -66,6 +66,56 @@ const indexed = views.map((v, i) => ({
 const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
 ---
 
+{asChapters ? (
+  /* ── Chapters as cards ────────────────────────────────────────────────
+     Twelve plateaus as a stack of cards, the shape the projects list uses:
+     the name on the left, the pictures in a strip on the right, and the row
+     opening to show them. No stage — in a card the strip IS the content, and
+     a big panel above twelve cards would show the same picture twice.
+
+     A chapter is a unit of an argument, so it gets a card of its own rather
+     than a tab that swaps the contents of one frame. You can have two open
+     and compare them, which a tab row cannot do. */
+  <section class="rr rr--cards" data-rr-cards aria-label={`${name} — ${NOUN.many}`}>
+    {rooms.map((r, i) => {
+      const panels = indexed.filter(v => v.room === r);
+      return (
+        <article class="rrc" data-rrc>
+          <button class="rrc__head" type="button" aria-expanded="false">
+            <span class="rrc__no">{String(i + 1).padStart(2, '0')}</span>
+            <span class="rrc__name">{r}</span>
+            <span class="rrc__n">{panels.length}</span>
+            <Icon name="arrow" dir="s" class="rrc__mark" />
+          </button>
+          <div class="rrc__body" hidden>
+            <div class="rrc__strip">
+              {panels.map(v => (
+                <button class="rrc__panel" type="button" data-rrc-img={v.image} data-rrc-label={v.label} aria-label={v.label}>
+                  <img src={v.image} alt={`${name} — ${v.label}`} loading="lazy" decoding="async" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </article>
+      );
+    })}
+    <p class="rr__total">{`${rooms.length} ${rooms.length === 1 ? NOUN.one : NOUN.many} · ${views.length} panels`}</p>
+
+    {/* One panel, full size. The page has no lightbox of its own — the one on
+        the projects list binds to .project-card and is not loaded here — so
+        the cards carry their own, which is a dialog rather than a route so
+        Back does not leave the project. */}
+    <div class="rrc__view" data-rrc-view hidden role="dialog" aria-modal="true" aria-label="Panel">
+      <button class="rrc__view-close" type="button" data-rrc-close aria-label="Close">
+        <Icon name="close" />
+      </button>
+      <figure class="rrc__view-fig">
+        <img data-rrc-view-img src="" alt="" />
+        <figcaption data-rrc-view-cap></figcaption>
+      </figure>
+    </div>
+  </section>
+) : (
 <section class="rr" data-rr data-rr-rooms={hasRooms ? "true" : "false"} aria-label={hasRooms ? `${name} — rooms` : `${name} — views`}>
   <!-- Rooms. All first, as a mark rather than a word — it is not a room.
        Dropped whole when no view names a room: there is nothing to choose
@@ -163,6 +213,7 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
     {totalTakes > views.length && <> · {totalTakes} frames</>}
   </p>
 </section>
+)}
 
 <style is:global>
   /* Global, not scoped: the takes column is built in script, and a runtime
@@ -177,6 +228,124 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
     width: 100%;
     min-width: 0;
     padding-top: var(--_tokens---space--small);
+  }
+
+  /* ── Chapters as cards ──────────────────────────────────────────────
+     The projects list's shape: a hairline between rows, the name large on the
+     left, the pictures in a strip on the right. Nothing here reuses
+     .project-card's own classes — those styles ship with ProjectStackCard and
+     that component is not on this page, so they would not be loaded. */
+  .rr--cards { display: block; padding-top: 0; }
+
+  .rrc { border-bottom: 1px solid var(--_tokens---color--line-soft); }
+  .rrc__head {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 18px 2px;
+    border: 0;
+    background: none;
+    color: var(--_tokens---color--fg);
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  /* The plateau number, in the mono the counters use — a plateau is cited by
+     it, so it is part of the name rather than an ornament. */
+  .rrc__no {
+    font-family: var(--_tokens---font--mono);
+    font-size: var(--_tokens---type--micro);
+    opacity: 0.45;
+    min-width: 2.5ch;
+  }
+  .rrc__name {
+    font-size: var(--_tokens---type--medium);
+    font-weight: var(--_tokens---weight--base);
+    line-height: 1.05;
+    min-width: 0;
+  }
+  .rrc__n { font-family: var(--_tokens---font--mono); font-size: var(--_tokens---type--ultrathin); opacity: 0.5; }
+  .rrc__head .rrc__mark {
+    --icon-size: var(--_tokens---arrow--md);
+    opacity: 0.45;
+    transition: transform var(--_tokens---motion--base) ease, opacity var(--_tokens---motion--base) ease;
+  }
+  .rrc__head[aria-expanded="true"] .rrc__mark { transform: rotate(180deg); opacity: 0.85; }
+  @media (hover: hover) {
+    .rrc__head:hover .rrc__name { text-decoration: underline; text-underline-offset: 3px; }
+  }
+  .rrc__head:focus-visible { outline: 2px solid var(--_tokens---color--fg); outline-offset: -2px; }
+
+  .rrc__body { padding: 0 2px 18px; }
+  /* Scrolls sideways, like the card strip it is modelled on: nine panels at a
+     readable size are wider than the column, and wrapping them into rows
+     would turn a sequence into a grid — the order a to i is the argument. */
+  .rrc__strip {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+  }
+  .rrc__strip::-webkit-scrollbar { display: none; }
+  .rrc__panel {
+    flex: 0 0 auto;
+    width: 132px;
+    aspect-ratio: 1;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    border-radius: var(--_tokens---radius--xs);
+    overflow: hidden;
+    transition: transform var(--_tokens---motion--base) ease;
+  }
+  .rrc__panel img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  @media (hover: hover) {
+    .rrc__panel:hover { transform: translateY(-3px); }
+  }
+  .rrc__panel:focus-visible { outline: 2px solid var(--_tokens---color--fg); outline-offset: 2px; }
+
+  /* One panel, full size, over the page. */
+  .rrc__view {
+    position: fixed;
+    inset: 0;
+    z-index: 120;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--_tokens---space--small);
+    background-color: color-mix(in srgb, var(--_tokens---color--bg) 88%, transparent);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+  .rrc__view[hidden] { display: none; }
+  .rrc__view-fig { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; max-height: 100%; }
+  .rrc__view-fig img { max-width: min(92vw, 900px); max-height: 82vh; width: auto; height: auto; display: block; }
+  .rrc__view-fig figcaption {
+    font-family: var(--_tokens---font--mono);
+    font-size: var(--_tokens---type--micro);
+    color: var(--_tokens---color--muted);
+  }
+  .rrc__view-close {
+    position: absolute;
+    top: var(--_tokens---space--small);
+    right: var(--_tokens---space--small);
+    display: inline-flex;
+    padding: 8px;
+    border: 0;
+    background: none;
+    color: var(--_tokens---color--fg);
+    cursor: pointer;
+    --icon-size: var(--_tokens---arrow--lg);
+  }
+
+  @media (max-width: 699.98px) {
+    .rrc__head { padding: 14px 0; gap: 10px; }
+    .rrc__name { font-size: var(--_tokens---type--small); }
+    .rrc__panel { width: 108px; }
   }
 
   /* ── Chapters ───────────────────────────────────────────────────────
@@ -487,6 +656,62 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
 </style>
 
 <script>
+  /* ── Chapters as cards ──────────────────────────────────────────────────
+     Open and close a chapter, and show one panel full size. Separate from the
+     stage/rail wiring below, which this mode does not render at all. */
+  function initRRCards() {
+    document.querySelectorAll<HTMLElement>('[data-rr-cards]').forEach(root => {
+      if ((root as any)._wired) return;
+      (root as any)._wired = true;
+
+      root.querySelectorAll<HTMLElement>('[data-rrc]').forEach((card, i) => {
+        const head = card.querySelector<HTMLButtonElement>('.rrc__head');
+        const body = card.querySelector<HTMLElement>('.rrc__body');
+        if (!head || !body) return;
+        /* The first chapter opens on arrival. A stack of twelve shut rows is a
+           table of contents, not a project — one open says what the cards
+           hold without asking for a click first. */
+        const set = (open: boolean) => {
+          head.setAttribute('aria-expanded', open ? 'true' : 'false');
+          body.hidden = !open;
+        };
+        set(i === 0);
+        head.addEventListener('click', () => set(head.getAttribute('aria-expanded') !== 'true'));
+      });
+
+      const view = root.querySelector<HTMLElement>('[data-rrc-view]');
+      const vImg = root.querySelector<HTMLImageElement>('[data-rrc-view-img]');
+      const vCap = root.querySelector<HTMLElement>('[data-rrc-view-cap]');
+      if (!view || !vImg) return;
+
+      const close = () => { view.hidden = true; document.body.style.overflow = ''; };
+      const open = (src: string, label: string) => {
+        vImg.src = src;
+        vImg.alt = label;
+        if (vCap) vCap.textContent = label;
+        view.hidden = false;
+        /* The page behind must not scroll under the panel — on a phone a
+           dialog that lets the page move behind it reads as a failure. */
+        document.body.style.overflow = 'hidden';
+      };
+
+      root.querySelectorAll<HTMLButtonElement>('[data-rrc-img]').forEach(b => {
+        b.addEventListener('click', () => open(b.dataset.rrcImg!, b.dataset.rrcLabel ?? ''));
+      });
+      root.querySelector('[data-rrc-close]')?.addEventListener('click', close);
+      /* Click anywhere off the picture closes, the way the rest of the site's
+         overlays do. */
+      view.addEventListener('click', e => {
+        if (!(e.target as HTMLElement)?.closest('.rrc__view-fig')) close();
+      });
+      document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && !view.hidden) close();
+      });
+    });
+  }
+  initRRCards();
+  document.addEventListener('astro:after-swap', initRRCards);
+
   function initRenderRooms() {
     const root = document.querySelector<HTMLElement>('[data-rr]');
     if (!root || root.dataset.rrWired) return;
