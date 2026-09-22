@@ -1408,10 +1408,53 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
 
   /* Below desktop, non-tab card pages keep their existing mobile UI: the
-     bottom deck section is the scrub, so the in-column copy stays hidden. */
+     bottom deck section is the scrub, so the in-column copy stays hidden.
+
+     Portrait pages are exempt, and must be. They do not render the bottom
+     .card-deck-section at all (see the markup — it is gated on !isPortraits),
+     so this in-column grid is their ONLY gallery. Hiding it here left the
+     three portrait projects with a blank page at every width below 1024:
+     zero thumbnails at 375, and nothing but the active frame at 700. */
   @media (max-width: 1023.98px) {
-    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]) .deck-grid--mobile-scrub {
+    .project-detail[data-is-card="true"]:not([data-tab-layout="true"]):not([data-portraits="true"]) .deck-grid--mobile-scrub {
       display: none !important;
+    }
+    /* …and once shown, it has to be a grid here, not the horizontal filmstrip
+       this element is otherwise. The filmstrip is `display: flex` with no
+       wrap, which is right for a dozen frames and useless for a hundred and
+       thirty-two: they compress to a few pixels each and nothing is legible.
+       Column count is left to the existing #deck-grid rules, which already
+       set three across on the phone. It also has to span the whole content
+       row — as a plain item in the two-column card grid it was squeezed into
+       a 170px half-width. */
+    .project-detail[data-portraits="true"] .deck-grid--mobile-scrub {
+      display: grid !important;
+      grid-column: 1 / -1 !important;
+      align-content: start !important;
+      max-height: 46vh !important;
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+      scrollbar-width: none;
+    }
+    .project-detail[data-portraits="true"] .deck-grid--mobile-scrub::-webkit-scrollbar {
+      display: none;
+    }
+    .project-detail[data-portraits="true"] .deck-grid--mobile-scrub .deck-card-item {
+      width: 100% !important;
+      height: auto !important;
+      aspect-ratio: 3/4 !important;
+      flex: none !important;
+    }
+  }
+
+  /* The medium band needs its own column count. The #deck-grid rule that
+     gives the phone three across stops at 699.98, and above it nothing sets
+     one — so the grid fell to a single column and stacked 132 portraits at
+     full width. Six across a ~630px column lands the thumbnail at roughly
+     the size the phone's three give it. */
+  @media (min-width: 700px) and (max-width: 1023.98px) {
+    .project-detail[data-portraits="true"] .deck-grid--mobile-scrub {
+      grid-template-columns: repeat(6, 1fr) !important;
     }
     /* Mobile mirrors the desktop scroll rule: only the description text
        (first paragraph) scrolls; the prompt box, logos and the
@@ -3248,23 +3291,30 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
      So the inactive frames keep their colour and recede on alpha instead.
      The active one still reads, because it is the only one at full strength
-     and it also carries the lifted border the shared rule gives it. */
+     and it also carries the lifted border the shared rule gives it.
+
+     The opacity carries !important because the filmstrip rule above
+     (`.deck-grid--mobile-scrub .deck-card-inner img`) pins opacity to 1 with
+     !important of its own. Without it the dimming silently did nothing below
+     1024 — the grid there IS the mobile scrub — while working above it,
+     which is the kind of split that looks like a rendering bug. Specificity
+     settles it once both are !important: this selector is the longer one. */
   .project-detail[data-portraits="true"] .deck-card-inner img:not(.deck-card-logo) {
-    filter: none;
-    opacity: 0.45;
+    filter: none !important;
+    opacity: 0.45 !important;
   }
   .project-detail[data-portraits="true"] .deck-card-item.is-active img:not(.deck-card-logo) {
     filter: none !important;
     opacity: 1 !important;
   }
   .project-detail[data-portraits="true"] .deck-card-item:focus img:not(.deck-card-logo) {
-    filter: none;
-    opacity: 1;
+    filter: none !important;
+    opacity: 1 !important;
   }
   @media (hover: hover) {
     .project-detail[data-portraits="true"] .deck-card-item:hover img:not(.deck-card-logo) {
-      filter: none;
-      opacity: 1;
+      filter: none !important;
+      opacity: 1 !important;
     }
   }
 
