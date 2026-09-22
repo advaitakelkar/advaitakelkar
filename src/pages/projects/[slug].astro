@@ -1431,7 +1431,22 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       display: grid !important;
       grid-column: 1 / -1 !important;
       align-content: start !important;
-      max-height: 46vh !important;
+      /* The cap is load-bearing, not cosmetic. The deck ships three copies of
+         every frame for the infinite wrap, so uncapped this grid is 150 items
+         for Royals and 396 for Sups — an 8000px page showing each portrait
+         three times, inside a `position: fixed` dashboard that then reports
+         itself 8260px tall. Letting it flex to fill does the same thing,
+         because nothing in the chain has a definite height at this width.
+         So it scrolls internally, as it does on desktop.
+
+         The subtrahend is the furniture above and below it — the title above,
+         and the meta row, pill cloud and nav dock below — which is a constant
+         number of pixels, not a constant fraction of the screen. A plain vh
+         cap left an 81px dead band at 812 tall and would misjudge it by more
+         on a shorter phone. This is still a written number where the category
+         pages measure theirs into a custom property; if it drifts, measure it
+         the way CategoryLayout does rather than retuning the constant. */
+      max-height: calc(100vh - 276px) !important;
       overflow-y: auto !important;
       overflow-x: hidden !important;
       scrollbar-width: none;
@@ -1447,14 +1462,25 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     }
   }
 
-  /* The medium band needs its own column count. The #deck-grid rule that
-     gives the phone three across stops at 699.98, and above it nothing sets
-     one — so the grid fell to a single column and stacked 132 portraits at
-     full width. Six across a ~630px column lands the thumbnail at roughly
-     the size the phone's three give it. */
+  /* compact — one column, because the image column is hidden here anyway.
+     The card layout keeps a two-column content grid down to 375, but
+     .project-col-right is itself hidden below 700, so the right half is
+     simply empty and the gallery was squeezed into the 170px left half.
+     Collapsing to one column gives the grid the full measure. This is
+     compact ONLY: from 700 up the right column reappears and carries the
+     active frame, so the two columns there are doing real work. */
+  @media (max-width: 699.98px) {
+    .project-detail[data-portraits="true"] .project-content-grid--card {
+      grid-template-columns: 1fr !important;
+    }
+  }
+
+  /* medium — the grid shares the narrow left rail with the copy, about
+     190px of it, so the column count comes down to match. Six across put
+     the thumbnail at 25px, well under the desktop grid's own 42. */
   @media (min-width: 700px) and (max-width: 1023.98px) {
     .project-detail[data-portraits="true"] .deck-grid--mobile-scrub {
-      grid-template-columns: repeat(6, 1fr) !important;
+      grid-template-columns: repeat(4, 1fr) !important;
     }
     /* Mobile mirrors the desktop scroll rule: only the description text
        (first paragraph) scrolls; the prompt box, logos and the
