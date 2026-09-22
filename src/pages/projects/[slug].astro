@@ -237,6 +237,15 @@ if (isScarpinPage && !hasImages && scarpinSliders.length > 0) {
 }
 
 // Derive a display name from an image filename (same rules as the client script)
+/* ── The portrait series ───────────────────────────────────────────────────
+   One face per frame, named. These pages put the sitter's name in the meta
+   row beside the counter rather than across the picture, and dim the
+   inactive thumbnails with alpha instead of draining them to grey — the
+   costume colour IS the character, so grey throws away what the grid is
+   for. Two projects, one list; add a slug to widen it. */
+const portraitProjects = ['sups-cards', 'hanma-fam'];
+const isPortraits = portraitProjects.includes(project.id);
+
 /* The name under a frame, derived from its filename — so the filenames are the
    contract. Three copies of this exist (here, the deck markup below, and the
    client script); keep them in step.
@@ -254,7 +263,8 @@ const cardNameFromUrl = (url: string): string => {
   name = name.replace(/^ADVT_(?:[A-Z]{2,4}_)+/, '').replace(/^ADVT_SP_\s*/, '').trim();
   name = name.replace(/\s+\d+\s*$/, '').replace(/\s*\d+$/, '').trim();
   name = name.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2').replace(/[_-]+/g, ' ').trim();
-  return name || data.name;
+  const raw = name || data.name;
+  return isPortraits ? raw.toUpperCase() : raw;
 };
 const firstCardName = hasImages ? cardNameFromUrl(allImages[0]) : '';
 
@@ -297,15 +307,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   const name = cardNameFromUrl(url);
   return LOGO_RULES.find(r => r.match.test(name)) ?? null;
 };
-
-/* ── The portrait series ───────────────────────────────────────────────────
-   One face per frame, named. These pages put the sitter's name in the meta
-   row beside the counter rather than across the picture, and dim the
-   inactive thumbnails with alpha instead of draining them to grey — the
-   costume colour IS the character, so grey throws away what the grid is
-   for. Two projects, one list; add a slug to widen it. */
-const portraitProjects = ['sups-cards', 'hanma-fam'];
-const isPortraits = portraitProjects.includes(project.id);
 ---
 
 <PageLayout
@@ -343,7 +344,7 @@ const isPortraits = portraitProjects.includes(project.id);
                    initRendersPeople. */
                 <div class="renders-people renders-people--title" id="renders-people-title"></div>
               )}
-              {(isTabLayout || isOriginalCardPage) && (
+              {(isTabLayout || isOriginalCardPage) && !isPortraits && (
                 <button class="page-toggle-btn project-detail-collapse-btn" id="project-name-toggle" type="button" aria-expanded="true" aria-label="Toggle project details">
                   <Arrow />
                 </button>
@@ -472,7 +473,7 @@ const isPortraits = portraitProjects.includes(project.id);
                      keeps #deck-grid and this becomes the parallel-wired
                      #deck-grid-mobile-scrub (desktop column layout). -->
                 {hasImages && (
-                  <div class="deck-grid deck-grid--mobile-scrub" id={isTabLayout ? "deck-grid" : "deck-grid-mobile-scrub"} data-images={JSON.stringify(allImages)} data-variations={Object.keys(variationsByImage).length ? JSON.stringify(variationsByImage) : undefined}>
+                  <div class="deck-grid deck-grid--mobile-scrub" id={(isTabLayout || isPortraits) ? "deck-grid" : "deck-grid-mobile-scrub"} data-images={JSON.stringify(allImages)} data-variations={Object.keys(variationsByImage).length ? JSON.stringify(variationsByImage) : undefined}>
                     {allImages.map((img, idx) => (
                       <button
                         type="button"
@@ -513,7 +514,7 @@ const isPortraits = portraitProjects.includes(project.id);
                   </div>
                 </div>
                 <!-- Bottom border + Gallery View Button -->
-                {hasImages && (
+                {hasImages && !isPortraits && (
                   <div class="gallery-view-row">
                     <button class="gallery-view-btn" id="gallery-view-btn" type="button" aria-label="Open gallery view modal">
                       <span class="gallery-view-text">Gallery View</span>
@@ -554,7 +555,7 @@ const isPortraits = portraitProjects.includes(project.id);
           </div>
 
           <!-- CARD DECK SECTION: INSIDE the dropdown container so when closed it collapses completely inside -->
-          {hasImages && isCardPage && !isTabLayout && !isRenders && (
+          {hasImages && isCardPage && !isTabLayout && !isRenders && !isPortraits && (
             <section class="card-deck-section">
               <div class="deck-grid" id="deck-grid" data-images={JSON.stringify(allImages)} data-variations={Object.keys(variationsByImage).length ? JSON.stringify(variationsByImage) : undefined}>
                 {allImages.map((img, idx) => {
@@ -2459,12 +2460,8 @@ const isPortraits = portraitProjects.includes(project.id);
     font-size: var(--_tokens---type--micro);
     font-weight: var(--_tokens---weight--strong);
     color: var(--_tokens---color--fg);
-    letter-spacing: 0.02em;
-    /* Set as the name is written, not upper-cased. Everything else in this
-       column — Direction, Gallery View, the pills — is title case, so a
-       shouting name was the one thing in the panel in a different voice.
-       It also matters that these are names: RA'S AL GHUL loses the shape
-       that tells you it is one. */
+    letter-spacing: 0.04em;
+    text-transform: uppercase !important;
     min-width: 0;
     flex: 0 1 auto;
     white-space: nowrap;
@@ -3262,6 +3259,187 @@ const isPortraits = portraitProjects.includes(project.id);
     .project-detail[data-portraits="true"] .deck-card-item:hover img:not(.deck-card-logo) {
       filter: none;
       opacity: 1;
+    }
+  }
+
+  /* ── Portrait projects: layout, prompt dropdown, and large scrub ── */
+  .project-detail[data-portraits="true"] .project-header-title-row,
+  .project-detail[data-portraits="true"] .project-name-title {
+    cursor: default !important;
+  }
+
+  /* Prompt dropdown tab on desktop for portraits */
+  .project-detail[data-portraits="true"] .project-prompt-btn {
+    display: inline-flex !important;
+    cursor: pointer;
+    align-items: center;
+    gap: var(--_tokens---pill-gap--xs);
+    width: fit-content;
+    margin: 12px 0 6px 0;
+    font-size: var(--_tokens---type--micro);
+    font-weight: var(--_tokens---weight--base);
+    color: var(--_tokens---color--fg);
+    border: var(--_tokens---pill-border--mid);
+    border-radius: var(--_tokens---radius--pill);
+    padding: var(--_tokens---pill-pad--xs);
+    background: transparent;
+    transition: background-color var(--_tokens---motion--base) ease, border-color var(--_tokens---motion--base) ease, color var(--_tokens---motion--base) ease;
+  }
+  @media (hover: hover) {
+    .project-detail[data-portraits="true"] .project-prompt-btn:hover {
+      background-color: var(--_tokens---color--fg);
+      color: var(--_tokens---color--bg);
+      border-color: var(--_tokens---color--fg);
+    }
+  }
+  .project-detail[data-portraits="true"] .project-prompt-btn[aria-expanded="true"] .project-prompt-arrow {
+    transform: rotate(135deg);
+  }
+
+  /* Prompt box: closed by default on load, reveals when is-open */
+  .project-detail[data-portraits="true"] :global(.prompt-box) {
+    display: none !important;
+    width: 100% !important;
+    margin-top: 6px !important;
+    margin-bottom: 12px !important;
+    max-height: 22vh;
+    overflow-y: auto;
+    padding-right: 4px;
+    border: 1px solid var(--_tokens---color--line-soft) !important;
+    border-radius: var(--_tokens---radius--xs) !important;
+    padding: 10px 12px !important;
+    background: color-mix(in srgb, var(--_tokens---color--fg) 3%, transparent) !important;
+  }
+  .project-detail[data-portraits="true"] :global(.prompt-box.is-open) {
+    display: flex !important;
+  }
+  .project-detail[data-portraits="true"] :global(.prompt-header) {
+    border-bottom: 1px solid var(--_tokens---color--line-soft) !important;
+    padding-bottom: 6px !important;
+    margin-bottom: 8px !important;
+  }
+
+  /* Description text container: flex child that scrolls up when prompt reveals */
+  .project-detail[data-portraits="true"] .project-desc-clip > :global(.desc-scroll) {
+    flex: 1 1 0% !important;
+    min-height: 40px !important;
+    overflow-y: auto !important;
+    scrollbar-width: none;
+    scroll-behavior: smooth;
+  }
+
+  /* Desktop layout for portraits: left scrub remains FIXED, description scrolls up */
+  @media (min-width: 1024px) {
+    .project-detail[data-portraits="true"] .project-col-left {
+      height: 100% !important;
+      min-height: 0 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      overflow: hidden !important;
+    }
+    .project-detail[data-portraits="true"] .project-card-info {
+      height: 100% !important;
+      min-height: 0 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      overflow: hidden !important;
+    }
+    .project-detail[data-portraits="true"] .project-card__row2 {
+      flex: 1 1 0% !important;
+      min-height: 0 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      overflow: hidden !important;
+    }
+    .project-detail[data-portraits="true"] .project-card__text-block {
+      flex: 1 1 0% !important;
+      min-height: 0 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      overflow: hidden !important;
+    }
+    .project-detail[data-portraits="true"] .project-desc-readmore {
+      flex: 1 1 0% !important;
+      min-height: 0 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      overflow: hidden !important;
+    }
+    .project-detail[data-portraits="true"] .project-desc-clip {
+      flex: 1 1 0% !important;
+      min-height: 0 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      overflow: hidden !important;
+    }
+    .project-detail[data-portraits="true"] .project-desc-clip > :global(.desc-scroll)::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* Fixed meta row */
+    .project-detail[data-portraits="true"] .project-card-name-pagination-row {
+      flex: 0 0 auto !important;
+      margin-top: 8px !important;
+      padding-top: 8px !important;
+    }
+
+    /* Fixed left scrub gallery */
+    .project-detail[data-portraits="true"] .deck-grid--mobile-scrub {
+      display: grid !important;
+      grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)) !important;
+      gap: 6px !important;
+      margin: 10px 0 0 !important;
+      flex: 0 0 280px !important;
+      height: 280px !important;
+      max-height: 280px !important;
+      overflow-y: auto !important;
+      scrollbar-width: none;
+    }
+    .project-detail[data-portraits="true"] .deck-grid--mobile-scrub::-webkit-scrollbar {
+      display: none;
+    }
+    .project-detail[data-portraits="true"] .deck-grid--mobile-scrub .deck-card-item {
+      height: auto !important;
+      aspect-ratio: 3/4 !important;
+      cursor: pointer;
+    }
+    .project-detail[data-portraits="true"] .deck-grid--mobile-scrub .deck-card-inner {
+      aspect-ratio: 3/4 !important;
+      height: 100% !important;
+      border-radius: var(--_tokens---radius--xs);
+      overflow: hidden;
+      transition: transform var(--_tokens---motion--base) ease, box-shadow var(--_tokens---motion--base) ease, border-color var(--_tokens---motion--base) ease;
+    }
+    .project-detail[data-portraits="true"] .deck-grid--mobile-scrub .deck-card-inner img {
+      aspect-ratio: 3/4 !important;
+      object-fit: cover !important;
+      width: 100% !important;
+      height: 100% !important;
+    }
+    .project-detail[data-portraits="true"] .deck-card-inner img:not(.deck-card-logo) {
+      filter: none !important;
+      opacity: 0.45;
+      transition: opacity var(--_tokens---motion--base) ease;
+    }
+    .project-detail[data-portraits="true"] .deck-card-item.is-active img:not(.deck-card-logo) {
+      filter: none !important;
+      opacity: 1 !important;
+    }
+    .project-detail[data-portraits="true"] .deck-card-item.is-active .deck-card-inner {
+      border-color: var(--_tokens---color--fg) !important;
+      transform: translateY(-4px) scale(1.02);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+    }
+    @media (hover: hover) {
+      .project-detail[data-portraits="true"] .deck-card-item:hover img:not(.deck-card-logo) {
+        filter: none !important;
+        opacity: 1 !important;
+      }
+      .project-detail[data-portraits="true"] .deck-card-item:hover .deck-card-inner {
+        transform: translateY(-4px) scale(1.02);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);
+        border-color: var(--_tokens---color--fg);
+      }
     }
   }
 
@@ -5042,6 +5220,7 @@ const isPortraits = portraitProjects.includes(project.id);
 
     const isTabLayoutPage = article.getAttribute('data-tab-layout') === 'true';
     const isOriginalCardSet = article.getAttribute('data-original-card') === 'true';
+    const isPortraitsPage = article.getAttribute('data-portraits') === 'true';
 
     if (isTabLayoutPage) {
       wireWorkAccordion();
@@ -5053,7 +5232,7 @@ const isPortraits = portraitProjects.includes(project.id);
     // a standalone collapsible tab like the work pages — closing it folds the
     // description and the big active card away; the scrubber stays out
     // (CSS keeps .deck-grid--mobile-scrub / the bottom deck visible).
-    if (isOriginalCardSet) {
+    if (isOriginalCardSet && !isPortraitsPage) {
       wireCollapse(document.getElementById('project-dashboard'), 'project-name-header', 'project-name-toggle', 'project-dashboard');
     }
   }
@@ -5205,8 +5384,8 @@ const isPortraits = portraitProjects.includes(project.id);
       if (name.toLowerCase() === 'wonder women') return 'Wonder Woman';
       if (name.toLowerCase() === 'cygborg') return 'Cyborg';
       if (name.toLowerCase() === 'scalet witch') return 'Scarlet Witch';
-      if (name.toLowerCase() === 'strom') return 'Storm';
-      return name;
+      const isPortraitsPage = detailEl?.getAttribute('data-portraits') === 'true';
+      return isPortraitsPage ? name.toUpperCase() : name;
     };
 
     // ── Lightbox deck elements (reordered to match the shuffled sequence) ──
@@ -5429,6 +5608,11 @@ const isPortraits = portraitProjects.includes(project.id);
         updateDisplay(true);
         startAutoplay();
       });
+      btn.addEventListener('dblclick', (e) => {
+        e.preventDefault();
+        const idx = parseInt(btn.getAttribute('data-index') || '0', 10);
+        openLightbox(idx);
+      });
     });
 
     // Mobile scrub: dragging a finger across the strip live-previews each
@@ -5458,9 +5642,11 @@ const isPortraits = portraitProjects.includes(project.id);
         }
       };
       mobileScrub.addEventListener('pointerdown', (e) => {
-        mobileScrub.setPointerCapture(e.pointerId);
-        stopAutoplay();
-        scrubTo(e.clientX);
+        if (e.pointerType === 'touch') {
+          mobileScrub.setPointerCapture(e.pointerId);
+          stopAutoplay();
+          scrubTo(e.clientX);
+        }
       });
       mobileScrub.addEventListener('pointermove', (e) => {
         if (mobileScrub.hasPointerCapture && mobileScrub.hasPointerCapture(e.pointerId)) scrubTo(e.clientX);
@@ -5584,36 +5770,50 @@ const isPortraits = portraitProjects.includes(project.id);
       new ResizeObserver(fitDeckGrid).observe(deckSection);
     }
 
-    // Mobile: "Prompt" pill reveals the Midjourney prompt box (hidden when
-    // the page has no prompt box). On mobile the box is relocated below the
-    // pagination row so it opens as a full-width single-column row; on
-    // desktop it returns to its home inside the description column.
+    // "Prompt" pill/tab reveals the prompt box (hidden when the page has no
+    // prompt box). On portrait pages it sits right under the description as a
+    // dropdown tab closed on load; on mobile it relocates below the pagination row.
     const promptBtn = document.getElementById('project-prompt-btn');
-    const promptBox = document.querySelector('.project-card__desc .prompt-box') as HTMLElement | null;
+    const promptBox = (document.querySelector('.project-card__desc .prompt-box') || document.querySelector('.prompt-box')) as HTMLElement | null;
     if (promptBtn) {
       if (!promptBox) {
         promptBtn.style.display = 'none';
       } else {
+        const isPortraitsPage = detailEl?.getAttribute('data-portraits') === 'true';
+        if (isPortraitsPage) {
+          promptBtn.after(promptBox);
+        }
+
         promptBtn.addEventListener('click', () => {
           const open = promptBtn.getAttribute('aria-expanded') === 'true';
           promptBtn.setAttribute('aria-expanded', String(!open));
           promptBox.classList.toggle('is-open', !open);
+          if (!open && isPortraitsPage) {
+            requestAnimationFrame(() => {
+              const descScroll = document.querySelector('.project-detail[data-portraits="true"] .desc-scroll');
+              if (descScroll) {
+                descScroll.scrollTo({ top: descScroll.scrollHeight, behavior: 'smooth' });
+              }
+            });
+          }
         });
 
-        const promptHome = document.createElement('span');
-        promptHome.style.display = 'none';
-        promptBox.before(promptHome);
-        const pagRow = document.querySelector('.project-card-name-pagination-row');
-        const placePrompt = () => {
-          const mobile = window.matchMedia('(max-width: 1023.98px)').matches;
-          if (mobile && pagRow) {
-            if (promptBox.previousElementSibling !== pagRow) pagRow.after(promptBox);
-          } else if (promptHome.parentElement && promptBox.previousSibling !== promptHome) {
-            promptHome.after(promptBox);
-          }
-        };
-        placePrompt();
-        window.addEventListener('resize', placePrompt, { passive: true });
+        if (!isPortraitsPage) {
+          const promptHome = document.createElement('span');
+          promptHome.style.display = 'none';
+          promptBox.before(promptHome);
+          const pagRow = document.querySelector('.project-card-name-pagination-row');
+          const placePrompt = () => {
+            const mobile = window.matchMedia('(max-width: 1023.98px)').matches;
+            if (mobile && pagRow) {
+              if (promptBox.previousElementSibling !== pagRow) pagRow.after(promptBox);
+            } else if (promptHome.parentElement && promptBox.previousSibling !== promptHome) {
+              promptHome.after(promptBox);
+            }
+          };
+          placePrompt();
+          window.addEventListener('resize', placePrompt, { passive: true });
+        }
       }
     }
 
