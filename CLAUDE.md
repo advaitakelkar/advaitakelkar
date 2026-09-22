@@ -1234,6 +1234,91 @@ attribute-plus-class selector however late it comes), stacks the page instead
 of gridding it, and un-fixes the header on the phone — nothing rolls under
 anything here.
 
+## A landscape series
+
+The AI series pages — Sups' Portraits, Hanma FAM, Indian Royals — are one
+named thing per frame, and every frame box on that chassis is portrait: the
+deck card is 2:3 "the aspect ratio of playing cards", the filmstrip 3:4, the
+active frame 2:3, the fullscreen deck `24vw x 62dvh`. Architect x Architects
+is the same object with wide frames, so `data-frame` on `.project-detail`
+carries the shape and `landscapeSeries` in `projects/[slug].astro` lists who
+is which. `portraitProjects` keeps its job — the name beside the counter, the
+alpha dimming — because that is about the SERIES and holds either way.
+
+**One ratio, stated once.** 3:2 for the page's own boxes; **19:13 in the
+fullscreen deck**, which is 2432x1664 reduced, so `object-fit: cover` crops
+nothing and the whole house is in the frame. A 1.46:1 render in a 2:3 box is
+the middle third of itself — on the desktop page that was a 408x613 slice of a
+building 2432 wide.
+
+**Those rules double the attribute** — `[data-frame="landscape"][data-frame="landscape"]`,
+the same trick `.tap-44.tap-44` uses. Last in the file and `!important` was
+not enough: the rule holding the deck thumbnail at 2:3 is
+`.project-detail[data-is-card="true"]:not([data-tab-layout="true"]) …`, and
+its `:not()` counts, so it outranked a single `[data-frame]` by one. The
+active frame — which had no such competitor — went landscape while the
+thumbnails stayed portrait, which is the confusing half-applied state this
+avoids.
+
+### The phone window is three, not nine
+
+Nine wide plates on the portrait 3x3 are 125x85 each with a whole house
+inside. Three across the full width are 375 wide, which is a picture.
+`initPortraitWindow()` takes its size from `data-frame` — odd either way,
+because the whole idea is that the middle one is the active one — and the
+rows are `0.27 / 0.46 / 0.27` of `--rr-grid-h`, so the active plate is
+375x227 against the render's 1.46:1 and almost nothing is cropped.
+
+The middle is **taller, not scaled**. A portrait cell is a third of the width
+so 1.5x still lands inside the screen; a full-width one scaled the same way
+hangs 94px off each edge, and what you lose is the middle of the picture you
+were looking at.
+
+Write the row heights out. `1fr` does not resolve here — the deck carries a
+253px bottom padding to clear the fixed card, so its CONTENT box is 240 of the
+493 it occupies, and fr tracks filled that 240 and stopped halfway up the
+screen. The portrait grid never noticed because it states its rows outright
+and overflows the padding visibly.
+
+### The desktop scrub sits under the page
+
+Six across, three rows deep, and it **scrolls inside itself** rather than
+running the page down — twenty-four houses at four rows is most of a second
+screen. Only the row holding the active frame is lit, and the deck is scrolled
+so that row is the top one: this row is where you are, the two under it are
+what comes next. It does not loop and it does not re-order — `initDeckLoop` is
+already skipped on series pages, so the grid is a fixed thing you move through
+rather than a belt that moves past you.
+
+`initLandscapeScrub()` does both halves:
+
+- **The move.** The deck lives in the left column, which is 418px wide — fine
+  for portrait thumbnails, useless for wide ones. It is moved after the
+  content grid in script rather than restructured in CSS, because standing it
+  up as a full-width grid item means `display: contents` on the two wrappers
+  and an explicit column for every remaining child; `sendHome()` puts it back
+  below 1024.
+- **`grid-column: 1 / -1` and `grid-row: 5`.** `.project-dashboard-wrap` AND
+  `.project-content-grid--card` are both `display: contents`, so the real
+  two-column grid is `.project-detail` itself and a deck moved out becomes a
+  grid item of it — it sat in column one at 571px, the width it was trying to
+  escape. The chassis declares four rows, so an auto-placed deck landed in a
+  cell already spoken for and sat 83px under the picture; five is past the end
+  of the template.
+- **The row pitch is measured from two real cells**, not computed from the
+  ratio. The cell is sized by `aspect-ratio` off a fractional column width and
+  the rounding over three rows shows a sliver of the fourth.
+
+Anything that has to react to the active frame changing chains onto
+`deck._paintWindow` — `updateScrubActiveState` is the one place the tap, the
+arrow key and the autoplay tick already pass through.
+
+**The hero is sized by the copy, not by its column.** Let it take the full 628
+of its track and 3:2 makes it 419 tall against 302 of text, hanging over the
+scrub. It keeps the row's height and takes whatever width that allows, pushed
+to the right of its track — top edge and right edge fixed, bottom level with
+the last line of the copy.
+
 ## Notion / Drive / Website sync
 
 Three systems hold this work. They **nest** rather than mirror — `Drive ⊂ Website ⊂ Notion` — so a project missing from Drive is normal, not drift.

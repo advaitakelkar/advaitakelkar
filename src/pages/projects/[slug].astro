@@ -285,8 +285,19 @@ if (isScarpinPage && !hasImages && scarpinSliders.length > 0) {
    inactive thumbnails with alpha instead of draining them to grey — the
    costume colour IS the character, so grey throws away what the grid is
    for. Two projects, one list; add a slug to widen it. */
-const portraitProjects = ['sups-cards', 'hanma-fam', 'indian-royals'];
+const portraitProjects = ['sups-cards', 'hanma-fam', 'indian-royals', 'architect-x-architects'];
 const isPortraits = portraitProjects.includes(project.id);
+
+/* …and what shape the frames are. Everything above is about the SERIES — one
+   named thing per frame — and holds whether the frames are tall or wide. The
+   phone window is the one part that cannot: nine portraits tile a phone
+   screen, and nine landscapes on the same grid are 125x85 letterboxes with a
+   whole house inside each. So a landscape series gets three wide plates
+   stacked instead, which is the same object turned on its side — a fixed
+   window on the deck, the middle one active and lifted, the others in
+   shadow, no seams anywhere. */
+const landscapeSeries = ['architect-x-architects'];
+const frameShape = landscapeSeries.includes(project.id) ? 'landscape' : 'portrait';
 
 /* The name under a frame, derived from its filename — so the filenames are the
    contract. Three copies of this exist (here, the deck markup below, and the
@@ -370,6 +381,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       data-tab-layout={isTabLayout ? "true" : "false"}
       data-original-card={isOriginalCardPage ? "true" : "false"}
       data-portraits={isPortraits ? "true" : "false"}
+      data-frame={frameShape}
       data-chapters={isChapters ? "true" : "false"}
     >
       
@@ -1705,12 +1717,64 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
        washes the neighbours out towards the background instead of settling
        them behind the centre. Brightness takes them down into shadow, which
        is what sitting under a lifted card looks like. */
-    .project-detail[data-portraits="true"] .deck-grid--mobile-scrub .deck-card-item[data-win]:not([data-win="4"]) img {
+    .project-detail[data-portraits="true"][data-frame="portrait"] .deck-grid--mobile-scrub .deck-card-item[data-win]:not([data-win="4"]) img {
       opacity: 1 !important;
       filter: brightness(0.55) !important;
       transition: filter var(--_tokens---motion--base) ease;
     }
     .project-detail[data-portraits="true"] .deck-grid--mobile-scrub .deck-card-item[data-win="4"] img {
+      opacity: 1 !important;
+      filter: none !important;
+    }
+
+    /* ── The landscape stack ──────────────────────────────────────────────
+       The same window on the same deck, turned on its side. Nine wide plates
+       on the portrait grid are 125x85 each, with a whole house inside — a
+       thumbnail of a photograph nobody can read. Three across the full width
+       are 375 wide instead, which is a picture.
+
+       Everything else is deliberately identical: rows sized from the space
+       the page can spare, no gaps so the three read as one block, the middle
+       one active, the other two in shadow. Only the count and the axis
+       change. */
+    .project-detail[data-portraits="true"][data-frame="landscape"] #deck-grid.deck-grid--mobile-scrub {
+      grid-template-columns: 1fr !important;
+    }
+    /* The middle plate is taller rather than scaled up. A portrait cell is a
+       third of the width, so 1.5x still leaves it inside the screen; a
+       full-width one scaled the same way hangs 94px off each edge, and the
+       part of the active picture you lose is the part you were looking at.
+       Giving its row the extra height lifts it without moving it. */
+    .project-detail[data-portraits="true"][data-frame="landscape"] #deck-grid.deck-grid--mobile-scrub {
+      grid-auto-rows: unset !important;
+      /* Written out as fractions of the same --rr-grid-h the portrait grid
+         divides by three, and for the same reason: `1fr` does not resolve
+         here. The deck carries a 253px bottom padding to clear the fixed
+         card, so its CONTENT box is 240 of the 493 it occupies — fr tracks
+         filled that 240 and the block stopped halfway up the screen. The
+         portrait grid never noticed because it states its rows outright and
+         overflows the padding visibly, which is what these now do too.
+         0.27 / 0.46 / 0.27 puts the active plate at 375x227 — 1.65:1
+         against the render's own 1.46:1, so almost nothing is cropped. */
+      grid-template-rows:
+        calc(var(--rr-grid-h) * 0.27)
+        calc(var(--rr-grid-h) * 0.46)
+        calc(var(--rr-grid-h) * 0.27) !important;
+    }
+    .project-detail[data-portraits="true"][data-frame="landscape"] .deck-grid--mobile-scrub .deck-card-item[data-win="1"] {
+      position: relative;
+      z-index: 2;
+      transition: none;
+    }
+    .project-detail[data-portraits="true"][data-frame="landscape"] .deck-grid--mobile-scrub .deck-card-item[data-win="1"] .deck-card-inner {
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.38), 0 2px 6px rgba(0, 0, 0, 0.22) !important;
+    }
+    .project-detail[data-portraits="true"][data-frame="landscape"] .deck-grid--mobile-scrub .deck-card-item[data-win]:not([data-win="1"]) img {
+      opacity: 1 !important;
+      filter: brightness(0.55) !important;
+      transition: filter var(--_tokens---motion--base) ease;
+    }
+    .project-detail[data-portraits="true"][data-frame="landscape"] .deck-grid--mobile-scrub .deck-card-item[data-win="1"] img {
       opacity: 1 !important;
       filter: none !important;
     }
@@ -1735,6 +1799,12 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   @media (min-width: 700px) and (max-width: 1023.98px) {
     .project-detail[data-portraits="true"] .deck-grid--mobile-scrub {
       grid-template-columns: repeat(4, 1fr) !important;
+    }
+    /* Two across for wide frames, on the same reasoning that took portraits
+       from six to four: the rail is about 190px, and a landscape thumbnail a
+       quarter of that is 45px of a photograph of a house. */
+    .project-detail[data-portraits="true"][data-frame="landscape"] .deck-grid--mobile-scrub {
+      grid-template-columns: repeat(2, 1fr) !important;
     }
     /* Mobile mirrors the desktop scroll rule: only the description text
        (first paragraph) scrolls; the prompt box, logos and the
@@ -5852,6 +5922,143 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
        selector gets this page's data-astro-cid-*, and .rr__stage carries the
        component's instead — the rule is emitted and never matches. */
   }
+
+  /* ── A landscape series ───────────────────────────────────────────────
+     Every frame box on this page is portrait by default — the deck card is
+     2:3 "the aspect ratio of playing cards", the filmstrip is 3:4, and the
+     active frame is 2:3 — which is right for a face and wrong for a
+     photograph of a house: a 1.46:1 render in a 2:3 box is cropped to the
+     middle third of itself, and on the desktop page that was a 408x613
+     slice of a building 2432 wide.
+
+     One ratio, stated once, on every box that holds one of these frames.
+     3:2 rather than the renders' own 1.462:1, because 3:2 is a real camera
+     frame and the 2% left over is taken off the sky by `object-fit: cover`.
+
+     Last in the file on purpose, and the attribute is DOUBLED — the same
+     trick `.tap-44.tap-44` uses in tokens.css. Being last and `!important`
+     was not enough: the rule that actually held the deck thumbnail at 2:3 is
+     `.project-detail[data-is-card="true"]:not([data-tab-layout="true"])
+     .deck-grid--mobile-scrub .deck-card-item`, and its `:not()` counts, so
+     it outranked a single `[data-frame]` by one. The thumbnails stayed
+     portrait while the active frame — which had no such competitor — went
+     landscape, which is the confusing half-applied state this avoids. */
+  .project-detail[data-frame="landscape"][data-frame="landscape"] .deck-card-item,
+  .project-detail[data-frame="landscape"][data-frame="landscape"] .deck-grid--mobile-scrub .deck-card-item,
+  .project-detail[data-frame="landscape"][data-frame="landscape"] .deck-grid--mobile-scrub .deck-card-inner,
+  .project-detail[data-frame="landscape"][data-frame="landscape"] .deck-grid--mobile-scrub .deck-card-inner img,
+  .project-detail[data-frame="landscape"][data-frame="landscape"] .project-detail__active-wrap {
+    aspect-ratio: 3 / 2 !important;
+  }
+  /* Out of the left column and under the whole page — the script above does
+     the move; this sizes what lands there.
+
+     `grid-column: 1 / -1` is the load-bearing line. `.project-dashboard-wrap`
+     is `display: contents`, so a deck moved out of the content grid does not
+     become a block in the page: it becomes a direct item of
+     `.project-detail`'s own two-column grid, and it sat in column one at
+     571px — the same width it was trying to escape.
+
+     Five a row, fixed rather than `auto-fill`: 1078 across gives a 211x140
+     thumbnail, which is a photograph of a house you can actually read, and a
+     fixed count keeps the rows square with each other at every width in the
+     band instead of reflowing from seven to five as the window narrows. */
+  @media (min-width: 1024px) {
+    /* The two columns, now that the deck is not in one of them. The copy took
+       571 and the picture was left 452 — the wrong way round on a page whose
+       subject is a photograph.
+
+       The rule goes on `.project-detail`, NOT on `.project-content-grid--card`:
+       that element is `display: contents`, so its own
+       `grid-template-columns` is inert and the real two-column grid is the
+       article around it. Both the wrapper and the content grid are contents
+       here, which is also why the deck lands as a grid item when it is moved
+       out — see `grid-column` below. */
+    .project-detail[data-frame="landscape"][data-frame="landscape"] {
+      grid-template-columns: minmax(0, 4fr) minmax(0, 6fr) !important;
+    }
+    /* The picture is sized by the COPY, not by the column. Let it take the
+       full 628 of its track and its 3:2 makes it 419 tall against 302 of
+       text — it then hangs 83px over the scrub below, because the chassis's
+       row was laid out for the shorter of the two.
+
+       So it keeps the row's height and takes whatever width that allows,
+       pushed to the right of its track: the top edge and the right edge stay
+       where they are, and the bottom lines up with the last line of the copy
+       beside it. Nothing overlaps and the two columns read as one block. */
+    .project-detail[data-frame="landscape"][data-frame="landscape"] .project-col-right,
+    .project-detail[data-frame="landscape"][data-frame="landscape"] .project-slider-wrapper {
+      align-items: flex-end !important;
+      justify-content: flex-end !important;
+    }
+    .project-detail[data-frame="landscape"][data-frame="landscape"] .project-detail__active-wrap {
+      width: auto !important;
+      margin-left: auto !important;
+    }
+    .project-detail[data-frame="landscape"][data-frame="landscape"] .deck-grid--mobile-scrub {
+      grid-column: 1 / -1;
+      /* Row five, explicitly. `.project-detail`'s template declares four
+         rows, so a deck appended as the last child was auto-placed into a
+         cell that was already spoken for and sat 83px UNDER the picture.
+         Five is past the end of the template, which creates one implicit row
+         below everything the chassis laid out, whatever it put there. */
+      grid-row: 5;
+      /* Six across, three rows deep, and it SCROLLS rather than running the
+         page down: twenty-four houses at four rows is most of a second
+         screen. The height is written by script, because three rows of a
+         ratio-sized cell is a number CSS cannot reach — it needs the deck's
+         own width, which is only knowable as `100%` of a box whose height
+         this would be setting. */
+      grid-template-columns: repeat(6, 1fr) !important;
+      gap: 6px !important;
+      overflow-y: hidden !important;
+      scroll-behavior: smooth;
+      margin-top: var(--_tokens---space--small);
+    }
+    /* Only the row the active frame is in is lit. The deck is scrolled so
+       that row is the top one, so what you read is: this row is where you
+       are, the two under it are what comes next. Same brightness step as the
+       phone window, for the same reason — the page behind is a pale scheme
+       colour and dropping opacity washes frames out towards it instead of
+       settling them back. */
+    .project-detail[data-frame="landscape"][data-frame="landscape"] .deck-card-item img {
+      filter: brightness(0.55);
+      transition: filter var(--_tokens---motion--base) ease;
+    }
+    .project-detail[data-frame="landscape"][data-frame="landscape"] .deck-card-item.is-live img {
+      filter: none;
+    }
+  }
+  /* The fullscreen deck too. Its cards are `24vw x 62dvh` — a playing card,
+     which is what the portrait series is — and a landscape render inside one
+     is `object-fit: cover`d down to the middle third of itself. Here the card
+     takes the renders' OWN ratio, 2432x1664, which reduces to 19:13, so cover
+     crops nothing at all and the whole house is in the frame.
+
+     Everything else about the deck is untouched: the same scale, the same
+     grayscale and blur on the neighbours, the same snap. Only the card is a
+     different shape. */
+  .project-detail[data-frame="landscape"][data-frame="landscape"] .lightbox-deck__item {
+    width: 34vw !important;
+    height: auto !important;
+    aspect-ratio: 19 / 13 !important;
+  }
+  .project-detail[data-frame="landscape"][data-frame="landscape"] .lightbox-deck {
+    padding-inline: calc(50% - 17vw) !important;
+  }
+
+  /* The phone window sets its own row heights, so the cells there must NOT
+     hold a ratio — they fill the row they were given, exactly as the
+     portrait grid's do. This undoes the line above for those three only. */
+  @media (max-width: 699.98px) {
+    .project-detail[data-frame="landscape"][data-frame="landscape"] #deck-grid .deck-card-item[data-win],
+    .project-detail[data-frame="landscape"][data-frame="landscape"] #deck-grid .deck-card-item[data-win] .deck-card-inner,
+    .project-detail[data-frame="landscape"][data-frame="landscape"] #deck-grid .deck-card-item[data-win] .deck-card-inner img {
+      aspect-ratio: auto !important;
+      height: 100% !important;
+      min-height: 0 !important;
+    }
+  }
 </style>
 
 <script>
@@ -7755,19 +7962,24 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     const deck = document.getElementById('deck-grid');
     if (!detail || !deck) return;
     const phone = () => window.matchMedia('(max-width: 699.98px)').matches;
+    /* Nine cells for a grid of portraits, three for a stack of landscapes —
+       the same window, sized to the shape of the frame. Odd either way,
+       because the whole idea is that the middle one is the active one. */
+    const SIZE = detail.getAttribute('data-frame') === 'landscape' ? 3 : 9;
+    const MID = (SIZE - 1) / 2;
 
     const paint = () => {
       const items = Array.from(deck.querySelectorAll<HTMLElement>('.deck-card-item'));
       const n = items.length;
       if (!n) return;
-      if (!phone() || n < 9) {
+      if (!phone() || n < SIZE) {
         items.forEach(it => { it.removeAttribute('data-win'); it.style.order = ''; });
         return;
       }
       const active = items.findIndex(it => it.classList.contains('is-active'));
       const centre = active < 0 ? 0 : active;
       const win = new Map<HTMLElement, number>();
-      for (let k = 0; k < 9; k++) win.set(items[(centre - 4 + k + n * 9) % n], k);
+      for (let k = 0; k < SIZE; k++) win.set(items[(centre - MID + k + n * SIZE) % n], k);
       items.forEach(it => {
         const k = win.get(it);
         if (k === undefined) { it.removeAttribute('data-win'); it.style.order = ''; }
@@ -7787,6 +7999,92 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
   initPortraitWindow();
   document.addEventListener('astro:after-swap', initPortraitWindow);
+
+  /* ── A landscape series puts its index under the page, not beside it ──
+     The card chassis keeps the deck inside the left column, which is 123px
+     wide on this layout — fine for a column of portrait thumbnails, useless
+     for wide ones: two across at 59px is a photograph of a house 40px tall.
+     Below the two columns it has the full 1078 instead, and it reads as the
+     contact sheet it is rather than as furniture in the margin.
+
+     Moved in script rather than restructured in CSS. Standing it up as a
+     full-width grid item means `display: contents` on the two wrappers and
+     an explicit column for every remaining child — the tab layout does that
+     and it is a lot of rules to keep in step with a chassis shared by
+     fourteen projects. Out of the grid entirely, the deck is simply the next
+     block on the page, and `sendHome()` puts it back below 1024. */
+  function initLandscapeScrub() {
+    const detail = document.querySelector<HTMLElement>('.project-detail[data-frame="landscape"]');
+    const deck = document.getElementById('deck-grid');
+    if (!detail || !deck) return;
+    /* `--card` explicitly. There is more than one `.project-content-grid` in
+       this file — the card chassis and the standard one — and only the card
+       grid is the one this page renders; querying the base class picked up a
+       zero-height sibling, and the deck was appended after THAT, inside a
+       narrower wrapper, 571px wide instead of the page's 1078. */
+    const grid = detail.querySelector<HTMLElement>('.project-content-grid--card')
+      ?? detail.querySelector<HTMLElement>('.project-content-grid');
+    if (!grid) return;
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const place = () => {
+      if (mq.matches) {
+        rememberHome(deck);
+        if (deck.parentElement !== grid.parentElement || deck.previousElementSibling !== grid) {
+          grid.after(deck);
+        }
+      } else {
+        sendHome(deck);
+      }
+    };
+    /* Six across, three rows showing, and the active row pinned to the top.
+       The deck does not loop and does not re-order: every frame stays where
+       it is and the gallery scrolls under the window, so the grid is a fixed
+       thing you move through rather than a belt that moves past you.
+       `initDeckLoop` is already skipped on these pages, so there are no
+       clones to confuse the arithmetic. */
+    const COLS = 6, ROWS = 3;
+    const syncRows = () => {
+      const items = Array.from(deck.querySelectorAll<HTMLElement>('.deck-card-item'));
+      if (!items.length) return;
+      if (!mq.matches) {
+        deck.style.removeProperty('max-height');
+        deck.scrollTop = 0;
+        items.forEach(it => it.classList.remove('is-live'));
+        return;
+      }
+      /* Row pitch measured from two real cells rather than computed from the
+         ratio: the cell is sized by `aspect-ratio` off a fractional column
+         width, and the rounding difference over three rows is enough to show
+         a sliver of the fourth. */
+      const a = items[0].getBoundingClientRect();
+      const b = items[COLS]?.getBoundingClientRect();
+      const pitch = b ? (b.top - a.top) : a.height;
+      if (!pitch) return;
+      deck.style.maxHeight = `${Math.round(pitch * ROWS - (pitch - a.height))}px`;
+      const active = items.findIndex(it => it.classList.contains('is-active'));
+      const row = Math.floor(Math.max(active, 0) / COLS);
+      /* Clamped, because the last rows cannot come to the top without
+         leaving blank space under them. */
+      const maxRow = Math.max(0, Math.ceil(items.length / COLS) - ROWS);
+      deck.scrollTop = Math.min(row, maxRow) * pitch;
+      items.forEach((it, i) => it.classList.toggle('is-live', Math.floor(i / COLS) === row));
+    };
+
+    if (!(deck as any)._lsWired) {
+      (deck as any)._lsWired = true;
+      mq.addEventListener('change', () => { place(); syncRows(); });
+      /* Chained onto the window painter rather than wired to each of the tap,
+         the arrow key and the autoplay tick — `updateScrubActiveState` is the
+         one place all three already pass through. */
+      const prev = (deck as any)._paintWindow;
+      (deck as any)._paintWindow = () => { prev?.(); syncRows(); };
+      window.addEventListener('resize', syncRows, { passive: true });
+    }
+    place();
+    requestAnimationFrame(syncRows);
+  }
+  initLandscapeScrub();
+  document.addEventListener('astro:after-swap', initLandscapeScrub);
 
 
 
