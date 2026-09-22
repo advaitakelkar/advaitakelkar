@@ -1508,6 +1508,86 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     }
   }
 
+  /* The bottom card's rows, given room to breathe on a portrait page. Five
+     pixels between the name, the pills, the subtitle and the actions packs
+     four different kinds of line into one block; at eleven they read as four
+     things. Scoped to portraits — the other card pages put a scrolling
+     description in here and need the tighter rhythm to fit it. */
+  @media (max-width: 699.98px) {
+    .project-detail[data-portraits="true"] .project-phone-card {
+      row-gap: 11px !important;
+      padding: 12px 12px 12px !important;
+    }
+  }
+
+  /* ── The portrait deck on a phone: a fixed 3x3, active in the middle ────
+     Nine cells, never more, and the active frame is always the centre one.
+     Stepping forward does not move a highlight around a scrolling grid — it
+     moves the grid under a fixed centre, so the thing you are looking at is
+     always in the same place and its neighbours are the four before and the
+     four after it.
+
+     The centre is 10% larger and sits over its neighbours, which is why the
+     grid has to allow overflow: at scale(1.1) it laps about 5px onto each
+     one, and a clipped grid would cut that off square.
+
+     The window wraps, so there is no start or end to fall off — which is what
+     the cloned infinite scroll this replaces was for. initDeckLoop is skipped
+     on these pages for that reason: nine cells taken modulo the set need no
+     copies of it. */
+  @media (max-width: 699.98px) {
+    .project-detail[data-portraits="true"] .deck-grid--mobile-scrub {
+      display: grid !important;
+      grid-template-columns: repeat(3, 1fr) !important;
+      grid-auto-rows: auto !important;
+      gap: 6px !important;
+      max-height: none !important;
+      overflow: visible !important;
+      align-content: start !important;
+    }
+    /* Only the nine in the window are drawn. The rest stay in the DOM — they
+       carry the click wiring and the active class everything else reads. */
+    .project-detail[data-portraits="true"] .deck-grid--mobile-scrub .deck-card-item {
+      display: none !important;
+    }
+    .project-detail[data-portraits="true"] .deck-grid--mobile-scrub .deck-card-item[data-win] {
+      display: block !important;
+    }
+    .project-detail[data-portraits="true"] .deck-grid--mobile-scrub .deck-card-item[data-win="4"] {
+      position: relative;
+      z-index: 2;
+      transform: scale(1.28);
+      transition: transform var(--_tokens---motion--base) ease;
+    }
+    /* A shadow under the centre, so the 10% reads as the card being lifted
+       off the other eight rather than just drawn larger than them. Carried on
+       the inner, which is the rounded box — on the item it would be a square
+       shadow behind a rounded picture.
+
+       !important because the filmstrip rule above strips the inner's border,
+       radius and shadow with !important of its own — right for a row of
+       frames butted edge to edge, wrong for the one card meant to sit above
+       the others. */
+    .project-detail[data-portraits="true"] .deck-grid--mobile-scrub .deck-card-item[data-win="4"] .deck-card-inner {
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.38), 0 2px 6px rgba(0, 0, 0, 0.22) !important;
+    }
+    /* The other eight go DARKER, not fainter. The shared portrait rule recedes
+       them on alpha, which works against the stage's own black but not here:
+       the page behind this grid is a pale scheme colour, so dropping opacity
+       washes the neighbours out towards the background instead of settling
+       them behind the centre. Brightness takes them down into shadow, which
+       is what sitting under a lifted card looks like. */
+    .project-detail[data-portraits="true"] .deck-grid--mobile-scrub .deck-card-item[data-win]:not([data-win="4"]) img {
+      opacity: 1 !important;
+      filter: brightness(0.55) !important;
+      transition: filter var(--_tokens---motion--base) ease;
+    }
+    .project-detail[data-portraits="true"] .deck-grid--mobile-scrub .deck-card-item[data-win="4"] img {
+      opacity: 1 !important;
+      filter: none !important;
+    }
+  }
+
   /* compact — one column, because the image column is hidden here anyway.
      The card layout keeps a two-column content grid down to 375, but
      .project-col-right is itself hidden below 700, so the right half is
@@ -5794,6 +5874,9 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       mobileScrub?.querySelectorAll('.deck-card-item').forEach(btn => {
         btn.classList.toggle('is-active', parseInt(btn.getAttribute('data-index') || '-1', 10) === currentIdx);
       });
+      /* A portrait page re-centres its 3x3 window on the new active frame.
+         Installed by initPortraitWindow; absent everywhere else. */
+      (deck as any)._paintWindow?.();
     };
 
     // ── Name label: set word-by-word spans ─────────────────────────────────
@@ -7089,6 +7172,10 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   function initDeckLoop() {
     const deck = document.getElementById('deck-grid');
     if (!deck || (deck as any)._looped) return;
+    /* A portrait page draws a fixed 3x3 window instead — nine cells taken
+       modulo the set, which wraps on its own and needs no cloned copies of
+       the deck to scroll through. See initPortraitWindow. */
+    if (document.querySelector('.project-detail[data-portraits="true"]')) return;
     const phone = () => window.matchMedia('(max-width: 699.98px)').matches;
 
     const originals = () =>
@@ -7343,6 +7430,53 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
   initRendersPeople();
   document.addEventListener('astro:after-swap', initRendersPeople);
+
+  /* ── The portrait deck's 3x3 window ─────────────────────────────────────
+     Nine cells around the active frame, which always sits in the middle. The
+     set is walked modulo its length, so the window wraps at either end and
+     there is no first or last cell to run out of.
+
+     Nothing is added to or removed from the DOM: every item stays where it
+     is, carrying the click wiring and the active class the rest of the page
+     reads, and the nine in view are marked with data-win (0-8, also their
+     flex order) while the others are hidden by CSS. */
+  function initPortraitWindow() {
+    const detail = document.querySelector('.project-detail[data-portraits="true"]');
+    const deck = document.getElementById('deck-grid');
+    if (!detail || !deck) return;
+    const phone = () => window.matchMedia('(max-width: 699.98px)').matches;
+
+    const paint = () => {
+      const items = Array.from(deck.querySelectorAll<HTMLElement>('.deck-card-item'));
+      const n = items.length;
+      if (!n) return;
+      if (!phone() || n < 9) {
+        items.forEach(it => { it.removeAttribute('data-win'); it.style.order = ''; });
+        return;
+      }
+      const active = items.findIndex(it => it.classList.contains('is-active'));
+      const centre = active < 0 ? 0 : active;
+      const win = new Map<HTMLElement, number>();
+      for (let k = 0; k < 9; k++) win.set(items[(centre - 4 + k + n * 9) % n], k);
+      items.forEach(it => {
+        const k = win.get(it);
+        if (k === undefined) { it.removeAttribute('data-win'); it.style.order = ''; }
+        else { it.setAttribute('data-win', String(k)); it.style.order = String(k); }
+      });
+    };
+
+    /* Repainted from wherever the active frame changes — a tap, an arrow key,
+       the autoplay tick. updateScrubActiveState is the one place all of those
+       pass through, so it calls this rather than each of them remembering to. */
+    (deck as any)._paintWindow = paint;
+    if (!(deck as any)._winWired) {
+      (deck as any)._winWired = true;
+      window.matchMedia('(max-width: 699.98px)').addEventListener('change', paint);
+    }
+    paint();
+  }
+  initPortraitWindow();
+  document.addEventListener('astro:after-swap', initPortraitWindow);
 
 
 
