@@ -5994,6 +5994,14 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     .project-detail[data-frame="landscape"][data-frame="landscape"] .project-detail__active-wrap {
       width: auto !important;
       margin-left: auto !important;
+      /* Capped by the column as well as by the row. Height alone is not a
+         cap: the frame takes the row's height and 3:2 turns that into width,
+         so a long description made a tall row, and a tall row made a picture
+         wider than its track — it spilled left across the copy and sat on
+         top of the words. Whichever of the two runs out first now wins, and
+         the picture is the largest 3:2 that fits beside the text. */
+      max-width: 100% !important;
+      max-height: 100% !important;
     }
     .project-detail[data-frame="landscape"][data-frame="landscape"] .deck-grid--mobile-scrub {
       grid-column: 1 / -1;
@@ -6038,13 +6046,40 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
      Everything else about the deck is untouched: the same scale, the same
      grayscale and blur on the neighbours, the same snap. Only the card is a
      different shape. */
+  /* ── The fullscreen deck, for a series ────────────────────────────────
+     The cards were sized in viewport units — `24vw x 62dvh` — which left a
+     760px band with a 395px picture sitting in the middle of it and empty
+     screen above and below. They are sized by the BAND now: as tall as the
+     space between the header and the name allows, width following the
+     ratio. Nothing else about the deck changes — same snap, same scale on
+     the centre, same grayscale and blur on the neighbours.
+
+     92% rather than 100% because the centre card is scaled 1.08: at full
+     height it would be cropped top and bottom by the band it lives in, and
+     0.92 x 1.08 lands at 0.994. */
+  .project-detail[data-portraits="true"] .lightbox-deck {
+    align-items: flex-start !important;
+  }
+  .project-detail[data-portraits="true"] .lightbox-deck__item {
+    height: 92% !important;
+    width: auto !important;
+    aspect-ratio: 2 / 3 !important;
+    /* The centre card is scaled 1.08, and a scale about the middle grows in
+       BOTH directions: top-anchored at 92% it still reached 28px above the
+       band and slid under the header. From the top edge it can only grow
+       down, into the space 92% left for it. */
+    transform-origin: top center;
+  }
+  /* The landscape series takes the renders' OWN ratio — 2432x1664 reduces to
+     19:13 — so `object-fit: cover` crops nothing and the whole house is in
+     the frame. A 1.46:1 render in the 2:3 card above is the middle third of
+     itself. The padding follows the card's width so the neighbours still
+     peek by the same amount. */
   .project-detail[data-frame="landscape"][data-frame="landscape"] .lightbox-deck__item {
-    width: 34vw !important;
-    height: auto !important;
     aspect-ratio: 19 / 13 !important;
   }
   .project-detail[data-frame="landscape"][data-frame="landscape"] .lightbox-deck {
-    padding-inline: calc(50% - 17vw) !important;
+    padding-inline: calc(50% - 34vw) !important;
   }
 
   /* The phone window sets its own row heights, so the cells there must NOT
