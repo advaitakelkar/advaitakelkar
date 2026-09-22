@@ -279,6 +279,12 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
     justify-content: center;
     padding: 0 0 8px;
     box-sizing: border-box;
+    /* Hung from the bar, whichever side of it the script picked. Above, the
+       picture sits on the bar's top edge; below, under its bottom edge. */
+  }
+  .rr--cards .project-card__hover-preview[data-rrp-side="below"] {
+    align-items: flex-start;
+    padding: 8px 0 0;
     opacity: 0;
     pointer-events: none;
     transition: opacity var(--_tokens---motion--fast) ease;
@@ -528,20 +534,42 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
     const preview = document.getElementById('desktop-preview');
     if (!preview) return;
 
+    /* Above the bar or below it, whichever side has more room.
+
+       It only ever went above, which is right for the first chapter and wrong
+       for the rest: a bar near the top of the window has a few hundred pixels
+       over it and most of the screen under it, and the picture was drawn into
+       the smaller of the two. It is the same picture either way, so the only
+       question is which gap it fits better in.
+
+       Both gaps are measured from the bar's own edges with the same 10px
+       breathing room, and the top one also clears 64px for the breadcrumb.
+       The bar's rect is clamped to the window first: a bar below the fold is
+       further from the top of the viewport than the viewport is tall, and
+       measuring to it gave a 1004px picture on a 900px screen. */
+    const GAP = 10;
+    const HEAD = 64;
     const placeOver = (strip: HTMLElement) => {
       const r = strip.getBoundingClientRect();
-      /* The space between the top of the viewport and the bar, less a margin
-         so the picture never touches the breadcrumb — and clamped to the
-         window. A bar below the fold is further from the top of the viewport
-         than the viewport is tall, and measuring to it gave a 1004px picture
-         on a 900px screen. */
-      const top = 64;
-      const floor = Math.min(r.top, window.innerHeight);
-      const h = Math.max(120, floor - top - 10);
+      const vh = window.innerHeight;
+      const barTop = Math.min(Math.max(r.top, 0), vh);
+      const barBottom = Math.min(Math.max(r.bottom, 0), vh);
+
+      const roomAbove = barTop - HEAD - GAP;
+      const roomBelow = vh - barBottom - GAP * 2;
+      const below = roomBelow > roomAbove;
+
+      const top = below ? barBottom + GAP : HEAD;
+      const h = Math.max(120, below ? roomBelow : roomAbove);
+
       preview.style.setProperty('--rrp-x', `${Math.round(r.left)}px`);
       preview.style.setProperty('--rrp-w', `${Math.round(r.width)}px`);
-      preview.style.setProperty('--rrp-top', `${top}px`);
+      preview.style.setProperty('--rrp-top', `${Math.round(top)}px`);
       preview.style.setProperty('--rrp-h', `${Math.round(h)}px`);
+      /* Which end of that box the picture sits at — against the bar, never
+         floating in the middle of the gap with the bar it came from a hundred
+         pixels away. */
+      preview.dataset.rrpSide = below ? 'below' : 'above';
     };
 
     cards.querySelectorAll<HTMLElement>('.rrc__strip').forEach(strip => {

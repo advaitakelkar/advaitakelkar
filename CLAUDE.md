@@ -976,6 +976,20 @@ shuffled, is not a shorter version of an argument that runs a to i. The
 attribute opts a strip out; without it on the projects list, cards there still
 prune to five.
 
+**The preview opens on whichever side of the bar has more room.** It only ever
+went above, which is right for the first chapter and wrong for the rest: a bar
+near the top of the window has a few hundred pixels over it and most of the
+screen under it, and the picture was drawn into the smaller of the two — often
+hitting the 120px floor. `placeOver()` measures both gaps from the bar's own
+edges, with 10px of breathing room either side and 64px cleared at the top for
+the breadcrumb, and writes `data-rrp-side` so the picture hangs off the bar
+rather than floating in the middle of the gap. At 1440×900 a bar 10px from the
+top now gets 761px below it where it got 120 above.
+
+Measure the bar's rect **clamped to the window** first. A bar below the fold is
+further from the top of the viewport than the viewport is tall, and measuring
+to it gave a 1004px picture on a 900px screen.
+
 `.project-card`'s own styles are NOT loaded here — they ship with
 `ProjectStackCard`, which is not on a detail page — so the class is carried
 for the binding only and the layout is `.rrc__*`. The one rule that had to be
