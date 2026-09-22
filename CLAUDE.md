@@ -964,9 +964,16 @@ row, which was worse in a different way: every other thing in that row is a
 link that runs a search, and a face is not one.
 
 **`sideImage:` puts one fixed picture beside the copy, 1024 and up only.** It
-never changes and it is not part of the rail — the rail is the work and it
-moves, this is a still to read the text against. It is one of the frames
-already in the rail, so it is marked decorative with an empty `alt`.
+never changes, and **it is deliberately not one of the `views`** — the rail is
+the work and it moves; this is the one still that does not. Listing it in both
+places put the same picture on the page twice, once fixed and once scrolling
+past in the rail.
+
+So the side image is held out of `views` on all four: CARLO, SHLF and CONCRT
+use their `cover.webp`, XBKC the balcony. **Pulling a view out also pulls its
+room** — XBKC's Balcony was a room of one view, so that tab went with it, and
+the page reads 7 rooms · 12 views where it read 8 · 13. It is marked
+decorative with an empty `alt`.
 
 **The still is absolutely positioned, not a grid cell.** It is 345px tall
 against about 200px of copy, so whichever grid row it sat in grew to its
