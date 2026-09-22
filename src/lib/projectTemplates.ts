@@ -10,8 +10,22 @@
  *
  * Play Pod was in this set and is not an AI series, so it renders with the
  * tabs template alongside the other freelance work.
+ *
+ * ── Project Template 01 ──────────────────────────────────────────────────
+ * One full-width column: the copy, then the work under it. A tab per room if
+ * the project has rooms, one big stage, and a rail of covers along the
+ * bottom. Built for XBKC, where a flat is a set of rooms and each room was
+ * rendered several times — but the shape suits any project that is one
+ * object seen a handful of ways, which is why CARLO, SHLF and CONCRT use it
+ * too. Those name no rooms, so the tab row drops out and the rail is the
+ * whole navigation. See RenderRooms.astro.
+ *
+ * `renders` is the internal flag; **'project-01' is the name to write in a
+ * project's YAML**, the same way 'ai-works' is written for `cards`. Both
+ * spellings work — XBKC still says 'renders'.
  */
-export type ProjectTemplate = 'auto' | 'tabs' | 'cards' | 'ai-works' | 'chapters' | 'renders';
+export type ProjectTemplate =
+  | 'auto' | 'tabs' | 'cards' | 'ai-works' | 'chapters' | 'renders' | 'project-01';
 
 const aiWorksProjects = new Set([
   'alt-verse',
@@ -43,6 +57,8 @@ export function projectTemplate(slug: string, category?: string, template?: Proj
   if (template === 'auto') template = undefined;
   // 'ai-works' is the written name; `cards` is what the page reads.
   if (template === 'ai-works') template = 'cards';
+  // 'project-01' is the written name; `renders` is what the page reads.
+  if (template === 'project-01') template = 'renders';
 
     /* ── renders ────────────────────────────────────────────────────────
      A visualisation project is not a set of pictures, it is a set of ROOMS,

@@ -901,14 +901,47 @@ renders them as dashed outlines rather than faking one. `publicFileExists()`
 gates every film, methodology sheet and render, so absent assets drop their
 whole section instead of 404-ing.
 
-## The renders template
+## Project Template 01 — the renders template
+
+**`renders` is the internal flag; `project-01` is the name to write in a
+project's YAML**, the same arrangement as `cards` / `ai-works`. Both spellings
+work — XBKC still says `renders`, and nothing needs changing.
 
 A visualisation project is not a set of pictures. It is a set of **rooms**,
 each rendered from one or more **views**, and each view rendered several
 times. Laid out flat, XBKC read as fifty-one works for one flat.
 
-`template: "renders"` in the YAML, and the images go in `views:` — each with
+`template: "project-01"` in the YAML, and the images go in `views:` — each with
 the `room` it belongs to, the chosen `image`, and the `variations` behind it.
+
+### A project with no rooms
+
+The chassis — one full-width column, copy above, one big stage, a rail of
+covers under it — suits any project that is **one object seen a handful of
+ways**, not only a flat. CARLO, SHLF and CONCRT use it on that basis: they are
+artworks, five or six frames each, and they were previously on the `tabs`
+template with nothing to put in the tabs, which showed as a tab row that never
+appeared.
+
+When **no** view names a `room`, three things change, all of them in
+`RenderRooms.astro` off one `hasRooms` flag:
+
+- **The tab row is dropped whole.** Otherwise it renders as All plus a single
+  tab named after the project — two controls doing one job.
+- **The line under the picture counts views** (`View 03`) instead of naming a
+  room. In All the line normally gives the room; with one implicit room that
+  is the project's own name repeated under every frame, which is a caption
+  that never changes.
+- **The rail is not shuffled.** All reshuffles its covers on every load, and
+  the reason is length: thirteen views in a fixed order leaves the last four
+  unseen. Six is not that problem, and what six frames have instead is a
+  written sequence — cover, then 01 to 05, the order the work was made and
+  photographed in. Shuffling gains nothing and throws that away.
+
+**The cover has to be listed as a view.** With `views` set, `allImages` is the
+views alone — `coverImage` is no longer prepended — so a project converted
+from `multiImage` loses its cover from the gallery unless it is the first
+view. All three carry it as view one.
 `src/components/RenderRooms.astro` is the whole template. Three controls,
 each answering a different question:
 

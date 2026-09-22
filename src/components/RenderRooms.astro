@@ -28,7 +28,16 @@ export interface Props {
 const { views, name } = Astro.props;
 
 /* Rooms in the order they first appear. A view with no room named falls into
-   one called after the project, so a half-filled YAML still renders. */
+   one called after the project, so a half-filled YAML still renders.
+
+   A project where NO view names a room is not a set of rooms — it is one set
+   of pictures. CARLO, SHLF and CONCRT are artworks, not flats: they have five
+   or six frames of one object and nowhere to go between them. For those the
+   tab row is dropped entirely rather than shown as All plus a single tab
+   named after the project, which is two controls doing one job, and the line
+   under the picture counts views instead of naming a room it would otherwise
+   repeat under every frame. */
+const hasRooms = views.some(v => !!v.room);
 const rooms: string[] = [];
 for (const v of views) {
   const r = v.room || name;
@@ -37,26 +46,30 @@ for (const v of views) {
 const indexed = views.map((v, i) => ({
   i,
   room: v.room || name,
-  label: v.label || v.room || name,
+  label: v.label || v.room || (hasRooms ? name : `View ${String(i + 1).padStart(2, '0')}`),
   image: v.image,
   variations: v.variations ?? [],
 }));
 const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
 ---
 
-<section class="rr" data-rr aria-label={`${name} — rooms`}>
-  <!-- Rooms. All first, as a mark rather than a word — it is not a room. -->
-  <div class="rr__tabs" role="tablist" aria-label="Rooms">
-    <button class="rr__tab rr__tab--all is-active" role="tab" type="button" data-rr-room="all" aria-selected="true" aria-label="All rooms">
-      <Icon name="arrow" />
-    </button>
-    {rooms.map(r => (
-      <button class="rr__tab" role="tab" type="button" data-rr-room={r} aria-selected="false">
-        <span>{r}</span>
-        <span class="rr__tab-n">{indexed.filter(v => v.room === r).length}</span>
+<section class="rr" data-rr data-rr-rooms={hasRooms ? "true" : "false"} aria-label={hasRooms ? `${name} — rooms` : `${name} — views`}>
+  <!-- Rooms. All first, as a mark rather than a word — it is not a room.
+       Dropped whole when no view names a room: there is nothing to choose
+       between, and the rail below is already the way through the set. -->
+  {hasRooms && (
+    <div class="rr__tabs" role="tablist" aria-label="Rooms">
+      <button class="rr__tab rr__tab--all is-active" role="tab" type="button" data-rr-room="all" aria-selected="true" aria-label="All rooms">
+        <Icon name="arrow" />
       </button>
-    ))}
-  </div>
+      {rooms.map(r => (
+        <button class="rr__tab" role="tab" type="button" data-rr-room={r} aria-selected="false">
+          <span>{r}</span>
+          <span class="rr__tab-n">{indexed.filter(v => v.room === r).length}</span>
+        </button>
+      ))}
+    </div>
+  )}
 
   <div class="rr__body">
     <!-- The work. -->
@@ -109,7 +122,11 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
       </button>
     </span>
   </div>
-  <p class="rr__total">{rooms.length} rooms · {views.length} views · {totalTakes} frames</p>
+  <p class="rr__total">
+    {hasRooms && <>{rooms.length} rooms · </>}
+    {views.length} views
+    {totalTakes > views.length && <> · {totalTakes} frames</>}
+  </p>
 </section>
 
 <style is:global>
@@ -343,13 +360,22 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
        sequence the work was made in, and that one means something.
 
        Shuffled once per load, not per click, so leaving All and coming back
-       does not move the ground under you. */
+       does not move the ground under you.
+
+       A project with no rooms is NOT shuffled. The argument for shuffling is
+       that thirteen views in a fixed order leaves the last four unseen — that
+       is a problem of length, and CARLO has six. What those six have instead
+       is a written sequence, 01 to 05 behind the cover, which is the order
+       the work was made and photographed in. Shuffling six pictures gains
+       nothing and throws that away. */
     const rail = root.querySelector<HTMLElement>('[data-rr-rail]');
     const naturalOrder = covers.slice();
     const allOrder = covers.slice();
-    for (let i = allOrder.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [allOrder[i], allOrder[j]] = [allOrder[j], allOrder[i]];
+    if (root.dataset.rrRooms === 'true') {
+      for (let i = allOrder.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [allOrder[i], allOrder[j]] = [allOrder[j], allOrder[i]];
+      }
     }
 
     /* Which take of each view a ROOM opens on — one roll per view, kept for
@@ -400,8 +426,13 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
       /* The room in All, the view number inside a room — the same rule the
          thumbnails follow, so the line and the caption under the picture you
          are on always say the same thing. The full name stays on aria-label,
-         where a screen reader still needs to tell five Living views apart. */
-      const label = (room === 'all' ? cov?.dataset.room : cov?.dataset.short) ?? '';
+         where a screen reader still needs to tell five Living views apart.
+
+         A project with no rooms has no room to name, and naming the project
+         under every frame is a caption that never changes — so it falls back
+         to the view number, which is the one thing that does. */
+      const named = root.dataset.rrRooms === 'true';
+      const label = (room === 'all' && named ? cov?.dataset.room : cov?.dataset.short) ?? '';
       if (where) where.textContent = take === 0 ? label : `${label} — take ${take + 1}`;
       if (count) count.textContent = `${at + 1} / ${list.length}`;
       root.querySelector<HTMLElement>('.rr__cover.is-on')
