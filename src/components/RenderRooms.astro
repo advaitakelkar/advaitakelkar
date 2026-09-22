@@ -24,8 +24,21 @@ import Icon from './Icon.astro';
 export interface Props {
   views: Array<{ room?: string; label?: string; image: string; variations?: string[] }>;
   name: string;
+  /* How the groups are chosen between. 'tabs' is a row of pills and suits a
+     flat with eight rooms. 'chapters' is a column of dropdowns and suits a
+     study that is read in order: twelve plateaus, each holding three panels,
+     where the group has a position in an argument and a row of twelve pills
+     would flatten that back into a filter bar. Same data either way — only
+     the control changes. */
+  groups?: 'tabs' | 'chapters';
+  /* What one group is called, for the labels and the count line. */
+  groupNoun?: { one: string; many: string };
 }
-const { views, name } = Astro.props;
+const { views, name, groups = 'tabs', groupNoun } = Astro.props;
+const NOUN = groupNoun ?? (groups === 'chapters'
+  ? { one: 'chapter', many: 'chapters' }
+  : { one: 'room', many: 'rooms' });
+const asChapters = groups === 'chapters';
 
 /* Rooms in the order they first appear. A view with no room named falls into
    one called after the project, so a half-filled YAML still renders.
@@ -57,7 +70,7 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
   <!-- Rooms. All first, as a mark rather than a word — it is not a room.
        Dropped whole when no view names a room: there is nothing to choose
        between, and the rail below is already the way through the set. -->
-  {hasRooms && (
+  {hasRooms && !asChapters && (
     <div class="rr__tabs" role="tablist" aria-label="Rooms">
       <button class="rr__tab rr__tab--all is-active" role="tab" type="button" data-rr-room="all" aria-selected="true" aria-label="All rooms">
         <Icon name="arrow" />
@@ -66,6 +79,28 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
         <button class="rr__tab" role="tab" type="button" data-rr-room={r} aria-selected="false">
           <span>{r}</span>
           <span class="rr__tab-n">{indexed.filter(v => v.room === r).length}</span>
+        </button>
+      ))}
+    </div>
+  )}
+
+  {/* Chapters. One row each, numbered, opening to the panels inside — the
+      same disclosure the About page uses for its three sections, because a
+      chapter is read rather than filtered to. All stays first as the mark it
+      is elsewhere, so there is still one way back to the whole set. */}
+  {hasRooms && asChapters && (
+    <div class="rr__chapters" role="tablist" aria-label="Chapters">
+      <button class="rr__ch rr__ch--all is-active" role="tab" type="button" data-rr-room="all" aria-selected="true" aria-label={`All ${NOUN.many}`}>
+        <Icon name="arrow" />
+        <span class="rr__ch-name">All</span>
+        <span class="rr__ch-n">{views.length}</span>
+      </button>
+      {rooms.map((r, i) => (
+        <button class="rr__ch" role="tab" type="button" data-rr-room={r} aria-selected="false">
+          <span class="rr__ch-no">{String(i + 1).padStart(2, '0')}</span>
+          <span class="rr__ch-name">{r}</span>
+          <span class="rr__ch-n">{indexed.filter(v => v.room === r).length}</span>
+          <Icon name="chevron" dir="s" class="rr__ch-mark" />
         </button>
       ))}
     </div>
@@ -123,8 +158,8 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
     </span>
   </div>
   <p class="rr__total">
-    {hasRooms && <>{rooms.length} rooms · </>}
-    {views.length} views
+    {hasRooms && <>{`${rooms.length} ${rooms.length === 1 ? NOUN.one : NOUN.many} · `}</>}
+    {`${views.length} ${asChapters ? 'panels' : 'views'}`}
     {totalTakes > views.length && <> · {totalTakes} frames</>}
   </p>
 </section>
@@ -142,6 +177,111 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
     width: 100%;
     min-width: 0;
     padding-top: var(--_tokens---space--small);
+  }
+
+  /* ── Chapters ───────────────────────────────────────────────────────
+     A column of rows rather than a row of pills. Twelve plateaus are read in
+     order and each one is a position in an argument, which a wrapping pill
+     row flattens into a filter bar. Numbered, because the number is part of
+     the name — Deleuze's plateaus are cited by it. */
+  .rr__chapters {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    width: 100%;
+    margin-bottom: 6px;
+  }
+  .rr__ch {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 7px 10px;
+    border: 0;
+    border-bottom: 1px solid var(--_tokens---color--line-soft);
+    background: none;
+    color: var(--_tokens---color--fg);
+    font-family: inherit;
+    font-size: var(--_tokens---type--micro);
+    font-weight: var(--_tokens---weight--base);
+    line-height: 1.2;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color var(--_tokens---motion--base) ease,
+                color var(--_tokens---motion--base) ease;
+  }
+  /* The number is the citation, so it is set in the mono the counter uses and
+     held at a fixed width — twelve rows whose names start at different
+     x-positions read as a list that has not been set. */
+  .rr__ch-no {
+    font-family: var(--_tokens---font--mono);
+    font-size: var(--_tokens---type--ultrathin);
+    opacity: 0.5;
+    min-width: 2ch;
+  }
+  .rr__ch-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rr__ch-n { font-size: var(--_tokens---type--ultrathin); opacity: 0.55; }
+  .rr__ch .rr__ch-mark {
+    --icon-size: var(--_tokens---arrow--sm);
+    opacity: 0.4;
+    transition: transform var(--_tokens---motion--base) ease, opacity var(--_tokens---motion--base) ease;
+  }
+  /* All keeps the mark it has everywhere else and carries no number. */
+  .rr__ch--all { grid-template-columns: auto 1fr auto; }
+  .rr__ch--all { --icon-size: var(--_tokens---arrow--sm); }
+
+  .rr__ch.is-active {
+    background-color: var(--_tokens---color--fg);
+    border-bottom-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+  }
+  .rr__ch.is-active .rr__ch-no,
+  .rr__ch.is-active .rr__ch-n { opacity: 0.7; }
+  /* Open, not just selected — the chevron turns to say the chapter below is
+     the one showing. */
+  .rr__ch.is-active .rr__ch-mark { transform: rotate(180deg); opacity: 0.8; }
+
+  @media (hover: hover) {
+    .rr__ch:not(.is-active):hover { background-color: var(--_tokens---color--bg-glass); }
+  }
+  .rr__ch:focus-visible { outline: 2px solid var(--_tokens---color--fg); outline-offset: -2px; }
+
+  /* On a phone the list becomes an actual dropdown: one row showing the
+     chapter you are in, and the other twelve behind a tap.
+
+     A column of twelve is taller than the space above the bottom card — at
+     34vh it still left the stage starting 18px BELOW the card, so the work
+     was off the screen entirely, pushed there by its own index. Collapsed to
+     the current row it costs one line, and opened it lays over the stage
+     rather than moving it, so nothing reflows when you go looking. */
+  @media (max-width: 699.98px) {
+    .rr__chapters { position: relative; }
+    .rr__chapters:not(.is-open) .rr__ch:not(.is-active) { display: none; }
+    /* The one visible row reads as a control, not as a selected item: it
+       keeps the page's own colours and turns its chevron to say it opens. */
+    .rr__chapters:not(.is-open) .rr__ch.is-active {
+      background: none;
+      color: var(--_tokens---color--fg);
+      border-bottom-color: var(--_tokens---color--line-soft);
+    }
+    .rr__chapters:not(.is-open) .rr__ch.is-active .rr__ch-mark { transform: none; }
+    .rr__chapters:not(.is-open) .rr__ch.is-active .rr__ch-no,
+    .rr__chapters:not(.is-open) .rr__ch.is-active .rr__ch-n { opacity: 0.5; }
+
+    .rr__chapters.is-open {
+      position: absolute;
+      left: 0;
+      right: 0;
+      z-index: 6;
+      max-height: 60vh;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: none;
+      background-color: var(--_tokens---color--bg);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+    }
+    .rr__chapters::-webkit-scrollbar { display: none; }
   }
 
   /* ── Rooms ─────────────────────────────────────────────────────────── */
@@ -354,7 +494,11 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
 
     const imgs = Array.from(root.querySelectorAll<HTMLImageElement>('.rr__img'));
     const covers = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-rr-cover]'));
-    const tabs = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-rr-room]')).filter(b => b.classList.contains('rr__tab'));
+    /* Either control. A tab and a chapter row do the same job — pick a group —
+       so the script knows them as one thing and nothing below has to care
+       which one the project chose. */
+    const tabs = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-rr-room]'))
+      .filter(b => b.classList.contains('rr__tab') || b.classList.contains('rr__ch'));
     const takes = root.querySelector<HTMLElement>('[data-rr-takes]');
     const takesList = root.querySelector<HTMLElement>('[data-rr-takes-list]');
     const where = root.querySelector<HTMLElement>('[data-rr-where]');
@@ -451,6 +595,18 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
       const label = (room === 'all' && named ? cov?.dataset.room : cov?.dataset.short) ?? '';
       if (where) where.textContent = take === 0 ? label : `${label} — take ${take + 1}`;
       if (count) count.textContent = `${at + 1} / ${list.length}`;
+      /* The active chapter row, kept inside its own scroller on a phone where
+         the list is capped. Same rule as the rail below: one axis of one
+         element, never the document. */
+      const chapters = root.querySelector<HTMLElement>('.rr__chapters');
+      const onRow = root.querySelector<HTMLElement>('.rr__ch.is-active');
+      if (chapters && onRow && chapters.scrollHeight > chapters.clientHeight + 2) {
+        const top = onRow.offsetTop;
+        const bot = top + onRow.offsetHeight;
+        if (top < chapters.scrollTop) chapters.scrollTop = top;
+        else if (bot > chapters.scrollTop + chapters.clientHeight) chapters.scrollTop = bot - chapters.clientHeight;
+      }
+
       /* Keep the active cover in view INSIDE the rail, and move nothing else.
          This was `scrollIntoView({ block: 'nearest' })`, which scrolls every
          scrollable ancestor — including the document — whenever the rail is
@@ -555,7 +711,25 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
       if (first) setView(Number(first.dataset.rrCover), false);
     }
 
-    tabs.forEach(b => b.addEventListener('click', () => setRoom(b.dataset.rrRoom!)));
+    /* On a phone the chapter list is collapsed to its current row, so a tap on
+       that row opens the list instead of re-selecting what is already chosen;
+       a tap on any other row selects it and closes. Above 700 the list is
+       always open and this does nothing. */
+    const chapterList = root.querySelector<HTMLElement>('.rr__chapters');
+    const collapsible = () => !!chapterList && window.matchMedia('(max-width: 699.98px)').matches;
+    tabs.forEach(b => b.addEventListener('click', () => {
+      if (collapsible()) {
+        const open = chapterList!.classList.contains('is-open');
+        if (!open) { chapterList!.classList.add('is-open'); return; }
+        chapterList!.classList.remove('is-open');
+      }
+      setRoom(b.dataset.rrRoom!);
+    }));
+    /* Anywhere else closes it, the way a dropdown should. */
+    document.addEventListener('click', (e) => {
+      if (!chapterList || !chapterList.classList.contains('is-open')) return;
+      if (!(e.target as HTMLElement)?.closest('.rr__chapters')) chapterList.classList.remove('is-open');
+    });
     // Clicking a cover is the ask: it opens that view's takes beside it.
     covers.forEach(c => c.addEventListener('click', () => setView(Number(c.dataset.rrCover), true)));
     play?.addEventListener('click', () => setPlaying(!playing));

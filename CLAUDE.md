@@ -938,6 +938,30 @@ When **no** view names a `room`, three things change, all of them in
   written sequence — cover, then 01 to 05, the order the work was made and
   photographed in. Shuffling gains nothing and throws that away.
 
+### Two controls, one template
+
+`groups:` chooses how the groups behind `views` are picked between.
+
+| | control | suits |
+|---|---|---|
+| `tabs` (default) | a row of pills | a flat with eight rooms — XBKC |
+| `chapters` | a numbered column of rows | a study read in order — Deleuze and Guattari |
+
+Same data either way. A chapter is a position in an argument and is cited by
+its number, which a wrapping pill row flattens back into a filter bar; twelve
+plateaus want a list, eight rooms want pills.
+
+**On a phone the chapter list is a real dropdown** — one row showing where you
+are, the rest behind a tap, opening as an overlay so nothing reflows. It has
+to be: twelve rows are taller than the space above the bottom card, and even
+capped at 34vh the stage started *below* the card. The work was off the screen,
+pushed there by its own index.
+
+**The credit needs a collaborator, not just a studio.** It names the studio,
+but `professors:` is what decides whether it renders — Deleuze and Guattari is
+self-initiated under Adi's own ADVT, and with the studio alone driving it the
+page read "In collaboration with ADVT", crediting him to himself.
+
 ### The credit, the faces and the still
 
 **Every Project Template 01 project so far was made inside someone else's

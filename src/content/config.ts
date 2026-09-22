@@ -90,6 +90,11 @@ const projects = defineCollection({
        work and it moves; this is a still to read the text against. Defaults
        to nothing, so a project without one simply keeps the full-width copy. */
     sideImage: z.string().optional(),
+    /* Project Template 01 only: how the groups behind `views` are chosen
+       between. 'tabs' is a row of pills and suits a flat with eight rooms;
+       'chapters' is a numbered column of dropdowns and suits a study read in
+       order. Same data, different control. Defaults to tabs. */
+    groups: z.enum(['tabs', 'chapters']).optional(),
     /* ── Views, for a project that is renders rather than photographs ──────
        A rendering project does not have N images; it has N VIEWS, and each
        view was rendered several times. Those alternates are variations of one

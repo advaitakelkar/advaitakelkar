@@ -122,7 +122,13 @@ const collabNames =
   collaborators.length <= 1
     ? collaborators.join('')
     : `${collaborators.slice(0, -1).join(', ')} and ${collaborators[collaborators.length - 1]}`;
-const collabWith = studioFullName || collabNames;
+/* Only when somebody else actually worked on it. The studio is what gets
+   named, but a collaborator is what makes it a collaboration: Deleuze and
+   Guattari is self-initiated under Adi's own ADVT, and with the studio alone
+   driving this it read "In collaboration with ADVT" — the page crediting him
+   to himself. `professors:` is the test because that is the field that names
+   who else was on the project. */
+const collabWith = collaborators.length ? (studioFullName || collabNames) : '';
 const collabCredit = collabWith ? `In collaboration with ${collabWith}` : '';
 
 // Build dynamic breadcrumbs based on category structure
@@ -886,7 +892,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
           one image. */}
       {isRenders && (
         <section class="renders-section">
-          <RenderRooms views={data.views ?? []} name={data.name} />
+          <RenderRooms views={data.views ?? []} name={data.name} groups={data.groups ?? "tabs"} />
         </section>
       )}
 
