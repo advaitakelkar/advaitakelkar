@@ -468,8 +468,9 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                 phone, where it belongs directly under the title. The values
                 are set in bold italic and the joins in the muted weight, so
                 the line reads as a specification rather than a sentence.
-                It scrolls sideways rather than wrapping, and the cut edge is
-                left hard — see the note in the stylesheet. */}
+                It wraps as a paragraph at every width — see the note in the
+                stylesheet for why that is inline children and not a wrapped
+                flex row. */}
             {pipeline.length > 0 && (
               <div class="project-pipeline" data-pipeline>
                 <span class="project-pipeline__scroll">
@@ -5978,46 +5979,40 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
        component's instead — the rule is emitted and never matches. */
   }
 
-  /* ── How it was made, on one line ─────────────────────────────────────
+  /* ── How it was made ──────────────────────────────────────────────────
      A specification, not a sentence: the values carry the weight and the
      joins recede, so the eye can pick `RealVisXL V5` and `local` out of it
-     without reading the whole thing. One line always — it scrolls sideways
-     rather than wrapping, because a pipeline that wraps to three lines
-     becomes a paragraph and stops being scannable.
+     without reading the whole thing.
 
-     No fade on the cut edge, deliberately. The house rule gives a hidden
-     scrollbar a fade so the reader knows there is more, but that is for
-     prose, where a blurred word looks like a mistake you can scroll away.
-     Here the tail is settings — steps, CFG, sampler — and softening them
-     just made the end of the line look broken. `initScrollFades` would not
-     have reached this anyway: it compares `scrollHeight` with
-     `clientHeight`, so it only ever sees vertical overflow. */
+     It WRAPS, at every width. It was one line that scrolled sideways, on the
+     reasoning that a wrapped pipeline stops being scannable — but a line
+     that scrolls is a line most readers never reach the end of, and the end
+     of this one is the settings. Wrapped, all of it is on the page.
+
+     Wrapping means inline children, NOT a wrapped flex row: a flex container
+     breaks between its children, so each run's parts stay whole and the gaps
+     between them stretch — a ragged column of fragments rather than prose.
+     Inline boxes reflow the way text does. The spacing then has to come back
+     as a margin, because `gap` is a flex and grid property and does nothing
+     to them. */
   .project-pipeline {
     grid-column: 1 / -1;
     width: 100%;
-    overflow-x: auto;
-    overflow-y: hidden;
-    scrollbar-width: none;
     margin-top: var(--_tokens---space--micro);
     /* No rule above it. The line is a caption on the work, not a new section
        of the page, and a hairline made it read as the start of one. */
     font-size: var(--_tokens---type--ultrathin);
-    line-height: 1.5;
+    line-height: 1.6;
     color: var(--_tokens---color--muted);
+    /* The passage stops at 80ch like every other run of text on this page.
+       Across 1440px it set past 200 characters a line. */
+    max-width: 80ch;
   }
-  .project-pipeline::-webkit-scrollbar { display: none; }
-  .project-pipeline__scroll {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 0.5em;
-    white-space: nowrap;
-  }
+  .project-pipeline__scroll,
   .project-pipeline__run {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 0.42em;
-    white-space: nowrap;
+    display: inline;
   }
+  .project-pipeline__run > * { margin-right: 0.3em; }
   /* The transform is the subject of the line, so it leads and it is the one
      thing set in the letterspaced micro-caps the filter pills use. */
   .project-pipeline__kind {
@@ -6040,8 +6035,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     opacity: 0.6;
     padding-left: 0.3em;
   }
-  /* The settings are the tail of the line — present, and the first thing the
-     fade eats when the line runs past the page. */
+  /* The settings are the tail of the passage: the part you read only if you
+     came for it, so it sits a step back from the model and the size. */
   .project-pipeline__detail { font-style: italic; opacity: 0.75; }
 
   /* On a phone it sits directly under the title, above the pills: the pills
@@ -6051,31 +6046,17 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   @media (max-width: 699.98px) {
     .project-detail .project-top-header { display: flex; flex-direction: column; }
     .project-detail .project-header-title-row { order: 1; }
+    /* Only the ORDER changes here. The paragraph itself is the same object
+       at every width — it used to be a one-line scroller above 700 and a
+       wrapped block below, which is two layouts to keep in step for one
+       piece of text. */
     .project-detail .project-pipeline {
       order: 2;
       margin-top: 6px;
-      /* It wraps here instead of scrolling. One line is what keeps it
-         scannable on a wide page; on a 375px one that line is most of a
-         screen of sideways scrolling, and a reader who does not think to
-         drag it never sees past the model name. Three short lines under the
-         title cost less than a hidden tail. */
-      overflow-x: visible;
+      /* The 80ch cap is the desktop measure; the column is narrower than
+         that here and the cap would only ever be the smaller of the two. */
+      max-width: none;
     }
-    /* …and it wraps as a PARAGRAPH, not as a wrapped flex row. A flex
-       container that wraps breaks between its children, so the run's parts
-       stayed whole and the gaps between them stretched — a ragged column of
-       fragments rather than prose. Inline children reflow the way text
-       does, so the block reads as a short paragraph of settings.
-
-       The spacing has to come back as a margin: `gap` is a flex and grid
-       property and does nothing to inline boxes. */
-    .project-detail .project-pipeline__scroll,
-    .project-detail .project-pipeline__run {
-      display: inline;
-      white-space: normal;
-    }
-    .project-detail .project-pipeline__run > * { margin-right: 0.3em; }
-    .project-detail .project-pipeline { line-height: 1.6; }
     .project-detail .project-card__metaline { order: 3; }
   }
 

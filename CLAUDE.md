@@ -1279,26 +1279,32 @@ each other.
 `RealVisXL V5` and `local` out without reading the line. It is a
 specification, not a sentence.
 
-**One line above 700, a paragraph below it.** One line is what keeps it
-scannable on a wide page; on a 375px one that line is most of a screen of
-sideways scrolling, and a reader who does not think to drag it never sees
-past the model name. On the phone it also moves above the pills, directly
-under the title — the pills are links you might follow, this is a caption on
-what you are looking at.
+**It wraps as a paragraph, at every width**, and stops at 80ch like the rest
+of the page's prose. It was a one-line sideways scroller for a moment, on the
+reasoning that a wrapped pipeline stops being scannable — but a line that
+scrolls is a line most readers never reach the end of, and the end of this
+one is the settings. Two or three short lines put all of it on the page:
+Architect x Architects is 2 lines at 1440, Alt Verse 3, and the same passage
+is 3 on a phone.
+
+Only the ORDER changes below 700: it moves above the pills, directly under
+the title. The pills are links you might follow; this is a caption on what
+you are looking at. One layout, two positions — it was briefly a scroller
+above 700 and a wrapped block below, which is two things to keep in step for
+one piece of text.
 
 Two things that bit:
 
 - **Wrapping a flex row is not a paragraph.** A wrapping flex container
-  breaks between its children, so each run's parts stayed whole and the gaps
-  between them stretched — a ragged column of fragments. The children go
-  `display: inline` on the compact band so they reflow the way text does, and
-  the spacing comes back as a margin, because `gap` does nothing to inline
-  boxes. Alt Verse went from 7 ragged lines to 4 flowing ones.
-- **`initScrollFades` cannot fade this.** It compares `scrollHeight` with
-  `clientHeight`, so it only ever sees vertical overflow. The cut edge is
-  left hard on purpose anyway: the house fade is for prose, where a blurred
-  word reads as "scroll for more", and over a tail of steps and CFG values it
-  just looked broken.
+  breaks between its children, so each run's parts stay whole and the gaps
+  between them stretch — a ragged column of fragments. The children are
+  `display: inline` so they reflow the way text does, and the spacing comes
+  back as a margin, because `gap` is a flex and grid property and does
+  nothing to inline boxes. Alt Verse went from 7 ragged lines to 4 flowing
+  ones the moment that changed.
+- **`initScrollFades` was never going to reach it.** It compares
+  `scrollHeight` with `clientHeight`, so it only ever sees vertical overflow.
+  Moot now that nothing scrolls, but worth knowing before reaching for it.
 
 ## A landscape series
 
