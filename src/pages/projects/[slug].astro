@@ -297,11 +297,21 @@ const frameShape = template.frame;
    ADVT_RP_, ADVT_FOD_ and the two-segment ADVT_AV_GF_, and leaves a
    one-letter name part alone. */
 const cardNameFromUrl = (url: string): string => {
-  const filename = url.substring(url.lastIndexOf('/') + 1);
+  let filename = url.substring(url.lastIndexOf('/') + 1);
+  try { filename = decodeURIComponent(filename); } catch {}
   const ext = filename.substring(filename.lastIndexOf('.'));
   let name = filename.slice(0, filename.length - ext.length);
   name = name.replace(/^ADVT_(?:[A-Z]{2,4}_)+/, '').replace(/^ADVT_SP_\s*/, '').trim();
   name = name.replace(/\s+\d+\s*$/, '').replace(/\s*\d+$/, '').trim();
+  if (name.includes(' - ') || name.includes(' — ')) {
+    const parts = name.split(/\s*[-—]\s*/);
+    const movie = parts[0].trim().toUpperCase();
+    let char = parts.slice(1).join(' - ').trim();
+    if (char.toLowerCase() === 'the t 800' || char.toLowerCase() === 'the t') char = 'The T-800';
+    if (char.toLowerCase() === 'o ren ishii') char = 'O-Ren Ishii';
+    if (char.toLowerCase() === 'dr king schultz') char = 'Dr. King Schultz';
+    return `${movie} - ${char}`;
+  }
   name = name.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2').replace(/[_-]+/g, ' ').trim();
   if (name.toLowerCase() === 'the t 800' || name.toLowerCase() === 'the t') name = 'The T-800';
   if (name.toLowerCase() === 'o ren ishii') name = 'O-Ren Ishii';
@@ -2864,7 +2874,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     font-weight: var(--_tokens---weight--strong);
     color: var(--_tokens---color--fg);
     letter-spacing: 0.04em;
-    text-transform: uppercase !important;
+    text-transform: none;
     min-width: 0;
     flex: 0 1 auto;
     white-space: nowrap;
@@ -6394,11 +6404,21 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     };
 
     const getCardName = (url: string): string => {
-      const filename = url.substring(url.lastIndexOf('/') + 1);
+      let filename = url.substring(url.lastIndexOf('/') + 1);
+      try { filename = decodeURIComponent(filename); } catch {}
       const ext = filename.substring(filename.lastIndexOf('.'));
       let name = filename.slice(0, filename.length - ext.length);
       name = name.replace(/^ADVT_(?:[A-Z]{2,4}_)+/, '').replace(/^ADVT_SP_\s*/, '').trim();
       name = name.replace(/\s+\d+\s*$/, '').replace(/\s*\d+$/, '').trim();
+      if (name.includes(' - ') || name.includes(' — ')) {
+        const parts = name.split(/\s*[-—]\s*/);
+        const movie = parts[0].trim().toUpperCase();
+        let char = parts.slice(1).join(' - ').trim();
+        if (char.toLowerCase() === 'the t 800' || char.toLowerCase() === 'the t') char = 'The T-800';
+        if (char.toLowerCase() === 'o ren ishii') char = 'O-Ren Ishii';
+        if (char.toLowerCase() === 'dr king schultz') char = 'Dr. King Schultz';
+        return `${movie} - ${char}`;
+      }
       name = name.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2').replace(/[_-]+/g, ' ').trim();
       if (!name || /^\d+$/.test(name) || name.length <= 1) return projectName;
       if (name.toLowerCase() === 'winter soildier') return 'Winter Soldier';
