@@ -30,9 +30,30 @@ for (const src of [...sources].sort()) {
   originalBytes += buffer.length;
   thumbnailBytes += Math.min(bytes, buffer.length);
 }
+/* Sweep thumbnails nothing points at any more.
+   The cache is content-addressed, so a source image that is re-exported,
+   renamed or deleted does not overwrite its old thumbnail — it writes a new
+   one beside it and abandons the last. Nothing ever removed the abandoned
+   file, and `public/` is copied into `dist/` verbatim, so every one of them
+   was still being uploaded to Firebase. 118 had piled up, 3.7MB of
+   thumbnails for projects that no longer exist.
+
+   Safe because the manifest is rebuilt from scratch immediately above: a
+   file that is not a value in it cannot be reached by any page, and the next
+   run regenerates anything that turns out to be needed. */
+const keep = new Set(Object.values(manifest).map(v => path.basename(v)));
+let swept = 0, sweptBytes = 0;
+for (const file of await fs.readdir(target)) {
+  if (!file.endsWith('.webp') || keep.has(file)) continue;
+  const dead = path.join(target, file);
+  sweptBytes += (await fs.stat(dead)).size;
+  await fs.unlink(dead);
+  swept++;
+}
+
 const content = JSON.stringify(manifest, null, 2) + '\n';
 const manifestPath = 'src/lib/project-thumbnails.json';
 let prior = '';
 try { prior = await fs.readFile(manifestPath, 'utf8'); } catch {}
 if (prior !== content) await fs.writeFile(manifestPath, content);
-console.log(JSON.stringify({ images: Object.keys(manifest).length, originalBytes, thumbnailBytes }));
+console.log(JSON.stringify({ images: Object.keys(manifest).length, originalBytes, thumbnailBytes, swept, sweptBytes }));

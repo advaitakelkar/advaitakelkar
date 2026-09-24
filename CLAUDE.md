@@ -906,10 +906,60 @@ delete `vg/` to force a full rebuild, and re-run it after changing CRF settings.
 verbatim, so anything there is uploaded to Firebase whether or not a page
 references it. That's how `dist/` once reached 1.7 GB.
 
+**The thumbnail cache sweeps itself now.** `build-project-thumbnails.mjs` is
+content-addressed, so a source image that is re-exported, renamed or deleted
+does not overwrite its old thumbnail — it writes a new one beside it and
+abandons the last, and nothing removed the abandoned file. 118 had piled up,
+3.85 MB of thumbnails for projects that no longer exist, all of them still
+being uploaded. The script now deletes any `.webp` in
+`public/project-thumbnails/` that is not a value in the manifest it has just
+rebuilt, and reports `swept` / `sweptBytes`. Safe because the manifest is
+rebuilt from scratch on every run: a file it does not name cannot be reached
+by any page, and the next run regenerates anything that turns out to be
+needed.
+
 **Missing by design:** Yash, Sohil and Jinal have no archived module GIF; the UI
 renders them as dashed outlines rather than faking one. `publicFileExists()`
 gates every film, methodology sheet and render, so absent assets drop their
 whole section instead of 404-ing.
+
+## The template list
+
+**Every project declares its own `template:`.** There are no derived ones
+left. `projectTemplate()` still holds the slug lists it used to fall back on
+— `aiWorksProjects`, `tabProjects`, the `chapters` pair — and they are now
+dead weight kept only so an older YAML without the field still resolves.
+Nothing in `src/content/projects/` relies on them.
+
+Six names, written in the YAML:
+
+| write this | what it is | count |
+|---|---|---|
+| `tabs` | the default work page: text beside one image, a filmstrip under it | 39 |
+| `ai-portrait` | an AI series of tall frames — deck, counter, timer ring, Prompt pill, the sitter's name beside the count | 5 |
+| `ai-landscape` | the same series page with wide frames | 1 |
+| `project-01` | one full-width column: copy, then a stage and a rail of covers | 5 |
+| `chapters` | a stack of cards, one per chapter, each with its own strip | 2 |
+| `ai-works` | an AI deck that is **not** a named series — no name beside the counter | 1 |
+
+`ai-portrait` · `ai-landscape` · `ai-works` all resolve to the internal
+`cards` flag; `project-01` resolves to `renders`. Both internal spellings
+still work in a YAML and neither is worth writing in a new one.
+
+**The odd one out is `sups-in-the-hinterland`**, the only `ai-works` left. It
+is the same kind of project as the five `ai-portrait` ones — a character per
+frame, named in the filename — but it is not in the `namedSeries` list, so it
+gets no name beside the counter and no alpha dimming. Moving it is a one-word
+edit; it is left alone because that is a visible change to a published page,
+not a cleanup.
+
+| axis | who |
+|---|---|
+| `ai-portrait` | alt-verse · hanma-fam · indian-royals · space-pirates · sups-cards |
+| `ai-landscape` | architect-x-architects |
+| `project-01` | carlo · concrt · deleuze-guattari · shelf · xbkc |
+| `chapters` | habersham-hall · scad-design-built |
+| `ai-works` | sups-in-the-hinterland |
 
 ## Project Template 01 — the renders template
 

@@ -54,7 +54,7 @@ const tabProjects = new Set([
 
 export function projectTemplate(slug: string, category?: string, template?: ProjectTemplate) {
   const namedSeries = template === 'ai-portrait' || template === 'ai-landscape' ||
-    ['sups-cards', 'hanma-fam', 'indian-royals', 'alt-verse', 'architect-x-architects'].includes(slug);
+    ['sups-cards', 'hanma-fam', 'indian-royals', 'alt-verse', 'architect-x-architects', 'space-pirates'].includes(slug);
   const frame = template === 'ai-landscape' || (template !== 'ai-portrait' && slug === 'architect-x-architects') ? 'landscape' : 'portrait';
   if (template === 'ai-portrait' || template === 'ai-landscape') template = 'cards';
   if (template === 'auto') template = undefined;
