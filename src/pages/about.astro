@@ -355,17 +355,13 @@ const skillsets = [
       <div class="about-bio__text" id="bio-text-container">
         <p data-edit="pages/about/bioLead" data-edit-html set:html={aboutBioLead} />
 
-        <div class="bio-collapsed-content" id="bio-collapsed-content" style="display: none;">
+        <div class="bio-collapsed-content" id="bio-collapsed-content">
           {aboutBioMore.map((para, i) => (
             <p data-edit={`pages/about/bioMore.${i}`}>{para}</p>
           ))}
         </div>
 
         <div class="bio-buttons-row">
-          <button class="bio-read-more-btn" id="bio-read-more-btn" type="button">
-            <span>Read More</span>
-            <Arrow class="bio-read-more-arrow" />
-          </button>
 
           {hasCv && (
             <a href="/Adi-Advaita-Kelkar-CV-Sept-2026.pdf" class="about-link-row" target="_blank" rel="noopener">
@@ -494,8 +490,12 @@ const skillsets = [
           <p class="about-career__tagline text-muted" data-edit="pages/about/careerTagline">{aboutCareerTagline}</p>
 
           <div class="about-tab-content">
-            <!-- Panel 1: About (Experience) -->
-            <div class="about-tab-panel is-active" id="panel-about" role="tabpanel" aria-labelledby="tab-about">
+            <!-- Section 1: Work Experience -->
+            <div class="about-tab-panel is-active" id="panel-about" role="region" aria-label="Work Experience">
+              <div class="journey-group-header">
+                <h3 class="journey-group-title">Work Experience</h3>
+                <span class="journey-group-count">{experience.length}</span>
+              </div>
               {experience.map((item, idx) => (
                 <div class="about-card" style={`--card-index: ${idx};`}>
                   <div class="about-card__header">
@@ -525,8 +525,12 @@ const skillsets = [
               ))}
             </div>
 
-            <!-- Panel 2: Exhibitions -->
-            <div class="about-tab-panel" id="panel-exhibitions" role="tabpanel" aria-labelledby="tab-exhibitions" style="display: none;">
+            <!-- Section 2: Exhibitions -->
+            <div class="about-tab-panel" id="panel-exhibitions" role="region" aria-label="Exhibitions">
+              <div class="journey-group-header">
+                <h3 class="journey-group-title">Exhibitions</h3>
+                <span class="journey-group-count">{exhibitions.length}</span>
+              </div>
               {exhibitions.map((item, idx) => (
                 <div class="about-card" style={`--card-index: ${idx};`}>
                   <div class="about-card__header">
@@ -551,8 +555,12 @@ const skillsets = [
               ))}
             </div>
 
-            <!-- Panel: Press — publications and features -->
-            <div class="about-tab-panel" id="panel-press" role="tabpanel" aria-labelledby="tab-press" style="display: none;">
+            <!-- Section 3: Press — publications and features -->
+            <div class="about-tab-panel" id="panel-press" role="region" aria-label="Press">
+              <div class="journey-group-header">
+                <h3 class="journey-group-title">Press</h3>
+                <span class="journey-group-count">{publications.length}</span>
+              </div>
               {publications.map((item, idx) => (
                 <div class="about-card" style={`--card-index: ${idx};`}>
                   <div class="about-card__header">
@@ -577,9 +585,13 @@ const skillsets = [
               ))}
             </div>
 
-            <!-- Panel 4: Timeline — one card per YEAR; open it to see the
+            <!-- Section 4: Timeline — one card per YEAR; open it to see the
                  events that started that year -->
-            <div class="about-tab-panel" id="panel-timeline" role="tabpanel" aria-labelledby="tab-timeline" style="display: none;">
+            <div class="about-tab-panel" id="panel-timeline" role="region" aria-label="Timeline">
+              <div class="journey-group-header">
+                <h3 class="journey-group-title">Timeline</h3>
+                <span class="journey-group-count">{timelineGroups.length}</span>
+              </div>
               {timelineGroups.map((g, idx) => (
                 <div class="about-card" style={`--card-index: ${idx};`}>
                   <div class="about-card__header">
@@ -1048,19 +1060,38 @@ const skillsets = [
     position: relative;
   }
 
-  /* Tab Panel Transitions */
+  /* Continuous Journey Sections */
   .about-tab-panel {
     display: flex;
     flex-direction: column;
-    opacity: 0;
-    transform: translateY(12px);
-    transition: opacity var(--_tokens---motion--slow) cubic-bezier(0.16, 1, 0.3, 1),
-                transform var(--_tokens---motion--slow) cubic-bezier(0.16, 1, 0.3, 1);
+    opacity: 1;
+    transform: none;
+    margin-bottom: 48px;
+    scroll-margin-top: 110px;
   }
 
-  .about-tab-panel.is-active {
-    opacity: 1;
-    transform: translateY(0);
+  .journey-group-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding-bottom: 8px;
+    margin-top: 24px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid var(--_tokens---color--line-soft);
+  }
+
+  .journey-group-title {
+    font-size: var(--_tokens---type--small);
+    font-weight: var(--_tokens---weight--strong);
+    color: var(--_tokens---color--fg);
+    letter-spacing: -0.015em;
+    margin: 0;
+  }
+
+  .journey-group-count {
+    font-size: var(--_tokens---type--micro);
+    color: var(--_tokens---color--muted);
+    font-weight: var(--_tokens---weight--light);
   }
 
   /* ── Accordion cards (experience / exhibitions / timeline) ── */
@@ -1411,13 +1442,15 @@ const skillsets = [
     .about-section--intro {
       padding-top: 56px; /* clear the fixed breadcrumb bar only */
     }
-    .profile-header {
+    .profile-header.intro-header {
       display: flex;
       flex-direction: row;
       align-items: center;
       justify-content: space-between;
       gap: 14px;
-      margin: 0;
+      margin: 0 0 24px 0;
+      padding: 0 0 12px 0;
+      border-bottom: 1px solid var(--_tokens---color--line-soft);
     }
   }
   @media (min-width: 1366px) {
@@ -1433,18 +1466,19 @@ const skillsets = [
       overflow: visible;
       padding-block: 24px; /* = home mobile section padding */
     }
-    .profile-header {
+    .profile-header.intro-header {
       display: flex !important;
       flex-direction: row !important;
       align-items: center !important;
       justify-content: space-between !important;
       gap: 14px !important;
       width: 100% !important;
-      margin: 0 !important;
+      margin: 0 0 20px 0 !important;
+      padding: 0 0 12px 0 !important;
       background-color: transparent !important;
       backdrop-filter: none !important;
       -webkit-backdrop-filter: none !important;
-      border-bottom: none !important;
+      border-bottom: 1px solid var(--_tokens---color--line-soft) !important;
     }
     /* Accordion headings stay IN FLOW on mobile, exactly like desktop: the
        h1 sits in the flex row beside its toggle button, so the header's
@@ -1785,7 +1819,9 @@ const skillsets = [
       align-items: center;
       column-gap: 12px !important;
       row-gap: 6px;
-      padding-block: 2px 8px !important;
+      padding: 0 0 12px 0 !important;
+      margin: 0 0 16px 0 !important;
+      border-bottom: 1px solid var(--_tokens---color--line-soft) !important;
     }
     .about-page .intro-header .profile-photo-circle {
       width: 46px;
@@ -1985,7 +2021,7 @@ const skillsets = [
       padding-bottom: calc(var(--ab-dock-h, 66px) + var(--ab-bot-h, 0px) + 24px);
     }
     .about-page .about-section--intro {
-      padding-top: 0;
+      padding-top: 24px;
     }
     /* The embedded footer is a second copy of the site nav on a page that
        already docks one. */
@@ -2039,90 +2075,42 @@ const skillsets = [
   readMoreBtn?.addEventListener('click', toggleBio);
   collapsedContent?.addEventListener('click', toggleBio);
 
-  // --- Tab Switching ---
+  // --- Journey Section Navigation (Smooth Scroll + Active Sync) ---
   const tabs = document.querySelectorAll('.about-tab-btn');
   const panels = document.querySelectorAll('.about-tab-panel');
-  const careerSection = document.getElementById('panel-career-section');
 
   tabs.forEach((tab) => {
-    tab.addEventListener('click', () => {
+    tab.addEventListener('click', (e) => {
+      e.preventDefault();
       const target = (tab as HTMLElement).dataset.tab;
-      
-      tabs.forEach((t) => {
-        const isMatched = t === tab;
-        t.classList.toggle('is-active', isMatched);
-        t.setAttribute('aria-selected', String(isMatched));
-      });
-
-      panels.forEach((p) => {
-        const isMatched = p.id === `panel-${target}`;
-        const panelEl = p as HTMLElement;
-        if (isMatched) {
-          panelEl.style.display = 'flex';
-          panelEl.offsetHeight; // Reflow
-          panelEl.classList.add('is-active');
-        } else {
-          panelEl.classList.remove('is-active');
-          panelEl.style.display = 'none';
-        }
-      });
-
-      // A swipe can select a pill that is scrolled off the row, so bring it
-      // back. `nearest` means a pill already in view does not move the page.
-      if (window.matchMedia('(max-width: 699.98px)').matches) {
-        (tab as HTMLElement).scrollIntoView({ block: 'nearest', inline: 'nearest' });
-      }
-
-      if (careerSection) {
-        if (window.matchMedia('(max-width: 699.98px)').matches) {
-          // Hold the scroll. The titles are docked, so switching sections
-          // changes only what is between them — moving the page as well
-          // costs you the place you were reading from, and swiping through
-          // four sections would walk the page back to the top each time.
-        } else if (window.matchMedia('(max-width: 1023.98px)').matches) {
-          const y = careerSection.getBoundingClientRect().top + window.pageYOffset - 48;
-          window.scrollTo({ top: y, behavior: 'smooth' });
-        } else {
-          careerSection.scrollTop = 0;
-        }
+      const panel = document.getElementById(`panel-${target}`);
+      if (panel) {
+        tabs.forEach((t) => {
+          const isMatched = t === tab;
+          t.classList.toggle('is-active', isMatched);
+          t.setAttribute('aria-selected', String(isMatched));
+        });
+        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     });
   });
 
-  // --- Journey: swipe between its four sections ----------------------
-  // The pills are a row on the phone and the sections behind them are a
-  // sequence, so the gesture the row already looks like should move through
-  // it. Horizontal only: a swipe that is mostly vertical is the page being
-  // scrolled, and a short one is a tap that wandered.
-  const careerPanel = document.getElementById('about-career-panel');
-  if (careerPanel && tabs.length > 1) {
-    const MIN = 48;   // px of travel before it counts as a swipe
-    let x0 = 0, y0 = 0, tracking = false;
+  // Track active section as user scrolls through Journey
+  if ('IntersectionObserver' in window && panels.length > 0) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const targetId = entry.target.id.replace('panel-', '');
+          tabs.forEach((tab) => {
+            const isMatched = (tab as HTMLElement).dataset.tab === targetId;
+            tab.classList.toggle('is-active', isMatched);
+            tab.setAttribute('aria-selected', String(isMatched));
+          });
+        }
+      });
+    }, { rootMargin: '-10% 0px -70% 0px', threshold: 0 });
 
-    careerPanel.addEventListener('touchstart', (e) => {
-      if (e.touches.length !== 1) { tracking = false; return; }
-      x0 = e.touches[0].clientX;
-      y0 = e.touches[0].clientY;
-      tracking = true;
-    }, { passive: true });
-
-    careerPanel.addEventListener('touchend', (e) => {
-      if (!tracking) return;
-      tracking = false;
-      const t = e.changedTouches[0];
-      const dx = t.clientX - x0;
-      const dy = t.clientY - y0;
-      if (Math.abs(dx) < MIN || Math.abs(dx) <= Math.abs(dy)) return;
-      // A sideways drag inside the pill row is that row scrolling, not a
-      // section change.
-      if ((t.target as HTMLElement)?.closest?.('.about-tabs-container')) return;
-      const list = Array.from(tabs) as HTMLElement[];
-      const at = list.findIndex((b) => b.classList.contains('is-active'));
-      // Swipe left to go forward, the way a deck of cards reads.
-      const next = at + (dx < 0 ? 1 : -1);
-      if (next < 0 || next >= list.length) return;
-      list[next].click();
-    }, { passive: true });
+    panels.forEach((p) => observer.observe(p));
   }
 
   // --- Skillset cloud: same row engine as the footer's project cloud ---

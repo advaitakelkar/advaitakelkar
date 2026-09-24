@@ -17,6 +17,12 @@ const allProjects = await getCollection('projects');
 const home = await getEntry('pages', 'home');
 const homeTagline = home?.data.tagline ?? 'Architectural Designer';
 const homeIntro = home?.data.intro ?? [];
+const intro0 = homeIntro[0] ?? "Hey, I'm Adi (Advaita Kelkar), an architectural designer from Mumbai, currently at SCAD in Savannah, USA. I work across architecture, interiors, and urban design, plus everything in between: computation, sculpture, graphic design, product. To me these aren't separate pursuits; they're one way of seeing the world. Always curious, always making. Glad you're here.";
+const intro1 = homeIntro[1] ?? "I'm an architect at heart. I think in systems, in how many parts come together to form a coherent whole. Designing, ideating, prototyping, making, documenting: each is a different medium for the same architectural way of thinking. Like my work, this archive doesn't keep things in boxes. Wander through it freely, and you'll notice forms, materials, and ideas recur and evolve from one project to the next.";
+
+const firstSentenceMatch = intro0.match(/^([^.?!]+[.?!])\s*(.*)$/s);
+const bioLead = firstSentenceMatch ? firstSentenceMatch[1] : intro0;
+const bioRest0 = firstSentenceMatch ? firstSentenceMatch[2] : '';
 
 // Featured slider (featured:true, sorted by numbr)
 const featured = allProjects
@@ -48,41 +54,42 @@ function getWords(name: string): string[] {
   <!-- ══ Section 1: Hero (About Me intro + Featured slider) ════════ -->
   <section class="home-section home-section--hero" id="home-hero-section">
     <div class="home-intro home-intro--animated">
-      <div class="home-intro__header page-toggle-header">
+      <div class="home-intro__header">
         <h1 class="home-intro__label" id="tagline-main" data-scramble data-edit="pages/home/tagline">{homeTagline}</h1>
-        <button class="page-toggle-btn" data-page-toggle="home-intro-body" aria-expanded="true" aria-label="Toggle intro" type="button">
-          <Arrow />
-        </button>
       </div>
 
       <!-- Small About Me — flexible, responsive 3-column structure.
-           Mobile: both bio columns start hidden; the "Bio" pill in the
-           contact column reveals them. Desktop: all three always visible. -->
-      <div class="home-intro__body page-toggle-panel" id="home-intro-body">
+           All columns always visible on all devices. -->
+      <div class="home-intro__body" id="home-intro-body">
+        {/* Mobile & Tablet lead: full line introducing Adi */}
+        <p class="home-intro__desc home-intro__lead-mobile">
+          {bioLead}
+        </p>
+
+        {/* Mobile & Tablet toggle button */}
+        <div class="home-intro__toggle-wrap">
+          <button class="intro-bio-btn" id="intro-bio-btn" type="button" aria-expanded="false">
+            <span>Read more about me</span>
+            <Arrow class="intro-bio-arrow" />
+          </button>
+        </div>
+
         <div class="home-intro__column home-intro__column--bio">
           <p class="home-intro__desc" data-edit="pages/home/intro.0">
-            {homeIntro[0] ?? 'Hey, I’m Adi — Advaita Kelkar — an architectural designer from Mumbai, currently at SCAD in Savannah, USA. I work across architecture, interiors, urban design and everything in between — computation, sculpture, graphic design, product. Not isolated projects, but interconnected expressions of one way of seeing the world. Always curious, always making. Glad you’re here!'}
+            <span class="home-intro__lead-desktop">{bioLead} </span>{bioRest0}
           </p>
         </div>
         <div class="home-intro__column home-intro__column--bio">
           <p class="home-intro__desc" data-edit="pages/home/intro.1">
-            {homeIntro[1] ?? 'I’m an architect at heart — I think in systems, in how many parts come together to form a coherent whole. Every discipline I work across — designing, ideating, prototyping, making, documenting — is just a different medium for the same architectural way of thinking. Like my work, this archive doesn’t compartmentalise: it invites fluid navigation, tracing the threads of form, material and concept as they recur and evolve from one project to the next.'}
+            {intro1}
           </p>
         </div>
-        <div class="home-intro__column">
-          <button class="intro-bio-btn" id="intro-bio-btn" type="button" aria-expanded="false">
-            <span>Bio</span>
-            <Arrow class="intro-bio-arrow" />
-          </button>
+        <div class="home-intro__column home-intro__column--contact">
           <p class="home-intro__desc">
             This is the living archive of my design work: everything I design, draw, research, and make, gathered in one place.
-          </p>
-          <p class="home-intro__desc home-intro__desc--follow">
-            Reach me at <span class="intro-email-row"><a href="mailto:advaitakelkar@gmail.com" class="intro-inline-link">advaitakelkar@gmail.com</a><button class="intro-copy-email" id="intro-copy-email" title="Copy email" aria-label="Copy email address"><Icon name="copy" class="intro-copy-icon" /><Icon name="check" class="intro-check-icon" /></button></span>
-          </p>
-          <p class="home-intro__desc home-intro__desc--follow">
-            <a href="https://linkedin.com/in/advaita-kelkar" target="_blank" rel="noopener" class="intro-inline-link">LinkedIn<Arrow class="intro-arrow" /></a>, <a href="https://instagram.com/advaitakelkar" target="_blank" rel="noopener" class="intro-inline-link">Instagram<Arrow class="intro-arrow" /></a>, <a href="https://github.com/advaitakelkar" target="_blank" rel="noopener" class="intro-inline-link">GitHub<Arrow class="intro-arrow" /></a>, <a href="https://instagram.com/3xpmnts" target="_blank" rel="noopener" class="intro-inline-link">3xpmnts<Arrow class="intro-arrow" /></a>, <a href="https://instagram.com/archv.in" target="_blank" rel="noopener" class="intro-inline-link">ARCHV<Arrow class="intro-arrow" /></a>.
-            <br />Download {hasCv && <><a href="/Adi-Advaita-Kelkar-CV-Sept-2026.pdf" target="_blank" rel="noopener" class="intro-inline-link">Resume<Arrow class="intro-arrow" /></a> and </>}<PortfolioStatus />.
+            Reach me at <span class="intro-email-row"><a href="mailto:advaitakelkar@gmail.com" class="intro-inline-link">advaitakelkar@gmail.com</a><button class="intro-copy-email" id="intro-copy-email" title="Copy email" aria-label="Copy email address"><Icon name="copy" class="intro-copy-icon" /><Icon name="check" class="intro-check-icon" /></button></span>.
+            Find me on <a href="https://linkedin.com/in/advaita-kelkar" target="_blank" rel="noopener" class="intro-inline-link">LinkedIn<Arrow class="intro-arrow" /></a>, <a href="https://instagram.com/advaitakelkar" target="_blank" rel="noopener" class="intro-inline-link">Instagram<Arrow class="intro-arrow" /></a>, <a href="https://github.com/advaitakelkar" target="_blank" rel="noopener" class="intro-inline-link">GitHub<Arrow class="intro-arrow" /></a>, <a href="https://instagram.com/3xpmnts" target="_blank" rel="noopener" class="intro-inline-link">3xpmnts<Arrow class="intro-arrow" /></a>, and <a href="https://instagram.com/archv.in" target="_blank" rel="noopener" class="intro-inline-link">ARCHV<Arrow class="intro-arrow" /></a>.
+            Download {hasCv && <><a href="/Adi-Advaita-Kelkar-CV-Sept-2026.pdf" target="_blank" rel="noopener" class="intro-inline-link">Resume<Arrow class="intro-arrow" /></a> and </>}<PortfolioStatus />.
           </p>
         </div>
       </div>
@@ -220,7 +227,7 @@ function getWords(name: string): string[] {
     </nav>
 
     <!-- Quick Search footer element -->
-    <Footer isEmbedded={true} activeIds={featured.map(p => p.id)} />
+    <Footer isEmbedded={true} activeIds={featured.map(p => p.id)} isHome={true} />
   </section>
 
 </PageLayout>
@@ -536,14 +543,18 @@ function getWords(name: string): string[] {
   }
   document.addEventListener('astro:after-swap', setupEmailCopy);
 
-  // ── Bio pill (mobile): reveals the two hidden bio columns ──
+  // ── Bio pill (mobile & tablet): reveals the two hidden bio columns ──
   function setupIntroToggle() {
     const bioBtn = document.getElementById('intro-bio-btn');
     const body = document.getElementById('home-intro-body');
-    bioBtn?.addEventListener('click', () => {
+    if (!bioBtn || bioBtn.dataset.bound === 'true') return;
+    bioBtn.dataset.bound = 'true';
+    bioBtn.addEventListener('click', () => {
       if (!body) return;
       const expanded = body.classList.toggle('is-expanded');
       bioBtn.setAttribute('aria-expanded', String(expanded));
+      const span = bioBtn.querySelector('span');
+      if (span) span.textContent = expanded ? 'Read less' : 'Read more about me';
     });
   }
 
@@ -573,7 +584,6 @@ function getWords(name: string): string[] {
 <style>
   /* ══ Global Snapping Scope ══════════════════════════════════ */
   :global(html) {
-    scroll-snap-type: none !important;
     scroll-behavior: smooth;
   }
 
@@ -608,6 +618,18 @@ function getWords(name: string): string[] {
     padding-top: clamp(3rem, 8vh, 5rem);
     overflow-y: visible;
     position: relative;
+  }
+
+  @media (min-width: 1024px) {
+    .home-section--search {
+      height: 100dvh;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      /* bottom padding = fixed search bar height (~66px) so pills don't hide behind it */
+      padding-bottom: 66px;
+    }
   }
 
   /* ══ 1. Intro (small About Me — 3 flexible columns) ═════════ */
@@ -697,6 +719,18 @@ function getWords(name: string): string[] {
     color: var(--_tokens---color--muted);
     margin: 0;
     max-width: 68ch;
+  }
+
+  .home-intro__lead-mobile {
+    display: none;
+  }
+
+  .home-intro__toggle-wrap {
+    display: none;
+  }
+
+  .home-intro__lead-desktop {
+    display: inline;
   }
 
   /* Follow-on lines in a column read as one compact block — no gap
@@ -1278,13 +1312,43 @@ function getWords(name: string): string[] {
   /* ── Desktop: the page heading scrolls in-flow with the page (no longer a
      fixed bar); horizontal inset comes from .page-main, a hairline divides it ── */
   @media (min-width: 1024px) {
+    :global(html) {
+      --page-snap: y mandatory;
+    }
+
+    .home-section {
+      scroll-snap-align: start;
+      scroll-snap-stop: always;
+      height: 100dvh;
+      min-height: 100dvh;
+      max-height: 100dvh;
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+
     .home-intro__header {
       margin: 0;
       padding: 0 0 12px 0;
       border-bottom: 1px solid var(--_tokens---color--line-soft);
     }
+
     .home-section--hero {
-      padding-top: 56px; /* clear the fixed breadcrumb bar only */
+      padding-top: 56px; /* clear the fixed breadcrumb bar */
+      padding-bottom: 74px; /* clear the fixed bottom search bar */
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      gap: 12px;
+      overflow: hidden;
+    }
+
+    .home-section--search {
+      padding-top: 56px; /* clear the fixed breadcrumb bar */
+      padding-bottom: 74px; /* clear the fixed bottom search bar */
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      overflow-y: auto;
     }
   }
   @media (min-width: 1366px) {
@@ -1309,6 +1373,9 @@ function getWords(name: string): string[] {
   }
 
   @media (max-width: 1023.98px) {
+    :global(html) {
+      --page-snap: none;
+    }
     .home-section {
       height: auto;
       min-height: 0;
@@ -1369,21 +1436,45 @@ function getWords(name: string): string[] {
       padding-top: 40px; /* breathing room after the hero's pagination */
     }
     .home-intro__body {
-      grid-template-columns: 1fr;
-      gap: 20px;
+      grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+      gap: 16px;
+      padding-block: 14px;
     }
-    /* Mobile: column 3 is ALWAYS fully visible on load — archive line,
-       email, all links, and the Resume/Portfolio downloads. The Bio pill
-       only reveals the two bio-paragraph columns above it. */
+    .home-intro__lead-mobile {
+      display: block;
+      grid-column: 1 / -1;
+      width: 100%;
+      margin: 0;
+    }
+    .home-intro__toggle-wrap {
+      display: block;
+      grid-column: 1 / -1;
+      width: 100%;
+      margin-top: -4px;
+      margin-bottom: 4px;
+    }
+    .home-intro__lead-desktop {
+      display: none;
+    }
+    .home-intro__column--contact {
+      grid-column: 1 / -1;
+    }
+    .home-intro__desc {
+      font-size: var(--_tokens---type--small);
+      line-height: 1.6;
+    }
     .intro-bio-btn {
       display: inline-flex;
-      margin-bottom: 8px;
+      margin-bottom: 0;
     }
     .home-intro__column--bio {
       display: none;
     }
     .home-intro__body.is-expanded .home-intro__column--bio {
-      display: block;
+      display: flex;
+      opacity: 1;
+      transform: none;
+      animation: none;
     }
     /* The slider fills whatever height is left under the intro; the photo
        flexes to absorb it, so the whole card (name, photo, facts, dots)
@@ -1607,6 +1698,14 @@ function getWords(name: string): string[] {
   }
 
   @media (max-width: 699.98px) {
+    .home-intro__body {
+      grid-template-columns: 1fr;
+      gap: 16px;
+      padding-block: 10px;
+    }
+    .home-intro__column--contact {
+      grid-column: auto;
+    }
     .home-slider__slide {
       flex: 0 0 100%;
       --img-w: 100%;
@@ -1617,17 +1716,12 @@ function getWords(name: string): string[] {
     }
   }
 
-  /* Mobile Portrait Layout Adjustments for bottom breadcrumbs */
-  @media (max-width: 699.98px) {
+  /* Mobile and Tablet Layout Adjustments for bottom breadcrumbs */
+  @media (max-width: 1023.98px) {
     :global(.page-main) {
       padding-bottom: 80px !important;
     }
 
-    :global(.page-breadcrumb) {
-      top: auto !important;
-      bottom: 0 !important;
-      background-color: var(--_tokens---color--bg) !important;
-    }
 
     .home-section--search {
       padding-bottom: 80px !important;

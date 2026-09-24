@@ -387,14 +387,8 @@ if (activeProject) {
                 margin-left var(--_tokens---motion--base) cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  /* ── Mobile: four named pills and a back button ────────────────────
-     This bar used to be icon-only except for whichever page you were on, and
-     the icons carrying the load were a house, a square and a circle at 12px —
-     unreadable as navigation. Every destination is named now, and the shapes
-     go with them: a word is the clearer icon at this size.
-     It is also the primary navigation on a phone, sitting where the thumb is,
-     so the row is built to a 44px touch target instead of the 26px it was. */
-  @media (max-width: 699.98px) {
+  /* ── Mobile and Tablet: four named pills and a back button ───────── */
+  @media (max-width: 1023.98px) {
     .breadcrumb__link {
       padding: 0 14px;
       min-height: 40px;
@@ -691,7 +685,7 @@ if (activeProject) {
     transition: transform var(--_tokens---motion--base) var(--_tokens---ease-out);
   }
 
-  @media (max-width: 699.98px) {
+  @media (max-width: 1023.98px) {
     .breadcrumb__arrow--prev,
     .breadcrumb__arrow--next { display: none; }
   }
@@ -790,7 +784,7 @@ if (activeProject) {
      the bar only bottom-docks below 700px, and opening upward from a
      top-docked bar pushed the panel off the top of the screen across the
      whole 700–1023 band. */
-  @media (max-width: 699.98px) {
+  @media (max-width: 1023.98px) {
     .breadcrumb__dropdown-panel {
       top: auto;
       bottom: calc(100% + 6px);
@@ -818,14 +812,9 @@ if (activeProject) {
   }
   .breadcrumb__pages-list::-webkit-scrollbar { display: none; }
 
-  @media (max-width: 699.98px) {
+  @media (max-width: 1023.98px) {
     .breadcrumb__pages-list {
       max-height: calc(80dvh - 60px);
-      /* The bar docks at the bottom and the panel opens upward, so flip the
-         list: Home/About/Projects land nearest the thumb, projects extend
-         upward. The scroll also starts at that end automatically. Bound to
-         the same 700px dock as the panel direction above — a reversed list
-         under a downward-opening panel put Home at the far end. */
       flex-direction: column-reverse;
     }
   }
@@ -946,7 +935,7 @@ if (activeProject) {
      --arrow-rot inline, and inline wins over any rule. Placed after the
      open-state rule above because that selector is identical — a media query
      adds no specificity, so source order is what decides. */
-  @media (max-width: 699.98px) {
+  @media (max-width: 1023.98px) {
     .breadcrumb__trigger-chevron {
       transform: rotate(270deg);
     }
@@ -955,29 +944,16 @@ if (activeProject) {
     }
   }
 
-  /* Above 700 the bar is not competing for width, so the pill carries the
+  /* Above 1024 (desktop) the bar is not competing for width, so the pill carries the
      project's actual name. Inside a media query, not bare: this sits after the
      compact block, and a bare rule would win there too. */
-  @media (min-width: 700px) {
+  @media (min-width: 1024px) {
     .crumb-name-short { display: none; }
     .crumb-name-full { display: inline; }
   }
 
-/* ── Pages, measured against the same space as its neighbours ───────────
-   .breadcrumb__project-nav is display:flex with flex-shrink:0 in its own
-   rule further up, so Pages sized itself to its label instead of taking an
-   equal share: on a project page "Architect x Architects" took 120px and
-   squeezed About and Projects to 64 each. Flattening the wrapper puts the
-   trigger on the bar's own flex line.
-
-   This block sits at the END of the file on purpose. The same rules inside
-   the compact block earlier never applied — same specificity as the base
-   rule, which comes later, so source order decided and the base won.
-
-   The panel keeps its anchor: .breadcrumb__custom-dropdown is the
-   position:relative box, and a descendant selector does not care that an
-   ancestor is display:contents. */
-@media (max-width: 699.98px) {
+/* ── Pages, measured against the same space as its neighbours ─────────── */
+@media (max-width: 1023.98px) {
   .breadcrumb__project-nav {
     display: contents;
   }
@@ -986,6 +962,63 @@ if (activeProject) {
     min-width: 0;
     z-index: 500;
   }
+}
+
+/* ── Tablet only: navigation pills hug content, more spaced out, pages dropdown centered ── */
+@media (min-width: 700px) and (max-width: 1023.98px) {
+  .breadcrumb {
+    width: auto;
+    gap: 12px;
+  }
+  .breadcrumb__list {
+    gap: 12px;
+  }
+  .breadcrumb__link:not(.is-mark) {
+    flex: 0 0 auto;
+    width: auto;
+    padding: 0 16px;
+    height: 40px;
+  }
+  .breadcrumb__link.is-mark {
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+  }
+  .breadcrumb__back {
+    width: 40px;
+    height: 40px;
+  }
+  .breadcrumb__custom-dropdown {
+    flex: 0 0 auto;
+    width: auto;
+  }
+  .breadcrumb__dropdown-trigger {
+    width: auto;
+    padding: 0 16px;
+    height: 40px;
+    gap: 8px;
+  }
+
+  /* Center the pages dropdown menu on tablet */
+  .breadcrumb__dropdown-panel {
+    position: fixed !important;
+    left: 50% !important;
+    right: auto !important;
+    bottom: 84px !important;
+    width: min(300px, calc(100vw - 48px)) !important;
+    transform-origin: bottom center !important;
+    z-index: 550 !important;
+  }
+
+  .breadcrumb__dropdown-panel.is-open {
+    animation: bc-panel-in-center var(--_tokens---motion--base) var(--_tokens---ease-out) !important;
+    transform: translateX(-50%) !important;
+  }
+}
+
+@keyframes bc-panel-in-center {
+  from { opacity: 0; transform: translateX(-50%) translateY(6px) scale(0.97); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
 }
 </style>
 

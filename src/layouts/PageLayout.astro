@@ -79,17 +79,7 @@ const currentPath = Astro.url.pathname;
     }
   }
 
-  /* Clear the fixed breadcrumb bar in the medium band.
-     Below 700px the bar docks to the bottom, so nothing is needed; from
-     1024px up each page's own desktop rules already allow for it. In between
-     neither applied, and every page title sat underneath the bar — the
-     ladder made that gap visible on six routes at once, so the clearance
-     belongs here rather than being re-guessed per page. */
-  @media (min-width: 700px) and (max-width: 1023.98px) {
-    .page-main {
-      padding-top: var(--_tokens---layout--bar);
-    }
-  }
+
 
   /* Fixed global breadcrumb bar */
   .page-breadcrumb {
@@ -112,10 +102,8 @@ const currentPath = Astro.url.pathname;
      overrides — same classes, same specificity, source order decides. */
 
 
-  /* A hairline appears under the bar once content scrolls beneath it — the
-     separation only exists when it's needed. Top-docked bands only: below
-     700px the bar sits at the bottom and already carries a border-top. */
-  @media (min-width: 700px) {
+  /* Top-docked bands only (>= 1024px): below 1024px the bar sits at the bottom and already carries a border-top. */
+  @media (min-width: 1024px) {
     .page-breadcrumb.is-scrolled {
       border-bottom-color: var(--_tokens---color--line-soft);
     }
@@ -127,8 +115,12 @@ const currentPath = Astro.url.pathname;
     }
   }
  
-  /* Mobile Portrait docking on bottom */
-  @media (max-width: 699.98px) {
+  /* Phone and Tablet docking on bottom */
+  @media (max-width: 1023.98px) {
+    .page-main {
+      padding-bottom: calc(var(--_tokens---layout--bar, 52px) + 24px);
+    }
+
     .page-breadcrumb {
       position: fixed !important;
       bottom: 0 !important;
@@ -140,9 +132,6 @@ const currentPath = Astro.url.pathname;
       padding-bottom: max(12px, env(safe-area-inset-bottom)) !important;
       background-color: var(--_tokens---color--bg) !important;
       border-top: 1px solid var(--_tokens---color--line-soft) !important; /* matches the page-heading hairline */
-      /* Flat. The dock used to cast a 20px shadow upward, which on a page
-         whose controls already sit on an opaque seal read as a smudge above
-         the bar rather than as depth. The hairline is the separation. */
       z-index: 150 !important;
       transition: transform var(--_tokens---motion--base) ease;
     }
@@ -151,6 +140,27 @@ const currentPath = Astro.url.pathname;
        and comes back when the field is dismissed. */
     :global(html[data-kb="open"]) .page-breadcrumb {
       transform: translateY(100%);
+    }
+  }
+
+  /* Tablet only: floating navigation pill dock (not full width) */
+  @media (min-width: 700px) and (max-width: 1023.98px) {
+    .page-breadcrumb {
+      left: 50% !important;
+      right: auto !important;
+      transform: translateX(-50%) !important;
+      bottom: 18px !important;
+      width: auto !important;
+      min-width: 380px !important;
+      max-width: calc(100vw - 32px) !important;
+      border: 1px solid var(--_tokens---color--line-soft) !important;
+      border-radius: var(--_tokens---radius--pill) !important;
+      padding: 8px 14px !important;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08) !important;
+    }
+
+    :global(html[data-kb="open"]) .page-breadcrumb {
+      transform: translate(-50%, calc(100% + 40px)) !important;
     }
   }
 </style>

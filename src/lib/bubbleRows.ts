@@ -67,7 +67,7 @@ export function initBubbleRows(opts: BubbleRowOptions) {
 
   function buildRows() {
     const pills = allPills();
-    if (!pills.length) return;
+    if (!pills.length || g.offsetWidth === 0) return;
 
     // ── 1. Measure ───────────────────────────────────────────────────────
     // Flatten back to a plain wrapping row so every pill sits at its natural
