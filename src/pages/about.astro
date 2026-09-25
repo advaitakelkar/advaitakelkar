@@ -796,8 +796,8 @@ const journeyTabs = [
       border-bottom: none;
     }
     /* An open section's arrow steps back to the muted colour: the content
-       under it is what you are reading now. The titles are at half strength
-       in both states (see the end of this block). */
+       under it is what you are reading now. The title does the same
+       (at half strength — see the end of this file). */
     .about-page .education-header .page-toggle-btn[aria-expanded="true"],
     .about-page .career-header .page-toggle-btn[aria-expanded="true"],
     .about-page .skillset-header .page-toggle-btn[aria-expanded="true"] {
@@ -1847,16 +1847,20 @@ const journeyTabs = [
     gap: 16px;
   }
 
+  /* A pill, inverted: the one live thing in a list of finished ones. */
   .active-status-text {
     display: inline-block;
-    font-size: 11px;
+    font-size: 0.6rem;
     letter-spacing: 0.08em;
-    color: var(--_tokens---color--fg);
-    opacity: 0.6;
+    color: var(--_tokens---color--bg);
+    background-color: var(--_tokens---color--fg);
+    border-radius: var(--_tokens---radius--pill);
+    padding: 3px 8px;
     font-weight: var(--_tokens---weight--base);
-    vertical-align: super;
-    margin-left: 6px;
+    vertical-align: middle;
+    margin-left: 10px;
     line-height: 1;
+    white-space: nowrap;
   }
 
   .education-pill__name {
@@ -2176,13 +2180,19 @@ const journeyTabs = [
     .about-page .career-header {
       margin-top: 24px;
     }
+    /* Closed sections stack at one even pitch: no margin between them, the
+       row's own padding and its hairline are the whole gap. Only a header
+       that follows an OPEN section takes air above it, so the panel's end
+       reads as a break. */
     .about-page .career-header,
     .about-page .skillset-header {
-      margin-top: 20px;
+      margin-top: 0;
     }
-    /* Skillset follows the longest panel, so it takes more air above it. */
-    .about-page .skillset-header {
-      margin-top: 40px;
+    .about-page .page-toggle-header:has(.page-toggle-btn[aria-expanded="true"]) + .page-toggle-panel + .page-toggle-header {
+      margin-top: 32px;
+    }
+    .about-page .skillset-header:has(.page-toggle-btn[aria-expanded="false"]) {
+      border-bottom: 1px solid var(--_tokens---color--line-soft);
     }
     .about-page .education-header,
     .about-page .career-header,
@@ -2227,11 +2237,10 @@ const journeyTabs = [
       padding-bottom: 8px;
     }
 
-    /* The three section titles sit at half strength, open or shut — the
-       arrow's direction says which is open. */
-    .about-page .education-header .profile-name,
-    .about-page .career-header .profile-name,
-    .about-page .skillset-header .profile-name {
+    /* An open section's title steps back to half strength — the content
+       under it is what you are reading. Shut, it is full strength: the
+       thing to press. */
+    .about-page .page-toggle-header:has(.page-toggle-btn[aria-expanded="true"]) .profile-name {
       color: color-mix(in srgb, var(--_tokens---color--fg) 50%, transparent);
     }
 
@@ -2248,6 +2257,80 @@ const journeyTabs = [
     }
     .about-page .intro-header .page-toggle-btn {
       display: none !important;
+    }
+  }
+
+  /* ── Phone: the same cards ─────────────────────────────────────────
+     Below 700 the rows inside each section are the same cards as above it:
+     tint and shadow, no rule under them, 8px apart, the Journey arrow in
+     its circle. The section titles keep the phone's docking and sit at half
+     strength like the wider bands. */
+  @media (max-width: 699.98px) {
+    .about-page .about-education__list,
+    .about-page .about-tab-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .about-page .about-tab-panel[hidden] {
+      display: none;
+    }
+    .about-page .education-pill,
+    .about-page .about-card {
+      --row-name: 1.25rem;
+      background-color: color-mix(in srgb, var(--_tokens---color--fg) 2.5%, var(--_tokens---color--bg));
+      border: none;
+      border-bottom: none;
+      border-radius: 0;
+      box-shadow: 0 8px 24px -10px color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
+      padding-inline: 14px;
+    }
+    .about-page .education-pill__header,
+    .about-page .about-card__header {
+      padding-block: 8px 6px;
+    }
+    .about-page .about-card:not(.is-open) .about-card__header {
+      padding-bottom: 8px;
+    }
+    .about-page .education-pill__content-inner {
+      padding-bottom: 8px;
+    }
+    /* One line, like a project card's name: a long role ends in an
+       ellipsis rather than stacking three lines beside its date. */
+    .about-page .education-pill__name,
+    .about-page .about-card__title {
+      font-size: var(--row-name);
+      line-height: 1.2;
+      letter-spacing: -0.01em;
+      min-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    .about-page .about-card__ring {
+      font-size: var(--row-name);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: 1.1em;
+      height: 1.1em;
+      border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
+      border-radius: 50%;
+      color: var(--_tokens---color--fg);
+    }
+    .about-page .about-card__ring .about-card__chevron {
+      --icon-size: 0.5em;
+      color: inherit;
+    }
+    .about-page .about-card.is-open .about-card__ring .about-card__chevron {
+      transform: rotate(135deg);
+    }
+    .about-page .about-tabs-row {
+      margin-bottom: 8px;
+    }
+    .about-page .page-toggle-header:has(.page-toggle-btn[aria-expanded="true"]) .profile-name {
+      color: color-mix(in srgb, var(--_tokens---color--fg) 50%, transparent);
     }
   }
 </style>
