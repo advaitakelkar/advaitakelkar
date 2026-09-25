@@ -81,7 +81,10 @@ if (activeProject) {
 }
 ---
 
-<nav class="breadcrumb" aria-label="Secondary navigation">
+{/* The order Left/Right walks: the three pages, every category in the
+    order the Pages list shows them, then Admin. */}
+<nav class="breadcrumb" aria-label="Secondary navigation"
+  data-page-order={JSON.stringify(['/', '/about', '/projects', ...categories.map(c => `/${c.id}`), '/admin'])}>
 
   <!-- Left pills: Home / About / Projects -->
   <div class="breadcrumb__list">
@@ -1401,18 +1404,19 @@ if (activeProject) {
             : document.querySelector('.breadcrumb__arrow--prev') as HTMLAnchorElement | null;
           if (arrow) { e.preventDefault(); window.location.href = arrow.href; }
         } else {
-          // Left/Right cycles Home → About → Projects.
-          // Category pages count as the stop after Projects.
-          const pages = ['/', '/about', '/projects'];
-          const isCat = pages.indexOf(p) === -1; // a category page → after Projects
-          const ci = isCat ? pages.length : pages.indexOf(p);
-
-          if (e.key === 'ArrowRight') {
-            if (ci < pages.length - 1) { e.preventDefault(); window.location.href = pages[ci + 1]; }
-          } else if (e.key === 'ArrowLeft') {
-            if (ci > 0 && ci <= pages.length - 1) { e.preventDefault(); window.location.href = pages[ci - 1]; }
-            else if (ci === pages.length) { e.preventDefault(); window.location.href = '/projects'; } // Category page → back to Projects
-          }
+          // Left/Right walks Home → About → Projects → each category → Admin,
+          // stopping at both ends. A page outside that list (a studio page)
+          // steps back to Projects on Left.
+          let pages: string[] = ['/', '/about', '/projects'];
+          try {
+            const order = JSON.parse(document.querySelector('.breadcrumb')?.getAttribute('data-page-order') || '[]');
+            if (Array.isArray(order) && order.length) pages = order;
+          } catch {}
+          const ci = pages.indexOf(p);
+          const target = ci === -1
+            ? (e.key === 'ArrowLeft' ? '/projects' : null)
+            : pages[ci + (e.key === 'ArrowRight' ? 1 : -1)];
+          if (target) { e.preventDefault(); window.location.href = target; }
         }
       });
     }
