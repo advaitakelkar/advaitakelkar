@@ -427,7 +427,7 @@ const journeyTabs = [
                     </h3>
                     <div class="about-card__header-right">
                       {item.dates && <span class="about-card__dates">{item.dates}</span>}
-                      <Icon name="arrow" class="about-card__chevron" />
+                      <span class="about-card__ring"><Icon name="arrow" class="about-card__chevron" /></span>
                     </div>
                   </div>
                   <div class="about-card__body">
@@ -453,7 +453,7 @@ const journeyTabs = [
                     <h3 class="about-card__title">{item.title}</h3>
                     <div class="about-card__header-right">
                       {item.dates && <span class="about-card__dates">{item.dates}</span>}
-                      <Icon name="arrow" class="about-card__chevron" />
+                      <span class="about-card__ring"><Icon name="arrow" class="about-card__chevron" /></span>
                     </div>
                   </div>
                   <div class="about-card__body">
@@ -479,7 +479,7 @@ const journeyTabs = [
                     <h3 class="about-card__title">{item.title}</h3>
                     <div class="about-card__header-right">
                       {item.dates && <span class="about-card__dates">{item.dates}</span>}
-                      <Icon name="arrow" class="about-card__chevron" />
+                      <span class="about-card__ring"><Icon name="arrow" class="about-card__chevron" /></span>
                     </div>
                   </div>
                   <div class="about-card__body">
@@ -506,7 +506,7 @@ const journeyTabs = [
                     <h3 class="about-card__title">{g.year}</h3>
                     <div class="about-card__header-right">
                       <span class="about-card__dates">{g.events.length} {g.events.length === 1 ? 'entry' : 'entries'}</span>
-                      <Icon name="arrow" class="about-card__chevron" />
+                      <span class="about-card__ring"><Icon name="arrow" class="about-card__chevron" /></span>
                     </div>
                   </div>
                   <div class="about-card__body">
@@ -745,6 +745,85 @@ const journeyTabs = [
                   color var(--_tokens---motion--base) ease;
     }
   }
+  /* ── The rows inside, drawn as cards too ────────────────────────────
+     Each education entry, each Journey row and each Timeline year is the
+     category page's compact project card: the same tint, hairline and
+     shadow, 16px between cards, the name at --type--medium, and the Journey
+     rows' arrow in the card's circle (it turns to point down while open).
+     Prefixed with .about-page: the base rules for these parts come later in
+     the file at the same weight and would otherwise win. */
+  @media (min-width: 700px) {
+    .about-page .about-education__list,
+    .about-page .about-tab-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .about-page .about-tab-panel[hidden] {
+      display: none;
+    }
+    .about-page .education-pill,
+    .about-page .about-card {
+      --row-name: var(--_tokens---type--medium);
+      background-color: color-mix(in srgb, var(--_tokens---color--fg) 2.5%, var(--_tokens---color--bg));
+      border-bottom: 1px solid var(--_tokens---color--line-soft);
+      box-shadow: 0 8px 24px -10px color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
+      padding-inline: 20px;
+    }
+    .about-page .education-pill__header,
+    .about-page .about-card__header {
+      padding-block: 8px 6px;
+    }
+    .about-page .education-pill__content-inner {
+      padding-bottom: 10px;
+    }
+    .about-page .about-card:not(.is-open) .about-card__header {
+      padding-bottom: 8px;
+    }
+    .about-page .education-pill__name,
+    .about-page .about-card__title {
+      font-size: var(--row-name);
+      line-height: 1.1;
+      letter-spacing: -0.01em;
+    }
+    /* The ring is its own box so the icon inside keeps its size token — a
+       raw width on the icon would mis-weight its stroke. */
+    .about-page .about-card__ring {
+      font-size: var(--row-name);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: 1.1em;
+      height: 1.1em;
+      border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
+      border-radius: 50%;
+      color: var(--_tokens---color--fg);
+      transition: background-color var(--_tokens---motion--base) ease,
+                  border-color var(--_tokens---motion--base) ease,
+                  color var(--_tokens---motion--base) ease;
+    }
+    .about-page .about-card__ring .about-card__chevron {
+      --icon-size: 0.5em;
+      color: inherit;
+    }
+    /* Open points straight down, like the section cards' arrows. */
+    .about-page .about-card.is-open .about-card__ring .about-card__chevron {
+      transform: rotate(135deg);
+    }
+    /* The education list's own link sits after the cards, not inside one. */
+    .about-page .education-more-link {
+      align-self: flex-end;
+    }
+  }
+  @media (min-width: 700px) and (hover: hover) {
+    .about-page .about-card:hover .about-card__ring {
+      background-color: var(--_tokens---color--fg);
+      border-color: var(--_tokens---color--fg);
+      color: var(--_tokens---color--bg);
+    }
+  }
+
   @media (min-width: 700px) and (hover: hover) {
     .education-header:hover .page-toggle-btn,
     .career-header:hover .page-toggle-btn,
