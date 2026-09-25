@@ -59,6 +59,15 @@ function getWords(name: string): string[] {
            tablet, one on a phone. There used to be a phone/tablet version
            that showed one line and hid the rest behind "Read more about me". -->
       <div class="home-intro__body" id="home-intro-body">
+        {/* Tablet only: the short greeting and the control that opens the
+            two bio paragraphs. Hidden on the phone and from 1024 up. */}
+        <div class="home-intro__column home-intro__column--hi">
+          <p class="home-intro__desc home-intro__hi">Hi, I'm Adi.</p>
+          <button type="button" class="home-intro__more" id="home-intro-more" aria-expanded="false" aria-controls="home-intro-body">
+            <span class="home-intro__more-label">Read more</span>
+            <Icon name="chevron" dir="s" class="home-intro__more-arrow" />
+          </button>
+        </div>
         <div class="home-intro__column home-intro__column--bio">
           <p class="home-intro__desc" data-edit="pages/home/intro.0">
             {intro0}
@@ -548,6 +557,21 @@ function getWords(name: string): string[] {
     setupHomeHeaderScroll();
   }
   document.addEventListener('astro:after-swap', setupHomeHeaderScroll);
+
+  // Tablet intro: Read more opens the two bio paragraphs beside the archive
+  // paragraph, three columns in all; Read less folds them away again.
+  (() => {
+    const btn = document.getElementById('home-intro-more');
+    const body = document.getElementById('home-intro-body');
+    const label = btn?.querySelector('.home-intro__more-label');
+    if (!btn || !body || !label) return;
+    btn.addEventListener('click', () => {
+      const open = btn.getAttribute('aria-expanded') !== 'true';
+      btn.setAttribute('aria-expanded', String(open));
+      body.toggleAttribute('data-intro-open', open);
+      label.textContent = open ? 'Read less' : 'Read more';
+    });
+  })();
 </script>
 
 <style>
@@ -1297,6 +1321,77 @@ function getWords(name: string): string[] {
     /* A wider share of the width for the picture as well. */
     .home-slider__slide {
       --img-w: 72%;
+    }
+  }
+
+  /* ── Tablet: a greeting, then the archive ───────────────────────────
+     Shut, the intro is three columns: "Hi, I'm Adi." and Read more on the
+     left, the archive paragraph in the middle, the right one empty. Read
+     more lays the two bio paragraphs in the first two columns and moves the
+     archive paragraph to the third; the control drops under the first. */
+  .home-intro__column--hi {
+    display: none;
+  }
+  @media (min-width: 700px) and (max-width: 1023.98px) {
+    .home-intro__body {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      column-gap: 24px;
+    }
+    .home-intro__column--hi {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      grid-column: 1;
+      grid-row: 1;
+    }
+    .home-intro__hi {
+      color: var(--_tokens---color--fg);
+    }
+    .home-intro__column--bio {
+      display: none;
+    }
+    .home-intro__column--contact {
+      grid-column: 2;
+      grid-row: 1;
+    }
+    .home-intro__body[data-intro-open] .home-intro__column--bio {
+      display: flex;
+      grid-row: 1;
+    }
+    .home-intro__body[data-intro-open] .home-intro__column--bio:nth-child(2) { grid-column: 1; }
+    .home-intro__body[data-intro-open] .home-intro__column--bio:nth-child(3) { grid-column: 2; }
+    .home-intro__body[data-intro-open] .home-intro__column--contact { grid-column: 3; }
+    .home-intro__body[data-intro-open] .home-intro__column--hi {
+      grid-row: 2;
+    }
+    .home-intro__body[data-intro-open] .home-intro__hi {
+      display: none;
+    }
+  }
+  .home-intro__more {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--_tokens---pill-gap--xs, 4px);
+    font: inherit;
+    font-size: var(--_tokens---type--ultrathin);
+    color: var(--_tokens---color--fg);
+    background: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    border: var(--_tokens---pill-border);
+    border-radius: var(--_tokens---radius--pill);
+    padding: var(--_tokens---pill-pad--xs);
+    cursor: pointer;
+    --icon-size: var(--_tokens---arrow--sm);
+    transition: background-color var(--_tokens---motion--base) ease, color var(--_tokens---motion--base) ease;
+  }
+  /* The chevron is drawn pointing east; a rule here replaces the
+     component's own rotation, so open points north outright. */
+  .home-intro__more[aria-expanded="true"] .home-intro__more-arrow {
+    transform: rotate(-90deg);
+  }
+  @media (hover: hover) {
+    .home-intro__more:hover {
+      background-color: var(--_tokens---color--fg);
+      color: var(--_tokens---color--bg);
     }
   }
 
