@@ -719,6 +719,13 @@ elements and moves them back below 1024:
 
 The rail's lock toggle went with it; the site lock's own gate still works.
 
+**The Quick Search bar is fixed at the bottom of every desktop page, and the
+pill cloud is a panel behind it** (`#qs-panel` in `Footer.astro`). Focusing
+the field slides the cloud up; a click outside the field and panel, or
+Escape, slides it back. It hides with transform + visibility, never
+`display: none` — the row engine packs rows from the grid's measured width,
+and a `display: none` grid measures 0.
+
 What follows describes the rail as it was built — the markup still ships.
 
 `SideNav.astro` has two parts:
