@@ -568,6 +568,17 @@ const sorted = [...allProjects].sort((a, b) => {
       margin-bottom: 10px;
     }
 
+    /* Suggestions, not a second navigation: the pills in the panel sit a
+       step under the ultrathin floor, with a tighter chip around them. */
+    .home-search__panel .proj-bubble {
+      font-size: 0.6rem;
+      padding: 2px 8px;
+      gap: 4px;
+    }
+    .home-search__panel .proj-bubbles {
+      gap: 4px;
+    }
+
     /* Page content must end above the fixed bar. */
     :global(.page-main:has(.home-search__bar)) {
       padding-bottom: 96px;
@@ -664,6 +675,34 @@ const sorted = [...allProjects].sort((a, b) => {
     const field = footer.querySelector('.home-search__field') as HTMLElement | null;
     const setOpen = (open: boolean) => footer.classList.toggle('is-open', open);
     input?.addEventListener('focus', () => setOpen(true));
+
+    // Hovering the field reveals the suggestions too, so they read as help
+    // sitting under the bar rather than something you have to know to click
+    // for. Leaving both closes them after a beat — the beat covers the 12px
+    // of bar between field and panel — unless the field is in use.
+    const canHover = window.matchMedia('(hover: hover)');
+    let hoverTimer: number | undefined;
+    const hoverIn = () => {
+      if (!canHover.matches) return;
+      window.clearTimeout(hoverTimer);
+      setOpen(true);
+    };
+    const hoverOut = () => {
+      if (!canHover.matches) return;
+      window.clearTimeout(hoverTimer);
+      hoverTimer = window.setTimeout(() => {
+        if (document.activeElement === input || input?.value.trim()) return;
+        setOpen(false);
+      }, 250);
+    };
+    [field, panel].forEach(el => {
+      el?.addEventListener('pointerenter', hoverIn);
+      el?.addEventListener('pointerleave', hoverOut);
+    });
+    input?.addEventListener('blur', () => {
+      if (!input.value.trim() && !panel?.matches(':hover')) setOpen(false);
+    });
+
     document.addEventListener('pointerdown', (e) => {
       const t = e.target as Node;
       if (!footer.classList.contains('is-open')) return;
