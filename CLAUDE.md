@@ -992,42 +992,29 @@ whole section instead of 404-ing.
 
 ## The template list
 
-**Every project declares its own `template:`.** `projectTemplate()` is a
-plain lookup on that field; the slug lists it used to fall back on
-(`aiWorksProjects`, `tabProjects`, the `chapters` pair) are gone. A YAML
-without the field gets `tabs`. Removing them was checked by diffing every
-project page's layout attributes before and after — all 53 identical.
-The `/admin` Projects panel lists each project's template.
-
-Six names, written in the YAML:
+**Three templates, and every project names one in its YAML.**
 
 | write this | what it is | count |
 |---|---|---|
-| `tabs` | the default work page: text beside one image, a filmstrip under it | 39 |
-| `ai-portrait` | an AI series of tall frames — deck, counter, timer ring, Prompt pill, the sitter's name beside the count | 5 |
+| `project-01` | one full-width column: copy, then a stage and a rail of covers | 46 |
+| `ai-portrait` | an AI series of tall frames — deck, counter, timer ring, Prompt pill, the sitter's name beside the count | 6 |
 | `ai-landscape` | the same series page with wide frames | 1 |
-| `project-01` | one full-width column: copy, then a stage and a rail of covers | 5 |
-| `chapters` | a stack of cards, one per chapter, each with its own strip | 2 |
-| `ai-works` | an AI deck that is **not** a named series — no name beside the counter | 1 |
 
-`ai-portrait` · `ai-landscape` · `ai-works` all resolve to the internal
-`cards` flag; `project-01` resolves to `renders`. Both internal spellings
-still work in a YAML and neither is worth writing in a new one.
+`tabs`, `chapters` and `ai-works` were retired (Sept 2026): every `tabs` and
+`chapters` project moved to `project-01`, and `sups-in-the-hinterland` —
+one hero per frame, named in the filename — to `ai-portrait`. The schema and
+Keystatic accept only the three names; a YAML without the field gets
+`project-01`.
 
-**The odd one out is `sups-in-the-hinterland`**, the only `ai-works` left. It
-is the same kind of project as the five `ai-portrait` ones — a character per
-frame, named in the filename — but it is not in the `namedSeries` list, so it
-gets no name beside the counter and no alpha dimming. Moving it is a one-word
-edit; it is left alone because that is a visible change to a published page,
-not a cleanup.
+**A `project-01` project does not need `views`.** Without them the page
+builds one roomless view per image — cover first, then `multiImage` — the
+same shape CARLO and SHLF use. A project with no images at all gets the copy
+alone and no stage. A YAML `chapters:` list still renders below the stage
+(SCAD Design Built, Habersham Hall, ARCHV).
 
-| axis | who |
-|---|---|
-| `ai-portrait` | alt-verse · hanma-fam · indian-royals · space-pirates · sups-cards |
-| `ai-landscape` | architect-x-architects |
-| `project-01` | carlo · concrt · deleuze-guattari · shelf · xbkc |
-| `chapters` | habersham-hall · scad-design-built |
-| `ai-works` | sups-in-the-hinterland |
+The page code for the retired layouts (`isTabLayout`, `isTabChapterPage`,
+the Scarpin person sliders) is now unreachable in `projects/[slug].astro`
+and can be removed; the flags are pinned off in `projectTemplate()`.
 
 ## Project Template 01 — the renders template
 
