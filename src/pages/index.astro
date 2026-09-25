@@ -22,9 +22,12 @@ const intro0 = homeIntro[0] ?? "Hey, I'm Adi (Advaita Kelkar), an architectural 
 const introLead = intro0.split(/(?<=[.!?])\s+(?=[A-Z])/)[0];
 const intro1 = homeIntro[1] ?? "I'm an architect at heart. I think in systems, in how many parts come together to form a coherent whole. Designing, ideating, prototyping, making, documenting: each is a different medium for the same architectural way of thinking. Like my work, this archive doesn't keep things in boxes. Wander through it freely, and you'll notice forms, materials, and ideas recur and evolve from one project to the next.";
 
-// Featured slider (featured:true, sorted by numbr)
+// Featured slider. Every project that COULD be featured (a cover, not
+// locked) ships as a slide; which ones show is decided on the page from the
+// live list /admin writes (lib/featured.ts), with `featured:` in the YAML as
+// the fallback. Sorted by numbr.
 const featured = allProjects
-  .filter(p => p.data.featured && p.data.coverImage && !isProjectLocked(p.id))
+  .filter(p => p.data.coverImage && !isProjectLocked(p.id))
   .sort((a, b) => (a.data.numbr ?? 999) - (b.data.numbr ?? 999));
 
 // Resolve a category relationship → its display name
@@ -94,7 +97,7 @@ function getWords(name: string): string[] {
     <!-- Featured Slider. -->
     {featured.length > 0 && (
       <div class="home-slider" aria-label="Featured projects" data-swipe-own>
-        <div class="home-slider__track" id="slider-track">
+        <div class="home-slider__track" id="slider-track" data-pending>
           {featured.map((p, i) => {
             const tagIds = (p.data.tags ?? []).map((t) => t.id);
             const otherTags = tagIds.filter((id) => !STUDIO[id]);
@@ -103,6 +106,8 @@ function getWords(name: string): string[] {
                 href={`/projects/${p.id}`}
                 class="home-slider__slide"
                 data-index={i}
+                data-slug={p.id}
+                data-featured={String(!!p.data.featured)}
                 aria-label={p.data.name}
               >
                 {/* Mobile: project name above the photo */}
@@ -178,18 +183,9 @@ function getWords(name: string): string[] {
             );
           })}
         </div>
-        {/* Pagination dots — at the very bottom, below image and all text */}
-        <div class="home-slider__dots" role="tablist" aria-label="Slide navigation">
-          {featured.map((_, i) => (
-            <button
-              class={`home-slider__dot${i === 0 ? ' is-active' : ''}`}
-              role="tab"
-              aria-selected={i === 0 ? 'true' : 'false'}
-              aria-label={`Slide ${i + 1}`}
-              data-dot={i}
-            />
-          ))}
-        </div>
+        {/* Pagination dots — at the very bottom, below image and all text.
+            Built in the script, once it knows which slides are featured. */}
+        <div class="home-slider__dots" role="tablist" aria-label="Slide navigation"></div>
       </div>
     )}
   </section>
@@ -229,11 +225,12 @@ function getWords(name: string): string[] {
 <!-- ══ DATA + JS ══════════════════════════════════════════════ -->
 <script>
   import { shuffle } from '../lib/random';
+  import { fetchFeaturedIds } from '../lib/featured';
   import { GLYPHS as SCRAMBLE_CHARS } from '../lib/glyphs';
 
   // ── Slider (seamless infinite loop) ─────────────────────────
   const track = document.getElementById('slider-track');
-  const dots  = Array.from(document.querySelectorAll('.home-slider__dot'));
+  let dots: HTMLButtonElement[] = [];
 
   document.querySelectorAll<HTMLButtonElement>('.home-nav-row--portfolio').forEach(button => {
     button.addEventListener('click', () => {
@@ -269,7 +266,32 @@ function getWords(name: string): string[] {
     }, 35);
   }
 
-  if (track) {
+  // Keep only the featured slides: the live list from /admin when it
+  // answers, the YAML flags when it does not. The track stays transparent
+  // until this is decided, so a slide that is about to go never shows.
+  async function pickFeatured(t: HTMLElement) {
+    const all = Array.from(t.querySelectorAll<HTMLElement>('.home-slider__slide'));
+    const ids = await fetchFeaturedIds();
+    let keep = ids ? all.filter(s => ids.includes(s.dataset.slug ?? '')) : [];
+    if (!keep.length) keep = all.filter(s => s.dataset.featured === 'true');
+    all.forEach(s => {
+      if (keep.includes(s)) s.dataset.featured = 'true';
+      else s.remove();
+    });
+    const dotsWrap = document.querySelector('.home-slider__dots');
+    if (dotsWrap) {
+      dotsWrap.innerHTML = keep.map((_, i) =>
+        `<button class="home-slider__dot${i === 0 ? ' is-active' : ''}" role="tab" ` +
+        `aria-selected="${i === 0}" aria-label="Slide ${i + 1}" data-dot="${i}"></button>`).join('');
+      dots = Array.from(dotsWrap.querySelectorAll<HTMLButtonElement>('.home-slider__dot'));
+    }
+    delete t.dataset.pending;
+    scheduleFit();
+  }
+
+  if (track) pickFeatured(track).then(() => initSlider(track));
+
+  function initSlider(track: HTMLElement) {
     const reals = Array.from(track.querySelectorAll('.home-slider__slide'));
 
     // Shuffle the slides so every visit opens on a different project order
@@ -645,13 +667,6 @@ function getWords(name: string): string[] {
     transform: none;
   }
 
-  @keyframes slideInFromTop {
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
   .home-intro__header {
     display: flex;
     justify-content: space-between;
@@ -718,11 +733,6 @@ function getWords(name: string): string[] {
     max-width: 68ch;
   }
 
-  /* Follow-on lines in a column read as one compact block — no gap
-     between the paragraphs (all breakpoints) */
-  .home-intro__desc--follow {
-    margin-top: 0;
-  }
 
   /* Inline contact links that flow within the paragraph text */
   .intro-inline-link {
@@ -824,6 +834,12 @@ function getWords(name: string): string[] {
   }
 
   .home-slider__track::-webkit-scrollbar { display: none; }
+
+  /* Only featured slides take part; the script removes the rest once the
+     live list has answered, and the track fades in when it has. */
+  .home-slider__slide[data-featured="false"] { display: none; }
+  .home-slider__track { transition: opacity var(--_tokens---motion--base) ease; }
+  .home-slider__track[data-pending] { opacity: 0; }
 
   /* Centring buffer hack using pseudo-elements */
   .home-slider__track::before,
@@ -1698,8 +1714,4 @@ function getWords(name: string): string[] {
 
 <!-- Global keyframes for the runtime-injected search capsules -->
 <style is:global>
-  @keyframes capsuleIn {
-    from { opacity: 0; transform: translateY(4px) scale(0.96); }
-    to   { opacity: 1; transform: none; }
-  }
 </style>

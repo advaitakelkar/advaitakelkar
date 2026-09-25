@@ -5,7 +5,6 @@ import PageLayout from '../layouts/PageLayout.astro';
 import ProjectStackCard from './ProjectStackCard.astro';
 import ImageLightbox from './ImageLightbox.astro';
 import Arrow from './Arrow.astro';
-import { visibleProjectImages } from '../lib/content';
 
 export interface Props {
   projects: any[];
@@ -22,17 +21,6 @@ export interface Props {
 }
 
 const { projects, title, crumbs, categoryId, intro, tagline, activeIds, shareImage } = Astro.props;
-
-// The slider beside the intro: one cover per project in this category, the
-// picture each project is known by. A locked project shows no imagery in a
-// listing, so it is left out here too.
-const covers = projects
-  .map((p: any) => ({
-    id: p.id,
-    name: p.data.name,
-    src: visibleProjectImages(p.id, p.data?.passcode, p.data.coverImage ? [p.data.coverImage] : [])[0],
-  }))
-  .filter((c: any) => c.src);
 
 // Get all tags and categories for formatting
 const allTags = await getCollection('tags');
@@ -168,12 +156,6 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
            is lifted above this with flex order — see the phone block below —
            rather than being moved in the DOM, so the wider bands keep the
            reading order they already had. -->
-      {/* From 1024 up the intro and the cover slider sit side by side; below
-          that the row is display: contents and the phone chassis is as it
-          was (the slider is not shown there). */}
-      <div class="category-intro-row">
-      {/* Left: the copy and, under it, the people. Right: the slider. */}
-      <div class="category-intro-left">
       <section class="category-intro">
         <p class="category-intro__tagline" data-edit={editable ? `categories/${categoryId}/tagline` : undefined}>{introTagline}</p>
         <div class="category-intro__body" id="category-intro-body">
@@ -206,24 +188,6 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
           ))}
         </section>
       )}
-      </div>
-
-      {covers.length > 0 && (
-        <div class="category-slider" aria-label={`${title} projects`} data-category-slider>
-          {covers.map((c: any, i: number) => (
-            <a
-              href={`/projects/${c.id}`}
-              class:list={["category-slider__slide", i === 0 && "is-active"]}
-              aria-hidden={i === 0 ? undefined : 'true'}
-              tabindex={i === 0 ? undefined : -1}
-            >
-              <img src={c.src} alt={c.name} loading={i < 2 ? 'eager' : 'lazy'} />
-              <span class="category-slider__name">{c.name}</span>
-            </a>
-          ))}
-        </div>
-      )}
-      </div>
 
       </div>
 
@@ -452,26 +416,6 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
          intro entry — everything after intro[0] is hidden behind Read More,
          so a split would bury half the sentence. Spaces still collapse. */
       white-space: pre-line;
-    }
-
-    .category-intro__link {
-      color: var(--_tokens---color--fg);
-      text-decoration: none;
-      white-space: nowrap;
-      border-bottom: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 30%, transparent);
-      transition: border-color var(--_tokens---motion--base) ease;
-    }
-    @media (hover: hover) {
-      .category-intro__link:hover { border-color: var(--_tokens---color--fg); }
-    }
-    .category-intro__link .link-arrow {
-      display: inline-block;
-      vertical-align: baseline;
-      margin-left: 1px;
-    
-
-      --arrow-size: var(--_tokens---arrow--sm);
-
     }
 
     /* ── Header — identical rhythm to the home hero: same top padding,
@@ -787,87 +731,10 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
       white-space: nowrap;
     }
 
-    /* ── Intro + cover slider ──────────────────────────────────────────
-       Below 1024 the row does not exist as a box and there is no slider; the
-       phone and tablet layouts carry on exactly as before. */
-    .category-intro-row,
-    .category-intro-left {
-      display: contents;
-    }
-    .category-slider {
-      display: none;
-    }
-
     @media (min-width: 1024px) {
-      /* Only when there is a slider — a category whose projects are all
-         locked has no covers to show, and its text keeps the full width. */
-      .category-intro-row {
-        display: block;
-      }
-      .category-intro-left {
-        display: flex;
-        flex-direction: column;
-        min-width: 0;
-      }
-      /* 70:30 — the copy and the people take the wider side. */
-      .category-intro-row:has(.category-slider) {
-        display: grid;
-        grid-template-columns: minmax(0, 7fr) minmax(0, 3fr);
-        gap: 32px;
-        align-items: start;
-      }
-
-      /* Covers crossfade in place, one every few seconds (script below).
-         Each one is a link to its project; the name sits in the corner. */
-      .category-slider {
-        display: block;
-        position: relative;
-        /* A 3:4 frame. Each cover is fitted whole: a landscape one runs the
-           full width, a portrait one the full height. */
-        aspect-ratio: 3 / 4;
-        overflow: hidden;
-        /* No box behind the picture: the cover is the work, and a tinted
-           frame around a landscape one read as a grey band above and below. */
-      }
-      .category-slider__slide {
-        position: absolute;
-        inset: 0;
-        opacity: 0;
-        transition: opacity var(--_tokens---motion--slow) ease;
-        pointer-events: none;
-      }
-      .category-slider__slide.is-active {
-        opacity: 1;
-        pointer-events: auto;
-      }
-      .category-slider__slide img {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        /* Pinned to the bottom-left corner, where the name sits, so the name
-           always lands on the picture: a portrait cover runs the full height
-           from the left edge, a landscape one the full width along the
-           bottom. Centred, a portrait cover left the name floating in the
-           empty margin beside it. */
-        object-position: left bottom;
-        display: block;
-      }
-      .category-slider__name {
-        position: absolute;
-        left: 8px;
-        bottom: 8px;
-        padding: 2px 8px;
-        font-size: 0.6rem;
-        color: var(--_tokens---color--fg);
-        background-color: var(--_tokens---color--bg-overlay);
-        border-radius: var(--_tokens---radius--pill);
-      }
-
-
       /* ── The card, cut down: name, arrow, pills ──
-         No subtitle and no thumbnails here — the slider above carries the
-         pictures — and the name at the page-title size, so a card is one
-         line plus its pills. */
+         No subtitle and no thumbnails here, and the name at the page-title
+         size, so a card is one line plus its pills. */
       /* :global — the card is ProjectStackCard's markup and carries none of
          this component's scoping attribute. */
       .cat-card-list.project-cards-container :global(.project-card) {
@@ -1305,37 +1172,5 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
     initCategoryPillLinks();
     document.addEventListener('astro:after-swap', initCategoryPillLinks);
 
-    // ── Cover slider: one cover per project, crossfading on its own ──
-    // Every 3.5s, paused while the pointer is over it (you are reading a
-    // name or about to click) and while the tab is hidden. Nothing moves
-    // under prefers-reduced-motion; the first cover just stays.
-    (() => {
-      const slider = document.querySelector<HTMLElement>('[data-category-slider]');
-      if (!slider || slider.dataset.wired) return;
-      slider.dataset.wired = '1';
-      const slides = Array.from(slider.querySelectorAll<HTMLElement>('.category-slider__slide'));
-      if (slides.length < 2) return;
-      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-      let i = 0;
-      let paused = false;
-      const show = (n: number) => {
-        slides.forEach((s, k) => {
-          const on = k === n;
-          s.classList.toggle('is-active', on);
-          if (on) { s.removeAttribute('aria-hidden'); s.removeAttribute('tabindex'); }
-          else { s.setAttribute('aria-hidden', 'true'); s.tabIndex = -1; }
-        });
-        // Warm the next cover so the crossfade never lands on a blank.
-        const next = slides[(n + 1) % slides.length].querySelector('img');
-        if (next) next.loading = 'eager';
-      };
-      slider.addEventListener('pointerenter', () => { paused = true; });
-      slider.addEventListener('pointerleave', () => { paused = false; });
-      window.setInterval(() => {
-        if (paused || document.hidden) return;
-        i = (i + 1) % slides.length;
-        show(i);
-      }, 3500);
-    })();
   </script>
 </PageLayout>

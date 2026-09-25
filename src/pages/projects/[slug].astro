@@ -159,7 +159,7 @@ const isTabChapterPage = template.chapters;
 const isTabLayout = template.tabs;
 /* A visualisation project draws its own middle — rooms, one image, the
    variations behind it. See RenderRooms.astro. */
-const isRenders = template.renders && (data.views?.length ?? 0) > 0;
+const isRenders = template.renders;
 /* The fixed picture beside the copy. Only where it has room to exist without
    taking any from the work — see the CSS, which confines it to 1024 and up. */
 const sideImage = isRenders ? (data.sideImage ?? null) : null;
@@ -281,6 +281,12 @@ if (isScarpinPage && !hasImages && scarpinSliders.length > 0) {
   allImages = scarpinSliders.map(s => s.urls[0]).filter(Boolean);
   hasImages = allImages.length > 0;
 }
+
+/* Template 01's views. A project that lists `views` keeps them; one that
+   does not gets a roomless view per image — cover first, then the gallery —
+   which is the same page CARLO and SHLF were built with. A project with no
+   images at all gets the copy alone and no stage. */
+const renderViews = views.length ? views : allImages.map((image: string) => ({ image }));
 
 // Derive a display name from an image filename (same rules as the client script)
 const isPortraits = template.namedSeries;
@@ -1001,9 +1007,9 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
           the wide band, and the two drew over each other. This is the page's
           middle; it does not belong in a layout built to stand text beside
           one image. */}
-      {isRenders && (
+      {isRenders && renderViews.length > 0 && (
         <section class="renders-section">
-          <RenderRooms views={data.views ?? []} name={data.name} groups={data.groups ?? "tabs"} />
+          <RenderRooms views={renderViews} name={data.name} groups={data.groups ?? "tabs"} />
         </section>
       )}
 

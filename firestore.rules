@@ -29,6 +29,19 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    /* The home slider's featured list, switched from /admin. Public to
+       read — every visitor's home page reads it — and only the owner
+       writes, in one fixed shape: a list of project slugs and a timestamp. */
+    match /config/featured {
+      allow read: if true;
+      allow write: if isOwner()
+        && request.resource.data.keys().hasOnly(['ids', 't'])
+        && request.resource.data.ids is list
+        && request.resource.data.ids.size() <= 200
+        && request.resource.data.t is string
+        && request.resource.data.t.size() <= 40;
+    }
+
     /* Anything not named above is closed. */
     match /{document=**} {
       allow read, write: if false;
