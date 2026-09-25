@@ -126,6 +126,9 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
             {/* ✱ keeps only the projects that are open, whatever else is
                 chosen; All is a mark, the arrow in a circle, as on every
                 other All tab. */}
+            {/* @ folds every card to its name and arrow: no pictures, no
+                subtitle, no filter pills. A list to read down, not browse. */}
+            <button class="tag-picker-item tag-picker-item--mark" id="names-only-btn" type="button" aria-pressed="false" aria-label="Names only" title="Names only">@</button>
             <button class="tag-picker-item tag-picker-item--mark" id="open-only-btn" type="button" aria-pressed="false" aria-label="Unlocked projects only" title="Unlocked projects only">✱</button>
             <button class="tag-picker-item tag-picker-item--mark is-active" data-filter="" id="all-tag-btn" type="button" aria-label="All" title="All"><Icon name="arrow" /></button>
             <span class="tag-picker-divider">|</span>
@@ -698,6 +701,13 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     height: calc(1lh + 14px);
     letter-spacing: 0;
     --icon-size: var(--_tokens---arrow--md);
+  }
+
+  /* Names only (@): each card keeps its header — the name and the arrow —
+     and drops everything under it. :global because the cards are
+     ProjectStackCard's markup, not this component's. */
+  :global(#project-cards-container.is-names-only .project-card__body) {
+    display: none !important;
   }
 
   .tag-picker-item.is-active {
@@ -1803,6 +1813,16 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
   const allTagBtn = document.getElementById('all-tag-btn');
   const openOnlyBtn = document.getElementById('open-only-btn');
+  const namesOnlyBtn = document.getElementById('names-only-btn');
+
+  // @ is a view, not a filter: it changes how every card is drawn and
+  // leaves which cards show alone.
+  namesOnlyBtn?.addEventListener('click', () => {
+    const on = !namesOnlyBtn.classList.contains('is-active');
+    namesOnlyBtn.classList.toggle('is-active', on);
+    namesOnlyBtn.setAttribute('aria-pressed', String(on));
+    document.getElementById('project-cards-container')?.classList.toggle('is-names-only', on);
+  });
 
   // ✱ is a toggle of its own: it narrows whatever the tags and category
   // already show to the projects that are not locked.
