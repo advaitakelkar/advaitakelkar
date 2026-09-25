@@ -5770,6 +5770,33 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     flex-shrink: 0;
     filter: grayscale(1);
   }
+  /* From 700 up the credit sticks just above whatever is fixed at the
+     bottom of the window — the Quick Search bar, or the tablet's nav dock —
+     so it stays in view while the work scrolls past, and settles into its
+     own place at the end. The script measures that bar into --rc-bottom.
+     It steps aside while suggestions are open, which rise into the same
+     space. */
+  @media (min-width: 700px) {
+    .renders-collection {
+      position: sticky;
+      bottom: var(--rc-bottom, 68px);
+      z-index: 4;
+      margin-bottom: 0;
+      padding-bottom: 12px;
+      width: 100%;
+      max-width: none;
+      box-sizing: border-box;
+      background-color: var(--_tokens---color--bg);
+      /* The work scrolls under it; a short fade in the page colour instead
+         of a hard edge, the same as the suggestions panel. */
+      box-shadow: 0 -24px 16px -8px var(--_tokens---color--bg);
+      transition: opacity var(--_tokens---motion--fast) ease, visibility var(--_tokens---motion--fast) ease;
+    }
+    :global(body:has(#qs-sug:not([hidden]))) .renders-collection {
+      opacity: 0;
+      visibility: hidden;
+    }
+  }
   .renders-collection a {
     color: inherit;
     text-decoration: none;
@@ -6414,9 +6441,34 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   import { shuffle, reorderChildrenByIndex } from '../../lib/random';
   import { GLYPHS } from '../../lib/glyphs';
 
+  /* The collection credit sticks above the lowest bar fixed to the bottom
+     of the window. That bar is the Quick Search from 1024 up and the nav
+     dock below it, and both change height with the band and the safe
+     area, so it is measured rather than written down. */
+  function initCollectionCredit() {
+    const credit = document.querySelector<HTMLElement>('.renders-collection');
+    if (!credit) return;
+    const measure = () => {
+      let clear = 0;
+      document.querySelectorAll<HTMLElement>('.home-search__bar, .breadcrumb').forEach(el => {
+        const r = el.getBoundingClientRect();
+        if (!r.height || getComputedStyle(el).display === 'none') return;
+        // Only something parked low in the window counts: the dock on a
+        // tablet floats a few pixels clear of the edge.
+        if (r.bottom <= window.innerHeight + 2 && r.top > window.innerHeight / 2) {
+          clear = Math.max(clear, window.innerHeight - r.top);
+        }
+      });
+      credit.style.setProperty('--rc-bottom', `${Math.ceil(clear)}px`);
+    };
+    measure();
+    window.addEventListener('resize', measure, { passive: true });
+  }
+
   function initProjectPage() {
     const article = document.querySelector('.project-detail');
     if (!article) return;
+    initCollectionCredit();
 
     const isCardPage = article.getAttribute('data-is-card') === 'true';
     const isScarpinPage = article.getAttribute('data-is-scarpin') === 'true';
