@@ -32,7 +32,7 @@ export interface Props {
      where the group has a position in an argument and a row of twelve pills
      would flatten that back into a filter bar. Same data either way — only
      the control changes. */
-  groups?: 'tabs' | 'chapters';
+  groups?: 'tabs' | 'chapters' | 'grid';
   /* What one group is called, for the labels and the count line. */
   groupNoun?: { one: string; many: string };
 }
@@ -41,6 +41,7 @@ const NOUN = groupNoun ?? (groups === 'chapters'
   ? { one: 'chapter', many: 'chapters' }
   : { one: 'room', many: 'rooms' });
 const asChapters = groups === 'chapters';
+const asGrid = groups === 'grid';
 
 /* Rooms in the order they first appear. A view with no room named falls into
    one called after the project, so a half-filled YAML still renders.
@@ -68,7 +69,48 @@ const indexed = views.map((v, i) => ({
 const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
 ---
 
-{asChapters ? (
+{asGrid ? (
+  /* ── Groups as a grid ────────────────────────────────────────────────
+     No stage and no rail: each group's pictures sit side by side, full
+     size, under the Journey tab row. All shows every group in order, one
+     under the other; a group's tab shows it alone. For a set that is a few
+     pictures per idea — CARLO's two configurations and two variations —
+     where comparing them next to each other IS the point. */
+  <section class="rr rr--grid" data-rr-grid aria-label={`${name} — ${NOUN.many}`}>
+    <div class="rr__tabrow">
+      <div class="rr__tabs" role="tablist" aria-label={NOUN.many}>
+        <button class="rr__tab is-active" role="tab" type="button" data-rrg-tab="all" aria-selected="true">
+          <span>All</span>
+          <span class="rr__tab-n">{views.length}</span>
+        </button>
+        {rooms.map(r => (
+          <button class="rr__tab" role="tab" type="button" data-rrg-tab={r} aria-selected="false">
+            <span>{r}</span>
+            <span class="rr__tab-n">{indexed.filter(v => v.room === r).length}</span>
+          </button>
+        ))}
+      </div>
+      <div class="rr__tabnav">
+        <button class="rr__tabstep" type="button" data-rrg-step="-1" aria-label={`Previous ${NOUN.one}`}>
+          <Icon name="chevron" dir="w" />
+        </button>
+        <button class="rr__tabstep" type="button" data-rrg-step="1" aria-label={`Next ${NOUN.one}`}>
+          <Icon name="chevron" dir="e" />
+        </button>
+      </div>
+    </div>
+    {rooms.map(r => (
+      <div class="rrg__group" data-rrg-room={r}>
+        <p class="rrg__label">{r}</p>
+        <div class="rrg__grid">
+          {indexed.filter(v => v.room === r).map(v => (
+            <img class="rrg__img" src={v.image} alt={`${name} — ${r}`} loading="lazy" decoding="async" />
+          ))}
+        </div>
+      </div>
+    ))}
+  </section>
+) : asChapters ? (
   /* ── Chapters as cards ────────────────────────────────────────────────
      Twelve plateaus as a stack of cards, the shape the projects list uses:
      the name on the left, the pictures in a strip on the right, and the row
@@ -432,6 +474,25 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
   @media (max-width: 699.98px) {
     .rr__tab,
     .rr__tabstep { font-size: var(--_tokens---type--small); }
+  }
+
+  /* ── Groups as a grid ── */
+  .rrg__group { margin-top: 16px; }
+  .rrg__group[hidden] { display: none; }
+  .rrg__label {
+    font-size: var(--_tokens---type--micro);
+    color: var(--_tokens---color--muted);
+    margin: 0 0 8px;
+  }
+  .rrg__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    align-items: start;
+  }
+  .rrg__img { width: 100%; height: auto; display: block; }
+  @media (max-width: 699.98px) {
+    .rrg__grid { grid-template-columns: minmax(0, 1fr); }
   }
 
   /* ── The work, and the takes beside it ─────────────────────────────── */
@@ -928,4 +989,31 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
 
   initRenderRooms();
   document.addEventListener('astro:after-swap', initRenderRooms);
+
+  /* Groups as a grid: the tab row shows All or one group; the pair at the
+     right steps through them, wrapping. */
+  function initRenderGrid() {
+    const root = document.querySelector<HTMLElement>('[data-rr-grid]');
+    if (!root || root.dataset.rrgWired) return;
+    root.dataset.rrgWired = '1';
+    const tabs = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-rrg-tab]'));
+    const groups = Array.from(root.querySelectorAll<HTMLElement>('[data-rrg-room]'));
+    let cur = 'all';
+    const select = (key: string) => {
+      cur = key;
+      tabs.forEach(t => {
+        const on = t.dataset.rrgTab === key;
+        t.classList.toggle('is-active', on);
+        t.setAttribute('aria-selected', String(on));
+      });
+      groups.forEach(g => { g.hidden = key !== 'all' && g.dataset.rrgRoom !== key; });
+    };
+    tabs.forEach(t => t.addEventListener('click', () => select(t.dataset.rrgTab!)));
+    root.querySelectorAll<HTMLButtonElement>('[data-rrg-step]').forEach(btn => btn.addEventListener('click', () => {
+      const i = tabs.findIndex(t => t.dataset.rrgTab === cur);
+      select(tabs[(i + Number(btn.dataset.rrgStep) + tabs.length) % tabs.length].dataset.rrgTab!);
+    }));
+  }
+  initRenderGrid();
+  document.addEventListener('astro:after-swap', initRenderGrid);
 </script>

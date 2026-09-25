@@ -127,7 +127,15 @@ const projects = defineCollection({
        between. 'tabs' is a row of pills and suits a flat with eight rooms;
        'chapters' is a numbered column of dropdowns and suits a study read in
        order. Same data, different control. Defaults to tabs. */
-    groups: z.enum(['tabs', 'chapters']).optional(),
+    groups: z.enum(['tabs', 'chapters', 'grid']).optional(),
+    // A closing credit under the work: the person's face, a sentence and a
+    // link — where the rest of a collection lives.
+    collectionCredit: z.object({
+      person: z.string(),
+      text: z.string(),
+      label: z.string(),
+      href: z.string(),
+    }).optional(),
     /* ── Views, for a project that is renders rather than photographs ──────
        A rendering project does not have N images; it has N VIEWS, and each
        view was rendered several times. Those alternates are variations of one

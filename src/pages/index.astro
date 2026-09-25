@@ -639,17 +639,6 @@ function getWords(name: string): string[] {
     position: relative;
   }
 
-  @media (min-width: 1024px) {
-    .home-section--search {
-      height: 100dvh;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      /* bottom padding = fixed search bar height (~66px) so pills don't hide behind it */
-      padding-bottom: 66px;
-    }
-  }
 
   /* ══ 1. Intro (small About Me — 3 flexible columns) ═════════ */
   .home-intro {
@@ -1255,17 +1244,17 @@ function getWords(name: string): string[] {
   /* ── Desktop: the page heading scrolls in-flow with the page (no longer a
      fixed bar); horizontal inset comes from .page-main, a hairline divides it ── */
   @media (min-width: 1024px) {
-    :global(html) {
-      --page-snap: y mandatory;
-    }
-
+    /* No scroll snapping: the page scrolls freely. The hero is one screen
+       tall; the section after it (the page links) is as tall as its rows
+       and no taller — it used to be a full screen of its own, most of it
+       empty space under three rows. */
     .home-section {
-      scroll-snap-align: start;
-      scroll-snap-stop: always;
+      box-sizing: border-box;
+    }
+    .home-section--hero {
       height: 100dvh;
       min-height: 100dvh;
       max-height: 100dvh;
-      box-sizing: border-box;
       overflow: hidden;
     }
 
@@ -1286,12 +1275,11 @@ function getWords(name: string): string[] {
     }
 
     .home-section--search {
-      padding-top: 56px; /* clear the fixed breadcrumb bar */
-      padding-bottom: 74px; /* clear the fixed bottom search bar */
+      padding-top: 24px;
+      padding-bottom: 96px; /* clears the fixed Quick Search bar, no more */
       display: flex;
       flex-direction: column;
       justify-content: flex-start;
-      overflow-y: auto;
     }
   }
   @media (min-width: 1366px) {
@@ -1715,4 +1703,12 @@ function getWords(name: string): string[] {
 
 <!-- Global keyframes for the runtime-injected search capsules -->
 <style is:global>
+
+  /* Below 1024 .page-main already clears the nav dock; the section adds
+     nothing of its own at the bottom. */
+  @media (max-width: 1023.98px) {
+    .home-section--search {
+      padding-bottom: 0;
+    }
+  }
 </style>
