@@ -722,10 +722,14 @@ backdrop-filter: blur(20px);
 | `<html>` class | Name | BG | FG |
 |---|---|---|---|
 | *(none/default)* | Void | `#ffffff` / dark: `#111111` | `#111111` / dark: `#ffffff` |
-| `sch1` | Moss | `#ECE7E2` | `#3D6355` |
-| `sch3` | Dusk | `#D7E7C3` | `#6C5383` |
+| `sch1` | Moss | `#ECE7E2` | `#2B4A3E` |
+| `sch3` | Dusk | `#D7E7C3` | `#523869` |
 | `sch4` | Midnight | `#D2B96A` | `#0B1A35` |
-| `sch6` | Ember | `#ffe4a1` | `#97322D` |
+| `sch6` | Ember | `#ffe4a1` | `#7E2621` |
+
+**Dark is the source; light is its exact inverse** — bg and fg swapped, nothing
+else. The swatches show each scheme's ink in the current mode, so the whole
+palette flips when the light/dark switch does (the switch, not only the OS).
 
 Pool weights (in `Base.astro`): the pool holds 20 entries — Void 16/20 (80%), the four
 colour schemes 1/20 each (5%). Clay (`sch2`) and Nomad (`sch7`) were retired.
