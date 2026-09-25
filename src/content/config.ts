@@ -150,6 +150,9 @@ const projects = defineCollection({
       // room, in the order the rooms first appear here.
       room: z.string().optional(),
       label: z.string().optional(),
+      // A line of text for the view's group. In the grid layout a group
+      // whose first view carries one sets it on the left, the pictures right.
+      note: z.string().optional(),
       image: z.string(),
       variations: z.array(z.string()).optional(),
     })).optional(),

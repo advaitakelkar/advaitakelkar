@@ -24,7 +24,7 @@ import { projectThumbnail } from '../lib/projectImages';
 import ImageLightbox from './ImageLightbox.astro';
 
 export interface Props {
-  views: Array<{ room?: string; label?: string; image: string; variations?: string[] }>;
+  views: Array<{ room?: string; label?: string; note?: string; image: string; variations?: string[] }>;
   name: string;
   /* How the groups are chosen between. 'tabs' is a row of pills and suits a
      flat with eight rooms. 'chapters' is a column of dropdowns and suits a
@@ -79,9 +79,8 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
   <section class="rr rr--grid" data-rr-grid aria-label={`${name} — ${NOUN.many}`}>
     <div class="rr__tabrow">
       <div class="rr__tabs" role="tablist" aria-label={NOUN.many}>
-        <button class="rr__tab is-active" role="tab" type="button" data-rrg-tab="all" aria-selected="true">
-          <span>All</span>
-          <span class="rr__tab-n">{views.length}</span>
+        <button class="rr__tab rr__tab--all is-active" role="tab" type="button" data-rrg-tab="all" aria-selected="true" aria-label="All" title="All">
+          <Icon name="arrow" />
         </button>
         {rooms.map(r => (
           <button class="rr__tab" role="tab" type="button" data-rrg-tab={r} aria-selected="false">
@@ -99,16 +98,22 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
         </button>
       </div>
     </div>
-    {rooms.map(r => (
-      <div class="rrg__group" data-rrg-room={r}>
-        <p class="rrg__label">{r}</p>
-        <div class="rrg__grid">
-          {indexed.filter(v => v.room === r).map(v => (
-            <img class="rrg__img" src={v.image} alt={`${name} — ${r}`} loading="lazy" decoding="async" />
-          ))}
+    {rooms.map(r => {
+      /* A group can carry a line of text (the first view's `note`). It sits
+         on the left, the pictures to the right of it. */
+      const note = views.find(v => (v.room || name) === r && v.note)?.note;
+      return (
+        <div class:list={['rrg__group', note && 'rrg__group--noted']} data-rrg-room={r}>
+          <p class="rrg__label">{r}</p>
+          {note && <p class="rrg__note">{note}</p>}
+          <div class="rrg__grid">
+            {indexed.filter(v => v.room === r).map(v => (
+              <img class="rrg__img" src={v.image} alt={`${name} — ${r}`} loading="lazy" decoding="async" />
+            ))}
+          </div>
         </div>
-      </div>
-    ))}
+      );
+    })}
   </section>
 ) : asChapters ? (
   /* ── Chapters as cards ────────────────────────────────────────────────
@@ -170,9 +175,8 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
   {hasRooms && (
     <div class="rr__tabrow">
       <div class="rr__tabs" role="tablist" aria-label="Rooms">
-        <button class="rr__tab is-active" role="tab" type="button" data-rr-room="all" aria-selected="true">
-          <span>All</span>
-          <span class="rr__tab-n">{views.length}</span>
+        <button class="rr__tab rr__tab--all is-active" role="tab" type="button" data-rr-room="all" aria-selected="true" aria-label="All" title="All">
+          <Icon name="arrow" />
         </button>
         {rooms.map(r => (
           <button class="rr__tab" role="tab" type="button" data-rr-room={r} aria-selected="false">
@@ -434,6 +438,15 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
     border-radius: var(--_tokens---radius--pill);
     white-space: nowrap;
   }
+  /* All is a mark, not a word — an arrow in a circle, the same as the All
+     tab on a category page. It names no group, so it needs no label. */
+  .rr__tab--all {
+    width: calc(1lh + 20px + 2px);
+    height: calc(1lh + 20px + 2px);
+    padding: 0;
+    border-radius: 50%;
+    justify-content: center;
+  }
   .rr__tab-n {
     font-size: var(--_tokens---type--micro);
     font-variant-numeric: tabular-nums;
@@ -491,8 +504,27 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
     align-items: start;
   }
   .rrg__img { width: 100%; height: auto; display: block; }
+  /* Text left, pictures right: the note takes the first of the two columns
+     and the pictures share the second. */
+  .rrg__group--noted {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 12px;
+    align-items: start;
+  }
+  .rrg__group--noted .rrg__label { grid-column: 1 / -1; }
+  .rrg__note {
+    margin: 0;
+    max-width: 40ch;
+    font-size: var(--_tokens---type--small);
+    line-height: 1.4;
+    color: var(--_tokens---color--fg);
+  }
+  .rrg__group--noted .rrg__grid { grid-template-columns: minmax(0, 1fr); }
   @media (max-width: 699.98px) {
     .rrg__grid { grid-template-columns: minmax(0, 1fr); }
+    .rrg__group--noted { display: block; }
+    .rrg__note { margin-bottom: 12px; }
   }
 
   /* ── The work, and the takes beside it ─────────────────────────────── */
