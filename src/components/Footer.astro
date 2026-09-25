@@ -316,7 +316,9 @@ const suggestions = allProjects
     input.addEventListener('input', sync);
 
     // Suggestions: every keyword must appear in a project's search text.
-    // Not on About, where this field is the Skillset's search.
+    // On About the same field also filters the Skillset below (about.astro),
+    // so a query there narrows both at once: skills in the cloud, projects
+    // in the panel over the bar.
     const sug = document.getElementById('qs-sug');
     const pills = Array.from(sug?.querySelectorAll<HTMLAnchorElement>('.qs-sug__pill') ?? []);
     /* Rank a matching project by how its NAME answers the query: the name
@@ -340,7 +342,7 @@ const suggestions = allProjects
       const kws = q.split(/\s+/).filter(Boolean);
       ranked = [];
       pills.forEach(pl => {
-        const on = !onAbout() && kws.length > 0 && kws.every(k => (pl.dataset.hay ?? '').includes(k));
+        const on = kws.length > 0 && kws.every(k => (pl.dataset.hay ?? '').includes(k));
         pl.hidden = !on;
         if (on) ranked.push(pl);
       });
