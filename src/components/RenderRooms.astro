@@ -121,6 +121,35 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
 ) : (
 <section class="rr" data-rr data-rr-rooms={hasRooms ? "true" : "false"} aria-label={hasRooms ? `${name} — rooms` : `${name} — views`}>
 
+  {/* Rooms, as the About page's Journey tabs: All first (every view), then
+      one pill per room with its view count, and a round previous / next pair
+      at the right that wraps. Dropped when no view names a room — there is
+      nothing to choose between, and the rail is the way through the set. */}
+  {hasRooms && (
+    <div class="rr__tabrow">
+      <div class="rr__tabs" role="tablist" aria-label="Rooms">
+        <button class="rr__tab is-active" role="tab" type="button" data-rr-room="all" aria-selected="true">
+          <span>All</span>
+          <span class="rr__tab-n">{views.length}</span>
+        </button>
+        {rooms.map(r => (
+          <button class="rr__tab" role="tab" type="button" data-rr-room={r} aria-selected="false">
+            <span>{r}</span>
+            <span class="rr__tab-n">{indexed.filter(v => v.room === r).length}</span>
+          </button>
+        ))}
+      </div>
+      <div class="rr__tabnav">
+        <button class="rr__tabstep" type="button" data-rr-step="-1" aria-label="Previous room">
+          <Icon name="chevron" dir="w" />
+        </button>
+        <button class="rr__tabstep" type="button" data-rr-step="1" aria-label="Next room">
+          <Icon name="chevron" dir="e" />
+        </button>
+      </div>
+    </div>
+  )}
+
   <div class="rr__body">
     <!-- The work. -->
     <div class="rr__stage" data-rr-stage>
@@ -322,47 +351,88 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
     .rrc__name { font-size: var(--_tokens---type--small); }
   }
 
-  /* ── Rooms ─────────────────────────────────────────────────────────── */
-  /* Wrapping, like the footer's pill cloud. A row that scrolls sideways
-     hides the rooms you have not thought to look for. */
-  .rr__tabs { display: flex; flex-wrap: wrap; gap: 3px; }
-
-  .rr__tab {
-    display: inline-flex;
+  /* ── Rooms: the Journey tabs ─────────────────────────────────────── */
+  .rr__tabrow {
+    display: flex;
     align-items: center;
-    gap: var(--_tokens---pill-gap--xs);
-    padding: 3px 9px;
-    border: var(--_tokens---pill-border);
-    border-radius: var(--_tokens---radius--pill);
-    background: none;
-    color: var(--_tokens---color--fg);
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .rr__tabs {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .rr__tabs::-webkit-scrollbar { display: none; }
+  .rr__tab,
+  .rr__tabstep {
     font-family: inherit;
-    font-size: var(--_tokens---type--ultrathin);
+    font-size: calc(var(--_tokens---type--small) * 1.2);
     font-weight: var(--_tokens---weight--base);
-    line-height: 1.1;
-    white-space: nowrap;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    color: var(--_tokens---color--muted);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    border: var(--_tokens---pill-border);
     cursor: pointer;
     transition: background-color var(--_tokens---motion--base) ease,
                 color var(--_tokens---motion--base) ease,
                 border-color var(--_tokens---motion--base) ease;
   }
-  /* All is a mark, not a word — it names no room. Round, and the same height
-     as the pills beside it rather than a size of its own. */
-  .rr__tab--all {
-    justify-content: center;
-    width: calc(max(1lh, 12px) + 12px);
-    padding-inline: 0;
-    border-radius: 50%;
-    --icon-size: var(--_tokens---arrow--sm);
+  .rr__tab {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--_tokens---pill-gap);
+    padding: var(--_tokens---pill-pad--lg-compact);
+    border-radius: var(--_tokens---radius--pill);
+    white-space: nowrap;
   }
-  .rr__tab-n { font-size: var(--_tokens---type--ultrathin); opacity: 0.55; }
+  .rr__tab-n {
+    font-size: var(--_tokens---type--micro);
+    font-variant-numeric: tabular-nums;
+    opacity: 0.6;
+  }
   .rr__tab.is-active {
     background-color: var(--_tokens---color--fg);
     border-color: var(--_tokens---color--fg);
     color: var(--_tokens---color--bg);
   }
-  .rr__tab.is-active .rr__tab-n { opacity: 0.7; }
-  @media (hover: hover) { .rr__tab:hover { border-color: var(--_tokens---color--fg); } }
+  .rr__tabnav { display: flex; gap: 6px; flex-shrink: 0; }
+  .rr__tabstep {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: calc(1lh + 20px + 2px);
+    height: calc(1lh + 20px + 2px);
+    padding: 0;
+    border-radius: 50%;
+    --icon-size: 0.8em;
+  }
+  .rr__tabstep:focus-visible {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
+  }
+  @media (hover: hover) {
+    .rr__tab:not(.is-active):hover {
+      background-color: color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
+      color: var(--_tokens---color--fg);
+    }
+    .rr__tabstep:hover {
+      background-color: var(--_tokens---color--fg);
+      color: var(--_tokens---color--bg);
+      border-color: var(--_tokens---color--fg);
+    }
+  }
+  @media (max-width: 699.98px) {
+    .rr__tab,
+    .rr__tabstep { font-size: var(--_tokens---type--small); }
+  }
 
   /* ── The work, and the takes beside it ─────────────────────────────── */
   .rr__body { display: flex; gap: 5px; align-items: flex-start; min-width: 0; }
@@ -484,7 +554,6 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
     .rr__takes { width: 116px; }
     .rr__cover { width: 164px; }
     .rr__cover img { height: 104px; }
-    .rr__tab { font-size: var(--_tokens---type--micro); padding: 4px 11px; }
   }
   /* On the phone the picture keeps the page's grid — it lines up with the
      tabs above it and the covers below, rather than bleeding past both. It
@@ -805,6 +874,21 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
     }
 
     tabs.forEach(b => b.addEventListener('click', () => setRoom(b.dataset.rrRoom!)));
+    // Previous / next step through the room tabs, wrapping at the ends.
+    root.querySelectorAll<HTMLButtonElement>('[data-rr-step]').forEach(btn => btn.addEventListener('click', () => {
+      const cur = tabs.findIndex(t => t.dataset.rrRoom === room);
+      const next = tabs[(cur + Number(btn.dataset.rrStep) + tabs.length) % tabs.length];
+      if (!next) return;
+      setRoom(next.dataset.rrRoom!);
+      // Bring the tab into view inside its own row only — scrollIntoView
+      // would scroll the page as well.
+      const row = next.parentElement;
+      if (row) {
+        const l = next.offsetLeft - row.offsetLeft, r = l + next.offsetWidth;
+        if (l < row.scrollLeft) row.scrollLeft = l;
+        else if (r > row.scrollLeft + row.clientWidth) row.scrollLeft = r - row.clientWidth;
+      }
+    }));
     // Clicking a cover is the ask: it opens that view's takes beside it.
     covers.forEach(c => c.addEventListener('click', () => setView(Number(c.dataset.rrCover), true)));
     play?.addEventListener('click', () => setPlaying(!playing));

@@ -920,15 +920,21 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
       <!-- NON-ORIGINAL-CARD PAGES: chapter dropdowns (when defined) or Design & Making -->
       {!isOriginalCardPage && !isScarpinPage && (data.chapters?.length ?? 0) > 0 && (
-        <div class:list={["project-chapters", chapterTabs && "project-chapters--tabs"]}>
+        <div class:list={["project-chapters", chapterTabs && "project-chapters--tabs is-all"]}>
           {/* Two or more chapters read as tabs: a numbered row, one chapter
               on screen. A single chapter keeps its dropdown. */}
           {chapterTabs && (
             <div class="project-chapter-tabs">
               <div class="project-chapter-tabs__list" role="tablist" aria-label="Chapters">
+                {/* All comes first and is where the page opens: every chapter,
+                    one after another. The count beside it is how many. */}
+                <button class="project-chapter-tab" type="button" role="tab" data-ch="all" aria-selected="true">
+                  <span>All</span>
+                  <span class="project-chapter-tab__n">{data.chapters.length}</span>
+                </button>
                 {data.chapters.map((ch: { title: string }, i: number) => (
                   <button class="project-chapter-tab" type="button" role="tab" data-ch={i}
-                          aria-selected={i === 0 ? 'true' : 'false'}>
+                          aria-selected="false">
                     <span>{ch.title}</span>
                     <span class="project-chapter-tab__n">{i + 1}</span>
                   </button>
@@ -953,7 +959,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
             const lead = hasLead ? words.slice(0, 2).join(' ') : '';
             const rest = hasLead ? words.slice(2).join(' ') : words.join(' ');
             return (
-            <section class:list={["project-chapter", chapterTabs && chIdx === 0 && "is-active is-expanded"]} data-ch={chIdx} role={chapterTabs ? 'tabpanel' : undefined}>
+            <section class:list={["project-chapter", chapterTabs && "is-active is-expanded"]} data-ch={chIdx} role={chapterTabs ? 'tabpanel' : undefined}>
               <div class="project-header-title-row project-chapter__header">
                 <h3 class="project-chapter__title">
                   {lead && <span class="project-chapter__title-lead">{lead}</span>}
@@ -3151,6 +3157,11 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
   .project-chapters--tabs .project-chapter { display: none; border-top: none; margin-top: 0; }
   .project-chapters--tabs .project-chapter.is-active { display: block; }
+  .project-chapters--tabs.is-all .project-chapter + .project-chapter {
+    border-top: 1px solid var(--_tokens---color--line-soft);
+    margin-top: 48px;
+    padding-top: 24px;
+  }
   .project-chapters--tabs .project-chapter__header { cursor: default; }
   .project-chapters--tabs .project-detail-collapse-btn { display: none; }
   .project-chapters--tabs .project-chapter__content { grid-template-rows: 1fr; }
@@ -7048,8 +7059,15 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       const select = (tab: HTMLButtonElement) => {
         const n = tab.dataset.ch;
         tabs.forEach(t => t.setAttribute('aria-selected', String(t === tab)));
-        panels.forEach(p => p.classList.toggle('is-active', p.dataset.ch === n));
-        tab.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        panels.forEach(p => p.classList.toggle('is-active', n === 'all' || p.dataset.ch === n));
+        wrap.classList.toggle('is-all', n === 'all');
+        // Into view inside the tab row only — scrollIntoView moves the page.
+        const row = tab.parentElement;
+        if (row) {
+          const l = tab.offsetLeft - row.offsetLeft, r = l + tab.offsetWidth;
+          if (l < row.scrollLeft) row.scrollLeft = l;
+          else if (r > row.scrollLeft + row.clientWidth) row.scrollLeft = r - row.clientWidth;
+        }
         refreshFixedHead();
       };
       tabs.forEach(tab => tab.addEventListener('click', () => select(tab)));
