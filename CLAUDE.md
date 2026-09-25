@@ -608,14 +608,18 @@ The name, the role, the bio and its three buttons are the page header above
 all three. They describe the person, not a section, so they sit outside every
 dropdown and are always present — **at every width**, not just on the phone.
 **Journey is four real tabs** — Work, Exhibitions, Press, Timeline, each
-with its count — and only the chosen one is on screen. The career tagline
-sits above the row, and one plain line under it says what the open tab holds
-("Where I've worked, most recent first."), from `journeyTabs` in
-about.astro. Timeline is the other three again, grouped by year, and its line
-says so. Left/Right move between tabs while the row has focus, stopped there
-so the site-wide Left/Right does not change page. They used to be scroll
-anchors over four stacked lists, which looked like tabs and did not act
-like them.
+with its count — and only the chosen one is on screen (`journeyTabs` in
+about.astro). Left/Right move between tabs while the row has focus, stopped
+there so the site-wide Left/Right does not change page. **The row is not
+sticky**: it sits inside the Journey panel, which is `overflow: hidden` for
+its fold, and that makes the panel its sticky scrollport — `top: 44px`
+pinned it 44px down the panel, on top of the first row of the list.
+
+**From 700 up, Education, Journey and Skillset are drawn as project cards**:
+the card's tint, hairline and shadow, the name at the card's size, the arrow
+in the card's circle, 16px between them, and a closed section takes no
+room. Clicking anywhere on the row opens it (Base wires the whole
+`.page-toggle-header`).
 
 **Switching a section does not move the page.** The titles are docked, so the
 only thing that changes is what sits between them; scrolling as well costs
