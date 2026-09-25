@@ -1,163 +1,21 @@
 ---
 import Icon from './Icon.astro';
-import { getCollection } from 'astro:content';
-import Arrow from './Arrow.astro';
 
+/* The Quick Search bar, and only that. It used to carry a cloud of every
+   project as pills; that is gone from every page but /projects, which has
+   its own. Searching from here takes the query to /projects?q=, where the
+   results are. The props stay so existing call sites keep compiling. */
 export interface Props {
   isEmbedded?: boolean;
   categoryId?: string;
-  /** Highlight exactly these project ids (e.g. the featured set on Home,
-      or the single current project on a detail page). Others dim. */
   activeIds?: string[];
   isHome?: boolean;
 }
 
-const { isEmbedded = false, categoryId, activeIds, isHome = false } = Astro.props;
-const hasActiveFilter = Boolean(categoryId || (activeIds && activeIds.length));
-
-// Fetch projects, categories, and tags
-const allProjects = await getCollection('projects');
-const allTags     = await getCollection('tags');
-const allCats     = await getCollection('categories');
-
-// Lookup maps
-const tagMap = Object.fromEntries(allTags.map(t => [t.id, t.data.name]));
-const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
-
-// Abbreviate each word individually: keep words ≤3 chars, truncate longer ones to 3 chars.
-// "EPISODE Kolkata" → "EPI Kol", "Going PI" → "Goi PI", "SOCIAL 2" → "SOC 2"
-function abbrevName(name: string): string {
-  return name.trim().split(/\s+/).filter(w => w.length > 0).map(w => w.length <= 3 ? w : w.slice(0, 3)).join(' ');
-}
-
-// Sort projects
-const sorted = [...allProjects].sort((a, b) => {
-  if (a.data.numbr && b.data.numbr) return a.data.numbr - b.data.numbr;
-  if (a.data.numbr) return -1;
-  if (b.data.numbr) return 1;
-  return parseInt(b.data.year ?? '0') - parseInt(a.data.year ?? '0');
-});
+const { isEmbedded = false, isHome = false } = Astro.props;
 ---
 
-<footer class:list={["home-search-footer", isEmbedded && "home-search-footer--embedded", isHome && "home-search-footer--home", hasActiveFilter && "is-category-filter"]} id="home-search-footer" data-category={categoryId}>
-
-  <!-- Pill/bubble search — rows are nowrap + clipped (stagger).
-       From 1024 up the count and the cloud are a panel that slides up from
-       behind the fixed Quick Search bar while the field is in use. -->
-  <div class="home-search__panel" id="qs-panel">
-  <p role="status" class="home-search__count" id="qs-count" aria-live="polite"></p>
-  <div class="proj-bubbles supersmall" id="qs-grid" role="list">
-    {sorted.map(p => {
-      const tagsArr = (p.data.tags ?? []).map(t => tagMap[t.id] || t.id);
-      const catId = p.data.category ? p.data.category.id : '';
-      return (
-        <a
-          href={`/projects/${p.id}`}
-          class:list={["proj-bubble", activeIds?.includes(p.id) && "is-category-match"]}
-          data-name={p.data.name}
-          data-tags={tagsArr.join(',')}
-          data-cat={p.data.category ? (catMap[p.data.category.id] || p.data.category.id) : ''}
-          data-cat-id={catId}
-          data-year={p.data.year ?? ''}
-          data-loc={p.data.location ?? ''}
-          data-client={p.data.client ?? ''}
-          data-status={p.data.status ?? ''}
-          data-program={p.data.program ?? ''}
-        >
-          <span class="proj-bubble__name" data-short={p.data.shortName || abbrevName(p.data.name)} data-full={p.data.name}>{p.data.shortName || abbrevName(p.data.name)}</span>
-          <span class="proj-bubble__tag">{tagsArr[0] || (p.data.category ? catMap[p.data.category.id] : 'Design')}</span>
-          <Arrow class="proj-bubble__arrow" />
-        </a>
-      );
-    })}
-    
-    <!-- Category Links -->
-    <a href="/work" class="proj-bubble admin-bubble" data-name="Work" data-tags="category,work" data-cat="Category">
-      <span class="proj-bubble__name" data-short="Work" data-full="Work">Work</span>
-      <span class="proj-bubble__tag">Category</span>
-      <Arrow class="proj-bubble__arrow" />
-    </a>
-    <a href="/freelancer" class="proj-bubble admin-bubble" data-name="Freelancer" data-tags="category,freelance,freelancer" data-cat="Category">
-      <span class="proj-bubble__name" data-short="Freelancer" data-full="Freelancer">Freelancer</span>
-      <span class="proj-bubble__tag">Category</span>
-      <Arrow class="proj-bubble__arrow" />
-    </a>
-    <a href="/academic" class="proj-bubble admin-bubble" data-name="Academic" data-tags="category,academic,scad,school" data-cat="Category">
-      <span class="proj-bubble__name" data-short="Academic" data-full="Academic">Academic</span>
-      <span class="proj-bubble__tag">Category</span>
-      <Arrow class="proj-bubble__arrow" />
-    </a>
-    <a href="/archv" class="proj-bubble admin-bubble" data-name="Archv" data-tags="category,archive,archv" data-cat="Category">
-      <span class="proj-bubble__name" data-short="Archv" data-full="Archv">Archv</span>
-      <span class="proj-bubble__tag">Category</span>
-      <Arrow class="proj-bubble__arrow" />
-    </a>
-    <a href="/work/studio-823" class="proj-bubble admin-bubble" data-name="Studio 823" data-tags="category,work,studio823" data-cat="Category">
-      <span class="proj-bubble__name" data-short="Std 823" data-full="Studio 823">Std 823</span>
-      <span class="proj-bubble__tag">Category</span>
-      <Arrow class="proj-bubble__arrow" />
-    </a>
-    <a href="/work/faizan-khatri" class="proj-bubble admin-bubble" data-name="FKD Workshop" data-tags="category,work,fkd,faizan" data-cat="Category">
-      <span class="proj-bubble__name" data-short="FKD Wrk" data-full="FKD Workshop">FKD Wrk</span>
-      <span class="proj-bubble__tag">Category</span>
-      <Arrow class="proj-bubble__arrow" />
-    </a>
-    
-    <!-- Admin CMS Quick Links — dev only: Keystatic doesn't exist on the live
-         static build, so these pills would 404 in production -->
-    {import.meta.env.DEV && (<>
-    <a
-      href="/keystatic/singleton/home"
-      class="proj-bubble admin-bubble"
-      data-name="Home Admin"
-      data-tags="admin,cms,homepage,keystatic"
-      data-cat="Admin"
-      data-year=""
-      data-loc=""
-      data-client=""
-      data-status=""
-      data-program=""
-    >
-      <span class="proj-bubble__name" data-short="Hom Adm" data-full="Home Admin">Hom Adm</span>
-      <span class="proj-bubble__tag">Admin</span>
-      <Arrow class="proj-bubble__arrow" />
-    </a>
-    <a
-      href="/keystatic/singleton/about"
-      class="proj-bubble admin-bubble"
-      data-name="About Admin"
-      data-tags="admin,cms,about,me,keystatic"
-      data-cat="Admin"
-      data-year=""
-      data-loc=""
-      data-client=""
-      data-status=""
-      data-program=""
-    >
-      <span class="proj-bubble__name" data-short="Abo Adm" data-full="About Admin">Abo Adm</span>
-      <span class="proj-bubble__tag">Admin</span>
-      <Arrow class="proj-bubble__arrow" />
-    </a>
-    <a
-      href="/keystatic/collection/projects"
-      class="proj-bubble admin-bubble"
-      data-name="Projects Admin"
-      data-tags="admin,cms,projects,keystatic"
-      data-cat="Admin"
-      data-year=""
-      data-loc=""
-      data-client=""
-      data-status=""
-      data-program=""
-    >
-      <span class="proj-bubble__name" data-short="Pro Adm" data-full="Projects Admin">Pro Adm</span>
-      <span class="proj-bubble__tag">Admin</span>
-      <Arrow class="proj-bubble__arrow" />
-    </a>
-    </>)}
-  </div>
-
-  </div>
+<footer class:list={["home-search-footer", isEmbedded && "home-search-footer--embedded", isHome && "home-search-footer--home"]} id="home-search-footer">
 
   <!-- Search bar sits at the bottom of the footer -->
   {/* The field is wrapped so the ✕ positions against the field, not the bar:
@@ -167,6 +25,7 @@ const sorted = [...allProjects].sort((a, b) => {
       <input
         type="search"
         id="qs-input"
+        enterkeyhint="search"
         class="home-search__input"
         placeholder="Quick Search"
         autocomplete="off"
@@ -308,207 +167,17 @@ const sorted = [...allProjects].sort((a, b) => {
   }
   }
 
-  .home-search__count {
-    font-size: var(--_tokens---type--micro);
-    font-weight: var(--_tokens---weight--light);
-    color: var(--_tokens---color--muted);
-    letter-spacing: 0.04em;
-    margin-bottom: 24px;
-  }
-
-  .proj-bubbles {
-    display: flex;
-    flex-direction: column;
-    /* Vertical rhythm is 75% of the horizontal gap — see the bubble-gap
-       tokens for why the two axes are deliberately not equal. */
-    gap: var(--_tokens---bubble-gap-y);
-  }
-
-  /* Each row: space-between so gaps fill 100% width (like justified text).
-     Use :global() so the rule matches JS-created elements that don't carry
-     Astro's scoped data-astro-cid attribute. */
-  :global(.qs-row) {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
-    justify-content: space-between;
-    gap: 4px;
-    width: 100%;
-    overflow: hidden;
-  }
-
-  /* Last row: left-align (don't stretch the short final row across full width) */
-  :global(.qs-row--last) {
-    justify-content: flex-start;
-    gap: 4px;
-  }
-
-  .proj-bubble {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--_tokens---pill-gap);
-    font-size: var(--_tokens---type--ultrathin);
-    font-weight: var(--_tokens---weight--light);
-    color: var(--_tokens---color--muted);
-    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
-    border: var(--_tokens---pill-border);
-    border-radius: var(--_tokens---radius--pill);
-    padding: var(--_tokens---pill-pad--xs);
-    text-decoration: none;
-    white-space: nowrap;
-    cursor: pointer;
-    overflow: hidden;
-    box-sizing: border-box;
-    flex: 0 0 auto;
-    transition: background-color var(--_tokens---motion--base), color var(--_tokens---motion--base), transform var(--_tokens---motion--fast), box-shadow var(--_tokens---motion--base), width var(--_tokens---motion--slow) cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  /* When squished, hide the text and arrow to make it a pure color dot */
-  .proj-bubble.is-squished {
-    color: transparent;
-  }
-  .proj-bubble.is-squished .proj-bubble__tag,
-  .proj-bubble.is-squished .proj-bubble__arrow {
-    opacity: 0 !important;
-  }
-
-  /* Temporary measure state — disable pill transitions only (name text is swapped in JS now) */
-  .qs-measure-state .proj-bubble {
-    transition: none !important;
-  }
-
-  /* Name shows abbreviated text at rest; JS swaps to full name on hover.
-     No max-width clipping needed — overflow is hidden by the pill itself. */
-  .proj-bubble__name {
-    color: inherit;
-    overflow: hidden;
-    white-space: nowrap;
-  }
-
-  .proj-bubble__tag {
-    font-family: var(--_tokens---font--mono);
-    line-height: 1;
-    color: inherit;
-    opacity: 0;
-    max-width: 0;
-    margin-left: -8px;
-    overflow: hidden;
-    white-space: nowrap;
-    transition: max-width var(--_tokens---motion--slow) cubic-bezier(0.16, 1, 0.3, 1),
-                opacity 0.28s ease,
-                margin-left var(--_tokens---motion--slow) cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .proj-bubble.is-tag-reveal .proj-bubble__tag {
-    max-width: 160px;
-    opacity: 0.6;
-    margin-left: 0;
-  }
-  @media (hover: hover) {
-    .proj-bubble:hover .proj-bubble__tag {
-    max-width: 160px;
-    opacity: 0.6;
-    margin-left: 0;
-  }
-  }
-
-  .proj-bubble__arrow {
-    flex-shrink: 0;
-    opacity: 0.55;
-    transition: transform var(--_tokens---motion--base) ease, opacity var(--_tokens---motion--base) ease;
-  
-
-    --arrow-size: var(--_tokens---arrow--sm);
-
-  }
-
-  /* Hover state: switches to full contrast (bg is fg, text/arrow is bg) and vertical translate -1px */
-  @media (hover: hover) {
-    .proj-bubble:hover {
-      background-color: var(--_tokens---color--fg);
-      color: var(--_tokens---color--bg);
-      border-color: var(--_tokens---color--fg);
-      transform: translateY(-1px);
-    }
-  }
-
-  @media (hover: hover) {
-    .proj-bubble:hover .proj-bubble__arrow {
-    opacity: 1;
-  }
-  }
-
-  /* Matching state: switches to full contrast during active search
-     (no glow — pills use flat contrast everywhere for consistency) */
-  .proj-bubble.is-match {
-    background-color: var(--_tokens---color--fg);
-    color: var(--_tokens---color--bg);
-    border-color: var(--_tokens---color--fg);
-    opacity: 1 !important;
-  }
-
-  .proj-bubble.is-match .proj-bubble__arrow {
-    opacity: 1;
-  }
-
-  @media (hover: hover) {
-    .proj-bubble.is-match:hover {
-    transform: translateY(-1px);
-  }
-  }
-
-  /* Active search state: dim non-matching bubbles */
-  .proj-bubbles.has-search .proj-bubble:not(.is-match) {
-    opacity: 0.15 !important;
-    pointer-events: none;
-  }
-
-  /* Category filter state: lighten non-matching projects (lighter than muted) */
-  .is-category-filter .proj-bubbles .proj-bubble {
-    opacity: 0.35;
-  }
-
-  .is-category-filter .proj-bubbles .proj-bubble.is-category-match {
-    opacity: 1;
-  }
-
-  @media (hover: hover) {
-    .is-category-filter .proj-bubbles .proj-bubble:not(.is-category-match):hover {
-    opacity: 0.6;
-  }
-  }
-
-  /* ── Admin Bubbles ── */
-  .admin-bubble {
-    border-color: color-mix(in srgb, var(--_tokens---color--fg) 14%, transparent);
-    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
-  }
-
-  /* Tablet and mobile: remove the footer pills completely */
   @media (max-width: 1023.98px) {
-    .proj-bubbles,
-    #qs-grid {
-      display: none !important;
-    }
-    .home-search__count {
-      margin-bottom: 8px !important;
-    }
     .home-search-footer {
       padding-top: 16px !important;
       padding-bottom: 24px !important;
     }
   }
 
-  /* ── Desktop: the bar is fixed, the cloud is a panel ─────────────────
+  /* ── Desktop: the bar is fixed at the bottom of the window ─────────────
      On every page with a footer the Quick Search bar (Pages docked at its
-     right end) sits fixed at the bottom of the window, and the pill cloud is
-     hidden behind it. Focusing the field slides the cloud up out of the bar;
-     clicking anywhere else, or Escape, sends it back down. The footer itself
-     takes no room in the page any more.
-
-     Hidden with transform + visibility, never display:none — the row engine
-     measures the grid's width to pack the rows, and a display:none grid
-     measures 0 and builds nothing. */
+     right end) sits fixed at the bottom, and the footer itself takes no room
+     in the page. */
   @media (min-width: 1024px) {
     .home-search-footer,
     .home-search-footer:not(.home-search-footer--embedded) {
@@ -531,229 +200,47 @@ const sorted = [...allProjects].sort((a, b) => {
       box-sizing: border-box;
     }
 
-    .home-search__panel {
-      position: fixed;
-      left: calc(var(--_tokens---layout--nav, 0px) + var(--_tokens---layout--gutter));
-      right: var(--_tokens---layout--gutter);
-      bottom: 67px; /* the bar: 42px field + 24px padding + 1px hairline */
-      z-index: 79;
-      max-height: min(60dvh, 520px);
-      overflow-y: auto;
-      scrollbar-width: none;
-      box-sizing: border-box;
-      padding: 16px 16px 12px;
-      /* Overlay, not the 40% glass: this sits over photographs, and pills set
-         in ultrathin type over a portrait are unreadable at 40%. */
-      background-color: var(--_tokens---color--bg-overlay);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid var(--_tokens---color--line-soft);
-      border-bottom: none;
-      border-radius: 8px 8px 0 0;
-      transform: translateY(calc(100% + 67px));
-      visibility: hidden;
-      transition: transform var(--_tokens---motion--slow) var(--_tokens---ease-out),
-                  visibility 0s linear var(--_tokens---motion--slow);
-    }
-    .home-search__panel::-webkit-scrollbar { display: none; }
-
-    .home-search-footer.is-open .home-search__panel {
-      transform: none;
-      visibility: visible;
-      transition: transform var(--_tokens---motion--slow) var(--_tokens---ease-out),
-                  visibility 0s;
-    }
-
-    /* No visible count line over the suggestions — the matching pills say it.
-       Kept for screen readers: it is the live region that announces "2
-       matches" as you type. */
-    .home-search__count {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      margin: -1px;
-      overflow: hidden;
-      clip-path: inset(50%);
-      white-space: nowrap;
-    }
-
-    /* Suggestions, not a second navigation: the pills in the panel sit a
-       step under the ultrathin floor, with a tighter chip around them. */
-    .home-search__panel .proj-bubble {
-      font-size: 0.6rem;
-      padding: 2px 8px;
-      gap: 4px;
-    }
-    .home-search__panel .proj-bubbles {
-      gap: 4px;
-    }
-
     /* Page content must end above the fixed bar. */
     :global(.page-main:has(.home-search__bar)) {
       padding-bottom: 96px;
     }
   }
 
-  @media (min-width: 1024px) and (prefers-reduced-motion: reduce) {
-    .home-search__panel,
-    .home-search-footer.is-open .home-search__panel {
-      transition: none;
-    }
-  }
 </style>
 
 <script>
-  import { initBubbleRows } from '../lib/bubbleRows';
+  // Enter takes the query to /projects, which filters its list by ?q=.
+  // Escape and the ✕ clear the field.
   function initQuickSearch() {
-    const footer = document.querySelector('.home-search-footer');
-    if (!footer) return;
-    const grid     = footer.querySelector('#qs-grid') as HTMLElement | null;
-    const input    = footer.querySelector('#qs-input') as HTMLInputElement | null;
-    const clearBtn = footer.querySelector('#qs-clear');
-    const count    = footer.querySelector('#qs-count');
-    if (!grid || grid.dataset.qsInit) return;  // guard against double-init on the same DOM
-    grid.dataset.qsInit = '1';
-    const g = grid;
-    const categoryId = footer.dataset.category || '';
+    const input = document.getElementById('qs-input') as HTMLInputElement | null;
+    const clearBtn = document.getElementById('qs-clear');
+    if (!input || input.dataset.qsInit) return;
+    input.dataset.qsInit = '1';
 
-    // Shuffle the original pills once
-    const originals = Array.from(g.querySelectorAll('.proj-bubble')) as HTMLElement[];
-    for (let i = originals.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      const t = originals[i]; originals[i] = originals[j]; originals[j] = t;
-    }
-    const total = originals.length;
+    const sync = () => input.classList.toggle('is-active', !!input.value.trim());
+    input.addEventListener('input', sync);
 
-    // Clear and append in shuffled order directly to g
-    g.innerHTML = '';
-    originals.forEach(p => g.appendChild(p));
-
-    // Row packing + hover-steal now live in src/lib/bubbleRows.ts
-    const rowEngine = initBubbleRows({ grid: g, pillSelector: '.proj-bubble' });
-    const buildRows = () => rowEngine.rebuild();
-
-    // Mark category-matching bubbles if category filtering is active
-    if (categoryId) {
-      Array.from(g.querySelectorAll('.proj-bubble')).forEach(el0 => {
-        const el = el0 as HTMLElement;
-        const bubbleCatId = el.dataset.catId || '';
-        el.classList.toggle('is-category-match', bubbleCatId === categoryId);
-      });
-    }
-
-    // Defer the first build until page layout has settled.
-    rowEngine.build();
-    requestAnimationFrame(() => requestAnimationFrame(() => render(input?.value || '')));
-
-    // Pill-cloud search: toggle is-match on matching pills, has-search on grid.
-    // No text list is generated — results appear directly in the pill cloud.
-    function render(query: string) {
-      const keywords = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
-      const hasSearch = keywords.length > 0;
-      footer.classList.toggle('is-searching', hasSearch);
-      g.classList.toggle('has-search', hasSearch);
-
-      if (!hasSearch) {
-        // Clear all match highlights when search is empty
-        originals.forEach(el => el.classList.remove('is-match'));
-        if (count) count.textContent = `${total} items · Explore all projects and categories`;
-        return;
-      }
-
-      let matchCount = 0;
-      originals.forEach(el => {
-        const hay = [el.dataset.name, el.dataset.short, el.dataset.tags, el.dataset.cat, el.dataset.year, el.dataset.loc, el.dataset.client, el.dataset.status, el.dataset.program].join(' ').toLowerCase();
-        const isMatch = keywords.every(word => hay.includes(word));
-        el.classList.toggle('is-match', isMatch);
-        if (isMatch) matchCount++;
-      });
-
-      if (count) {
-        count.textContent = matchCount
-          ? `${matchCount} ${matchCount === 1 ? 'match' : 'matches'} of ${total} items`
-          : 'No matches. Try a project name, year, location or category.';
-      }
-    }
-
-    render('');
-
-    // Desktop: the cloud is a panel behind the fixed bar. It opens while the
-    // field is in use and closes on a click anywhere outside the field and the
-    // panel — Pages sits in the same bar, and opening it closes the cloud.
-    const panel = footer.querySelector('#qs-panel') as HTMLElement | null;
-    const field = footer.querySelector('.home-search__field') as HTMLElement | null;
-    const setOpen = (open: boolean) => footer.classList.toggle('is-open', open);
-    input?.addEventListener('focus', () => setOpen(true));
-
-    // Hovering the field reveals the suggestions too, so they read as help
-    // sitting under the bar rather than something you have to know to click
-    // for. Leaving both closes them after a beat — the beat covers the 12px
-    // of bar between field and panel — unless the field is in use.
-    const canHover = window.matchMedia('(hover: hover)');
-    let hoverTimer: number | undefined;
-    const hoverIn = () => {
-      if (!canHover.matches) return;
-      window.clearTimeout(hoverTimer);
-      setOpen(true);
-    };
-    const hoverOut = () => {
-      if (!canHover.matches) return;
-      window.clearTimeout(hoverTimer);
-      hoverTimer = window.setTimeout(() => {
-        if (document.activeElement === input || input?.value.trim()) return;
-        setOpen(false);
-      }, 250);
-    };
-    [field, panel].forEach(el => {
-      el?.addEventListener('pointerenter', hoverIn);
-      el?.addEventListener('pointerleave', hoverOut);
-    });
-    input?.addEventListener('blur', () => {
-      if (!input.value.trim() && !panel?.matches(':hover')) setOpen(false);
-    });
-
-    document.addEventListener('pointerdown', (e) => {
-      const t = e.target as Node;
-      if (!footer.classList.contains('is-open')) return;
-      if (panel?.contains(t) || field?.contains(t)) return;
-      setOpen(false);
-    });
-
-    input?.addEventListener('input', () => {
-      render(input.value);
-      if (!input.value.trim()) buildRows();
-      input.classList.toggle('is-active', !!input.value.trim());
-    });
-
-    input?.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const q = input.value.trim();
+        if (!q) return;
+        e.preventDefault();
+        window.location.href = `/projects?q=${encodeURIComponent(q)}`;
+      } else if (e.key === 'Escape') {
         input.value = '';
-        input.classList.remove('is-active');
-        render('');
-        buildRows();
+        sync();
         input.blur();
-        setOpen(false);
       }
     });
 
     clearBtn?.addEventListener('click', (e) => {
       e.preventDefault();
-      if (input) { input.value = ''; input.classList.remove('is-active'); render(''); buildRows(); input.focus(); }
-    });
-
-    let resizeTimer: number | undefined;
-    window.addEventListener('resize', () => {
-      window.clearTimeout(resizeTimer);
-      resizeTimer = window.setTimeout(() => {
-        buildRows();
-        render(input?.value || '');
-      }, 180);
+      input.value = '';
+      sync();
+      input.focus();
     });
   }
 
-  // Setup on page load
   initQuickSearch();
-
-  // Support Astro View Transitions
   document.addEventListener('astro:after-swap', initQuickSearch);
 </script>

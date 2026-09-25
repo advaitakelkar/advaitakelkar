@@ -940,4 +940,117 @@ const scrubImgs = visibleProjectImages(p.id, p.data?.passcode, scrubImgsRaw);
       align-items: center;
       gap: 12px;
     }
-}</style>
+}
+  /* ── Desktop card: one compact grid ────────────────────────────────────
+     Two equal columns, three rows, every placement explicit:
+
+       | name ……………………… (80%, one line)           ( ↗ ) |
+       | subtitle            | thumbnail strip             |
+       | pills, as a paragraph |        (continues)        |
+
+     The wrappers between the card and its parts (header, body, columns,
+     bottom bar) are display: contents, so the parts are grid items of the
+     card itself and the markup — shared with the phone and tablet layouts —
+     does not change. Scoped to a card inside a list: RenderRooms carries
+     .project-card on its chapters for the scrub binding only. */
+  @media (min-width: 1024px) {
+    .project-cards-container .project-card {
+      --card-name: clamp(2rem, 1.375rem + 3.5vw, 4rem);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      grid-template-rows: auto auto auto;
+      column-gap: 24px;
+      row-gap: 6px;
+      padding: 10px 20px 12px;
+    }
+    .project-cards-container .project-card__header,
+    .project-cards-container .project-card__body,
+    .project-cards-container .project-card__body-inner,
+    .project-cards-container .project-card__columns,
+    .project-cards-container .project-card__bottom-left,
+    .project-cards-container .project-card__bottom-right,
+    .project-cards-container .project-card__metaline {
+      display: contents;
+    }
+
+    /* Name: 80% of the card, one line, an ellipsis when it runs out. */
+    .project-cards-container .project-card__stack-name {
+      grid-column: 1 / -1;
+      grid-row: 1;
+      max-width: 80%;
+      font-size: var(--card-name);
+      line-height: 1.1;
+      display: block;
+      -webkit-line-clamp: unset;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* The arrow circle is as tall as the name's line. */
+    .project-cards-container .project-card__stack-right {
+      grid-column: 2;
+      grid-row: 1;
+      justify-self: end;
+      align-self: center;
+    }
+    .project-cards-container .project-card__pill {
+      font-size: var(--card-name);
+      width: 1.1em;
+      height: 1.1em;
+      --icon-size: 0.5em;
+    }
+
+    .project-cards-container .project-card__description-col {
+      grid-column: 1;
+      grid-row: 2;
+      padding: 0;
+    }
+    .project-cards-container .project-card__intro {
+      max-width: none;
+    }
+
+    /* The strip starts on the line under the arrow and runs down beside the
+       subtitle and the pills. Thumbs hold a fixed size and sit to the right,
+       so the strip never makes the card taller than its copy needs. */
+    .project-cards-container .project-card__image-col {
+      grid-column: 2;
+      grid-row: 2 / span 2;
+      width: auto;
+      align-self: start;
+    }
+    .project-cards-container .project-card__thumbs-scroll {
+      justify-content: flex-end;
+      height: auto;
+    }
+    .project-cards-container .project-card__thumb-item {
+      flex: 0 0 auto;
+      width: 88px;
+      height: 88px;
+      max-height: none;
+    }
+
+    /* Pills set as a paragraph: they wrap like words, no sideways scroll. */
+    .project-cards-container .project-card__bottom-bar {
+      grid-column: 1;
+      grid-row: 3;
+      align-self: end;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      padding: 0;
+      overflow: visible;
+      -webkit-mask-image: none;
+      mask-image: none;
+    }
+    /* Same size as the Quick Search suggestion pills (ProjectList): these
+       and those are the same object, a value you can filter by. */
+    .project-cards-container .project-card__filter-pill,
+    .project-cards-container .project-card__meta-item {
+      font-size: 0.6rem;
+      line-height: normal;
+      padding: 2px 8px;
+      gap: 4px;
+    }
+  }
+</style>
