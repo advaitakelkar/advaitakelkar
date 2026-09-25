@@ -1,6 +1,7 @@
 ---
 import Icon from './Icon.astro';
 import { getCollection } from 'astro:content';
+import { skillsets } from '../lib/skills';
 
 /* The Quick Search bar, and only that. It used to carry a cloud of every
    project as pills; that is gone from every page but /projects, which has
@@ -41,6 +42,53 @@ const suggestions = allProjects
     ].filter(Boolean).join(' ').replace(/\s+/g, ' ').toLowerCase(),
   }))
   .sort((a, b) => a.name.localeCompare(b.name));
+
+/* Filters, suggested beside the projects: every value the Database can be
+   filtered by — category, studio, discipline, year, place, status, client,
+   person — plus the site's pages and the Skillset. Each is a pill that goes
+   straight to where that filter lives: a category or studio page, a
+   discipline page, About's Skillset, or the Database searched for it. They
+   match by word start ("sc" finds SCAD), which keeps a short query from
+   dragging up every filter that merely contains its letters. */
+const liveStudioPages = new Set(
+  allStudios
+    .filter(st => st.data.category.id === 'work' && allProjects.some((p: any) => p.data.studio?.id === st.id))
+    .map(st => st.id),
+);
+const searchHref = (v: string) => `/projects?q=${encodeURIComponent(v)}`;
+const distinct = (vals: unknown[]) =>
+  [...new Set(vals.filter(Boolean).map(v => String(v).trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+const rawFilters: { kind: string; label: string; href: string }[] = [
+  { kind: 'Page', label: 'Home', href: '/' },
+  { kind: 'Page', label: 'About', href: '/about' },
+  { kind: 'Page', label: 'Database', href: '/projects' },
+  ...allCats.map(c => ({ kind: 'Category', label: c.data.displayName, href: `/${c.id}` })),
+  ...allStudios
+    .filter(st => allProjects.some((p: any) => p.data.studio?.id === st.id))
+    .map(st => ({
+      kind: 'Studio',
+      label: st.data.displayName,
+      href: liveStudioPages.has(st.id) ? `/work/${st.id}` : searchHref(st.data.displayName),
+    })),
+  ...allTags
+    .filter(t => allProjects.some((p: any) => (p.data.tags ?? []).some((pt: any) => pt.id === t.id)))
+    .map(t => ({ kind: 'Discipline', label: t.data.name, href: `/tags/${t.id}` })),
+  ...distinct(allProjects.map((p: any) => p.data.year)).map(v => ({ kind: 'Year', label: v, href: searchHref(v) })),
+  ...distinct(allProjects.map((p: any) => p.data.location)).map(v => ({ kind: 'Place', label: v, href: searchHref(v) })),
+  ...distinct(allProjects.map((p: any) => p.data.status)).map(v => ({ kind: 'Status', label: v, href: searchHref(v) })),
+  ...distinct(allProjects.map((p: any) => p.data.client)).map(v => ({ kind: 'Client', label: v, href: searchHref(v) })),
+  ...distinct(allProjects.flatMap((p: any) => p.data.people ?? [])).map(v => ({ kind: 'Person', label: v, href: searchHref(v) })),
+  ...skillsets.flatMap(g => g.skills.map(sk => ({ kind: 'Skill', label: sk.name, href: `/about?skill=${encodeURIComponent(sk.name)}` }))),
+];
+// One pill per name: SCAD is a category and a studio, and a second pill
+// saying the same word is noise. The first kind listed wins.
+const seen = new Set<string>();
+const filters = rawFilters.filter(f => {
+  const k = f.label.toLowerCase();
+  if (seen.has(k)) return false;
+  seen.add(k);
+  return true;
+});
 ---
 
 <footer class:list={["home-search-footer", isEmbedded && "home-search-footer--embedded", isHome && "home-search-footer--home"]} id="home-search-footer">
@@ -51,7 +99,12 @@ const suggestions = allProjects
   <div class="home-search__bar" data-pages-dock>
     {/* Matching projects, above the bar while you type. Hidden until a query
         matches; only the matches show. */}
-    <div class="qs-sug" id="qs-sug" aria-label="Matching projects" hidden>
+    <div class="qs-sug" id="qs-sug" aria-label="Suggestions" hidden>
+      {filters.map((f) => (
+        <a class="qs-sug__pill qs-sug__pill--filter" href={f.href} data-kind={f.kind} title={f.label} hidden>
+          <span class="qs-sug__kind">{f.kind}</span>{f.label}<Icon name="arrow" class="qs-sug__arrow" />
+        </a>
+      ))}
       {suggestions.map((sg) => (
         <a class="qs-sug__pill" href={`/projects/${sg.id}`} data-hay={sg.hay} title={sg.name} hidden>
           {sg.label}<Icon name="arrow" class="qs-sug__arrow" />
@@ -165,6 +218,12 @@ const suggestions = allProjects
     transition: background-color var(--_tokens---motion--base), color var(--_tokens---motion--base), border-color var(--_tokens---motion--base);
   }
   .qs-sug__pill[hidden] { display: none; }
+  /* A filter says what kind of thing it is before its name, so "SCAD" the
+     category and "SCAD Design Built" the project are never confused. */
+  .qs-sug__kind {
+    opacity: 0.6;
+    margin-right: 2px;
+  }
   /* The one Enter opens. */
   .qs-sug__pill.is-sel {
     background-color: var(--_tokens---color--fg);
@@ -342,7 +401,7 @@ const suggestions = allProjects
        is what Enter opens, so it is shown first and marked. */
     const rank = (pl: HTMLAnchorElement, q: string) => {
       const name = (pl.title || '').toLowerCase();
-      const label = (pl.textContent || '').trim().toLowerCase();
+      const label = pl.dataset.kind ? name : (pl.textContent || '').trim().toLowerCase();
       if (name === q || label === q) return 0;
       if (name.startsWith(q) || label.startsWith(q)) return 1;
       if (name.split(/\s+/).some(w => w.startsWith(q))) return 2;
@@ -356,12 +415,24 @@ const suggestions = allProjects
       const q = input.value.trim().toLowerCase();
       const kws = q.split(/\s+/).filter(Boolean);
       ranked = [];
+      let nFilters = 0;
       pills.forEach(pl => {
-        const on = kws.length > 0 && kws.every(k => (pl.dataset.hay ?? '').includes(k));
+        let on: boolean;
+        if (pl.dataset.kind) {
+          // A filter matches by word start, and only a handful are shown.
+          const words = (pl.title || '').toLowerCase().split(/[\s/&,+-]+/);
+          on = kws.length > 0 && nFilters < 6 && kws.every(k => words.some(w => w.startsWith(k)));
+          if (on) nFilters++;
+        } else {
+          on = kws.length > 0 && kws.every(k => (pl.dataset.hay ?? '').includes(k));
+        }
         pl.hidden = !on;
         if (on) ranked.push(pl);
       });
-      ranked.sort((a, b) => rank(a, q) - rank(b, q));
+      /* By how well the name answers the query; on a tie a filter comes
+         before a project, since it is the broader answer ("scad" is the
+         category before it is any one SCAD project). */
+      ranked.sort((a, b) => rank(a, q) - rank(b, q) || Number(!a.dataset.kind) - Number(!b.dataset.kind));
       ranked.forEach((pl, i) => { pl.style.order = String(i); });
       sel = 0;
       mark();
@@ -369,6 +440,16 @@ const suggestions = allProjects
     };
     input.addEventListener('input', suggest);
     input.addEventListener('focus', suggest);
+    // On About a skill is already on the page: filter the Skillset to it
+    // and bring it into view rather than reloading the page.
+    sug?.addEventListener('click', (e) => {
+      const pl = (e.target as HTMLElement).closest<HTMLAnchorElement>('.qs-sug__pill[data-kind="Skill"]');
+      if (!pl || !onAbout()) return;
+      e.preventDefault();
+      input.value = pl.title;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      document.querySelector('.skillset-header')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
     // Close when focus leaves the bar, but let a click on a pill land first.
     input.addEventListener('blur', () => setTimeout(() => {
       if (sug && !sug.contains(document.activeElement)) sug.hidden = true;
@@ -390,7 +471,7 @@ const suggestions = allProjects
            suggestions. A skill goes to About only when no project NAME
            answers the query; with neither, the Database list is the answer. */
         const top = ranked[sel];
-        if (top && (rank(top, q.toLowerCase()) < 3 || !matchesSkill(q))) {
+        if (top && top.dataset.kind !== 'Skill' && (rank(top, q.toLowerCase()) < 3 || !matchesSkill(q))) {
           window.location.href = top.href;
           return;
         }
