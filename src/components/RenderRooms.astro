@@ -107,7 +107,7 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
         <div class:list={['rrg__group', note && 'rrg__group--noted']} data-rrg-room={r}>
           <p class="rrg__label">{r}</p>
           {note && <p class="rrg__note">{note}</p>}
-          <div class="rrg__grid">
+          <div class="rrg__grid" style={`--rrg-cols: ${Math.min(3, Math.max(1, indexed.filter(v => v.room === r).length))}`}>
             {indexed.filter(v => v.room === r).map(v => v.caption ? (
               <figure class="rrg__fig">
                 <img class="rrg__img" src={v.image} alt={`${name} — ${r}`} loading="lazy" decoding="async" />
@@ -505,7 +505,9 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
   }
   .rrg__grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    /* One column per picture, up to three: a pair sits side by side, three
+       share one row. */
+    grid-template-columns: repeat(var(--rrg-cols, 2), minmax(0, 1fr));
     gap: 12px;
     align-items: start;
   }
