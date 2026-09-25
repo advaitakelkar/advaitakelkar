@@ -287,6 +287,8 @@ if (isScarpinPage && !hasImages && scarpinSliders.length > 0) {
    which is the same page CARLO and SHLF were built with. A project with no
    images at all gets the copy alone and no stage. */
 const renderViews = views.length ? views : allImages.map((image: string) => ({ image }));
+// Chapters read as tabs once there are two or more of them.
+const chapterTabs = (data.chapters?.length ?? 0) > 1;
 
 // Derive a display name from an image filename (same rules as the client script)
 const isPortraits = template.namedSeries;
@@ -918,8 +920,31 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
       <!-- NON-ORIGINAL-CARD PAGES: chapter dropdowns (when defined) or Design & Making -->
       {!isOriginalCardPage && !isScarpinPage && (data.chapters?.length ?? 0) > 0 && (
-        <div class="project-chapters">
-          {data.chapters.map((ch: { title: string; subtitle?: string; body: string }) => {
+        <div class:list={["project-chapters", chapterTabs && "project-chapters--tabs"]}>
+          {/* Two or more chapters read as tabs: a numbered row, one chapter
+              on screen. A single chapter keeps its dropdown. */}
+          {chapterTabs && (
+            <div class="project-chapter-tabs">
+              <div class="project-chapter-tabs__list" role="tablist" aria-label="Chapters">
+                {data.chapters.map((ch: { title: string }, i: number) => (
+                  <button class="project-chapter-tab" type="button" role="tab" data-ch={i}
+                          aria-selected={i === 0 ? 'true' : 'false'}>
+                    <span>{ch.title}</span>
+                    <span class="project-chapter-tab__n">{i + 1}</span>
+                  </button>
+                ))}
+              </div>
+              <div class="project-chapter-tabs__nav">
+                <button class="project-chapter-tabs__step" type="button" data-ch-step="-1" aria-label="Previous chapter">
+                  <Icon name="chevron" dir="w" />
+                </button>
+                <button class="project-chapter-tabs__step" type="button" data-ch-step="1" aria-label="Next chapter">
+                  <Icon name="chevron" dir="e" />
+                </button>
+              </div>
+            </div>
+          )}
+          {data.chapters.map((ch: { title: string; subtitle?: string; body: string }, chIdx: number) => {
             const words = (ch.subtitle || ch.title).split(' ');
             // Only peel off a small "lead" line (e.g. "Living with") when
             // there's more than two words — otherwise a short subtitle like
@@ -928,7 +953,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
             const lead = hasLead ? words.slice(0, 2).join(' ') : '';
             const rest = hasLead ? words.slice(2).join(' ') : words.join(' ');
             return (
-            <section class="project-chapter">
+            <section class:list={["project-chapter", chapterTabs && chIdx === 0 && "is-active is-expanded"]} data-ch={chIdx} role={chapterTabs ? 'tabpanel' : undefined}>
               <div class="project-header-title-row project-chapter__header">
                 <h3 class="project-chapter__title">
                   {lead && <span class="project-chapter__title-lead">{lead}</span>}
@@ -3041,7 +3066,112 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     grid-template-rows: 1fr;
   }
 
+  /* ── Chapters as tabs ── the About page's Journey tabs: large pills with
+     a small number, and a round previous / next pair at the right end,
+     exactly as tall as a tab. One chapter on screen; it keeps its big title,
+     the dropdown arrow and the fold go. */
+  .project-chapter-tabs {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-top: 16px;
+    border-top: 1px solid var(--_tokens---color--line-soft);
+  }
+  .project-chapter-tabs__list {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .project-chapter-tabs__list::-webkit-scrollbar { display: none; }
+  .project-chapter-tab,
+  .project-chapter-tabs__step {
+    font: inherit;
+    font-size: calc(var(--_tokens---type--small) * 1.2);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    color: var(--_tokens---color--muted);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    border: var(--_tokens---pill-border);
+    cursor: pointer;
+    transition: background-color var(--_tokens---motion--base) ease, color var(--_tokens---motion--base) ease, border-color var(--_tokens---motion--base) ease;
+  }
+  .project-chapter-tab {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--_tokens---pill-gap);
+    padding: var(--_tokens---pill-pad--lg-compact);
+    border-radius: var(--_tokens---radius--pill);
+    white-space: nowrap;
+  }
+  .project-chapter-tab__n {
+    font-size: var(--_tokens---type--micro);
+    font-variant-numeric: tabular-nums;
+    opacity: 0.6;
+  }
+  .project-chapter-tab[aria-selected="true"] {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
+  }
+  .project-chapter-tabs__nav { display: flex; gap: 6px; flex-shrink: 0; }
+  .project-chapter-tabs__step {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: calc(1lh + 20px + 2px);
+    height: calc(1lh + 20px + 2px);
+    padding: 0;
+    border-radius: 50%;
+    --icon-size: 0.8em;
+  }
+  .project-chapter-tabs__step:focus-visible {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
+  }
+  @media (hover: hover) {
+    .project-chapter-tab:not([aria-selected="true"]):hover {
+      background-color: color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
+      color: var(--_tokens---color--fg);
+    }
+    .project-chapter-tabs__step:hover {
+      background-color: var(--_tokens---color--fg);
+      color: var(--_tokens---color--bg);
+      border-color: var(--_tokens---color--fg);
+    }
+  }
+  @media (max-width: 699.98px) {
+    .project-chapter-tab,
+    .project-chapter-tabs__step { font-size: var(--_tokens---type--small); }
+  }
+  .project-chapters--tabs .project-chapter { display: none; border-top: none; margin-top: 0; }
+  .project-chapters--tabs .project-chapter.is-active { display: block; }
+  .project-chapters--tabs .project-chapter__header { cursor: default; }
+  .project-chapters--tabs .project-detail-collapse-btn { display: none; }
+  .project-chapters--tabs .project-chapter__content { grid-template-rows: 1fr; }
+
   /* ── Chapter body content (raw HTML via set:html → :global) ── */
+  .project-chapter__body :global(.ch-list) {
+    list-style: none; margin: 16px 0 0; padding: 0;
+    display: flex; flex-wrap: wrap; gap: 6px;
+  }
+  .project-chapter__body :global(.ch-list li) {
+    font-size: var(--_tokens---type--micro);
+    padding: var(--_tokens---pill-pad--xs);
+    border: var(--_tokens---pill-border);
+    border-radius: var(--_tokens---radius--pill);
+  }
+  .project-chapter__body :global(.ch-sub) {
+    font-size: var(--_tokens---type--medium);
+    font-weight: var(--_tokens---weight--base);
+    letter-spacing: -0.02em;
+    margin: 32px 0 8px;
+  }
   .project-chapter__body :global(.ch-hero) {
     margin: 20px 0 0;
   }
@@ -6233,6 +6363,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     // (`if (!deck || !lightbox) return`) — so image-less pages (ARCHV: Dhal Ni
     // Pol, VANDLS, T4D, ARCHV itself) shipped tabs that could never open.
     initSectionTabs();
+    initChapters();
 
     if (isScarpinPage) {
       initScarpinSliders();
@@ -6897,6 +7028,64 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
 
 
+  /* Chapters (data.chapters): tabs when there are two or more, otherwise a
+     dropdown. Its own function — it used to live inside initStandardSlider,
+     which returns early on every project-01 page, so it never ran there. */
+  function initChapters() {
+    // Chapter dropdowns (data.chapters) — accordion: only one open at a time
+    const chapterSections = Array.from(document.querySelectorAll('.project-chapter'));
+    const collapseChapter = (sect: Element) => {
+      const toggleBtn = sect.querySelector('.project-detail-collapse-btn');
+      if (!toggleBtn) return;
+      sect.classList.remove('is-expanded');
+      toggleBtn.setAttribute('aria-expanded', 'false');
+    };
+
+    // Chapters as tabs: the row picks the one chapter on screen.
+    document.querySelectorAll<HTMLElement>('.project-chapters--tabs').forEach(wrap => {
+      const tabs = Array.from(wrap.querySelectorAll<HTMLButtonElement>('.project-chapter-tab'));
+      const panels = Array.from(wrap.querySelectorAll<HTMLElement>('.project-chapter'));
+      const select = (tab: HTMLButtonElement) => {
+        const n = tab.dataset.ch;
+        tabs.forEach(t => t.setAttribute('aria-selected', String(t === tab)));
+        panels.forEach(p => p.classList.toggle('is-active', p.dataset.ch === n));
+        tab.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        refreshFixedHead();
+      };
+      tabs.forEach(tab => tab.addEventListener('click', () => select(tab)));
+      // Previous / next step through the chapters, wrapping at the ends.
+      wrap.querySelectorAll<HTMLButtonElement>('[data-ch-step]').forEach(btn => btn.addEventListener('click', () => {
+        const cur = tabs.findIndex(t => t.getAttribute('aria-selected') === 'true');
+        const next = (cur + Number(btn.dataset.chStep) + tabs.length) % tabs.length;
+        select(tabs[next]);
+      }));
+    });
+
+    chapterSections.forEach(sect => {
+      const header = sect.querySelector('.project-chapter__header');
+      const toggleBtn = sect.querySelector('.project-detail-collapse-btn');
+      if (!header || !toggleBtn) return;
+      if (sect.closest('.project-chapters--tabs')) return;
+      header.addEventListener('click', () => {
+        const willExpand = !sect.classList.contains('is-expanded');
+
+        // Collapse every other chapter before opening this one
+        chapterSections.forEach(other => {
+          if (other !== sect) collapseChapter(other);
+        });
+
+        sect.classList.toggle('is-expanded', willExpand);
+        toggleBtn.setAttribute('aria-expanded', String(willExpand));
+        toggleBtn.querySelectorAll('.link-arrow').forEach((a) => {
+          (a as HTMLElement).style.transform = `rotate(${Math.floor(Math.random() * 360)}deg)`;
+        });
+        // Opening/closing a chapter changes whether the mobile head is fixed
+        // and whether the intro is collapsed.
+        refreshFixedHead();
+      });
+    });
+  }
+
   function initStandardSlider() {
     const slider = document.getElementById('standard-slider-wrapper');
     const lightbox = document.getElementById('card-lightbox');
@@ -7199,37 +7388,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     wireCollapse(designSection, 'project-design-click', 'project-design-toggle', 'project-design-panel');
     wireCollapse(makingSection, 'project-making-click', 'project-making-toggle', 'project-making-panel');
 
-    // Chapter dropdowns (data.chapters) — accordion: only one open at a time
-    const chapterSections = Array.from(document.querySelectorAll('.project-chapter'));
-    const collapseChapter = (sect: Element) => {
-      const toggleBtn = sect.querySelector('.project-detail-collapse-btn');
-      if (!toggleBtn) return;
-      sect.classList.remove('is-expanded');
-      toggleBtn.setAttribute('aria-expanded', 'false');
-    };
-
-    chapterSections.forEach(sect => {
-      const header = sect.querySelector('.project-chapter__header');
-      const toggleBtn = sect.querySelector('.project-detail-collapse-btn');
-      if (!header || !toggleBtn) return;
-      header.addEventListener('click', () => {
-        const willExpand = !sect.classList.contains('is-expanded');
-
-        // Collapse every other chapter before opening this one
-        chapterSections.forEach(other => {
-          if (other !== sect) collapseChapter(other);
-        });
-
-        sect.classList.toggle('is-expanded', willExpand);
-        toggleBtn.setAttribute('aria-expanded', String(willExpand));
-        toggleBtn.querySelectorAll('.link-arrow').forEach((a) => {
-          (a as HTMLElement).style.transform = `rotate(${Math.floor(Math.random() * 360)}deg)`;
-        });
-        // Opening/closing a chapter changes whether the mobile head is fixed
-        // and whether the intro is collapsed.
-        refreshFixedHead();
-      });
-    });
   }
 
   function initScarpinSliders() {

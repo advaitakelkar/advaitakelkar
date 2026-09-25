@@ -1608,6 +1608,9 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       // searching "Studio 823" / "F'KD" would stop finding anything.
       const studio = (card.dataset.studio ?? '').toLowerCase();
       const tags = (card.dataset.tags ?? '').toLowerCase();
+      // Subtitle, short name, people and chapter text — so a search finds a
+      // project by what is inside it, not only by its label.
+      const text = (card.dataset.text ?? '').toLowerCase();
       const catId = card.dataset.catId ?? '';
       const tagIds = (card.dataset.tagIds ?? '').split(',').filter(Boolean);
 
@@ -1622,7 +1625,8 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
         program.includes(kw) ||
         cat.includes(kw) ||
         studio.includes(kw) ||
-        tags.includes(kw)
+        tags.includes(kw) ||
+        text.includes(kw)
       );
 
       const catMatch = !activeCat || catId === activeCat;
