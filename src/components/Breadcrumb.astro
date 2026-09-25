@@ -857,8 +857,14 @@ if (activeProject) {
     bottom: auto;
     transform-origin: top right;
   }
+  /* Bottom-up, Home nearest the button, ten rows tall (sizeWheel() writes
+     the exact height), snapping row by row like a click wheel. */
   .breadcrumb__custom-dropdown.is-docked .breadcrumb__pages-list {
-    max-height: var(--bc-dock-room, calc(100dvh - 100px));
+    flex-direction: column-reverse;
+    scroll-snap-type: y mandatory;
+  }
+  .breadcrumb__custom-dropdown.is-docked .breadcrumb__list-item {
+    scroll-snap-align: start;
   }
   /* The dim sits in the top bar's stacking context, which paints over the
      search bar — it would cover the very list it frames. Outside clicks
@@ -1096,6 +1102,7 @@ if (activeProject) {
 </style>
 
 <script>
+  import { initAudio, playTick } from '../lib/tick';
   function setupDropdown() {
     const trigger  = document.getElementById('breadcrumb-dropdown-trigger') as HTMLButtonElement | null;
     const panel    = document.getElementById('breadcrumb-dropdown-panel');
@@ -1200,6 +1207,7 @@ if (activeProject) {
       // Projects the list simply rests at the top — they're the first rows.
       // getBoundingClientRect, not offsetTop — the panel is positioned.
       const list = document.getElementById('breadcrumb-pages-list');
+      if (list && dropdown.classList.contains('is-docked')) sizeWheel(list);
       if (list) requestAnimationFrame(() => {
         const active = list.querySelector('.breadcrumb__list-item.is-active') as HTMLElement | null;
         if (active) {
@@ -1232,6 +1240,42 @@ if (activeProject) {
       if (panel.classList.contains('is-open') && !dropdown.contains(e.target as Node)) closeDropdown();
     });
 
+    // ── Docked: the list is a click wheel ───────────────────────
+    // In the Quick Search bar the list runs bottom-up (Home nearest the
+    // button), shows ten rows, snaps row by row and ticks on every name it
+    // passes, the same tick as the SideNav wheel.
+    function sizeWheel(list: HTMLElement) {
+      const rows = Array.from(list.querySelectorAll('.breadcrumb__list-item')) as HTMLElement[];
+      if (!rows.length) return;
+      // Measured end to end rather than rows × height: the dividers between
+      // pages, categories and projects take room too.
+      list.style.maxHeight = '';
+      const tenth = rows[Math.min(9, rows.length - 1)].getBoundingClientRect();
+      const first = rows[0].getBoundingClientRect();
+      const cs = getComputedStyle(list);
+      const pad = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+      const span = Math.max(first.bottom, tenth.bottom) - Math.min(first.top, tenth.top);
+      list.style.maxHeight = `${Math.ceil(span + pad)}px`;
+      lastRow = -1;
+      tickReady = false;
+    }
+
+    const wheelList = document.getElementById('breadcrumb-pages-list');
+    let lastRow = -1;
+    let tickReady = false;
+    wheelList?.addEventListener('pointerenter', () => { initAudio(); });
+    wheelList?.addEventListener('wheel', () => { tickReady = true; initAudio(); }, { passive: true });
+    wheelList?.addEventListener('scroll', () => {
+      if (!dropdown.classList.contains('is-docked')) return;
+      const row = wheelList.querySelector('.breadcrumb__list-item') as HTMLElement | null;
+      if (!row) return;
+      const idx = Math.round(Math.abs(wheelList.scrollTop) / row.offsetHeight);
+      if (idx !== lastRow) {
+        if (lastRow !== -1 && tickReady) playTick();
+        lastRow = idx;
+      }
+    }, { passive: true });
+
     // ── Keyboard navigation — one flat list on every breakpoint ─
     function getFocusableItems(): HTMLElement[] {
       return Array.from(dropdown.querySelectorAll('.breadcrumb__pages-list .breadcrumb__list-item')) as HTMLElement[];
@@ -1253,8 +1297,13 @@ if (activeProject) {
       const items  = getFocusableItems();
       const active = document.activeElement as HTMLElement;
       const idx    = items.indexOf(active);
+      // A bottom-up list (phone, and docked in the search bar) runs against
+      // the DOM, so the arrow that points down walks the DOM backwards.
+      const listEl = dropdown.querySelector('.breadcrumb__pages-list');
+      const bottomUp = listEl && getComputedStyle(listEl).flexDirection === 'column-reverse';
+      const down = (e.key === 'ArrowDown') !== Boolean(bottomUp);
 
-      if (e.key === 'ArrowDown') {
+      if (down) {
         (items[idx + 1] ?? items[0])?.focus();
       } else {
         (items[idx - 1] ?? items[items.length - 1])?.focus();
