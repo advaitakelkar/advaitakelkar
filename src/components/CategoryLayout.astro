@@ -18,9 +18,11 @@ export interface Props {
   activeIds?: string[];
   /** og:image for this category page; falls back to the site default. */
   shareImage?: string;
+  /** Outbound tabs after the groups (e.g. ARCHV's old website, Instagram). */
+  links?: { label: string; href: string }[];
 }
 
-const { projects, title, crumbs, categoryId, intro, tagline, activeIds, shareImage } = Astro.props;
+const { projects, title, crumbs, categoryId, intro, tagline, activeIds, shareImage, links = [] } = Astro.props;
 
 // Get all tags and categories for formatting
 const allTags = await getCollection('tags');
@@ -58,6 +60,13 @@ const showTabs = namedGroups.length > 1;
 const tabGroups = showTabs
   ? [{ id: 'all', label: 'All', shortLabel: 'All', isAll: true, projects }, ...namedGroups]
   : studioGroups;
+// Outbound links ride in the same row. A category with no groups of its own
+// (ARCHV) still gets the row for them, led by an All that is simply the list
+// already on the page.
+const showBar = showTabs || links.length > 0;
+const barGroups = showTabs
+  ? tabGroups
+  : [{ id: 'all', label: 'All', shortLabel: 'All', isAll: true, projects }];
 const studioMap = Object.fromEntries(allStudios.map(st => [st.id, st.data.displayName]));
 
 // 3-column intro copy now lives in the category's YAML (editable inline). Sub-views
@@ -192,10 +201,10 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
       </div>
 
       <!-- Project groups — tabbed (Studio 823 / FKD Workshop) on Work, else a flat card list -->
-      {showTabs && (
+      {showBar && (
         <section class="cat-tabs" style="margin-top: clamp(2rem, 4vh, 4rem);">
           <div class="cat-tabs__bar" role="tablist" aria-label="Project groups">
-            {tabGroups.map((g, i) => (
+            {barGroups.map((g, i) => (
               <button
                 class:list={["cat-tab-btn", g.isAll && "cat-tab-btn--all", i === 0 && "is-active"]}
                 role="tab"
@@ -213,6 +222,12 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
                 )}
                 <Icon name="arrow" class="pill-arrow" />
               </button>
+            ))}
+            {links.map(l => (
+              <a class="cat-tab-btn cat-tab-link" href={l.href} target="_blank" rel="noopener">
+                <span>{l.label}</span>
+                <Icon name="arrow" class="pill-arrow" />
+              </a>
             ))}
           </div>
         </section>
@@ -484,6 +499,8 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
       white-space: nowrap;
       transition: background-color var(--_tokens---motion--base) ease, color var(--_tokens---motion--base) ease, border-color var(--_tokens---motion--base) ease;
     }
+    /* An outbound link drawn as a tab: same pill, no underline. */
+    .cat-tab-link { text-decoration: none; }
     .cat-tab-btn .pill-arrow {
     --icon-size: 20px;
       flex-shrink: 0;
@@ -1022,7 +1039,8 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
     }
 
     function initCategoryTabs() {
-      const tabs = document.querySelectorAll<HTMLElement>('.cat-tab-btn');
+      // Buttons only: an outbound link in the row is not a tab.
+      const tabs = document.querySelectorAll<HTMLElement>('button.cat-tab-btn');
       const panels = document.querySelectorAll<HTMLElement>('.cat-tab-panel');
       if (!tabs.length) return;
       tabs.forEach((tab) => {

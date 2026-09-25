@@ -39,6 +39,9 @@ const categories = defineCollection({
     // Image used for og:image / social link previews on this category page.
     // Falls back to the site-wide portrait in Base.astro when omitted.
     shareImage: z.string().optional(),
+    // Outbound tabs: sit in the category's tab row after its groups, each a
+    // link off the site (the collective's old website, its Instagram).
+    links: z.array(z.object({ label: z.string(), href: z.string() })).optional(),
   }),
 });
 
