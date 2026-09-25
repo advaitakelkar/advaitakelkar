@@ -80,14 +80,17 @@ const wheelItems: WheelItem[] = [
   ...wheelProjects.map(p => ({ href: `/projects/${p.id}`, name: p.data.name, id: p.id, isPage: false })),
 ];
 
-// Color schemes — all light variants; dark mode flips bg↔fg via CSS
-// fg doubles as the dark-mode bg for swatch rendering
+// Color schemes. The dark theme is the source; light is its exact inverse
+// (bg and fg swapped), and both are the values in tokens.css. `fg` is the
+// light theme's ink = the dark theme's ground; `bg` the other way round.
+// A swatch shows the scheme's ink in whichever mode is on, so the palette
+// flips with the light/dark switch.
 const schemes = [
   { id: 'default', label: 'Void',     bg: '#ffffff', fg: '#111111' },
-  { id: 'sch1',    label: 'Moss',     bg: '#ECE7E2', fg: '#3D6355' },
-  { id: 'sch3',    label: 'Dusk',     bg: '#D7E7C3', fg: '#6C5383' },
+  { id: 'sch1',    label: 'Moss',     bg: '#ECE7E2', fg: '#2B4A3E' },
+  { id: 'sch3',    label: 'Dusk',     bg: '#D7E7C3', fg: '#523869' },
   { id: 'sch4',    label: 'Midnight', bg: '#D2B96A', fg: '#0B1A35' },
-  { id: 'sch6',    label: 'Ember',    bg: '#ffe4a1', fg: '#97322D' },
+  { id: 'sch6',    label: 'Ember',    bg: '#ffe4a1', fg: '#7E2621' },
 ];
 ---
 
@@ -444,10 +447,15 @@ const schemes = [
     border: none;
   }
 
+  /* Dark: the OS asks for it and the switch has not said light, or the
+     switch says dark. Either way the dots show the dark theme's ink. */
   @media (prefers-color-scheme: dark) {
-    .sn-scheme__swatch {
+    :global(html:not(.mode-light)) .sn-scheme__swatch {
       background: var(--sw-d);
     }
+  }
+  :global(html.mode-dark) .sn-scheme__swatch {
+    background: var(--sw-d);
   }
 
   /* Mode toggle divider */
@@ -1189,7 +1197,10 @@ const schemes = [
 
   schemeEl.addEventListener('click', (e) => e.stopPropagation());
 
-  dropdown.querySelectorAll<HTMLElement>('.sn-scheme__option').forEach(btn => {
+  // Colour swatches only. The light/dark button shares the option class for
+  // its drawing, and without [data-scheme] it fell through to 'default':
+  // flipping the mode also threw away the colour you were on.
+  dropdown.querySelectorAll<HTMLElement>('.sn-scheme__option[data-scheme]').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const id = btn.dataset.scheme ?? 'default';
