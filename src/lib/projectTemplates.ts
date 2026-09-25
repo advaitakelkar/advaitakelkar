@@ -25,11 +25,6 @@ export function projectTemplate(_slug: string, _category?: string, template: Pro
     frame,
     name: renders ? 'project-01' : `ai-${frame}`,
     cards,
-    chapters: false,
     renders,
-    // A renders page draws its own middle; it must not also get the tab
-    // layout's filmstrip and panels.
-    tabs: false,
-    cardLayout: true,
   };
 }

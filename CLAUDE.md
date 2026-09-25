@@ -1014,9 +1014,13 @@ same shape CARLO and SHLF use. A project with no images at all gets the copy
 alone and no stage. A YAML `chapters:` list still renders below the stage
 (SCAD Design Built, Habersham Hall, ARCHV).
 
-The page code for the retired layouts (`isTabLayout`, `isTabChapterPage`,
-the Scarpin person sliders) is now unreachable in `projects/[slug].astro`
-and can be removed; the flags are pinned off in `projectTemplate()`.
+The page code for the retired layouts is gone (Sept 2026 cleanup): the tab
+layout and its accordion (`lib/accordion.ts`), the Scarpin person sliders,
+the standard non-card page and its lightbox, and every CSS rule keyed on
+`[data-tab-layout="true"]` or `[data-is-card="false"]`. `projects/[slug].astro`
+went from 8,555 lines to about 6,900. `data-tab-layout="false"` is still
+emitted, deliberately: the chassis rules read `:not([data-tab-layout="true"])`,
+and that `:not()` is part of their specificity.
 
 ## Project Template 01 — the renders template
 
