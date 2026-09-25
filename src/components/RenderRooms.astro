@@ -24,7 +24,7 @@ import { projectThumbnail } from '../lib/projectImages';
 import ImageLightbox from './ImageLightbox.astro';
 
 export interface Props {
-  views: Array<{ room?: string; label?: string; image: string; variations?: string[] }>;
+  views: Array<{ room?: string; label?: string; note?: string; image: string; variations?: string[] }>;
   name: string;
   /* How the groups are chosen between. 'tabs' is a row of pills and suits a
      flat with eight rooms. 'chapters' is a column of dropdowns and suits a
@@ -32,7 +32,7 @@ export interface Props {
      where the group has a position in an argument and a row of twelve pills
      would flatten that back into a filter bar. Same data either way — only
      the control changes. */
-  groups?: 'tabs' | 'chapters';
+  groups?: 'tabs' | 'chapters' | 'grid';
   /* What one group is called, for the labels and the count line. */
   groupNoun?: { one: string; many: string };
 }
@@ -41,6 +41,7 @@ const NOUN = groupNoun ?? (groups === 'chapters'
   ? { one: 'chapter', many: 'chapters' }
   : { one: 'room', many: 'rooms' });
 const asChapters = groups === 'chapters';
+const asGrid = groups === 'grid';
 
 /* Rooms in the order they first appear. A view with no room named falls into
    one called after the project, so a half-filled YAML still renders.
@@ -68,7 +69,53 @@ const indexed = views.map((v, i) => ({
 const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
 ---
 
-{asChapters ? (
+{asGrid ? (
+  /* ── Groups as a grid ────────────────────────────────────────────────
+     No stage and no rail: each group's pictures sit side by side, full
+     size, under the Journey tab row. All shows every group in order, one
+     under the other; a group's tab shows it alone. For a set that is a few
+     pictures per idea — CARLO's two configurations and two variations —
+     where comparing them next to each other IS the point. */
+  <section class="rr rr--grid" data-rr-grid aria-label={`${name} — ${NOUN.many}`}>
+    <div class="rr__tabrow">
+      <div class="rr__tabs" role="tablist" aria-label={NOUN.many}>
+        <button class="rr__tab rr__tab--all is-active" role="tab" type="button" data-rrg-tab="all" aria-selected="true" aria-label="All" title="All">
+          <Icon name="arrow" />
+        </button>
+        {rooms.map(r => (
+          <button class="rr__tab" role="tab" type="button" data-rrg-tab={r} aria-selected="false">
+            <span>{r}</span>
+            <span class="rr__tab-n">{indexed.filter(v => v.room === r).length}</span>
+          </button>
+        ))}
+      </div>
+      <div class="rr__tabnav">
+        <button class="rr__tabstep" type="button" data-rrg-step="-1" aria-label={`Previous ${NOUN.one}`}>
+          <Icon name="chevron" dir="w" />
+        </button>
+        <button class="rr__tabstep" type="button" data-rrg-step="1" aria-label={`Next ${NOUN.one}`}>
+          <Icon name="chevron" dir="e" />
+        </button>
+      </div>
+    </div>
+    {rooms.map(r => {
+      /* A group can carry a line of text (the first view's `note`). It sits
+         on the left, the pictures to the right of it. */
+      const note = views.find(v => (v.room || name) === r && v.note)?.note;
+      return (
+        <div class:list={['rrg__group', note && 'rrg__group--noted']} data-rrg-room={r}>
+          <p class="rrg__label">{r}</p>
+          {note && <p class="rrg__note">{note}</p>}
+          <div class="rrg__grid">
+            {indexed.filter(v => v.room === r).map(v => (
+              <img class="rrg__img" src={v.image} alt={`${name} — ${r}`} loading="lazy" decoding="async" />
+            ))}
+          </div>
+        </div>
+      );
+    })}
+  </section>
+) : asChapters ? (
   /* ── Chapters as cards ────────────────────────────────────────────────
      Twelve plateaus as a stack of cards, the shape the projects list uses:
      the name on the left, the pictures in a strip on the right, and the row
@@ -128,9 +175,8 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
   {hasRooms && (
     <div class="rr__tabrow">
       <div class="rr__tabs" role="tablist" aria-label="Rooms">
-        <button class="rr__tab is-active" role="tab" type="button" data-rr-room="all" aria-selected="true">
-          <span>All</span>
-          <span class="rr__tab-n">{views.length}</span>
+        <button class="rr__tab rr__tab--all is-active" role="tab" type="button" data-rr-room="all" aria-selected="true" aria-label="All" title="All">
+          <Icon name="arrow" />
         </button>
         {rooms.map(r => (
           <button class="rr__tab" role="tab" type="button" data-rr-room={r} aria-selected="false">
@@ -392,6 +438,15 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
     border-radius: var(--_tokens---radius--pill);
     white-space: nowrap;
   }
+  /* All is a mark, not a word — an arrow in a circle, the same as the All
+     tab on a category page. It names no group, so it needs no label. */
+  .rr__tab--all {
+    width: calc(1lh + 20px + 2px);
+    height: calc(1lh + 20px + 2px);
+    padding: 0;
+    border-radius: 50%;
+    justify-content: center;
+  }
   .rr__tab-n {
     font-size: var(--_tokens---type--micro);
     font-variant-numeric: tabular-nums;
@@ -432,6 +487,44 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
   @media (max-width: 699.98px) {
     .rr__tab,
     .rr__tabstep { font-size: var(--_tokens---type--small); }
+  }
+
+  /* ── Groups as a grid ── */
+  .rrg__group { margin-top: 16px; }
+  .rrg__group[hidden] { display: none; }
+  .rrg__label {
+    font-size: var(--_tokens---type--micro);
+    color: var(--_tokens---color--muted);
+    margin: 0 0 8px;
+  }
+  .rrg__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    align-items: start;
+  }
+  .rrg__img { width: 100%; height: auto; display: block; }
+  /* Text left, pictures right: the note takes the first of the two columns
+     and the pictures share the second. */
+  .rrg__group--noted {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 12px;
+    align-items: start;
+  }
+  .rrg__group--noted .rrg__label { grid-column: 1 / -1; }
+  .rrg__note {
+    margin: 0;
+    max-width: 40ch;
+    font-size: var(--_tokens---type--small);
+    line-height: 1.4;
+    color: var(--_tokens---color--fg);
+  }
+  .rrg__group--noted .rrg__grid { grid-template-columns: minmax(0, 1fr); }
+  @media (max-width: 699.98px) {
+    .rrg__grid { grid-template-columns: minmax(0, 1fr); }
+    .rrg__group--noted { display: block; }
+    .rrg__note { margin-bottom: 12px; }
   }
 
   /* ── The work, and the takes beside it ─────────────────────────────── */
@@ -928,4 +1021,31 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
 
   initRenderRooms();
   document.addEventListener('astro:after-swap', initRenderRooms);
+
+  /* Groups as a grid: the tab row shows All or one group; the pair at the
+     right steps through them, wrapping. */
+  function initRenderGrid() {
+    const root = document.querySelector<HTMLElement>('[data-rr-grid]');
+    if (!root || root.dataset.rrgWired) return;
+    root.dataset.rrgWired = '1';
+    const tabs = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-rrg-tab]'));
+    const groups = Array.from(root.querySelectorAll<HTMLElement>('[data-rrg-room]'));
+    let cur = 'all';
+    const select = (key: string) => {
+      cur = key;
+      tabs.forEach(t => {
+        const on = t.dataset.rrgTab === key;
+        t.classList.toggle('is-active', on);
+        t.setAttribute('aria-selected', String(on));
+      });
+      groups.forEach(g => { g.hidden = key !== 'all' && g.dataset.rrgRoom !== key; });
+    };
+    tabs.forEach(t => t.addEventListener('click', () => select(t.dataset.rrgTab!)));
+    root.querySelectorAll<HTMLButtonElement>('[data-rrg-step]').forEach(btn => btn.addEventListener('click', () => {
+      const i = tabs.findIndex(t => t.dataset.rrgTab === cur);
+      select(tabs[(i + Number(btn.dataset.rrgStep) + tabs.length) % tabs.length].dataset.rrgTab!);
+    }));
+  }
+  initRenderGrid();
+  document.addEventListener('astro:after-swap', initRenderGrid);
 </script>

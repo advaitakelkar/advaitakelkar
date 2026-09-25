@@ -927,10 +927,9 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
             <div class="project-chapter-tabs">
               <div class="project-chapter-tabs__list" role="tablist" aria-label="Chapters">
                 {/* All comes first and is where the page opens: every chapter,
-                    one after another. The count beside it is how many. */}
-                <button class="project-chapter-tab" type="button" role="tab" data-ch="all" aria-selected="true">
-                  <span>All</span>
-                  <span class="project-chapter-tab__n">{data.chapters.length}</span>
+                    one after another. */}
+                <button class="project-chapter-tab project-chapter-tab--all" type="button" role="tab" data-ch="all" aria-selected="true" aria-label="All" title="All">
+                  <Icon name="arrow" />
                 </button>
                 {data.chapters.map((ch: { title: string }, i: number) => (
                   <button class="project-chapter-tab" type="button" role="tab" data-ch={i}
@@ -1043,6 +1042,21 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
           <RenderRooms views={renderViews} name={data.name} groups={data.groups ?? "tabs"} />
         </section>
       )}
+
+      {/* Where the rest of the collection lives — the person's face, one
+          line set as the subtitle is, and the link. */}
+      {isRenders && (data as any).collectionCredit && (() => {
+        const cc = (data as any).collectionCredit;
+        return (
+          <p class="renders-collection">
+            <img class="renders-collection__face" src={PEOPLE[cc.person] ?? PEOPLE['Advaita Kelkar']} alt={cc.person} loading="lazy" />
+            <span>
+              {cc.text}{' '}
+              <a href={cc.href} target="_blank" rel="noopener">{cc.label}<Arrow class="renders-collection__arrow" /></a>
+            </span>
+          </p>
+        );
+      })()}
 
       <!-- Fullscreen Lightbox: card pages get a horizontally scrolling deck -->
       {isCardPage && !isRenders && (
@@ -3117,6 +3131,13 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     padding: var(--_tokens---pill-pad--lg-compact);
     border-radius: var(--_tokens---radius--pill);
     white-space: nowrap;
+  }
+  .project-chapter-tab--all {
+    width: calc(1lh + 20px + 2px);
+    height: calc(1lh + 20px + 2px);
+    padding: 0;
+    border-radius: 50%;
+    justify-content: center;
   }
   .project-chapter-tab__n {
     font-size: var(--_tokens---type--micro);
@@ -5728,6 +5749,33 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     min-width: 0;
     padding-top: 8px;
     padding-bottom: 24px;
+  }
+
+  .renders-collection {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 8px 0 32px;
+    padding-top: 16px;
+    border-top: 1px solid var(--_tokens---color--line-soft);
+    font-size: var(--_tokens---type--small);
+    line-height: 1.4;
+    color: var(--_tokens---color--fg);
+  }
+  .renders-collection__face {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    filter: grayscale(1);
+  }
+  .renders-collection a {
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+    white-space: nowrap;
+    --arrow-size: var(--_tokens---arrow--sm);
   }
 
   /* By id: the phone card moves this button into itself and styles it there,
