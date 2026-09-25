@@ -18,6 +18,8 @@ const home = await getEntry('pages', 'home');
 const homeTagline = home?.data.tagline ?? 'Architectural Designer';
 const homeIntro = home?.data.intro ?? [];
 const intro0 = homeIntro[0] ?? "Hey, I'm Adi (Advaita Kelkar), an architectural designer from Mumbai, currently at SCAD in Savannah, USA. I work across architecture, interiors, and urban design, plus everything in between: computation, sculpture, graphic design, product. To me these aren't separate pursuits; they're one way of seeing the world. Always curious, always making. Glad you're here.";
+// The intro's first full sentence, shown on its own while the intro is shut.
+const introLead = intro0.split(/(?<=[.!?])\s+(?=[A-Z])/)[0];
 const intro1 = homeIntro[1] ?? "I'm an architect at heart. I think in systems, in how many parts come together to form a coherent whole. Designing, ideating, prototyping, making, documenting: each is a different medium for the same architectural way of thinking. Like my work, this archive doesn't keep things in boxes. Wander through it freely, and you'll notice forms, materials, and ideas recur and evolve from one project to the next.";
 
 // Featured slider (featured:true, sorted by numbr)
@@ -59,6 +61,15 @@ function getWords(name: string): string[] {
            tablet, one on a phone. There used to be a phone/tablet version
            that showed one line and hid the rest behind "Read more about me". -->
       <div class="home-intro__body" id="home-intro-body">
+        {/* From 700 up: the short greeting and the control that opens the
+            two bio paragraphs. Hidden on the phone. */}
+        <div class="home-intro__column home-intro__column--hi">
+          <p class="home-intro__desc home-intro__hi">{introLead}</p>
+          <button type="button" class="home-intro__more" id="home-intro-more" aria-expanded="false" aria-controls="home-intro-body">
+            <span class="home-intro__more-label">Read more</span>
+            <Icon name="chevron" dir="s" class="home-intro__more-arrow" />
+          </button>
+        </div>
         <div class="home-intro__column home-intro__column--bio">
           <p class="home-intro__desc" data-edit="pages/home/intro.0">
             {intro0}
@@ -86,7 +97,6 @@ function getWords(name: string): string[] {
         <div class="home-slider__track" id="slider-track">
           {featured.map((p, i) => {
             const tagIds = (p.data.tags ?? []).map((t) => t.id);
-            const studio = tagIds.find((id) => STUDIO[id]);
             const otherTags = tagIds.filter((id) => !STUDIO[id]);
             return (
               <a
@@ -129,20 +139,19 @@ function getWords(name: string): string[] {
                               </span>
                             );
                           })()}
-                          <ul class="home-slider__facts">
-                            {p.data.year && <li><span class="home-slider__fact-k">Year</span> — <span class="home-slider__fact-v">{p.data.year}</span></li>}
-                            {p.data.location && <li><span class="home-slider__fact-k">Location</span> — <span class="home-slider__fact-v">{p.data.location}</span></li>}
-                            {p.data.category && <li><span class="home-slider__fact-k">Category</span> — <span class="home-slider__fact-v">{catName(p.data.category.id)}</span></li>}
-                            {otherTags.map((id) => <li><span class="home-slider__fact-k">Tag</span> — <span class="home-slider__fact-v home-slider__fact-v--tag">{tagMap[id] || id}</span></li>)}
-                          </ul>
-                        </div>
-                        <div class="home-slider__about">
-                          {realText(p.data.smallIntro) && <p class="home-slider__intro">{p.data.smallIntro}</p>}
-                          {realText(p.data.description) && <div class="home-slider__desc" set:html={p.data.description} />}
                         </div>
                       </div>
+                      {/* Bottom row: the subtitle and the four facts as pills
+                          at the left, the arrow at the right. */}
                       <div class="home-slider__bottom">
-                        {studio && <span class="home-slider__studio">{STUDIO[studio]}</span>}
+                        <div class="home-slider__about">
+                          {realText(p.data.smallIntro) && <p class="home-slider__intro">{p.data.smallIntro}</p>}
+                          <ul class="home-slider__facts">
+                            {[p.data.year, p.data.location, p.data.category && catName(p.data.category.id), otherTags[0] && (tagMap[otherTags[0]] || otherTags[0])]
+                              .filter(Boolean)
+                              .map((v) => <li class="home-slider__pill">{v}</li>)}
+                          </ul>
+                        </div>
                         <span class="home-slider__arrow" aria-hidden="true">
                           <svg class="home-slider__ring" viewBox="0 0 100 100" aria-hidden="true">
                             <circle class="home-slider__ring-track" cx="50" cy="50" r="46"></circle>
@@ -493,6 +502,10 @@ function getWords(name: string): string[] {
   }
   window.addEventListener('load', scheduleFit);
   window.addEventListener('resize', scheduleFit);
+  // The window is not the only thing that resizes the slider: opening the
+  // intro's Read more takes height from it and shrinks every photo.
+  const sliderTrack = document.getElementById('slider-track');
+  if (sliderTrack && 'ResizeObserver' in window) new ResizeObserver(scheduleFit).observe(sliderTrack);
   document.querySelectorAll('.home-slider__image-wrap img').forEach(img => {
     if (!img.complete) img.addEventListener('load', scheduleFit);
   });
@@ -548,6 +561,21 @@ function getWords(name: string): string[] {
     setupHomeHeaderScroll();
   }
   document.addEventListener('astro:after-swap', setupHomeHeaderScroll);
+
+  // Intro from 700 up: Read more opens the two bio paragraphs beside the archive
+  // paragraph, three columns in all; Read less folds them away again.
+  (() => {
+    const btn = document.getElementById('home-intro-more');
+    const body = document.getElementById('home-intro-body');
+    const label = btn?.querySelector('.home-intro__more-label');
+    if (!btn || !body || !label) return;
+    btn.addEventListener('click', () => {
+      const open = btn.getAttribute('aria-expanded') !== 'true';
+      btn.setAttribute('aria-expanded', String(open));
+      body.toggleAttribute('data-intro-open', open);
+      label.textContent = open ? 'Read less' : 'Read more';
+    });
+  })();
 </script>
 
 <style>
@@ -886,18 +914,15 @@ function getWords(name: string): string[] {
     min-width: 0;
   }
 
+  /* Subtitle over the facts, bottom-left. Stops 24px short of the photo's
+     visible left edge (--photo-l, measured by fitKnockouts) — the text never
+     runs under the picture. */
   .home-slider__about {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    /* Stops 24px short of the photo's visible left edge (--photo-l, measured
-       by fitKnockouts) — the text never runs under the picture. */
+    gap: 10px;
+    min-width: 0;
     max-width: min(440px, calc(var(--photo-l, 17%) - 24px));
-  }
-  @media (min-width: 1024px) {
-    .home-slider__slide.is-tight .home-slider__about {
-      display: none;
-    }
   }
 
   .home-slider__intro {
@@ -906,17 +931,6 @@ function getWords(name: string): string[] {
     line-height: 1.2;
   }
 
-  .home-slider__desc {
-    font-size: var(--_tokens---type--micro);
-    line-height: 1.35;
-    opacity: 0.88;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .home-slider__desc :global(p) { margin: 0; }
 
   /* name left, facts block right */
   .home-slider__head {
@@ -926,40 +940,33 @@ function getWords(name: string): string[] {
     gap: clamp(16px, 3vw, 48px);
   }
 
-  /* one unified block: year / location / category / tags — all micro, same gap */
+  /* Year, location, category, discipline — the project card's filter pills,
+     at the suggestion size. Spans, not links: the whole slide is a link. */
   .home-slider__facts {
     list-style: none;
     margin: 0;
     padding: 0;
-    flex-shrink: 0;
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 2px;
-    text-align: right;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .home-slider__pill {
+    font-size: 0.6rem;
+    line-height: 1.4;
+    padding: 2px 8px;
+    border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+    border-radius: var(--_tokens---radius--pill);
     white-space: nowrap;
-    font-size: var(--_tokens---type--micro);
-    line-height: 1.3;
   }
 
-  .home-slider__fact-v { font-weight: var(--_tokens---weight--strong); }
 
-  /* bottom row: studio pill (left) + arrow (right) */
+  /* bottom row: subtitle + facts (left) + arrow (right) */
   .home-slider__bottom {
     display: flex;
     align-items: flex-end;
     gap: 16px;
   }
 
-  .home-slider__studio {
-    align-self: flex-end;
-    border: 1px solid currentColor;
-    border-radius: var(--_tokens---radius--pill);
-    padding: 4px 16px;
-    font-size: var(--_tokens---type--micro);
-    letter-spacing: 0.02em;
-    white-space: nowrap;
-  }
 
   /* Mobile-only pieces — hidden on desktop */
   .home-slider__mobile-head {
@@ -1000,23 +1007,19 @@ function getWords(name: string): string[] {
   }
   }
 
-  /* ── Desktop reveal order: name → intro → desc → facts → studio ── */
+  /* ── Desktop reveal order: name → intro → facts ── */
   .home-slider__facts,
-  .home-slider__intro,
-  .home-slider__desc,
-  .home-slider__studio {
+  .home-slider__intro {
     opacity: 0;
     transform: translateY(12px);
     transition: opacity var(--_tokens---motion--slow) ease, transform var(--_tokens---motion--slow) cubic-bezier(0.16, 1, 0.3, 1);
   }
   .home-slider__slide.is-active .home-slider__intro  { opacity: 1; transform: none; transition-delay: 0.10s; }
-  .home-slider__slide.is-active .home-slider__desc   { opacity: 1; transform: none; transition-delay: 0.18s; }
-  .home-slider__slide.is-active .home-slider__facts  { opacity: 1; transform: none; transition-delay: 0.26s; }
-  .home-slider__slide.is-active .home-slider__studio { opacity: 1; transform: none; transition-delay: 0.34s; }
+  .home-slider__slide.is-active .home-slider__facts  { opacity: 1; transform: none; transition-delay: 0.20s; }
 
   @media (prefers-reduced-motion: reduce) {
-    .home-slider__facts, .home-slider__intro, .home-slider__desc,
-    .home-slider__studio, .home-slider__mobile-head, .home-slider__mobile-bottom,
+    .home-slider__facts, .home-slider__intro,
+    .home-slider__mobile-head, .home-slider__mobile-bottom,
     .home-slider__arrow-mobile {
       opacity: 1 !important; transform: none !important; transition: none !important;
     }
@@ -1280,23 +1283,81 @@ function getWords(name: string): string[] {
     }
   }
 
-  /* ── Desktop: one paragraph over the slider ─────────────────────────
-     The two bio paragraphs are the About page's job; here only the third
-     column stays — what this archive is and where to find me — so the hero's
-     height goes to the featured slider, which flexes to fill it. */
+  /* ── Desktop: a wider share of the width for the featured picture. The
+     intro above it is the tablet's three columns (see below). */
   @media (min-width: 1024px) {
-    .home-intro__column--bio {
-      display: none;
-    }
-    .home-intro__body {
-      grid-template-columns: minmax(0, 1fr);
-    }
-    .home-intro__column--contact .home-intro__desc {
-      max-width: 90ch;
-    }
     /* A wider share of the width for the picture as well. */
     .home-slider__slide {
       --img-w: 72%;
+    }
+  }
+
+  /* ── Tablet and desktop: a greeting, then the archive ───────────────
+     From 700 up, shut, the intro is three columns: the first sentence of
+     the bio and Read more on the left, the archive paragraph in the middle,
+     the right one empty. Read
+     more lays the two bio paragraphs in the first two columns and moves the
+     archive paragraph to the third; the control drops under the first. */
+  .home-intro__column--hi {
+    display: none;
+  }
+  @media (min-width: 700px) {
+    .home-intro__body {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      column-gap: 24px;
+    }
+    .home-intro__column--hi {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      grid-column: 1;
+      grid-row: 1;
+    }
+    .home-intro__column--bio {
+      display: none;
+    }
+    .home-intro__column--contact {
+      grid-column: 2;
+      grid-row: 1;
+    }
+    .home-intro__body[data-intro-open] .home-intro__column--bio {
+      display: flex;
+      grid-row: 1;
+    }
+    .home-intro__body[data-intro-open] .home-intro__column--bio:nth-child(2) { grid-column: 1; }
+    .home-intro__body[data-intro-open] .home-intro__column--bio:nth-child(3) { grid-column: 2; }
+    .home-intro__body[data-intro-open] .home-intro__column--contact { grid-column: 3; }
+    .home-intro__body[data-intro-open] .home-intro__column--hi {
+      grid-row: 2;
+    }
+    .home-intro__body[data-intro-open] .home-intro__hi {
+      display: none;
+    }
+  }
+  .home-intro__more {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--_tokens---pill-gap--xs, 4px);
+    font: inherit;
+    font-size: var(--_tokens---type--ultrathin);
+    color: var(--_tokens---color--fg);
+    background: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    border: var(--_tokens---pill-border);
+    border-radius: var(--_tokens---radius--pill);
+    padding: var(--_tokens---pill-pad--xs);
+    cursor: pointer;
+    --icon-size: var(--_tokens---arrow--sm);
+    transition: background-color var(--_tokens---motion--base) ease, color var(--_tokens---motion--base) ease;
+  }
+  /* The chevron is drawn pointing east; a rule here replaces the
+     component's own rotation, so open points north outright. */
+  .home-intro__more[aria-expanded="true"] .home-intro__more-arrow {
+    transform: rotate(-90deg);
+  }
+  @media (hover: hover) {
+    .home-intro__more:hover {
+      background-color: var(--_tokens---color--fg);
+      color: var(--_tokens---color--bg);
     }
   }
 
@@ -1488,8 +1549,7 @@ function getWords(name: string): string[] {
     }
 
     .home-slider__about,
-    .home-slider__facts,
-    .home-slider__studio {
+    .home-slider__facts {
       display: none !important;
     }
 
