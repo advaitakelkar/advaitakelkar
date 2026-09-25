@@ -24,7 +24,7 @@ import { projectThumbnail } from '../lib/projectImages';
 import ImageLightbox from './ImageLightbox.astro';
 
 export interface Props {
-  views: Array<{ room?: string; label?: string; note?: string; image: string; variations?: string[] }>;
+  views: Array<{ room?: string; label?: string; note?: string; caption?: string; image: string; variations?: string[] }>;
   name: string;
   /* How the groups are chosen between. 'tabs' is a row of pills and suits a
      flat with eight rooms. 'chapters' is a column of dropdowns and suits a
@@ -64,6 +64,7 @@ const indexed = views.map((v, i) => ({
   room: v.room || name,
   label: v.label || v.room || (hasRooms ? name : `View ${String(i + 1).padStart(2, '0')}`),
   image: v.image,
+  caption: v.caption,
   variations: v.variations ?? [],
 }));
 const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
@@ -107,7 +108,12 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
           <p class="rrg__label">{r}</p>
           {note && <p class="rrg__note">{note}</p>}
           <div class="rrg__grid">
-            {indexed.filter(v => v.room === r).map(v => (
+            {indexed.filter(v => v.room === r).map(v => v.caption ? (
+              <figure class="rrg__fig">
+                <img class="rrg__img" src={v.image} alt={`${name} — ${r}`} loading="lazy" decoding="async" />
+                <figcaption class="rrg__caption">{v.caption}</figcaption>
+              </figure>
+            ) : (
               <img class="rrg__img" src={v.image} alt={`${name} — ${r}`} loading="lazy" decoding="async" />
             ))}
           </div>
@@ -504,6 +510,14 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
     align-items: start;
   }
   .rrg__img { width: 100%; height: auto; display: block; }
+  .rrg__fig { margin: 0; min-width: 0; }
+  .rrg__caption {
+    margin: 12px 0 0;
+    max-width: 48ch;
+    font-size: var(--_tokens---type--small);
+    line-height: 1.4;
+    color: var(--_tokens---color--fg);
+  }
   /* Text left, pictures right: the note takes the first of the two columns
      and the pictures share the second. */
   .rrg__group--noted {
