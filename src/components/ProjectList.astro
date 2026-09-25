@@ -1397,6 +1397,43 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     }
   }
 
+  /* ── Below 1024: the same suggestions, as a panel on the search field ──
+     The script places it (top or bottom) against the field. Hidden until a
+     query has matches; only the matches show. This replaces the tablet's
+     unfiltered cloud at the foot of the page and the phone's nothing. */
+  @media (max-width: 1023.98px) {
+    .projects-bottom-section {
+      display: block;
+      position: fixed;
+      left: var(--_tokens---layout--gutter);
+      right: var(--_tokens---layout--gutter);
+      z-index: 96;
+      width: auto;
+      margin: 0;
+      max-height: 32dvh;
+      overflow-y: auto;
+      scrollbar-width: none;
+      padding: 10px 12px;
+      background-color: var(--_tokens---color--bg-overlay);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--_tokens---color--line-soft);
+      border-radius: 8px;
+      visibility: hidden;
+      opacity: 0;
+      transition: opacity var(--_tokens---motion--base) ease, visibility 0s linear var(--_tokens---motion--base);
+    }
+    .projects-bottom-section::-webkit-scrollbar { display: none; }
+    .projects-bottom-section:has(.proj-bubbles.has-search .proj-bubble.is-match) {
+      visibility: visible;
+      opacity: 1;
+      transition: opacity var(--_tokens---motion--base) ease, visibility 0s;
+    }
+    .proj-bubbles.has-search .proj-bubble:not(.is-match) { display: none; }
+    .projects-bottom-section .proj-bubble { font-size: 0.7rem; padding: 4px 10px; gap: 4px; }
+    .projects-bottom-section .proj-bubbles { gap: 6px; }
+  }
+
   @media (min-width: 1024px) and (prefers-reduced-motion: reduce) {
     .projects-bottom-section,
     .projects-bottom-section:has(.proj-bubbles.has-search .proj-bubble.is-match) {
@@ -1526,19 +1563,50 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   });
 
   const bubbles = document.querySelectorAll<HTMLElement>('.proj-bubble');
-  function updateBubbles(keywords: string[]) {
+  /* The suggestions are exactly the cards the search matched — the same
+     haystack (name, place, people, chapter text…) and the same filters — so
+     a query never finds a card and suggests nothing, or the other way round. */
+  function updateBubbles(keywords: string[], matched: HTMLElement[] = []) {
     if (grid) {
       grid.classList.toggle('has-search', keywords.length > 0);
     }
+    const names = new Set(matched.map(c => c.dataset.name));
     bubbles.forEach(b => {
-      if (!keywords.length) { b.classList.remove('is-match'); return; }
-      const hay = [
-        b.dataset.name, b.dataset.loc, b.dataset.year, b.dataset.client,
-        b.dataset.status, b.dataset.program, b.dataset.cat, b.dataset.studio, b.dataset.tags
-      ].join(' ').toLowerCase();
-      b.classList.toggle('is-match', keywords.every(kw => hay.includes(kw)));
+      b.classList.toggle('is-match', keywords.length > 0 && names.has(b.dataset.name));
     });
+    placeSuggestions();
   }
+
+  /* Below 1024 the suggestions are a fixed panel anchored to the search
+     field: under it when the field sits at the top of the screen (tablet),
+     above it when it is docked at the bottom (phone). Measured each time —
+     the field moves with the fold and with the keyboard. */
+  const sugPanel = document.querySelector<HTMLElement>('.projects-bottom-section');
+  const narrow = window.matchMedia('(max-width: 1023.98px)');
+  function placeSuggestions() {
+    if (!sugPanel || !searchInput) return;
+    if (!narrow.matches) { sugPanel.style.removeProperty('top'); sugPanel.style.removeProperty('bottom'); return; }
+    const r = searchInput.getBoundingClientRect();
+    const vh = window.visualViewport?.height ?? window.innerHeight;
+    if (r.top > vh / 2) {
+      // Docked at the bottom (phone): clear the filter row above the field
+      // too, which is part of the same stack.
+      const bar = document.querySelector<HTMLElement>('#projects-filter-panel .filter-bar');
+      const br = bar?.getBoundingClientRect();
+      const edge = br && br.height && br.top > vh / 2 && br.top < r.top ? br.top : r.top;
+      sugPanel.style.top = 'auto';
+      sugPanel.style.bottom = `${Math.max(0, window.innerHeight - edge + 8)}px`;
+    } else {
+      // At the top (tablet): below the filter row that sits under the field.
+      const bar = document.querySelector<HTMLElement>('#projects-filter-panel .filter-bar');
+      const br = bar?.getBoundingClientRect();
+      const edge = br && br.height && br.top >= r.top && br.bottom < vh / 2 ? Math.max(r.bottom, br.bottom) : r.bottom;
+      sugPanel.style.bottom = 'auto';
+      sugPanel.style.top = `${edge + 8}px`;
+    }
+  }
+  window.addEventListener('resize', placeSuggestions);
+  window.visualViewport?.addEventListener('resize', placeSuggestions);
 
   function updateFieldActivation() {
     // 1. Search input
@@ -1638,7 +1706,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     });
 
     applyVisibility(matchingCards);
-    updateBubbles(keywords);
+    updateBubbles(keywords, matchingCards);
   }
 
   // Input typing listener
