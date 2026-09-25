@@ -141,20 +141,17 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
 >
   <article class="category-detail">
     <div class="category-sticky-header">
-      <!-- Title row doubles as the disclosure header, same as Home / About /
-           Projects: arrow on the right, everything above the project cards
-           collapses beneath it. -->
-      <header class="project-top-header category-hero-header page-toggle-header" id="project-top-header">
+      <!-- The title row is the projects page's header: the name, and how many
+           works are under it. Nothing folds — the copy, the people and the
+           studio tabs below are always there. -->
+      <header class="project-top-header category-hero-header" id="project-top-header">
         <h1 class="project-card__title category-hero-title">{title}</h1>
         <div class="category-hero-right">
           <span class="category-count text-muted">{projects.length} {projects.length === 1 ? 'work' : 'works'}</span>
-          <button class="page-toggle-btn" data-page-toggle="category-intro-panel" aria-expanded="true" aria-label={`Toggle ${title} details`} type="button">
-            <Arrow />
-          </button>
         </div>
       </header>
 
-      <div class="category-intro-panel page-toggle-panel" id="category-intro-panel">
+      <div class="category-intro-panel" id="category-intro-panel">
       <!-- 3-Column Intro (mirrors the home page). On the phone the people row
            is lifted above this with flex order — see the phone block below —
            rather than being moved in the DOM, so the wider bands keep the
@@ -362,10 +359,14 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
       padding-inline: var(--_tokens---layout--gutter);
     }
 
-    /* The disclosure header is a flex row; the title keeps its own size and
-       simply sits opposite the arrow. */
-    .category-hero-header.page-toggle-header {
+    /* A flex row: the title, and the count opposite it. (This used to come
+       from .page-toggle-header, when the row was also a fold control.) */
+    .category-hero-header {
+      display: flex;
       align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      width: 100%;
     }
     .category-hero-title {
       margin-block: 0;
@@ -375,8 +376,31 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
       /* The panel owns the rule under the collapsed block. */
       padding-top: 20px;
     }
-    .category-hero-header:has(.page-toggle-btn[aria-expanded="false"]) + .category-intro-panel {
-      padding-top: 0;
+
+    /* ── Desktop: the projects page's header, exactly ──────────────────
+       Same title size, the count set the same way on the right, one hairline
+       under the row, and the row at the same height from the top of the
+       window (56px, the projects page's --stick-top). */
+    @media (min-width: 1024px) {
+      .category-hero-header.project-top-header {
+        padding: 56px 0 12px;
+        margin: 0 0 16px;
+        border-bottom: 1px solid var(--_tokens---color--line-soft);
+      }
+      .category-hero-title {
+        font-size: var(--_tokens---type--medium);
+        font-weight: var(--_tokens---weight--base);
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+      }
+      .category-count {
+        font-weight: var(--_tokens---weight--light);
+        letter-spacing: 0.04em;
+        color: var(--_tokens---color--muted);
+      }
+      .category-intro-panel {
+        padding-top: 0;
+      }
     }
 
     /* Same voice as the home three-column text: micro, muted */
@@ -752,11 +776,6 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
       .category-hero-right {
         flex: 0 0 auto;
         padding-top: 4px;
-      }
-      /* Nothing folds on this band, so there is no control for it and no
-         state to remember. */
-      .page-toggle-btn[data-page-toggle="category-intro-panel"] {
-        display: none;
       }
       #category-intro-panel {
         max-height: none !important;

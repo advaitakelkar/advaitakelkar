@@ -607,18 +607,26 @@ gap, exactly as the project list does.
 The name, the role, the bio and its three buttons are the page header above
 all three. They describe the person, not a section, so they sit outside every
 dropdown and are always present — **at every width**, not just on the phone.
-Journey's four sections stay a horizontal pill row at the top of
-its panel, and a horizontal **swipe** across the section moves through them —
-the row already looks like a sequence, so the gesture it looks like should
-work. A swipe that is mostly vertical is the page scrolling, one shorter than
-48px is a tap that wandered, and one starting inside the pill row is that row
-scrolling; all three are ignored.
+**Journey is four real tabs** — Work, Exhibitions, Press, Timeline, each
+with its count — and only the chosen one is on screen. The career tagline
+sits above the row, and one plain line under it says what the open tab holds
+("Where I've worked, most recent first."), from `journeyTabs` in
+about.astro. Timeline is the other three again, grouped by year, and its line
+says so. Left/Right move between tabs while the row has focus, stopped there
+so the site-wide Left/Right does not change page. They used to be scroll
+anchors over four stacked lists, which looked like tabs and did not act
+like them.
 
 **Switching a section does not move the page.** The titles are docked, so the
 only thing that changes is what sits between them; scrolling as well costs
 the reader their place, and swiping through four sections would walk the page
 back to the top each time.
 
+**From 700 up the Skillset has no search field of its own**: the page's
+Quick Search bar filters the cloud as you type, and a Quick Search for a
+skill from any other page lands on `/about?skill=…` with the cloud filtered
+to it (`matchesSkill()` in `src/lib/skills.ts`, which is also where the
+skill list lives). Below 700 the Quick Search bar is not shown, so there the
 Skillset's search **docks above the nav bar** — `position: fixed`, which
 escapes the panel's `overflow: hidden`, so a `:has()` rule hides it while the
 section is shut. The cloud itself reads top-down: Languages leads and every

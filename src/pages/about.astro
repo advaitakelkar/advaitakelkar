@@ -5,6 +5,7 @@ import PageLayout from '../layouts/PageLayout.astro';
 import Footer from '../components/Footer.astro';
 import { publicFileExists } from '../lib/content';
 import Arrow from '../components/Arrow.astro';
+import { skillsets } from '../lib/skills';
 
 // PDF links only render once the files actually exist in public/
 const hasCv = publicFileExists('/Adi-Advaita-Kelkar-CV-Sept-2026.pdf');
@@ -249,78 +250,17 @@ if (early.length) {
   });
 }
 
-// Structured skillset categories
-const skillsets = [
-  {
-    category: "Languages",
-    skills: [
-      { name: "Hindi", level: "(Native)" },
-      { name: "Marathi", level: "(Native)" },
-      { name: "English", level: "(Fluent)" }
-    ]
-  },
-  /* Grouped by discipline rather than one flat list: the profile spans
-     architecture, graphics, web and AI, and a recruiter scanning for one
-     competency should find it in a single block. Within each group the
-     order is Expert -> Intermediate -> Basic, so the strongest tool leads. */
-  {
-    category: "BIM, Drafting & GIS",
-    skills: [
-      { name: "AutoCAD", level: "(Expert)" },
-      { name: "Revit", level: "(Intermediate)" },
-      { name: "Autodesk Forma", level: "(Intermediate)" },
-      { name: "ArcGIS", level: "(Intermediate)" }
-    ]
-  },
-  {
-    category: "Modelling, Parametric & Fabrication",
-    skills: [
-      { name: "SketchUp", level: "(Expert)" },
-      { name: "CNC Fabrication", level: "(Expert)" },
-      { name: "3D Printing", level: "(Expert)" },
-      { name: "Rhinoceros 3D", level: "(Intermediate)" },
-      { name: "Fusion 360", level: "(Intermediate)" },
-      { name: "Grasshopper", level: "(Basic)" },
-      { name: "Blender", level: "(Basic)" },
-      { name: "SolidWorks", level: "(Basic)" }
-    ]
-  },
-  {
-    category: "Visualisation & Real-Time",
-    skills: [
-      { name: "Lumion", level: "(Expert)" },
-      { name: "Enscape", level: "(Expert)" },
-      { name: "D5 Render", level: "(Expert)" },
-      { name: "V-Ray", level: "(Intermediate)" },
-      { name: "Unreal Engine", level: "(Basic)" }
-    ]
-  },
-  {
-    category: "Graphic & Web Design",
-    skills: [
-      { name: "Canva", level: "(Expert)" },
-      { name: "Figma", level: "(Expert)" },
-      { name: "Webflow", level: "(Expert)" },
-      { name: "Adobe Illustrator", level: "(Intermediate)" },
-      { name: "Adobe Photoshop", level: "(Intermediate)" },
-      { name: "Adobe InDesign", level: "(Intermediate)" },
-      { name: "Framer", level: "(Basic)" }
-    ]
-  },
-  {
-    category: "AI, Code & Workflow",
-    skills: [
-      { name: "Notion", level: "(Expert)" },
-      { name: "Miro", level: "(Expert)" },
-      { name: "Microsoft Office", level: "(Expert)" },
-      { name: "Claude", level: "(Intermediate)" },
-      { name: "ComfyUI", level: "(Intermediate)" },
-      { name: "HTML & CSS", level: "(Basic)" },
-      { name: "JavaScript", level: "(Basic)" },
-      { name: "Python", level: "(Basic)" }
-    ]
-  }
+// The skillset lives in src/lib/skills.ts, shared with the Quick Search bar.
+
+// Journey's four tabs. Each says in one plain line what it holds, so the
+// section explains itself: three kinds of thing, then all of them in order.
+const journeyTabs = [
+  { id: 'about',       label: 'Work',        count: experience.length,     explain: "Where I've worked, most recent first." },
+  { id: 'exhibitions', label: 'Exhibitions', count: exhibitions.length,    explain: 'Where my work has been shown.' },
+  { id: 'press',       label: 'Press',       count: publications.length,   explain: 'Where my work has been written about.' },
+  { id: 'timeline',    label: 'Timeline',    count: timelineGroups.length, explain: 'All of the above, year by year.' },
 ];
+
 ---
 
 <PageLayout
@@ -455,47 +395,35 @@ const skillsets = [
       <div class="about-career-panel page-toggle-panel" id="about-career-panel" data-swipe-own>
         <!-- Career Tabs + Card Deck -->
         <div class="about-career-container" id="panel-career-section">
-          <!-- Tabs (Sticky 100% width, equally spaced) -->
-          <div class="about-tabs-container" role="tablist" aria-label="Career sections">
-            <button class="about-tab-btn is-active" role="tab" aria-selected="true" aria-controls="panel-about" data-tab="about">
-              <span>
-                <span class="tab-label-full">Work EXP</span>
-                <span class="tab-label-short">EXP</span>
-              </span>
-              <Icon name="arrow" class="pill-arrow" />
-            </button>
-            <button class="about-tab-btn" role="tab" aria-selected="false" aria-controls="panel-exhibitions" data-tab="exhibitions">
-              <span>
-                <span class="tab-label-full">Exhibitions</span>
-                <span class="tab-label-short">EXHIB</span>
-              </span>
-              <Icon name="arrow" class="pill-arrow" />
-            </button>
-            <button class="about-tab-btn" role="tab" aria-selected="false" aria-controls="panel-press" data-tab="press">
-              <span>
-                <span class="tab-label-full">Press</span>
-                <span class="tab-label-short">PRESS</span>
-              </span>
-              <Icon name="arrow" class="pill-arrow" />
-            </button>
-            <button class="about-tab-btn" role="tab" aria-selected="false" aria-controls="panel-timeline" data-tab="timeline">
-              <span>
-                <span class="tab-label-full">Timeline</span>
-                <span class="tab-label-short">TL</span>
-              </span>
-              <Icon name="arrow" class="pill-arrow" />
-            </button>
+          {/* Journey is four views of one career, and each is a real tab: only
+              the chosen one is on screen. The line under the row says in
+              plain words what the open tab holds. */}
+          <p class="about-career__tagline text-muted" data-edit="pages/about/careerTagline">{aboutCareerTagline}</p>
+
+          <div class="about-tabs-container" role="tablist" aria-label="Journey">
+            {journeyTabs.map((t, i) => (
+              <button
+                class:list={["about-tab-btn", i === 0 && "is-active"]}
+                role="tab"
+                id={`tab-${t.id}`}
+                aria-selected={i === 0 ? 'true' : 'false'}
+                aria-controls={`panel-${t.id}`}
+                tabindex={i === 0 ? 0 : -1}
+                data-tab={t.id}
+                data-explain={t.explain}
+                type="button"
+              >
+                <span>{t.label}</span>
+                <span class="about-tab-count">{t.count}</span>
+              </button>
+            ))}
           </div>
 
-          <p class="about-career__tagline text-muted" data-edit="pages/about/careerTagline">{aboutCareerTagline}</p>
+          <p class="journey-explainer" id="journey-explainer" aria-live="polite">{journeyTabs[0].explain}</p>
 
           <div class="about-tab-content">
             <!-- Section 1: Work Experience -->
-            <div class="about-tab-panel is-active" id="panel-about" role="region" aria-label="Work Experience">
-              <div class="journey-group-header">
-                <h3 class="journey-group-title">Work Experience</h3>
-                <span class="journey-group-count">{experience.length}</span>
-              </div>
+            <div class="about-tab-panel is-active" id="panel-about" role="tabpanel" aria-labelledby="tab-about">
               {experience.map((item, idx) => (
                 <div class="about-card" style={`--card-index: ${idx};`}>
                   <div class="about-card__header">
@@ -526,11 +454,7 @@ const skillsets = [
             </div>
 
             <!-- Section 2: Exhibitions -->
-            <div class="about-tab-panel" id="panel-exhibitions" role="region" aria-label="Exhibitions">
-              <div class="journey-group-header">
-                <h3 class="journey-group-title">Exhibitions</h3>
-                <span class="journey-group-count">{exhibitions.length}</span>
-              </div>
+            <div class="about-tab-panel" id="panel-exhibitions" role="tabpanel" aria-labelledby="tab-exhibitions" hidden>
               {exhibitions.map((item, idx) => (
                 <div class="about-card" style={`--card-index: ${idx};`}>
                   <div class="about-card__header">
@@ -556,11 +480,7 @@ const skillsets = [
             </div>
 
             <!-- Section 3: Press — publications and features -->
-            <div class="about-tab-panel" id="panel-press" role="region" aria-label="Press">
-              <div class="journey-group-header">
-                <h3 class="journey-group-title">Press</h3>
-                <span class="journey-group-count">{publications.length}</span>
-              </div>
+            <div class="about-tab-panel" id="panel-press" role="tabpanel" aria-labelledby="tab-press" hidden>
               {publications.map((item, idx) => (
                 <div class="about-card" style={`--card-index: ${idx};`}>
                   <div class="about-card__header">
@@ -587,11 +507,7 @@ const skillsets = [
 
             <!-- Section 4: Timeline — one card per YEAR; open it to see the
                  events that started that year -->
-            <div class="about-tab-panel" id="panel-timeline" role="region" aria-label="Timeline">
-              <div class="journey-group-header">
-                <h3 class="journey-group-title">Timeline</h3>
-                <span class="journey-group-count">{timelineGroups.length}</span>
-              </div>
+            <div class="about-tab-panel" id="panel-timeline" role="tabpanel" aria-labelledby="tab-timeline" hidden>
               {timelineGroups.map((g, idx) => (
                 <div class="about-card" style={`--card-index: ${idx};`}>
                   <div class="about-card__header">
@@ -969,8 +885,8 @@ const skillsets = [
     gap: 6px;
     flex-wrap: nowrap;
     width: 100%;
-    margin-block: 0 16px;
-    padding-bottom: 12px;
+    margin-block: 0 10px;
+    padding-bottom: 0;
     position: sticky;
     top: 44px;
     z-index: 10;
@@ -984,40 +900,35 @@ const skillsets = [
     display: none; /* Chrome/Safari */
   }
 
-  .tab-label-short {
-    display: none;
-  }
-
   .about-tab-btn {
     flex: 0 0 auto;           /* shrink-to-content width */
     display: inline-flex;
     align-items: center;
     justify-content: flex-start;
-    gap: var(--_tokens---pill-gap--lg);
-    font-size: var(--_tokens---type--medium);
+    gap: var(--_tokens---pill-gap);
+    /* Body-sized, not display-sized: these switch what is below them, they
+       are not headings. At --type--medium the row was the loudest thing on
+       the page and "Work EXP" read as a title. */
+    font-size: var(--_tokens---type--small);
     font-family: inherit;
     font-weight: var(--_tokens---weight--base);
-    letter-spacing: -0.03em;
-    line-height: 1;
+    letter-spacing: 0;
+    line-height: 1.2;
     background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
     border: var(--_tokens---pill-border);
     color: var(--_tokens---color--muted);
-    padding: var(--_tokens---pill-pad--lg);
+    padding: var(--_tokens---pill-pad--md);
     cursor: pointer;
     transition: background-color var(--_tokens---motion--base) ease, color var(--_tokens---motion--base) ease, border-color var(--_tokens---motion--base) ease;
     border-radius: var(--_tokens---radius--pill);
     white-space: nowrap;
   }
 
-  .about-tab-btn .pill-arrow {
-    --icon-size: 14px;
-    flex-shrink: 0;
-    opacity: 0.55;
-    transition: opacity var(--_tokens---motion--base) ease, transform var(--_tokens---motion--base) cubic-bezier(0.16, 1, 0.3, 1);
-    /* Deliberately fixed, not on the em scale: the tab label is
-       display-sized, and an arrow that tracked it would dwarf the
-       pill (0.8em of 40px = 32px against a 14px design). */
-    
+  /* How many are behind the tab, set small beside its name. */
+  .about-tab-count {
+    font-size: var(--_tokens---type--micro);
+    font-variant-numeric: tabular-nums;
+    opacity: 0.6;
   }
 
   @media (hover: hover) {
@@ -1028,21 +939,10 @@ const skillsets = [
   }
   }
 
-  @media (hover: hover) {
-    .about-tab-btn:hover .pill-arrow {
-    opacity: 1;
-    transform: translate(2px, -2px);
-  }
-  }
-
   .about-tab-btn.is-active {
     background-color: var(--_tokens---color--fg);
     color: var(--_tokens---color--bg);
     border-color: var(--_tokens---color--fg);
-  }
-
-  .about-tab-btn.is-active .pill-arrow {
-    opacity: 0.7;
   }
 
   .about-career__tagline {
@@ -1051,8 +951,19 @@ const skillsets = [
     text-align: left;
     max-width: 80ch;
     margin-inline: 0 auto;
-    margin-bottom: 32px;
+    margin-block: 0 16px;
     flex-shrink: 0;
+  }
+
+  /* The open tab, described in one line. Changes with the tab. */
+  .journey-explainer {
+    font-size: var(--_tokens---type--micro);
+    line-height: 1.5;
+    color: var(--_tokens---color--muted);
+    margin: 0 0 4px;
+    padding-bottom: 8px;
+    /* The hairline that opens the list, as the old per-panel heading did. */
+    border-bottom: 1px solid var(--_tokens---color--line-soft);
   }
 
   .about-tab-content {
@@ -1060,38 +971,16 @@ const skillsets = [
     position: relative;
   }
 
-  /* Continuous Journey Sections */
+  /* One panel on screen at a time — the hidden attribute does the hiding. */
   .about-tab-panel {
     display: flex;
     flex-direction: column;
     opacity: 1;
     transform: none;
     margin-bottom: 48px;
-    scroll-margin-top: 110px;
   }
-
-  .journey-group-header {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    padding-bottom: 8px;
-    margin-top: 24px;
-    margin-bottom: 4px;
-    border-bottom: 1px solid var(--_tokens---color--line-soft);
-  }
-
-  .journey-group-title {
-    font-size: var(--_tokens---type--small);
-    font-weight: var(--_tokens---weight--strong);
-    color: var(--_tokens---color--fg);
-    letter-spacing: -0.015em;
-    margin: 0;
-  }
-
-  .journey-group-count {
-    font-size: var(--_tokens---type--micro);
-    color: var(--_tokens---color--muted);
-    font-weight: var(--_tokens---weight--light);
+  .about-tab-panel[hidden] {
+    display: none;
   }
 
   /* ── Accordion cards (experience / exhibitions / timeline) ── */
@@ -1266,6 +1155,15 @@ const skillsets = [
     margin: 0 0 32px 0;
   }
 
+  /* From 700 up the Quick Search bar is the Skillset's search (see the
+     script); the field in the header is the phone's alone. By id, so no
+     class rule of the header can bring it back. */
+  @media (min-width: 700px) {
+    #skill-search {
+      display: none;
+    }
+  }
+
   .skillset-search-input {
     width: clamp(200px, 30vw, 360px);
     height: 40px;
@@ -1416,6 +1314,16 @@ const skillsets = [
   }
   }
 
+  /* Desktop: the suggestion-pill size, the same object as the Quick Search
+     suggestions and the project cards' filter pills. */
+  @media (min-width: 1024px) {
+    .skill-pill {
+      font-size: 0.6rem;
+      padding: 2px 8px;
+      gap: 4px;
+    }
+  }
+
   .skill-pill.is-highlighted {
     background-color: var(--_tokens---color--fg);
     color: var(--_tokens---color--bg);
@@ -1535,12 +1443,6 @@ const skillsets = [
     .about-tab-btn {
       padding: var(--_tokens---pill-pad--lg-compact);
       font-size: var(--_tokens---type--small);
-    }
-    .tab-label-full {
-      display: none;
-    }
-    .tab-label-short {
-      display: inline;
     }
     .skillset-grid {
       grid-template-columns: 1fr;
@@ -2003,16 +1905,6 @@ const skillsets = [
       border-color: var(--_tokens---color--fg);
       color: var(--_tokens---color--bg);
     }
-    .about-page .about-tab-btn .pill-arrow {
-      --icon-size: var(--_tokens---arrow--sm);
-      opacity: 0.55;
-    }
-    .about-page .about-tab-btn.is-active .pill-arrow {
-      opacity: 1;
-      transform: none;
-    }
-    .about-page .tab-label-full  { display: inline; }
-    .about-page .tab-label-short { display: none; }
 
     /* ── Housekeeping for this band ────────────────────────────────── */
     .about-page {
@@ -2075,43 +1967,43 @@ const skillsets = [
   readMoreBtn?.addEventListener('click', toggleBio);
   collapsedContent?.addEventListener('click', toggleBio);
 
-  // --- Journey Section Navigation (Smooth Scroll + Active Sync) ---
-  const tabs = document.querySelectorAll('.about-tab-btn');
-  const panels = document.querySelectorAll('.about-tab-panel');
+  // --- Journey tabs ---
+  // Real tabs: one panel on screen at a time, nothing scrolls. The line under
+  // the row says what the open tab holds. Left/Right move between tabs while
+  // the row has focus — stopped here, or the site-wide Left/Right would change
+  // page instead.
+  const tabs = Array.from(document.querySelectorAll<HTMLButtonElement>('.about-tab-btn'));
+  const explainer = document.getElementById('journey-explainer');
 
-  tabs.forEach((tab) => {
-    tab.addEventListener('click', (e) => {
-      e.preventDefault();
-      const target = (tab as HTMLElement).dataset.tab;
-      const panel = document.getElementById(`panel-${target}`);
+  function selectTab(tab: HTMLButtonElement, focus = false) {
+    tabs.forEach((t) => {
+      const on = t === tab;
+      t.classList.toggle('is-active', on);
+      t.setAttribute('aria-selected', String(on));
+      t.tabIndex = on ? 0 : -1;
+      const panel = document.getElementById(t.getAttribute('aria-controls') ?? '');
       if (panel) {
-        tabs.forEach((t) => {
-          const isMatched = t === tab;
-          t.classList.toggle('is-active', isMatched);
-          t.setAttribute('aria-selected', String(isMatched));
-        });
-        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        panel.hidden = !on;
+        panel.classList.toggle('is-active', on);
       }
     });
-  });
-
-  // Track active section as user scrolls through Journey
-  if ('IntersectionObserver' in window && panels.length > 0) {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          const targetId = entry.target.id.replace('panel-', '');
-          tabs.forEach((tab) => {
-            const isMatched = (tab as HTMLElement).dataset.tab === targetId;
-            tab.classList.toggle('is-active', isMatched);
-            tab.setAttribute('aria-selected', String(isMatched));
-          });
-        }
-      });
-    }, { rootMargin: '-10% 0px -70% 0px', threshold: 0 });
-
-    panels.forEach((p) => observer.observe(p));
+    if (explainer) explainer.textContent = tab.dataset.explain ?? '';
+    if (focus) tab.focus();
   }
+
+  tabs.forEach((tab, i) => {
+    tab.addEventListener('click', () => selectTab(tab));
+    tab.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight' && e.key !== 'Home' && e.key !== 'End') return;
+      e.preventDefault();
+      e.stopPropagation();
+      const next =
+        e.key === 'Home' ? 0 :
+        e.key === 'End' ? tabs.length - 1 :
+        (i + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+      selectTab(tabs[next], true);
+    });
+  });
 
   // --- Skillset cloud: same row engine as the footer's project cloud ---
   const skillCloud = document.getElementById('skillset-cloud');
@@ -2187,10 +2079,29 @@ const skillsets = [
       if (skillToggle?.getAttribute('aria-expanded') === 'false') skillToggle.click();
     };
 
-    skillSearch?.addEventListener('input', () => {
-      if (skillSearch.value.trim()) openSkillset();
-      applySearch(skillSearch.value);
-    });
+    /* Two fields drive the one filter. From 700 up the Skillset has no field
+       of its own: the page's Quick Search bar filters the cloud as you type.
+       Below 700 that bar is not shown, so the Skillset keeps its field there.
+       Whichever was typed in last is the query. */
+    const quickSearch = document.getElementById('qs-input') as HTMLInputElement | null;
+    let skillQuery = '';
+    const runSkillQuery = (q: string) => {
+      skillQuery = q;
+      if (q.trim()) openSkillset();
+      applySearch(q);
+    };
+    skillSearch?.addEventListener('input', () => runSkillQuery(skillSearch.value));
+    quickSearch?.addEventListener('input', () => runSkillQuery(quickSearch.value));
+
+    // Arriving from the Quick Search bar on another page with a skill
+    // (/about?skill=revit): the Skillset opens filtered to it, in view.
+    const skillParam = new URLSearchParams(window.location.search).get('skill');
+    if (skillParam) {
+      if (skillSearch) skillSearch.value = skillParam;
+      if (quickSearch) quickSearch.value = skillParam;
+      runSkillQuery(skillParam);
+      requestAnimationFrame(() => document.querySelector('.skillset-header')?.scrollIntoView({ block: 'start' }));
+    }
 
     /* Ask the toggle whether the section is open rather than inferring it
        from a measured width: a collapsed panel measures zero and the engine
@@ -2209,7 +2120,7 @@ const skillsets = [
       skillResizeTimer = window.setTimeout(() => {
         // Skip while collapsed; the transitionend above rebuilds on reopen.
         // applySearch repacks, so calling rebuild as well would do it twice.
-        if (skillsetOpen()) applySearch(skillSearch?.value ?? '');
+        if (skillsetOpen()) applySearch(skillQuery);
       }, 180);
     });
   }
