@@ -726,6 +726,14 @@ Escape, slides it back. It hides with transform + visibility, never
 `display: none` — the row engine packs rows from the grid's measured width,
 and a `display: none` grid measures 0.
 
+**The projects page takes the footer's place for itself on desktop.** Its
+own search is the fixed bottom bar (`data-pages-dock`, so Pages docks there;
+PageLayout docks Pages into whichever bar carries that attribute), the
+category and discipline filters sit directly above it, always on, and there
+is no search field at the top. Its pill cloud rises above the filters only
+while something is typed, showing just the matches. The folding top panel
+now exists on the medium band (700–1023) only.
+
 What follows describes the rail as it was built — the markup still ships.
 
 `SideNav.astro` has two parts:
