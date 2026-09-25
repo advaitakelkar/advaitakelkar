@@ -27,54 +27,22 @@
 export type ProjectTemplate =
   | 'auto' | 'tabs' | 'cards' | 'ai-works' | 'ai-portrait' | 'ai-landscape' | 'chapters' | 'renders' | 'project-01';
 
-const aiWorksProjects = new Set([
-  'alt-verse',
-  'architect-x-architects',
-  'indian-royals',
-  'sups-cards',
-  'sups-in-the-hinterland',
-]);
-
-const tabProjects = new Set([
-  'carlo',
-  'concrt',
-  'goonj',
-  // Freelance work like the rest of this list. It was left off only because
-  // it had no images to build a deck from, which made it the one page in the
-  // group rendering the plain layout.
-  'gully',
-  'human-pods',
-  'nat-geo-humans',
-  'pet-pod',
-  'roberto-burle-marx-stickers',
-  'shelf',
-  'tilak-nagar-cricket-park',
-  'xbkc',
-]);
-
-export function projectTemplate(slug: string, category?: string, template?: ProjectTemplate) {
-  const namedSeries = template === 'ai-portrait' || template === 'ai-landscape' ||
-    ['sups-cards', 'hanma-fam', 'indian-royals', 'alt-verse', 'architect-x-architects', 'space-pirates'].includes(slug);
-  const frame = template === 'ai-landscape' || (template !== 'ai-portrait' && slug === 'architect-x-architects') ? 'landscape' : 'portrait';
-  if (template === 'ai-portrait' || template === 'ai-landscape') template = 'cards';
-  if (template === 'auto') template = undefined;
-  // 'ai-works' is the written name; `cards` is what the page reads.
-  if (template === 'ai-works') template = 'cards';
+/**
+ * Every project names its template in its YAML, so this is a lookup, not a
+ * guess. It used to fall back on slug lists (aiWorksProjects, tabProjects,
+ * the chapters pair) for YAML without the field; none is left, and a project
+ * that omits it now gets `tabs`, the default work page.
+ */
+export function projectTemplate(_slug: string, _category?: string, template: ProjectTemplate = 'tabs') {
+  if (template === 'auto') template = 'tabs';
+  // A named series: one sitter per frame, the name shown beside the counter.
+  const namedSeries = template === 'ai-portrait' || template === 'ai-landscape';
+  const frame = template === 'ai-landscape' ? 'landscape' : 'portrait';
+  // 'ai-*' are the written names; `cards` is what the page reads.
+  const cards = template === 'cards' || template === 'ai-works' || namedSeries;
   // 'project-01' is the written name; `renders` is what the page reads.
-  if (template === 'project-01') template = 'renders';
-
-    /* ── renders ────────────────────────────────────────────────────────
-     A visualisation project is not a set of pictures, it is a set of ROOMS,
-     and each room was rendered several times. The page is one image at a
-     time with a tab per room, and inside a room it walks the views and the
-     variations of each. See the `views` field on the schema. */
-  const renders = template === 'renders';
-
-  const cards = template ? template === 'cards' : aiWorksProjects.has(slug);
-  const chapters = template ? template === 'chapters' : ['habersham-hall', 'scad-design-built'].includes(slug);
-  const tabs = template
-    ? template !== 'cards'
-    : ['work', 'archv', 'academic'].includes(category ?? '') || chapters || tabProjects.has(slug) || slug === 'scarpin';
+  const renders = template === 'renders' || template === 'project-01';
+  const chapters = template === 'chapters';
 
   return {
     namedSeries,
@@ -85,7 +53,7 @@ export function projectTemplate(slug: string, category?: string, template?: Proj
     renders,
     // A renders page draws its own middle; it must not also get the tab
     // layout's filmstrip and panels.
-    tabs: renders ? false : tabs,
-    cardLayout: !!template || cards || tabs || category === 'freelancer',
+    tabs: !cards && !renders,
+    cardLayout: true,
   };
 }

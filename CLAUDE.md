@@ -992,11 +992,12 @@ whole section instead of 404-ing.
 
 ## The template list
 
-**Every project declares its own `template:`.** There are no derived ones
-left. `projectTemplate()` still holds the slug lists it used to fall back on
-— `aiWorksProjects`, `tabProjects`, the `chapters` pair — and they are now
-dead weight kept only so an older YAML without the field still resolves.
-Nothing in `src/content/projects/` relies on them.
+**Every project declares its own `template:`.** `projectTemplate()` is a
+plain lookup on that field; the slug lists it used to fall back on
+(`aiWorksProjects`, `tabProjects`, the `chapters` pair) are gone. A YAML
+without the field gets `tabs`. Removing them was checked by diffing every
+project page's layout attributes before and after — all 53 identical.
+The `/admin` Projects panel lists each project's template.
 
 Six names, written in the YAML:
 
