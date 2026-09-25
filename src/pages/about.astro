@@ -395,22 +395,34 @@ const journeyTabs = [
         <div class="about-career-container" id="panel-career-section">
           {/* Journey is four views of one career, and each is a real tab: only
               the chosen one is on screen. */}
+          {/* The tabs, and at the right end a previous / next pair that steps
+              through them in order, wrapping at the ends. */}
+          <div class="about-tabs-row">
           <div class="about-tabs-container" role="tablist" aria-label="Journey">
-            {journeyTabs.map((t, i) => (
-              <button
-                class:list={["about-tab-btn", i === 0 && "is-active"]}
-                role="tab"
-                id={`tab-${t.id}`}
-                aria-selected={i === 0 ? 'true' : 'false'}
-                aria-controls={`panel-${t.id}`}
-                tabindex={i === 0 ? 0 : -1}
-                data-tab={t.id}
-                type="button"
-              >
-                <span>{t.label}</span>
-                <span class="about-tab-count">{t.count}</span>
+              {journeyTabs.map((t, i) => (
+                <button
+                  class:list={["about-tab-btn", i === 0 && "is-active"]}
+                  role="tab"
+                  id={`tab-${t.id}`}
+                  aria-selected={i === 0 ? 'true' : 'false'}
+                  aria-controls={`panel-${t.id}`}
+                  tabindex={i === 0 ? 0 : -1}
+                  data-tab={t.id}
+                  type="button"
+                >
+                  <span>{t.label}</span>
+                  <span class="about-tab-count">{t.count}</span>
+                </button>
+              ))}
+            </div>
+            <div class="about-tabs-nav">
+              <button class="about-tabs-nav__btn" type="button" data-tab-step="-1" aria-label="Previous section">
+                <Icon name="chevron" dir="w" />
               </button>
-            ))}
+              <button class="about-tabs-nav__btn" type="button" data-tab-step="1" aria-label="Next section">
+                <Icon name="chevron" dir="e" />
+              </button>
+            </div>
           </div>
 
           <div class="about-tab-content">
@@ -691,21 +703,22 @@ const journeyTabs = [
     border-bottom: 1px solid var(--_tokens---color--line-soft);
   }
 
-  /* ── Education, Journey, Skillset: drawn as project cards ─────────────
-     From 700 up each section's title row is the projects page's card: the
-     same tint, hairline and shadow, the name at the card's size, and the
-     arrow in the card's circle. The whole row is the control (Base.astro
-     wires a click anywhere on a .page-toggle-header); the arrow points down
-     while the section is open. Below 700 the phone has its own docked
-     rows, already drawn as collapsed cards. */
+  /* ── Education, Journey, Skillset: plain section headers ─────────────
+     From 700 up each section's title row keeps the project card's measure —
+     the name at the card's size, the arrow in the same 1.1em box, the same
+     padding and hairline — but is a header, not a card: no tint, no shadow,
+     no circle. The rows inside are the cards. The whole row is the control
+     (Base.astro wires a click anywhere on a .page-toggle-header); the arrow
+     points down while the section is open. Below 700 the phone has its own
+     docked rows. */
   @media (min-width: 700px) {
     .education-header,
     .career-header,
     .skillset-header {
       --card-name: clamp(2rem, 1.375rem + 3.5vw, 4rem);
-      background-color: color-mix(in srgb, var(--_tokens---color--fg) 2.5%, var(--_tokens---color--bg));
+      background-color: transparent;
       border-bottom: 1px solid var(--_tokens---color--line-soft);
-      box-shadow: 0 8px 24px -10px color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
+      box-shadow: none;
       padding: 10px 20px 12px;
     }
     /* Cards in a stack: the gap between them is the projects list's 16px,
@@ -722,27 +735,28 @@ const journeyTabs = [
       padding-block: 0;
       margin-top: 0;
     }
+    /* The titles are set exactly as the name at the top of the page
+       ("Adi (Advaita) Kelkar"): --type--medium, -0.02em. Only the arrow keeps
+       the card measure. */
     .education-header .profile-name,
     .career-header .profile-name,
     .skillset-header .profile-name {
-      font-size: var(--card-name);
+      font-size: var(--_tokens---type--medium);
       line-height: 1.1;
-      letter-spacing: -0.01em;
+      letter-spacing: -0.02em;
     }
     .education-header .page-toggle-btn,
     .career-header .page-toggle-btn,
     .skillset-header .page-toggle-btn {
       font-size: var(--card-name);
+      /* The same box the circle had, so the arrow sits exactly where it did —
+         only the ring is gone. */
       width: 1.1em;
       height: 1.1em;
-      border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
-      border-radius: 50%;
+      border: none;
       opacity: 1;
       --icon-size: 0.5em;
       --arrow-size: 0.5em;
-      transition: background-color var(--_tokens---motion--base) ease,
-                  border-color var(--_tokens---motion--base) ease,
-                  color var(--_tokens---motion--base) ease;
     }
   }
   /* ── The rows inside, drawn as cards too ────────────────────────────
@@ -824,15 +838,6 @@ const journeyTabs = [
     }
   }
 
-  @media (min-width: 700px) and (hover: hover) {
-    .education-header:hover .page-toggle-btn,
-    .career-header:hover .page-toggle-btn,
-    .skillset-header:hover .page-toggle-btn {
-      background-color: var(--_tokens---color--fg);
-      border-color: var(--_tokens---color--fg);
-      color: var(--_tokens---color--bg);
-    }
-  }
 
 
   .profile-photo-circle {
@@ -1059,6 +1064,55 @@ const journeyTabs = [
     transition: background-color var(--_tokens---motion--base) ease, color var(--_tokens---motion--base) ease, border-color var(--_tokens---motion--base) ease;
     border-radius: var(--_tokens---radius--pill);
     white-space: nowrap;
+  }
+
+  /* The tab row and, at its right end, the previous / next pair. */
+  .about-tabs-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .about-tabs-row .about-tabs-container {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin-bottom: 0;
+  }
+  .about-tabs-nav {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  /* Round, and exactly as tall as a tab beside it. */
+  .about-tabs-nav__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: calc(var(--_tokens---type--small) * 1.2);
+    line-height: 1.2;
+    width: calc(1lh + 20px + 2px);
+    height: calc(1lh + 20px + 2px);
+    padding: 0;
+    border: var(--_tokens---pill-border);
+    border-radius: 50%;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    color: var(--_tokens---color--muted);
+    cursor: pointer;
+    --icon-size: 0.8em;
+    transition: background-color var(--_tokens---motion--base) ease, color var(--_tokens---motion--base) ease, border-color var(--_tokens---motion--base) ease;
+  }
+  .about-tabs-nav__btn:focus-visible {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
+  }
+  @media (hover: hover) {
+    .about-tabs-nav__btn:hover {
+      background-color: var(--_tokens---color--fg);
+      color: var(--_tokens---color--bg);
+      border-color: var(--_tokens---color--fg);
+    }
   }
 
   /* How many are behind the tab, set small beside its name. */
@@ -2104,6 +2158,14 @@ const journeyTabs = [
     });
     if (focus) tab.focus();
   }
+
+  document.querySelectorAll<HTMLButtonElement>('[data-tab-step]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const current = tabs.findIndex((t) => t.classList.contains('is-active'));
+      const step = Number(btn.dataset.tabStep) || 1;
+      selectTab(tabs[(current + step + tabs.length) % tabs.length]);
+    });
+  });
 
   tabs.forEach((tab, i) => {
     tab.addEventListener('click', () => selectTab(tab));
