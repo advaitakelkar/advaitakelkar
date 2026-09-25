@@ -1610,8 +1610,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
      text aligned to the same side — and scrolls vertically when the list is
      long. The <select> stays in the page as the state: a choice here sets
      its value and fires its change event, so every existing listener works
-     unchanged. It opens upward when there is more room above (the bar is
-     docked at the bottom on a phone and on a desktop). */
+     unchanged. It always opens upward. */
   function enhanceFilterSelect(sel: HTMLSelectElement) {
     const wrap = sel.closest<HTMLElement>('.filter-select-wrap');
     if (!wrap || wrap.dataset.fsel) return;
@@ -1674,7 +1673,9 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
          filters live in a folding panel with overflow hidden, which cut the
          list down to its first row. Placed from the button's own rect. */
       const r = wrap.getBoundingClientRect();
-      const up = r.top > window.innerHeight - r.bottom;
+      // Always upward: the list rises out of the control like the rest of
+      // the bottom stack, never down over the search field.
+      const up = true;
       const right = wrap.classList.contains('filter-select-wrap--tags');
       panel.dataset.dir = up ? 'up' : 'down';
       Object.assign(panel.style, {

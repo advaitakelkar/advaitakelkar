@@ -5035,8 +5035,23 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     .project-detail[data-renders="true"] .project-phone-actions #project-readmore-btn {
       display: inline-flex !important;
     }
+    /* Shut, three lines of the description show, faded under nothing — the
+       clip is the cue and Read more is right under it. */
     .project-detail[data-renders="true"] .project-phone-card .project-desc-readmore {
-      display: none !important;
+      display: block !important;
+      max-height: none !important;
+      overflow: visible !important;
+    }
+    .project-detail[data-renders="true"] .project-phone-card:not(.is-reading) .project-card__desc {
+      display: block !important;
+      max-height: 4.5em !important;
+      overflow: hidden !important;
+    }
+    /* Read more is always the inverted pill — it is the one control here. */
+    .project-detail[data-renders="true"] .project-phone-actions #project-readmore-btn {
+      background-color: var(--_tokens---color--fg) !important;
+      color: var(--_tokens---color--bg) !important;
+      border-color: var(--_tokens---color--fg) !important;
     }
     .project-detail[data-renders="true"] .project-phone-card.is-reading .project-desc-readmore {
       display: block !important;
@@ -5059,19 +5074,55 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     .project-detail[data-renders="true"] .project-phone-card > .project-phone-actions { order: 4; }
     .project-detail[data-renders="true"] .project-phone-card > .project-card__metaline { order: 5; }
     .project-detail[data-renders="true"] .project-phone-card > .project-video-panel { order: 6; }
+    /* The credit comes with Read more: it is part of the fuller story, so it
+       waits until that is asked for. No face (the faces are already at the
+       top of the card), no rule above it, and the studio is an inverted pill
+       with its arrow. */
     .project-detail[data-renders="true"] .project-phone-card > .renders-collection {
       order: 7;
       position: static;
       margin: 2px 0 0;
-      padding: 8px 0 0;
+      padding: 0;
+      border-top: none;
       gap: 8px;
       font-size: var(--_tokens---type--micro);
       box-shadow: none;
       background: none;
+      flex-wrap: wrap;
+    }
+    .project-detail[data-renders="true"] .project-phone-card:not(.is-reading) > .renders-collection {
+      display: none;
+    }
+    /* The ✕ is the way out of an open card, so it is big — four times the
+       glyph it was — and centred on the card's right edge rather than tucked
+       at the end of a row. The open card keeps a column clear for it. */
+    .project-detail[data-renders="true"] .project-phone-card .project-phone-close {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 72px;
+      height: 72px;
+      margin: 0;
+      --icon-size: 64px;
+      z-index: 2;
+    }
+    .project-detail[data-renders="true"] .project-phone-card:has(.project-phone-close:not([hidden])) {
+      padding-right: 84px;
     }
     .project-detail[data-renders="true"] .project-phone-card > .renders-collection .renders-collection__face {
-      width: 24px;
-      height: 24px;
+      display: none;
+    }
+    .project-detail[data-renders="true"] .project-phone-card > .renders-collection a {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border: 1px solid var(--_tokens---color--fg);
+      border-radius: var(--_tokens---radius--pill);
+      background-color: var(--_tokens---color--fg);
+      color: var(--_tokens---color--bg);
+      font-size: var(--_tokens---type--ultrathin);
     }
   }
 
