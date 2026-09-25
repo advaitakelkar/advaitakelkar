@@ -706,6 +706,21 @@ colour schemes 1/18 each (~5.6%).
 
 ## SideNav Architecture
 
+**The INDEX rail is retired at every width** (`.sn-bar { display: none }`,
+`--layout--nav: 0px`). From 1024px up, `PageLayout`'s script moves two
+elements and moves them back below 1024:
+
+- `#sn-scheme` (the colour swatches) into the top bar's right end, where Pages
+  was, drawn inline as a row (`.sn-scheme--inline`).
+- `#breadcrumb-custom-dropdown` (Pages) to the right end of the footer's
+  Quick Search bar (`.is-docked`). Its list opens toward whichever side of
+  the bar has more room. A page with no Quick Search bar (Projects, Admin)
+  keeps Pages in the top bar after the swatches.
+
+The rail's lock toggle went with it; the site lock's own gate still works.
+
+What follows describes the rail as it was built — the markup still ships.
+
 `SideNav.astro` has two parts:
 
 1. **INDEX bar** (always visible, `position: fixed`, left edge, 48px wide):

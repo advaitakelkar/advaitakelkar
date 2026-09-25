@@ -794,6 +794,43 @@ if (activeProject) {
     }
   }
 
+  /* ── Docked in the Quick Search bar (desktop) ───────────────
+     From 1024 up PageLayout moves this dropdown to the right end of the
+     footer's search bar. The trigger matches the field's height, and the
+     panel opens on whichever side of the bar has more room — up when the
+     bar is at the bottom of the window (always, on Home), down when a long
+     page has scrolled it near the top. */
+  .breadcrumb__custom-dropdown.is-docked {
+    flex-shrink: 0;
+  }
+  .breadcrumb__custom-dropdown.is-docked .breadcrumb__dropdown-trigger,
+  .breadcrumb__custom-dropdown.is-docked .breadcrumb__search {
+    height: 42px;
+    padding-inline: 16px;
+  }
+  .breadcrumb__custom-dropdown.is-docked .breadcrumb__dropdown-trigger {
+    max-width: 220px;
+  }
+  .breadcrumb__custom-dropdown.is-docked .breadcrumb__dropdown-panel {
+    top: auto;
+    bottom: calc(100% + 6px);
+    transform-origin: bottom right;
+  }
+  .breadcrumb__custom-dropdown.is-docked[data-side="below"] .breadcrumb__dropdown-panel {
+    top: calc(100% + 6px);
+    bottom: auto;
+    transform-origin: top right;
+  }
+  .breadcrumb__custom-dropdown.is-docked .breadcrumb__pages-list {
+    max-height: var(--bc-dock-room, calc(100dvh - 100px));
+  }
+  /* The dim sits in the top bar's stacking context, which paints over the
+     search bar — it would cover the very list it frames. Outside clicks
+     still close the panel through the document listener. */
+  :global(html[data-pages-docked]) .breadcrumb__backdrop {
+    display: none !important;
+  }
+
   /* ── Pages list — ONE flat list on every breakpoint ─────────── */
   .breadcrumb__pages-list {
     display: flex;

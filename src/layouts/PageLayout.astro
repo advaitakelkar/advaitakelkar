@@ -51,6 +51,58 @@ const currentPath = Astro.url.pathname;
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
   }
+
+  // ── Desktop chrome: no rail ───────────────────────────────────
+  // From 1024 up the colour swatches take the top bar's right end, where
+  // Pages was, and Pages docks at the right end of the Quick Search bar.
+  // Both are the same elements, moved — their listeners come with them —
+  // and both go home again below 1024, where the bottom dock owns Pages
+  // and there are no swatches. A page with no Quick Search bar (Projects,
+  // Admin) keeps Pages in the top bar, after the swatches.
+  const scheme   = document.getElementById('sn-scheme');
+  const pages    = document.getElementById('breadcrumb-custom-dropdown');
+  const rightNav = document.querySelector('.breadcrumb__project-nav');
+  const qsBar    = document.querySelector('.home-search__bar');
+  if (scheme && pages && rightNav) {
+    const schemeHome = { parent: scheme.parentElement!, next: scheme.nextSibling };
+    const pagesHome  = { parent: pages.parentElement!,  next: pages.nextSibling };
+    const mq = window.matchMedia('(min-width: 1024px)');
+
+    const apply = () => {
+      if (mq.matches) {
+        scheme.classList.add('sn-scheme--inline');
+        rightNav.prepend(scheme);
+        if (qsBar) {
+          qsBar.append(pages);
+          pages.classList.add('is-docked');
+          document.documentElement.setAttribute('data-pages-docked', '');
+        }
+      } else {
+        scheme.classList.remove('sn-scheme--inline');
+        schemeHome.parent.insertBefore(scheme, schemeHome.next);
+        pagesHome.parent.insertBefore(pages, pagesHome.next);
+        pages.classList.remove('is-docked');
+        document.documentElement.removeAttribute('data-pages-docked');
+      }
+    };
+    apply();
+    mq.addEventListener('change', () => {
+      (window as any).closeBreadcrumbDropdown?.();
+      apply();
+    });
+
+    // Docked, the list opens toward the larger gap. Capture phase, so the side
+    // is set before Breadcrumb's own click handler opens the panel.
+    document.getElementById('breadcrumb-dropdown-trigger')?.addEventListener('click', () => {
+      if (!pages.classList.contains('is-docked')) return;
+      const r = pages.getBoundingClientRect();
+      const above = r.top - 72;                        // clear the top bar
+      const below = window.innerHeight - r.bottom - 16;
+      const side = below > above ? 'below' : 'above';
+      pages.dataset.side = side;
+      pages.style.setProperty('--bc-dock-room', `${Math.max(160, side === 'below' ? below : above)}px`);
+    }, { capture: true });
+  }
 </script>
 
 <style>
