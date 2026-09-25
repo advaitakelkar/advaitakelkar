@@ -1,5 +1,6 @@
 ---
 import Icon from './Icon.astro';
+import { getCollection } from 'astro:content';
 
 /* The Quick Search bar, and only that. It used to carry a cloud of every
    project as pills; that is gone from every page but /projects, which has
@@ -13,6 +14,33 @@ export interface Props {
 }
 
 const { isEmbedded = false, isHome = false } = Astro.props;
+
+/* Suggestions: every project, with the same search text the projects page
+   matches on — name, place, year, client, status, program, category,
+   studio, discipline, subtitle, short name, people and chapter text — so a
+   query suggests here exactly what it would find there. */
+const [allProjects, allTags, allCats, allStudios] = await Promise.all([
+  getCollection('projects'), getCollection('tags'), getCollection('categories'), getCollection('studios'),
+]);
+const tagMap = Object.fromEntries(allTags.map(t => [t.id, t.data.name]));
+const catMap = Object.fromEntries(allCats.map(c => [c.id, c.data.displayName]));
+const studioMap = Object.fromEntries(allStudios.map(s => [s.id, s.data.displayName]));
+const suggestions = allProjects
+  .map((p: any) => ({
+    id: p.id,
+    label: p.data.shortName || p.data.name,
+    name: p.data.name,
+    hay: [
+      p.data.name, p.data.location, p.data.year, p.data.client, p.data.status, p.data.program,
+      p.data.category && catMap[p.data.category.id], p.data.studio && studioMap[p.data.studio.id],
+      ...(p.data.tags ?? []).map((t: any) => tagMap[t.id] || t.id),
+      p.data.shortName, p.data.smallIntro, ...(p.data.people ?? []),
+      // Chapter text is capped: this index ships on every page, and a
+      // chapter's opening lines are what a quick search is looking for.
+      ...(p.data.chapters ?? []).flatMap((c: any) => [c.title, c.subtitle, String(c.body ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 300)]),
+    ].filter(Boolean).join(' ').replace(/\s+/g, ' ').toLowerCase(),
+  }))
+  .sort((a, b) => a.name.localeCompare(b.name));
 ---
 
 <footer class:list={["home-search-footer", isEmbedded && "home-search-footer--embedded", isHome && "home-search-footer--home"]} id="home-search-footer">
@@ -21,6 +49,15 @@ const { isEmbedded = false, isHome = false } = Astro.props;
   {/* The field is wrapped so the ✕ positions against the field, not the bar:
       from 1024 up PageLayout docks the Pages button at the bar's right end. */}
   <div class="home-search__bar" data-pages-dock>
+    {/* Matching projects, above the bar while you type. Hidden until a query
+        matches; only the matches show. */}
+    <div class="qs-sug" id="qs-sug" aria-label="Matching projects" hidden>
+      {suggestions.map((sg) => (
+        <a class="qs-sug__pill" href={`/projects/${sg.id}`} data-hay={sg.hay} title={sg.name} hidden>
+          {sg.label}<Icon name="arrow" class="qs-sug__arrow" />
+        </a>
+      ))}
+    </div>
     <div class="home-search__field">
       <input
         type="search"
@@ -80,6 +117,48 @@ const { isEmbedded = false, isHome = false } = Astro.props;
     align-items: center;
     gap: 8px;
     margin-top: 14px;
+  }
+
+  /* ── Suggestions ── a frosted panel standing on the bar, the projects
+     page's own suggestion pills: inverted, at the suggestion size. */
+  .qs-sug {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(100% + 8px);
+    z-index: 5;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    max-height: 32vh;
+    overflow-y: auto;
+    scrollbar-width: none;
+    padding: 10px 12px;
+    background-color: var(--_tokens---color--bg-overlay);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--_tokens---color--line-soft);
+    border-radius: 8px;
+  }
+  .qs-sug[hidden] { display: none; }
+  .qs-sug::-webkit-scrollbar { display: none; }
+  .qs-sug__pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.6rem;
+    padding: 2px 8px;
+    white-space: nowrap;
+    text-decoration: none;
+    color: var(--_tokens---color--bg);
+    background-color: var(--_tokens---color--fg);
+    border: 1px solid var(--_tokens---color--fg);
+    border-radius: var(--_tokens---radius--pill);
+    --icon-size: var(--_tokens---arrow--sm);
+  }
+  .qs-sug__pill[hidden] { display: none; }
+  @media (hover: hover) {
+    .qs-sug__pill:hover { opacity: 0.8; }
   }
 
   .home-search__field {
@@ -200,6 +279,11 @@ const { isEmbedded = false, isHome = false } = Astro.props;
       box-sizing: border-box;
     }
 
+    .qs-sug {
+      left: var(--_tokens---layout--gutter);
+      right: var(--_tokens---layout--gutter);
+    }
+
     /* Page content must end above the fixed bar. */
     :global(.page-main:has(.home-search__bar)) {
       padding-bottom: 96px;
@@ -227,6 +311,28 @@ const { isEmbedded = false, isHome = false } = Astro.props;
 
     const sync = () => input.classList.toggle('is-active', !!input.value.trim());
     input.addEventListener('input', sync);
+
+    // Suggestions: every keyword must appear in a project's search text.
+    // Not on About, where this field is the Skillset's search.
+    const sug = document.getElementById('qs-sug');
+    const pills = Array.from(sug?.querySelectorAll<HTMLAnchorElement>('.qs-sug__pill') ?? []);
+    const suggest = () => {
+      if (!sug) return;
+      const kws = input.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+      let any = false;
+      pills.forEach(pl => {
+        const on = !onAbout() && kws.length > 0 && kws.every(k => (pl.dataset.hay ?? '').includes(k));
+        pl.hidden = !on;
+        if (on) any = true;
+      });
+      sug.hidden = !any;
+    };
+    input.addEventListener('input', suggest);
+    input.addEventListener('focus', suggest);
+    // Close when focus leaves the bar, but let a click on a pill land first.
+    input.addEventListener('blur', () => setTimeout(() => {
+      if (sug && !sug.contains(document.activeElement)) sug.hidden = true;
+    }, 150));
 
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
