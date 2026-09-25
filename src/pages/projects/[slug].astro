@@ -137,7 +137,7 @@ const dynamicCrumbs = [ { label: 'Home', href: '/' } ];
 
 if (category) {
   dynamicCrumbs.push({ label: category.data.displayName, href: `/${category.id}` });
-  
+
   // Studio is the second level under a category, so it sits between the
   // category and the project in the trail. Read from the studio field and
   // named by the studios collection, not hard-coded per studio.
@@ -155,8 +155,6 @@ dynamicCrumbs.push({ label: data.name });
 
 const template = projectTemplate(project.id, category?.id, data.template);
 const isOriginalCardPage = template.cards;
-const isTabChapterPage = template.chapters;
-const isTabLayout = template.tabs;
 /* A visualisation project draws its own middle — rooms, one image, the
    variations behind it. See RenderRooms.astro. */
 const isRenders = template.renders;
@@ -180,7 +178,7 @@ const pipeline = ((data as any).pipeline ?? []) as { model: string; caption?: st
    where every other page already puts them. Deduped against the three axis
    labels, and against each other: "Freelancer" as both category and
    collaborator is one pill, not two. */
-const tabFacts = (template.tabs || template.renders) ? [data.program, data.collaborator, data.client] : [];
+const tabFacts = template.renders ? [data.program, data.collaborator, data.client] : [];
 const seenPill = new Set<string>();
 const filterPills = [
   ...[data.year, data.location, data.status]
@@ -196,92 +194,6 @@ const filterPills = [
   seenPill.add(k);
   return true;
 });
-const isCardPage = template.cardLayout;
-const isScarpinPage = project.id === 'scarpin';
-
-// Levenshtein distance — used to tolerate small folder-name typos when
-// matching a scarpin credit against the PEOPLE registry.
-function editDistance(a: string, b: string): number {
-  const dp: number[][] = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
-  for (let i = 0; i <= a.length; i++) dp[i][0] = i;
-  for (let j = 0; j <= b.length; j++) dp[0][j] = j;
-  for (let i = 1; i <= a.length; i++) {
-    for (let j = 1; j <= b.length; j++) {
-      dp[i][j] = a[i - 1] === b[j - 1]
-        ? dp[i - 1][j - 1]
-        : 1 + Math.min(dp[i - 1][j - 1], dp[i - 1][j], dp[i][j - 1]);
-    }
-  }
-  return dp[a.length][b.length];
-}
-
-// Load Scarpin image data if this is the Scarpin page
-let scarpinSliders: { folder: string; cleanName: string; personName: string; avatar: string | null; urls: string[] }[] = [];
-if (isScarpinPage) {
-  const scarpinDir = path.join(process.cwd(), 'public', 'images', 'scarpin');
-  if (fs.existsSync(scarpinDir)) {
-    const entries = fs.readdirSync(scarpinDir);
-    for (const folder of entries) {
-      if (folder.startsWith('.')) continue; // skip .DS_Store, .gitkeep
-      const folderPath = path.join(scarpinDir, folder);
-      if (fs.statSync(folderPath).isDirectory()) {
-        let files = fs.readdirSync(folderPath).filter(f => /\.(jpe?g|png|webp|gif|mp4)$/i.test(f));
-        if (files.length > 0) {
-          files.sort();
-          // Ensure a file named 'cover' (any extension) is always first
-          const coverIdx = files.findIndex(f => f.toLowerCase().startsWith('cover.'));
-          if (coverIdx > 0) {
-            const coverFile = files.splice(coverIdx, 1)[0];
-            files.unshift(coverFile);
-          }
-          
-          const urls = files.map(f => `/images/scarpin/${folder}/${f}`);
-          
-          let cleanName = folder.replace(/^\d+\s*/, '').trim();
-          let personName = '';
-          const dashIdx = cleanName.lastIndexOf('-');
-          if (dashIdx !== -1) {
-            personName = cleanName.substring(dashIdx + 1).trim();
-            cleanName = cleanName.substring(0, dashIdx).trim();
-          }
-
-          let avatar = null;
-          if (personName) {
-            const searchName = personName.toLowerCase().replace(/[^a-z]/g, '');
-            // Exact match first; fall back to a small edit-distance so a folder
-            // typo (e.g. "kelakar" vs "kelkar") doesn't silently drop the avatar.
-            let bestKey: string | null = null;
-            let bestDist = Infinity;
-            for (const key of Object.keys(PEOPLE)) {
-              const keyNorm = key.toLowerCase().replace(/[^a-z]/g, '');
-              const dist = editDistance(keyNorm, searchName);
-              if (dist < bestDist) { bestDist = dist; bestKey = key; }
-            }
-            const threshold = Math.max(2, Math.floor(searchName.length * 0.2));
-            if (bestKey && bestDist <= threshold) {
-              avatar = PEOPLE[bestKey];
-              personName = bestKey;
-            } else {
-              personName = personName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-            }
-          }
-
-          scarpinSliders.push({ folder, cleanName, personName, avatar, urls });
-        }
-      }
-    }
-  }
-  // Sort folders alphabetically (e.g., "01 Scarpa...", "02 Roberto...")
-  scarpinSliders.sort((a, b) => a.folder.localeCompare(b.folder));
-}
-
-// For Scarpin, synthesize allImages from the person folder covers so the
-// tab-layout slider has something to show.
-if (isScarpinPage && !hasImages && scarpinSliders.length > 0) {
-  allImages = scarpinSliders.map(s => s.urls[0]).filter(Boolean);
-  hasImages = allImages.length > 0;
-}
-
 /* Template 01's views. A project that lists `views` keeps them; one that
    does not gets a roomless view per image — cover first, then the gallery —
    which is the same page CARLO and SHLF were built with. A project with no
@@ -382,21 +294,20 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     <article class="project-detail"
       data-project-id={project.id}
       data-project-name={data.name}
-      data-is-card={isCardPage ? "true" : "false"}
+      data-is-card="true"
       data-renders={isRenders ? "true" : "false"}
-      data-is-scarpin={isScarpinPage ? "true" : "false"}
       data-category={category ? category.id : ''}
-      data-tab-layout={isTabLayout ? "true" : "false"}
+      data-tab-layout="false"
       data-original-card={isOriginalCardPage ? "true" : "false"}
       data-portraits={isPortraits ? "true" : "false"}
       data-frame={frameShape}
       data-template={template.name}
       data-chapters={isChapters ? "true" : "false"}
     >
-      
-      {isCardPage ? (
+
+      {(
         /* CARD PAGES: Wrapped in Sticky Dashboard wrapper */
-        <div class:list={["project-dashboard-wrap", (isTabLayout || isOriginalCardPage) && "is-expanded"]} id="project-dashboard">
+        <div class:list={["project-dashboard-wrap", isOriginalCardPage && "is-expanded"]} id="project-dashboard">
           <header class="project-top-header" id="project-top-header">
             <div class="project-header-title-row" id="project-name-header">
               <h1 class="project-name-title" id="project-name-click">
@@ -408,7 +319,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                    initRendersPeople. */
                 <div class="renders-people renders-people--title" id="renders-people-title"></div>
               )}
-              {(isTabLayout || isOriginalCardPage) && !isPortraits && (
+              {isOriginalCardPage && !isPortraits && (
                 <button class="page-toggle-btn project-detail-collapse-btn" id="project-name-toggle" type="button" aria-expanded="true" aria-label="Toggle project details">
                   <Arrow />
                 </button>
@@ -424,7 +335,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
             </button>
 
             <div class="project-card__metaline">
-              {(isOriginalCardPage || isTabLayout || isRenders) ? (
+              {/* every template carries the filter pills */}
+              {(
                 <div class="project-meta-row project-meta-row--pills">
                   {filterPills.map(v => (
                     <a
@@ -436,17 +348,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                       <Icon name="arrow" />
                     </a>
                   ))}
-                </div>
-              ) : (
-                <div class="project-meta-row">
-                  <span class="project-card__meta-val">
-                    {[yearLoc, data.status].filter(Boolean).join(', ')}
-                  </span>
-                  {category && (
-                    <a href={`/${category.id}/`} class="project-card__meta-cat-link">
-                      {category.data.displayName}
-                    </a>
-                  )}
                 </div>
               )}
             </div>
@@ -614,13 +515,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                     Work pages hide it behind a "Credits" pill instead of always showing it. */}
                 {!isOriginalCardPage && (
                   <>
-                    {isTabLayout && (
-                      <button class="project-credits-btn" id="project-credits-btn" type="button" aria-expanded="false">
-                        <span>Credits</span>
-                        <Arrow class="project-credits-arrow" />
-                      </button>
-                    )}
-                    <div class:list={["project-people", isTabLayout && "project-people--collapsible"]} id="project-people-panel" style="margin-top: 40px;">
+                    <div class="project-people" id="project-people-panel" style="margin-top: 40px;">
                     {people.map((person, idx) => {
                       const isScadProf = ['Casimir Esbach', 'Aaron Wilner', 'Michael Hill', 'Catalina Pesea-Ogletree'].includes(person);
                       const isDhruv = person === 'Dhruv Chavan';
@@ -642,13 +537,12 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                   </>
                 )}
 
-
                 <!-- In-column scrub. On tab (work/ARCHV) pages it IS the deck
                      (#deck-grid); on other card pages the bottom deck section
                      keeps #deck-grid and this becomes the parallel-wired
                      #deck-grid-mobile-scrub (desktop column layout). -->
                 {hasImages && !isRenders && (
-                  <div class="deck-grid deck-grid--mobile-scrub" id={(isTabLayout || isPortraits) ? "deck-grid" : "deck-grid-mobile-scrub"} data-images={JSON.stringify(allImages)} data-variations={Object.keys(variationsByImage).length ? JSON.stringify(variationsByImage) : undefined}>
+                  <div class="deck-grid deck-grid--mobile-scrub" id={isPortraits ? "deck-grid" : "deck-grid-mobile-scrub"} data-images={JSON.stringify(allImages)} data-variations={Object.keys(variationsByImage).length ? JSON.stringify(variationsByImage) : undefined}>
                     {allImages.map((img, idx) => (
                       <button
                         type="button"
@@ -731,7 +625,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
           </div>
 
           <!-- CARD DECK SECTION: INSIDE the dropdown container so when closed it collapses completely inside -->
-          {hasImages && isCardPage && !isTabLayout && !isRenders && !isPortraits && (
+          {hasImages && !isRenders && !isPortraits && (
             <section class="card-deck-section">
               <div class="deck-grid" id="deck-grid" data-images={JSON.stringify(allImages)} data-variations={Object.keys(variationsByImage).length ? JSON.stringify(variationsByImage) : undefined}>
                 {allImages.map((img, idx) => {
@@ -741,7 +635,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                   name = name.replace(/^ADVT_(?:[A-Z]{2,4}_)+/, '').replace(/^ADVT_SP_\s*/, '').trim();
                   name = name.replace(/\s+\d+\s*$/, '').replace(/\s*\d+$/, '').trim();
                   name = name.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2').replace(/[_-]+/g, ' ').trim();
-                  
+
                   const logo = logoFor(img);
                   return (
                     <button
@@ -764,162 +658,10 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
             </section>
           )}
         </div>
-      ) : (
-        /* STANDARD PROJECTS: Normal Stacked Flow */
-        <>
-          <header class="project-top-header" id="project-top-header">
-            <div class="project-header-title-row">
-              <h1 class="project-name-title" id="project-name-click">
-                <span class="project-name-main">{data.name}</span>
-              </h1>
-            </div>
-
-            {/* Cancels whichever section the card has grown to show. Rendered
-                here rather than built in script so it carries this file's
-                scope attribute and uses the icon family; the phone card moves
-                it in like every other piece. */}
-            <button class="project-phone-close" type="button" aria-label="Close this section" hidden>
-              <Icon name="close" />
-            </button>
-
-            <div class="project-card__metaline">
-              {(isOriginalCardPage || isTabLayout || isRenders) ? (
-                <div class="project-meta-row project-meta-row--pills">
-                  {filterPills.map(v => (
-                    <a
-                      class="project-card__filter-pill"
-                      href={`/projects?q=${encodeURIComponent(v)}`}
-                      title={`Show only ${v}`}
-                    >
-                      <span>{v}</span>
-                      <Icon name="arrow" />
-                    </a>
-                  ))}
-                </div>
-              ) : (
-                <div class="project-meta-row">
-                  <span class="project-card__meta-val">
-                    {[yearLoc, data.status].filter(Boolean).join(', ')}
-                  </span>
-                  {category && (
-                    <a href={`/${category.id}/`} class="project-card__meta-cat-link">
-                      {category.data.displayName}
-                    </a>
-                  )}
-                </div>
-              )}
-            </div>
-          </header>
-
-          <div class="project-content-grid">
-            <div class="project-col-left">
-              <div class="project-card-info">
-                <!-- Subtitle (Intro) & Description (aim/narrative) at the top of left column -->
-                <div class="project-card__row project-card__row2">
-                  <div class="project-card__text-block">
-                    {data.smallIntro && <p class="project-card__intro">{data.smallIntro}</p>}
-                    {data.description && (
-                      <div class="project-desc-readmore" id="project-desc-readmore">
-                        <div class="project-card__desc project-desc-clip" id="project-desc-clip" set:html={data.description} />
-                        <button
-                          class="project-readmore-btn"
-                          id="project-readmore-btn"
-                          type="button"
-                          aria-expanded="false"
-                        >
-                          <span class="project-readmore-label">Read more</span>
-                          <Icon name="arrow" class="project-readmore-arrow" />
-                        </button>
-                      </div>
-                    )}
-                    {downloads.length > 0 && (
-                      <div class="project-downloads">
-                        {downloads.map(d => (
-                          <a class="project-download-pill" href={d.href} download target="_blank" rel="noopener">
-                            <span>{d.label}</span>
-                            <Arrow />
-                          </a>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <!-- Collaborator circles (people) below the description -->
-                <div class="project-people" style="margin-top: 40px;">
-                  {people.map((person, idx) => {
-                    const isScadProf = ['Casimir Esbach', 'Aaron Wilner', 'Michael Hill', 'Catalina Pesea-Ogletree'].includes(person);
-                    const isDhruv = person === 'Dhruv Chavan';
-                    const displayName = isScadProf ? `${person} (Professor)` : isDhruv ? `${person} (Mumbai Workshop)` : person;
-                    const showDivider = idx === peopleDividerAfter;
-                    return (
-                      <>
-                        <div class="project-people__person">
-                          <div class="project-people__avatar">
-                            <img src={PEOPLE[person] ?? PEOPLE['Advaita Kelkar']} alt={person} loading="lazy" />
-                          </div>
-                          <span class="project-people__name">{displayName}</span>
-                        </div>
-                        {showDivider && <div class="project-people__divider" aria-hidden="true" />}
-                      </>
-                    );
-                  })}
-                </div>
-
-                <!-- Thumbnail scrub below the people -->
-                {hasImages && !isRenders && (
-                  <div class="project-detail__thumbs" id="standard-thumbs" style="margin-top: 24px; margin-bottom: 24px;">
-                    {allImages.map((img, idx) => (
-                      <button
-                        type="button"
-                        class:list={[
-                          "project-detail__thumb-item",
-                          idx === 0 && "is-active"
-                        ]}
-                        data-index={idx}
-                      >
-                        <img src={img} alt={`${data.name} thumbnail ${idx + 1}`} />
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {hasImages && !isRenders && (
-            <div class="project-col-right" id="project-slider-col">
-              <div class="project-slider-wrapper project-slider-wrapper--standard" id="standard-slider-wrapper" data-images={JSON.stringify(allImages)}>
-                <div class="project-detail__active-wrap" id="standard-active-wrap" style="cursor: pointer;" title="Click to open image">
-                  <button class="project-detail__nav-arrow project-detail__nav-arrow--prev" id="standard-prev" type="button" aria-label="Previous image">
-                    <Icon name="chevron" dir="w" />
-                  </button>
-                  <img class="project-detail__active-img" id="standard-active-img" src={allImages[0]} alt={data.name} fetchpriority="high" decoding="async" />
-                  <button class="project-detail__nav-arrow project-detail__nav-arrow--next" id="standard-next" type="button" aria-label="Next image">
-                    <Icon name="chevron" dir="e" />
-                  </button>
-                </div>
-
-                <div class="project-detail__pagination-row" style="margin-top: 12px;">
-                  <div class="project-detail__pagination" id="standard-pagination">
-                    1 / {allImages.length}
-                  </div>
-                  <div class="autoplay-timer-ring autoplay-timer-ring--mini" aria-hidden="true">
-                    <svg width="20" height="20" viewBox="0 0 24 24">
-                      <circle cx="12" cy="12" r="10" class="timer-ring-bg" />
-                      <circle cx="12" cy="12" r="10" class="timer-ring-progress" id="page-timer-progress-mini" />
-                      <circle cx="12" cy="2" r="2" class="timer-ring-dot" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            </div>
-            )}
-          </div>
-        </>
       )}
 
       <!-- NON-ORIGINAL-CARD PAGES: chapter dropdowns (when defined) or Design & Making -->
-      {!isOriginalCardPage && !isScarpinPage && (data.chapters?.length ?? 0) > 0 && (
+      {!isOriginalCardPage && (data.chapters?.length ?? 0) > 0 && (
         <div class:list={["project-chapters", chapterTabs && "project-chapters--tabs is-all"]}>
           {/* Two or more chapters read as tabs: a numbered row, one chapter
               on screen. A single chapter keeps its dropdown. */}
@@ -965,14 +707,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                   {rest && <span class="project-chapter__title-rest">{rest}</span>}
                 </h3>
                 <button class="project-detail-collapse-btn" type="button" aria-expanded="false" aria-label={`Toggle ${ch.title}`}>
-                  {isTabLayout ? (
-                    <>
-                      <Arrow class="toggle-icon-minus" style="display: none;" />
-                      <Arrow class="toggle-icon-plus" />
-                    </>
-                  ) : (
-                    <Arrow />
-                  )}
+                  <Arrow />
                 </button>
               </div>
               <div class="project-chapter__content">
@@ -988,49 +723,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
           headings over label/value grids restating what the pills already
           say, and on a phone they ran straight through their own rows.
           Their facts live in the pills; the section is to be redesigned. */}
-
-      {/* SCARPIN: Person-based accordion tabs (replace Design/Making) */}
-      {isScarpinPage && scarpinSliders.length > 0 && (
-        <div class="project-chapters">
-          {scarpinSliders.map((slider) => (
-            <section class="project-chapter">
-              <div class="project-header-title-row project-chapter__header">
-                <h3 class="project-chapter__title">
-                  <span class="project-chapter__title-rest">{slider.cleanName}</span>
-                </h3>
-                <button class="project-detail-collapse-btn" type="button" aria-expanded="false" aria-label={`Toggle ${slider.cleanName}`}>
-                  <Arrow class="toggle-icon-minus" style="display: none;" />
-                  <Arrow class="toggle-icon-plus" />
-                </button>
-              </div>
-              <div class="project-chapter__content">
-                <div class="project-chapter__body">
-                  <div class="scarpin-person-header" style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
-                    {slider.avatar ? (
-                      <img style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;" src={slider.avatar} alt={slider.personName} loading="lazy" />
-                    ) : (
-                      <div style="width: 32px; height: 32px; border-radius: 50%; background: #e0e0e0;"></div>
-                    )}
-                    <span style="font-size: 14px; opacity: 0.7;">{slider.personName}</span>
-                  </div>
-                  <div class="scarpin-person-images" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px;">
-                    {slider.urls.map((u) => (
-                      u.endsWith('.mp4') ? (
-                        <video src={u} autoplay loop muted playsinline style="width: 100%; border-radius: 4px;"></video>
-                      ) : (
-                        <img src={projectThumbnail(u)} alt={slider.cleanName} loading="lazy" decoding="async" style="width: 100%; border-radius: 4px;" />
-                      )
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </section>
-          ))}
-        </div>
-      )}
-
-
-
 
       {/* The rooms sit OUTSIDE the dashboard grid. Inside it they landed in
           the same cell as the text column, which places its own grid-row on
@@ -1059,7 +751,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       })()}
 
       <!-- Fullscreen Lightbox: card pages get a horizontally scrolling deck -->
-      {isCardPage && !isRenders && (
+      {!isRenders && (
         <div id="card-lightbox" role="dialog" aria-modal="true" aria-label={`${data.name} image gallery`} tabindex="-1" class="card-lightbox card-lightbox--deck" aria-hidden="true" style="display: none;">
           <img class="lightbox-bg-ambient" id="lightbox-ambient-img" src="" alt="" />
           <div class="lightbox-backdrop"></div>
@@ -1102,56 +794,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         </div>
       )}
 
-      {!isCardPage && (
-      <div id="card-lightbox" role="dialog" aria-modal="true" aria-label={`${data.name} image gallery`} tabindex="-1" class="card-lightbox" aria-hidden="true" style="display: none;">
-        <!-- Dynamic Blurred Background Ambient Image -->
-        <img class="lightbox-bg-ambient" id="lightbox-ambient-img" src="" alt="" />
-        <div class="lightbox-backdrop"></div>
-        
-        <!-- Redesigned Top Action Bar: ring timer left, pagination center, close right -->
-        <!-- Redesigned Top Action Bar: card deck style header -->
-        <div class="lightbox-header lightbox-header--deck">
-          <span class="lightbox-pagination lightbox-pagination--deck" id="lightbox-counter">1 / 35</span>
-          <div class="lightbox-scrubber" id="lightbox-scrubber" role="slider" aria-label="Scrub through cards">
-            <div class="lightbox-scrubber__fill" id="lightbox-scrubber-fill"></div>
-          </div>
-          <div class="autoplay-timer-ring lightbox-header__ring" aria-hidden="true">
-            <svg width="20" height="20" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="10" class="timer-ring-bg" />
-              <circle cx="12" cy="12" r="10" class="timer-ring-progress" id="lightbox-timer-progress" />
-              <circle cx="12" cy="2" r="2" class="timer-ring-dot" />
-            </svg>
-          </div>
-          <button class="lightbox-close-btn" id="lightbox-close" type="button" aria-label="Close lightbox">
-            <Icon name="close" />
-          </button>
-        </div>
-        
-        <!-- Centered Card Container (with 3D perspective wrapper) -->
-        <div class="lightbox-perspective-wrap">
-          <div class="lightbox-card-container" id="lightbox-card-container">
-            <!-- Left/Right navigation inputs overlaid directly on image container -->
-            <button class="lightbox-nav-arrow lightbox-nav-arrow--prev" id="lightbox-prev" type="button" aria-label="Previous card">
-              <Icon name="chevron" dir="w" />
-            </button>
-
-            <img class="lightbox-card-img" id="lightbox-card-img" src="" alt="Active Playing Card" />
-
-            <div class="lightbox-card-shadow"></div>
-            <div class="lightbox-card-shine"></div>
-
-            <button class="lightbox-nav-arrow lightbox-nav-arrow--next" id="lightbox-next" type="button" aria-label="Next card">
-              <Icon name="chevron" dir="e" />
-            </button>
-          </div>
-        </div>
-
-        <!-- Name Label below the Lightbox card container (bottom-left, one word per line) -->
-        <h2 class="lightbox-name" id="lightbox-card-label">CARD NAME</h2>
-
-        <div class="lightbox-hint">Tap card to flip to next</div>
-      </div>
-      )}
 
       {project.id === 'virtual-gods' && <VGScrollExhibition />}
 
@@ -1169,269 +811,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     position: relative;
   }
 
-  /* ── Scarpin Page Grid Layout ── */
-  .scarpin-grid-container {
-    display: flex;
-    flex-direction: column;
-    gap: var(--_tokens---space-6);
-    width: 100%;
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 0 12px;
-  }
-
-  .scarpin-intro {
-    width: 100%;
-    max-width: 60ch;
-    margin-bottom: 24px;
-  }
-
-  .scarpin-grid {
-    display: block;
-    width: 100%;
-  }
-
-  @media (min-width: 1024px) {
-    .scarpin-grid-container {
-      padding: 0;
-    }
-  }
-
-  /* ── Scarpin submission tabs — one pill per person ── */
-  .scarpin-tabs__bar {
-    display: flex;
-    flex-direction: row;
-    gap: 6px;
-    flex-wrap: nowrap;
-    width: 100%;
-    border-bottom: 1px solid var(--_tokens---color--line-soft);
-    padding-bottom: 12px;
-    margin-bottom: 8px;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .scarpin-tabs__bar::-webkit-scrollbar { display: none; }
-
-  .scarpin-tab-btn {
-    all: unset;
-    box-sizing: border-box;
-    flex: 0 0 auto;
-    display: inline-flex;
-    align-items: center;
-    gap: var(--_tokens---pill-gap);
-    font-family: inherit;
-    font-size: var(--_tokens---type--micro);
-    font-weight: var(--_tokens---weight--base);
-    line-height: 1;
-    color: var(--_tokens---color--muted);
-    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
-    border: var(--_tokens---pill-border);
-    border-radius: var(--_tokens---radius--pill);
-    padding: 8px 16px 8px 10px;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: background-color var(--_tokens---motion--base) ease, color var(--_tokens---motion--base) ease, border-color var(--_tokens---motion--base) ease;
-  }
-  @media (hover: hover) {
-    .scarpin-tab-btn:hover {
-    background-color: color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
-    color: var(--_tokens---color--fg);
-    border-color: color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
-  }
-  }
-  .scarpin-tab-btn.is-active {
-    background-color: var(--_tokens---color--fg);
-    color: var(--_tokens---color--bg);
-    border-color: var(--_tokens---color--fg);
-  }
-
-  .scarpin-tab-avatar {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    object-fit: cover;
-    flex-shrink: 0;
-    filter: grayscale(1);
-    transition: filter var(--_tokens---motion--base) ease;
-  }
-  .scarpin-tab-btn.is-active .scarpin-tab-avatar {
-    filter: grayscale(0);
-  }
-  @media (hover: hover) {
-    .scarpin-tab-btn:hover .scarpin-tab-avatar {
-    filter: grayscale(0);
-  }
-  }
-  .scarpin-tab-avatar--placeholder {
-    display: inline-block;
-    background-color: currentColor;
-    opacity: 0.35;
-  }
-
   /* Tabbed panels: only the active submission shows, centered */
-  .scarpin-grid-item {
-    display: none;
-    flex-direction: column;
-    gap: 12px;
-    width: 100%;
-    max-width: 720px;
-    margin: 0 auto;
-  }
-  .scarpin-grid-item.is-active {
-    display: flex;
-  }
-
-  .scarpin-item-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    padding: 0 4px;
-  }
-
-  .scarpin-item-title {
-    font-size: var(--_tokens---type--micro);
-    font-weight: var(--_tokens---weight--base);
-    color: var(--_tokens---color--fg);
-    margin: 0;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  .scarpin-item-media-wrap {
-    width: 100%;
-    aspect-ratio: 1; /* Square */
-    position: relative;
-    background-color: var(--_tokens---color--bg-glass);
-    border: 1px solid var(--_tokens---color--line-soft);
-    border-radius: 6px;
-    overflow: hidden;
-    cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    transition: transform var(--_tokens---motion--base) ease, box-shadow var(--_tokens---motion--base) ease;
-  }
-  
-  @media (hover: hover) {
-    .scarpin-item-media-wrap:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-  }
-  }
-
-  .scarpin-media {
-    width: 100%;
-    height: 100%;
-    object-fit: contain; /* Fit portraits in height */
-    display: block;
-    filter: grayscale(1);
-    opacity: 0.85;
-    transition: filter var(--_tokens---motion--base) ease, opacity var(--_tokens---motion--base) ease, transform var(--_tokens---motion--slow) ease;
-  }
-
-  @media (hover: hover) {
-    .scarpin-item-media-wrap:hover .scarpin-media {
-    filter: grayscale(0);
-    opacity: 1;
-    transform: scale(1.03);
-  }
-  }
-
-  .scarpin-thumbnails {
-    display: flex;
-    gap: 8px;
-    width: 100%;
-    overflow-x: auto;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    padding-bottom: 2px;
-  }
-
-  .scarpin-thumbnails::-webkit-scrollbar {
-    display: none;
-  }
-
-  .scarpin-thumb {
-    all: unset;
-    flex: 0 0 calc((100% - 32px) / 5); /* Show ~5 thumbnails */
-    aspect-ratio: 1;
-    border-radius: 4px;
-    overflow: hidden;
-    cursor: pointer;
-    background-color: var(--_tokens---color--bg-glass);
-    border: 1px solid var(--_tokens---color--line-soft);
-    position: relative;
-    box-sizing: border-box;
-    transition: border-color var(--_tokens---motion--base) ease, transform var(--_tokens---motion--base) ease;
-  }
-  
-  @media (hover: hover) {
-    .scarpin-thumb:hover {
-    transform: translateY(-2px);
-  }
-  }
-
-  .scarpin-thumb img, 
-  .scarpin-thumb video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    filter: grayscale(1);
-    opacity: 0.6;
-    transition: filter var(--_tokens---motion--base) ease, opacity var(--_tokens---motion--base) ease;
-  }
-
-  .scarpin-thumb.is-active img, .scarpin-thumb.is-active video {
-    filter: grayscale(0);
-    opacity: 1;
-  }
-  @media (hover: hover) {
-    .scarpin-thumb:hover img, .scarpin-thumb:hover video {
-    filter: grayscale(0);
-    opacity: 1;
-  }
-  }
-
-  .scarpin-thumb.is-active {
-    border-color: var(--_tokens---color--fg);
-  }
-
-  .scarpin-item-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-top: 12px;
-    border-top: 1px solid var(--_tokens---color--line-soft);
-  }
-
-  .scarpin-person {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .scarpin-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 1px solid var(--_tokens---color--line-soft);
-  }
-
-  .scarpin-avatar--placeholder {
-    background-color: var(--_tokens---color--fg);
-  }
-
-  .scarpin-person-name {
-    font-size: var(--_tokens---type--micro);
-    color: var(--_tokens---color--fg);
-    font-weight: var(--_tokens---weight--base);
-  }
-
-  .scarpin-pagination-wrap {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
 
   /* ── Desktop: viewport-locked layout — nothing scrolls except the deck ── */
   @media (min-width: 1024px) {
@@ -1957,121 +1337,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
      (metaline, description, image, scrub) stack in normal document flow,
      matching mobile — the page scrolls normally instead of being locked to
      100dvh with only the deck scrolling internally. */
-  @media (min-width: 1024px) {
-    .project-detail[data-tab-layout="true"] {
-      display: block;
-      height: auto;
-      overflow: visible;
-      padding-bottom: clamp(4rem, 8vh, 8rem);
-    }
-    .project-detail[data-tab-layout="true"] .project-dashboard-wrap {
-      display: flex;
-      flex-direction: column;
-    }
-    /* Viewport-locked first screen: the open dashboard (header + intro +
-       image + scrub) always fits exactly 100dvh — the description scrolls
-       inside its own box instead of growing the page. Sections below
-       (Design / Making) remain reachable by normal page scroll. */
-    .project-detail[data-tab-layout="true"] .project-dashboard-wrap.is-expanded {
-      height: 100dvh;
-      overflow: hidden;
-      box-sizing: border-box;
-      padding-bottom: clamp(1rem, 3vh, 2rem);
-    }
-    .project-detail[data-tab-layout="true"] .project-content-grid--card {
-      display: grid; /* falls back to its own column ratio instead of bubbling into the (now-cancelled) outer grid */
-      flex: 1;
-      min-height: 0;
-    }
-    .project-detail[data-tab-layout="true"] .project-top-header {
-      padding-top: calc(clamp(0.5rem, 1.5vh, 1rem) + 48px);
-    }
-    /* Left column becomes a full-height flex stack: intro on top, the
-       description absorbs the leftover height and scrolls internally,
-       people + scrub + pagination stay pinned at the bottom. */
-    .project-detail[data-tab-layout="true"] .project-col-left {
-      height: 100%;
-      min-height: 0;
-    }
-    .project-detail[data-tab-layout="true"] .project-card-info {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      min-height: 0;
-    }
-    .project-detail[data-tab-layout="true"] .project-card__row2 {
-      flex: 1 1 auto;
-      min-height: 0;
-      display: flex;
-    }
-    .project-detail[data-tab-layout="true"] .project-card__text-block {
-      flex: 1;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-    }
-    .project-detail[data-tab-layout="true"] .project-desc-readmore {
-      flex: 1;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-    }
-    /* Internal scroll replaces the Read more pill on desktop (the pill
-       still works on mobile). !important beats the JS-set inline clip. */
-    .project-detail[data-tab-layout="true"] .project-desc-clip {
-      max-height: none !important;
-      flex: 1;
-      min-height: 0;
-      overflow-y: auto;
-      scrollbar-width: thin;
-    }
-    .project-detail[data-tab-layout="true"] .project-readmore-btn {
-      display: none;
-    }
-    /* Desktop order flip: thumbnail scrub first, pagination row last —
-       the pagination is the column's final element. */
-    .project-detail[data-tab-layout="true"] .project-card-name-pagination-row {
-      order: 2;
-    }
-    .project-detail[data-tab-layout="true"] .deck-grid--mobile-scrub {
-      order: 1;
-      margin-top: 12px;
-      margin-bottom: 0;
-    }
-    .project-detail[data-tab-layout="true"] .deck-grid--mobile-scrub .deck-card-item {
-      height: 72px !important; /* same height as people circle (72px) */
-    }
-    .project-detail[data-tab-layout="true"] .project-col-right {
-      position: static;
-      height: 100%;
-      min-height: 0;
-      grid-row: 2; /* same row as .project-col-left (locked-layout sets it to 2) — side by side, not stacked */
-      align-self: stretch;
-    }
-    /* Image fills the full right-column height beside the text — no
-       letterbox gaps (object-fit: cover), no card chrome — just the image. */
-    .project-detail[data-tab-layout="true"] .project-detail__active-wrap {
-      height: 100% !important;
-      max-height: 100% !important;
-      aspect-ratio: auto !important;
-      width: 100%;
-      background: none !important;
-      border: none !important;
-      border-radius: 0 !important;
-      box-shadow: none !important;
-    }
-    .project-detail[data-tab-layout="true"] .project-detail__active-img {
-      height: 100% !important;
-      max-height: 100% !important;
-      width: 100% !important;
-      max-width: 100%;
-      object-fit: cover !important;
-    }
-    .project-detail[data-tab-layout="true"] .card-deck-section {
-      height: auto;
-      overflow: visible;
-    }
-  }
 
   .project-top-header {
     position: static;
@@ -2241,7 +1506,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   .project-download-pill svg {
     --icon-size: 0.85em;
     transition: transform var(--_tokens---motion--base) ease;
-  
+
   }
 
   @media (hover: hover) {
@@ -2285,50 +1550,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
   /* Work-category mobile: people hide behind this pill instead of always
      showing — same look as .project-readmore-btn elsewhere on the page. */
-  .project-credits-btn {
-    all: unset;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: var(--_tokens---pill-gap--xs);
-    /* On mobile this is a direct grid item (the single-column reorder makes
-       .project-card-info's children participate in the grid directly) and
-       grid items stretch to fill their column by default — without this it
-       was rendering full-width instead of hugging the "Credits" text. */
-    width: fit-content;
-    justify-self: start;
-    margin-top: 16px;
-    font-size: var(--_tokens---type--micro);
-    font-weight: var(--_tokens---weight--base);
-    color: var(--_tokens---color--fg);
-    border: var(--_tokens---pill-border--mid);
-    border-radius: var(--_tokens---radius--pill);
-    padding: var(--_tokens---pill-pad--xs);
-    white-space: nowrap;
-    transition: background-color var(--_tokens---motion--base) ease, border-color var(--_tokens---motion--base) ease, color var(--_tokens---motion--base) ease;
-  }
-  @media (hover: hover) {
-    .project-credits-btn:hover {
-    background-color: var(--_tokens---color--fg);
-    color: var(--_tokens---color--bg);
-    border-color: var(--_tokens---color--fg);
-  }
-  }
-  .project-credits-arrow {
-    transition: transform var(--_tokens---motion--slow) ease;
-  
-
-    --arrow-size: var(--_tokens---arrow--sm);
-
-  }
-  .project-credits-btn[aria-expanded="true"] .project-credits-arrow {
-    transform: rotate(135deg);
-  }
-  @media (min-width: 1024px) {
-    .project-credits-btn {
-      display: none; /* desktop always shows the people row, unchanged */
-    }
-  }
 
   /* "Prompt" pill — same pill language as Credits; mobile-only (desktop
      always shows the prompt box inline, unchanged). */
@@ -2359,7 +1580,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
   .project-prompt-arrow {
     transition: transform var(--_tokens---motion--slow) ease;
-  
 
     --arrow-size: var(--_tokens---arrow--sm);
 
@@ -2371,23 +1591,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     .project-prompt-wrap,
     .project-prompt-btn {
       display: none;
-    }
-  }
-  @media (max-width: 1023.98px) {
-    .project-people--collapsible {
-      max-height: 0;
-      opacity: 0;
-      overflow: hidden;
-      margin-top: 0 !important;
-      margin-bottom: 0 !important;
-      transition: max-height var(--_tokens---motion--slow) cubic-bezier(0.16, 1, 0.3, 1), opacity var(--_tokens---motion--base) ease, margin var(--_tokens---motion--base) ease;
-    }
-    .project-people--collapsible.is-expanded {
-      max-height: 300px;
-      opacity: 1;
-      margin-top: 40px !important; /* headroom for the name pill above the avatar */
-      margin-bottom: 12px !important;
-      overflow: visible;
     }
   }
 
@@ -2646,26 +1849,10 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     /* Work-category pages: only the project NAME behaves like a pinned tab —
        the rest of the dashboard (metaline, category link) scrolls away
        normally instead of staying fixed on screen. */
-    .project-detail[data-tab-layout="true"] .project-dashboard-wrap {
-      position: static;
-      box-shadow: none;
-      border-bottom: none;
-      padding: 0 !important; /* the sticky title row below owns the top safe-area clearance instead */
-    }
 
-    .project-detail[data-tab-layout="true"] .project-card__metaline {
-      /* No horizontal padding of its own — it must sit flush with the page's
-         own left/right inset, same as the description text below it. It
-         previously touched the smallIntro text right below it with no gap. */
-      padding: 8px 0 0;
-      margin-bottom: 16px;
-    }
     /* border-top: none is set generally (all viewports) below — the tab
        header's own border-bottom is the only line above the metaline now. */
 
-    .project-detail[data-tab-layout="true"] {
-      padding-top: 0 !important; /* no fixed dashboard to clear space for */
-    }
   }
 
   /* The project name is the first toggle dropdown (same left-label + arrow
@@ -2677,10 +1864,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
      everything nested inside it (description, people, image, pagination,
      both scrubs) in one shot, with no residual padding/gap left behind.
      The metaline lives in the header instead, so it needs its own rule. */
-  .project-detail[data-tab-layout="true"] .project-dashboard-wrap:not(.is-expanded) .project-card__metaline,
-  .project-detail[data-tab-layout="true"] .project-dashboard-wrap:not(.is-expanded) .project-content-grid--card {
-    display: none !important;
-  }
 
   /* Original card sets (Alt Verse, Indian Royals, Sups…): same collapsible
      name tab, but closing it keeps the scrubber — only the metaline, the
@@ -2693,7 +1876,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   .project-detail[data-original-card="true"] .project-dashboard-wrap:not(.is-expanded) .project-col-right {
     display: none !important;
   }
-
 
   /* ── Right-Column Active Slider ── */
   .project-slider-wrapper {
@@ -2854,7 +2036,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   .page-active-card-logo.is-swap {
     animation: logo-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
-
 
   .timer-ring-bg {
     fill: none;
@@ -3399,19 +2580,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
 
   /* Work category projects: style Design & Making sections like chapters */
-  .project-detail[data-tab-layout="true"] .project-section-subtitle {
-    font-size: var(--_tokens---type--big);
-    font-weight: var(--_tokens---weight--base);
-    letter-spacing: -0.03em;
-    line-height: 1.05;
-  }
 
-  .project-detail[data-tab-layout="true"] .project-design-header,
-  .project-detail[data-tab-layout="true"] .project-making-header {
-    align-items: center;
-  }
-
-  .project-detail[data-tab-layout="true"] .project-detail-collapse-btn,
   .project-detail[data-original-card="true"] .project-detail-collapse-btn {
     width: 40px;
     height: 40px;
@@ -3423,51 +2592,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
      fit), object-fit: cover so each fills its slot, and no per-card chrome
      (border/radius/shadow) — reads as one strip, not separate cards. Hidden
      on mobile (the compact scrub above the pagination covers that). */
-  .project-detail[data-tab-layout="true"] .card-deck-section {
-    display: none !important;
-  }
-  .project-detail[data-tab-layout="true"] .card-deck-section .deck-grid {
-    display: flex !important;
-    flex-wrap: nowrap !important;
-    grid-template-columns: none !important;
-    gap: 0 !important;
-    overflow: hidden;
-  }
-  .project-detail[data-tab-layout="true"] .card-deck-section .deck-card-item {
-    flex: 1 1 0 !important;
-    min-width: 0 !important;
-    width: auto !important;
-    height: 140px !important;
-    aspect-ratio: auto !important;
-    padding: 0 !important;
-    margin: 0 !important;
-  }
-  .project-detail[data-tab-layout="true"] .card-deck-section .deck-card-inner {
-    width: 100%;
-    height: 100%;
-    border-radius: 0 !important;
-    border: none !important;
-    box-shadow: none !important;
-    margin: 0 !important;
-  }
-  .project-detail[data-tab-layout="true"] .card-deck-section .deck-card-inner img:not(.deck-card-logo) {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-  .project-detail[data-tab-layout="true"] .card-deck-section .deck-card-item:focus .deck-card-inner, .project-detail[data-tab-layout="true"] .card-deck-section .deck-card-item.is-active .deck-card-inner {
-    transform: none !important;
-    box-shadow: none !important;
-  }
-  @media (hover: hover) {
-    /* Keep the strip flush — no 3D lift/scale on hover/active (that would open
-     gaps between neighbours); the grayscale→colour reveal still happens. */
-  .project-detail[data-tab-layout="true"] .card-deck-section .deck-card-item:hover .deck-card-inner {
-    transform: none !important;
-    box-shadow: none !important;
-  }
-  }
 
   /* Fullscreen lightbox deck: same fixed-height/natural-width filmstrip fix
      — the fixed 72vw/24vw WIDTH plus a fixed HEIGHT was forcing every card
@@ -3475,17 +2599,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
      landscapes down instead of showing their real proportions. Capped at
      88vw/85vh (was touching the header/scrubber and the name label at the
      very top/bottom edges with letting width run fully free). */
-  .project-detail[data-tab-layout="true"] .lightbox-deck__item {
-    width: auto !important;
-    max-width: 88vw;
-    max-height: 85vh;
-  }
-  .project-detail[data-tab-layout="true"] .lightbox-deck__item img:not(.lightbox-card-logo) {
-    width: auto !important;
-    height: 100% !important;
-    max-width: 100%;
-    object-fit: contain !important;
-  }
 
   /* Simple tab UI, not cards: no box-shadow/elevation anywhere — each of the
      three headers (name, Design, Making) gets exactly one border directly
@@ -3494,37 +2607,24 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
      longer carry the old space-3 margin+padding either — that made the gap
      above each closed tab much bigger than the 12px gap below it; now the
      header's own uniform 12px top/bottom padding is the only spacing. */
-  .project-detail[data-tab-layout="true"] .project-design-section,
-  .project-detail[data-tab-layout="true"] .project-making-section {
-    border-top: none !important;
-    padding-top: 0 !important;
-    margin-top: 0 !important;
-  }
+
   /* .project-metadata-sections (wraps Design+Making) has its own 24px
      margin-top for the standard-page look, and .project-top-header its own
      8px margin-bottom — both are extra space the Name tab's 12px gap
      doesn't have, so Design sits noticeably further from the tab above it
      than Making sits from Design. !important on every one of these so
      there's no ambiguity about which declaration wins the cascade. */
-  .project-detail[data-tab-layout="true"] .project-metadata-sections {
-    margin-top: 0 !important;
-  }
+
   /* Only margin and padding-bottom are reset here — padding-top is left
      alone since it's what clears the fixed breadcrumb bar on desktop
      (set to clamp(0.5rem,1.5vh,1rem)+48px above) and the notch-safe area on
      mobile (set on .project-header-title-row itself below); zeroing it
      with !important made the title render underneath the breadcrumb. */
-  .project-detail[data-tab-layout="true"] .project-top-header {
-    margin: 0 !important;
-    padding-bottom: 0 !important;
-  }
+
   /* The metaline sits right under the name tab's own border-bottom when
      open — its own separate border-top would double that line. It also
      used to touch the smallIntro text right below it with zero gap. */
-  .project-detail[data-tab-layout="true"] .project-card__metaline {
-    border-top: none !important;
-    margin-bottom: 16px !important;
-  }
+
   /* Each tab's header sticks to the top of the viewport while its own
      content scrolls past underneath — only one tab is open at a time
      (see wireWorkAccordion), so at most one is meaningfully "stuck" at once.
@@ -3533,29 +2633,12 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
      padding now (a duplicate mobile-only declaration used to sit earlier
      in the file and, being un-!important, silently lost to this one anyway,
      but kept the notch-safe env() value out of the winning declaration). */
-   .project-detail[data-tab-layout="true"] .project-header-title-row,
-  .project-detail[data-tab-layout="true"] .project-design-header,
-  .project-detail[data-tab-layout="true"] .project-making-header,
-  .project-detail[data-tab-layout="true"] .project-chapter__header {
-    position: sticky;
-    top: 0;
-    z-index: 50;
-    background-color: var(--_tokens---color--bg);
-    border-bottom: 1px solid var(--_tokens---color--line-soft);
-    padding-top: 12px !important;
-    padding-bottom: 12px !important;
-    margin: 0 !important;
-    box-sizing: border-box;
-  }
 
   /* Only the main top-header gets the safe-area padding-top to clear status bar/notch on mobile */
-  .project-detail[data-tab-layout="true"] .project-top-header .project-header-title-row {
-    padding-top: calc(12px + env(safe-area-inset-top)) !important;
-  }
 
   /* Was 32px, while the identical toggle on every other page rendered at
      40px. Take the size from the button's font like the rest of them. */
-  .project-detail[data-tab-layout="true"] .project-detail-collapse-btn,
+
   .project-detail[data-original-card="true"] .project-detail-collapse-btn {
     --arrow-size: var(--_tokens---arrow--md);
   }
@@ -3566,30 +2649,10 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
      styling above — here we just strip the chapter's own wrapper spacing and
      border-top (which would double the header's border / open an uneven gap),
      and let the header be a single full-width tab. */
-  .project-detail[data-tab-layout="true"] .project-chapters {
-    margin-top: 0 !important;
-  }
-  .project-detail[data-tab-layout="true"] .project-chapter {
-    border-top: none !important;
-    padding-top: 0 !important;
-    margin-top: 0 !important;
-  }
+
   /* Title reads as a single tab label (lead + rest on one line, big weight),
      matching the "Design"/"Making" tab labels rather than the stacked
      two-line chapter heading used on standard pages. */
-  .project-detail[data-tab-layout="true"] .project-chapter__title {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-  }
-  .project-detail[data-tab-layout="true"] .project-chapter__title-lead {
-    font-size: var(--_tokens---type--micro) !important;
-    font-weight: var(--_tokens---weight--base) !important;
-    text-transform: none !important;
-    letter-spacing: normal !important;
-    line-height: 1.2 !important;
-    color: var(--_tokens---color--muted) !important;
-  }
 
   .project-design-content,
   .project-making-content {
@@ -4528,12 +3591,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
 
   /* Adjust perspective bounds for standard landscape lightbox views */
-  .project-detail[data-is-card="false"] .lightbox-card-container {
-    max-width: 900px;
-    max-height: 560px;
-    aspect-ratio: 16/10;
-    height: auto;
-  }
 
   .lightbox-card-container.is-transitioning {
     opacity: 0;
@@ -4546,10 +3603,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     object-fit: cover;
     pointer-events: none;
     border-radius: 11px;
-  }
-
-  .project-detail[data-is-card="false"] .lightbox-card-img {
-    object-fit: contain;
   }
 
   /* Lightbox arrow controls overlaid directly on the image/card itself */
@@ -4678,70 +3731,20 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
        and .project-card-info are unwrapped (display:contents) so their
        children become direct items of the grid and can be reordered freely
        alongside .project-col-right without touching the markup. */
-    .project-detail[data-tab-layout="true"] .project-content-grid--card {
-      grid-template-columns: 1fr !important;
-      gap: 16px !important;
-    }
-    .project-detail[data-tab-layout="true"] .project-col-left,
-    .project-detail[data-tab-layout="true"] .project-card-info {
-      display: contents;
-    }
-    .project-detail[data-tab-layout="true"] .project-card__row2 { order: 1; }
-    .project-detail[data-tab-layout="true"] .project-credits-btn { order: 2; }
-    .project-detail[data-tab-layout="true"] .project-people { order: 3; }
-    .project-detail[data-tab-layout="true"] .project-col-right { order: 4; }
-    .project-detail[data-tab-layout="true"] .project-card-name-pagination-row { order: 6; }
-    .project-detail[data-tab-layout="true"] .deck-grid--mobile-scrub { order: 5; }
+
     /* Hide the Read more button completely on mobile for tab layout pages as description is on scroll */
-    .project-detail[data-tab-layout="true"] .project-readmore-btn {
-      display: none !important;
-    }
+
     /* Work pages stack full-width instead of sitting in a half-width column,
        so the 2:3 aspect-ratio (meant for a narrow card) made the image fill
        almost the whole screen. The image + scrub are sized to fit within one
        viewport alongside the header/metaline/description, so the image is
        reduced to 40vh (was 60), filling the full box width with no letterbox
        gaps (object-fit: cover), no card chrome — just the image, edge to edge. */
-    .project-detail[data-tab-layout="true"] .project-detail__active-wrap {
-      height: 40vh !important;
-      max-height: 40vh !important;
-      aspect-ratio: auto !important;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: none !important;
-      border: none !important;
-      border-radius: 0 !important;
-      box-shadow: none !important;
-    }
-    .project-detail[data-tab-layout="true"] .project-detail__active-img {
-      height: 40vh !important;
-      max-height: 40vh !important;
-      width: 100% !important;
-      max-width: 100%;
-      object-fit: cover !important;
-    }
-    .project-detail[data-tab-layout="true"] .project-card__text-block {
-      gap: 6px !important;
-    }
-    .project-detail[data-tab-layout="true"] .project-card__intro {
-      /* No hairline between the intro and the description below it — the
-         section header/tab borders are the only lines on this page now. */
-      border-bottom: none !important;
-      padding-bottom: 8px !important;
-    }
+
     /* Description scrolls within its own capped box so a long summary doesn't
        push the image + scrub below the fold — keeping the whole open tab in
        roughly one viewport. */
-    .project-detail[data-tab-layout="true"] .project-card__desc {
-      line-height: 1.4 !important;
-      max-height: 14vh !important;
-      overflow-y: auto !important;
-      scrollbar-width: none;
-    }
-    .project-detail[data-tab-layout="true"] .project-card__desc::-webkit-scrollbar {
-      display: none;
-    }
+
     .project-card__intro {
       /* Was a raw clamp(0.7rem, …) — 11.2px, the smallest running prose on
          the site and completely off the type scale. On the scale now. */
@@ -4770,10 +3773,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       height: auto !important;
       aspect-ratio: 2/3 !important;
     }
-    .project-detail[data-is-card="false"] .lightbox-card-container {
-      width: 90vw !important;
-      aspect-ratio: 16/10 !important;
-    }
+
     .lightbox-nav-arrow {
       opacity: 0.65 !important;
     }
@@ -4819,61 +3819,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     }
   }
 
-  /* For standard and scarpin pages: Simple and clean fullscreen lightbox */
-  /* For standard and scarpin pages: Full-size image layout with solid dark black background, matching card-page overlay background */
-  .project-detail[data-is-card="false"] #card-lightbox .lightbox-bg-ambient,
-  .project-detail[data-is-card="false"] #scarpin-lightbox .lightbox-bg-ambient {
-    display: none !important;
-  }
-  .project-detail[data-is-card="false"] #card-lightbox .lightbox-backdrop,
-  .project-detail[data-is-card="false"] #scarpin-lightbox .lightbox-backdrop {
-    background-color: rgba(0, 0, 0, 0.97) !important;
-  }
-
-  .project-detail[data-is-card="false"] #card-lightbox .lightbox-card-container,
-  .project-detail[data-is-card="false"] #scarpin-lightbox .lightbox-card-container {
-    aspect-ratio: auto;
-    width: 90vw;
-    max-width: 1200px;
-    height: 80vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    transform: none !important;
-    perspective: none;
-  }
-
-  .project-detail[data-is-card="false"] #card-lightbox .lightbox-card-img,
-  .project-detail[data-is-card="false"] #scarpin-lightbox .lightbox-card-img {
-    max-width: calc(100% - 48px);
-    max-height: calc(80vh - 48px);
-    object-fit: contain;
-    border-radius: 4px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
-  }
-
-  /* Hide card-specific overlays (name overlay, hint text, shadows/shine) on standard/scarpin lightboxes */
-  .project-detail[data-is-card="false"] #card-lightbox .lightbox-card-shadow,
-  .project-detail[data-is-card="false"] #card-lightbox .lightbox-card-shine,
-  .project-detail[data-is-card="false"] #card-lightbox .lightbox-hint,
-  .project-detail[data-is-card="false"] #card-lightbox .lightbox-name,
-  .project-detail[data-is-card="false"] #scarpin-lightbox .lightbox-card-shadow,
-  .project-detail[data-is-card="false"] #scarpin-lightbox .lightbox-card-shine,
-  .project-detail[data-is-card="false"] #scarpin-lightbox .lightbox-name {
-    display: none !important;
-  }
-
-  /* Keep nav arrows always visible on standard/scarpin lightboxes for desktop */
-  .project-detail[data-is-card="false"] #card-lightbox .lightbox-nav-arrow,
-  .project-detail[data-is-card="false"] #scarpin-lightbox .lightbox-nav-arrow {
-    opacity: 0.75;
-  }
-
   /* Prompt and copy styles */
-
 
   /* Deck logos container style with global scoping for set:html support */
   :global(.deck-logos-container) {
@@ -5027,7 +3973,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     font-size: clamp(1.2rem, 2.2vw, 2.2rem) !important;
     line-height: 1.1 !important;
   }
-  
+
   [data-project-id="architect-x-architects"] .lightbox-name {
     font-size: clamp(1.2rem, 2.5vw, 2.5rem) !important;
     line-height: 1.1 !important;
@@ -5083,7 +4029,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
   .project-readmore-arrow {
     transition: transform var(--_tokens---motion--slow) ease;
-  
 
     --arrow-size: var(--_tokens---arrow--sm);
 
@@ -5092,7 +4037,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   .project-readmore-btn[aria-expanded="true"] .project-readmore-arrow {
     transform: rotate(135deg);
   }
-
 
   /* ══ Phone: two columns up top, the words underneath ════════════════
      The two columns stay and the image stays on the right — but on a 375px
@@ -5169,20 +4113,9 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
        block sets were being declared at something that is not a grid.
        Forcing display and clearing the fixed item height hands these pages
        the same full-height three-across deck every other project has. */
-    .project-detail[data-tab-layout="true"] :global(#deck-grid) {
-      display: grid !important;
-      order: 0 !important;
-      margin: 0 !important;
-    }
-    .project-detail[data-tab-layout="true"] :global(#deck-grid .deck-card-item) {
-      height: auto !important;
-      aspect-ratio: 2/3 !important;
-    }
+
     /* The panels' facts are pills now (see filterPills), so the panels
        themselves are a second copy at display scale. */
-    .project-detail[data-tab-layout="true"] .project-metadata-sections {
-      display: none !important;
-    }
 
     .project-design-content,
     .project-making-content {
@@ -5589,7 +4522,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     .project-detail .project-phone-card .project-people__person { flex: 0 0 auto; }
     .project-detail .project-phone-card .project-people__avatar { width: 44px; height: 44px; }
     /* The row is on the page now, so the pill that used to reveal it is not. */
-    .project-detail .project-credits-btn { display: none !important; }
 
     .project-detail .project-phone-card .project-card__intro {
       margin: 0;
@@ -6438,7 +5370,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 </style>
 
 <script>
-  import { wireAccordion } from "../../lib/accordion";
   import { dialogFocus } from "../../lib/dialogFocus";
   import { shuffle, reorderChildrenByIndex } from '../../lib/random';
   import { GLYPHS } from '../../lib/glyphs';
@@ -6472,9 +5403,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     if (!article) return;
     initCollectionCredit();
 
-    const isCardPage = article.getAttribute('data-is-card') === 'true';
-    const isScarpinPage = article.getAttribute('data-is-scarpin') === 'true';
-
     // Wire the collapsible tabs FIRST and unconditionally. This used to live
     // inside initCardDeck(), which bails early on projects that have no images
     // (`if (!deck || !lightbox) return`) — so image-less pages (ARCHV: Dhal Ni
@@ -6482,15 +5410,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     initSectionTabs();
     initChapters();
 
-    if (isScarpinPage) {
-      initScarpinSliders();
-    } else if (isCardPage) {
-      initCardDeck();
-      initDescReadMore();
-    } else {
-      initStandardSlider();
-      initDescReadMore();
-    }
+    initCardDeck();
+    initDescReadMore();
   }
 
   // Collapsible section tabs. Tab-layout pages (work + ARCHV + academic +
@@ -6503,14 +5424,9 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     if (!article || (article as any)._tabsWired) return;
     (article as any)._tabsWired = true;
 
-    const isTabLayoutPage = article.getAttribute('data-tab-layout') === 'true';
     const isOriginalCardSet = article.getAttribute('data-original-card') === 'true';
     const isPortraitsPage = article.getAttribute('data-portraits') === 'true';
 
-    if (isTabLayoutPage) {
-      wireWorkAccordion();
-      return;
-    }
     wireCollapse(document.querySelector('.project-design-section'), 'project-design-click', 'project-design-toggle', 'project-design-panel');
     wireCollapse(document.querySelector('.project-making-section'), 'project-making-click', 'project-making-toggle', 'project-making-panel');
     // Original card sets (Alt Verse, Indian Royals, Sups…): the project name is
@@ -7144,7 +6060,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     });
   }
 
-
   /* Chapters (data.chapters): tabs when there are two or more, otherwise a
      dropdown. Its own function — it used to live inside initStandardSlider,
      which returns early on every project-01 page, so it never ran there. */
@@ -7210,514 +6125,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     });
   }
 
-  function initStandardSlider() {
-    const slider = document.getElementById('standard-slider-wrapper');
-    const lightbox = document.getElementById('card-lightbox');
-    const lightboxImg = document.getElementById('lightbox-card-img') as HTMLImageElement | null;
-    const ambientImg = document.getElementById('lightbox-ambient-img') as HTMLImageElement | null;
-    const cardContainer = document.getElementById('lightbox-card-container');
-    const closeBtn = document.getElementById('lightbox-close');
-    const prevBtn = document.getElementById('lightbox-prev');
-    const nextBtn = document.getElementById('lightbox-next');
-
-    const headerTitle = document.getElementById('lightbox-card-title');
-    const counter = document.getElementById('lightbox-counter');
-
-    const activeImg = document.getElementById('standard-active-img') as HTMLImageElement | null;
-    const activeWrap = document.getElementById('standard-active-wrap');
-    const pagination = document.getElementById('standard-pagination');
-    const prevArrow = document.getElementById('standard-prev');
-    const nextArrow = document.getElementById('standard-next');
-    const strip = document.getElementById('standard-thumbs');
-
-    const designSection = document.querySelector('.project-design-section');
-    const makingSection = document.querySelector('.project-making-section');
-
-    if (!slider || !activeImg) return;
-
-    const images = JSON.parse(slider.getAttribute('data-images') || '[]');
-    const projectName = document.querySelector('.project-detail')?.getAttribute('data-project-name') || '';
-
-    // Each load: pick 5 random images (random order) — that set IS the scrub,
-    // the slider, and the lightbox until the next reload. Thumbs outside the
-    // pick are removed so the strip never scrolls.
-    const order = shuffle(Array.from({ length: images.length }, (_, i) => i)).slice(0, 5);
-    if (strip) {
-      Array.from(strip.querySelectorAll('.project-detail__thumb-item')).forEach(t => {
-        const idx = parseInt(t.getAttribute('data-index') || '-1', 10);
-        if (!order.includes(idx)) t.remove();
-      });
-      reorderChildrenByIndex(strip, order);
-    }
-    const thumbs = strip ? Array.from(strip.querySelectorAll('.project-detail__thumb-item')) : [];
-
-    let currentPos = 0;
-    let currentIdx = order[0] ?? 0;
-    let isOpen = false;
-
-    const timerRings = ['page-timer-progress', 'page-timer-progress-mini']
-      .map(id => document.getElementById(id))
-      .filter((el): el is HTMLElement => el !== null);
-
-    const resetTimerRing = () => {
-      timerRings.forEach(ring => {
-        const wrap = ring.closest('.autoplay-timer-ring');
-        if (wrap) {
-          wrap.classList.remove('is-animating');
-          void (wrap as HTMLElement).offsetWidth;
-          wrap.classList.add('is-animating');
-        }
-      });
-      const lightboxProgress = document.getElementById('lightbox-timer-progress');
-      if (lightboxProgress) {
-        const wrap = lightboxProgress.closest('.autoplay-timer-ring');
-        if (wrap) {
-          wrap.classList.remove('is-animating');
-          void (wrap as HTMLElement).offsetWidth;
-          if (isOpen) wrap.classList.add('is-animating');
-        }
-      }
-    };
-
-    const goToPos = (pos: number) => {
-      const count = order.length;
-      currentPos = ((pos % count) + count) % count;
-      currentIdx = order[currentPos];
-    };
-
-    function thumbIndexAtX(clientX: number): number {
-      if (!thumbs.length) return -1;
-      for (let i = 0; i < thumbs.length; i++) {
-        const r = thumbs[i].getBoundingClientRect();
-        if (clientX >= r.left && clientX <= r.right) return i;
-      }
-      return clientX < thumbs[0].getBoundingClientRect().left ? 0 : thumbs.length - 1;
-    }
-
-    const openLightbox = (index: number) => {
-      goToPos(order.indexOf(index));
-      isOpen = true;
-      updateDisplay();
-
-      if (lightbox) {
-        lightbox.style.display = 'flex';
-        lightbox.setAttribute('aria-hidden', 'false');
-      }
-      document.body.style.overflow = 'hidden';
-      resetTimerRing();
-    };
-
-    const closeLightbox = () => {
-      isOpen = false;
-      if (lightbox) {
-        lightbox.style.display = 'none';
-        lightbox.setAttribute('aria-hidden', 'true');
-      }
-      document.body.style.overflow = '';
-      if (cardContainer) {
-        cardContainer.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale(1)';
-      }
-      resetTimerRing();
-      restartAutoplay();
-    };
-
-    const updateDisplay = () => {
-      const activeUrl = images[currentIdx];
-
-      // Lightbox elements
-      if (lightboxImg) lightboxImg.src = activeUrl;
-      if (ambientImg) ambientImg.src = activeUrl;
-      if (headerTitle) headerTitle.textContent = `${projectName} — Photo`;
-      if (counter) counter.textContent = `${currentPos + 1} / ${order.length}`;
-
-      // Update scrubber fill
-      const scrubFill = document.getElementById('lightbox-scrubber-fill');
-      if (scrubFill) {
-        const percentage = (currentPos / (order.length - 1)) * 100;
-        scrubFill.style.width = `${percentage}%`;
-      }
-
-      // Lightbox name label: word-by-word spans
-      const lbName = document.getElementById('lightbox-card-label');
-      if (lbName) {
-        lbName.innerHTML = `${projectName}`.split(' ').map(w => `<span>${w}</span>`).join('');
-      }
-
-      // Page active elements
-      if (activeImg) activeImg.src = activeUrl;
-      if (pagination) pagination.textContent = `${currentPos + 1} / ${order.length}`;
-
-      thumbs.forEach((t, i) => t.classList.toggle('is-active', i === currentPos));
-
-      // Scroll thumbnail
-      const activeThumb = thumbs[currentPos];
-      if (activeThumb && strip) {
-        const stripRect = strip.getBoundingClientRect();
-        const thumbRect = activeThumb.getBoundingClientRect();
-        if (thumbRect.left < stripRect.left || thumbRect.right > stripRect.right) {
-          activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
-        }
-      }
-
-      resetTimerRing();
-    };
-
-    const applyPos = (pos: number) => {
-      goToPos(pos);
-
-      if (isOpen && cardContainer) {
-        cardContainer.classList.add('is-transitioning');
-        setTimeout(() => {
-          updateDisplay();
-          cardContainer.classList.remove('is-transitioning');
-        }, 180);
-      } else {
-        updateDisplay();
-      }
-      restartAutoplay();
-    };
-
-    // ── Autoplay: advance every 2s; any manual interaction resets the clock ──
-    let autoplayInterval: number | null = null;
-    const stopAutoplay = () => {
-      if (autoplayInterval) { clearInterval(autoplayInterval); autoplayInterval = null; }
-    };
-    const restartAutoplay = () => {
-      stopAutoplay();
-      autoplayInterval = window.setInterval(() => {
-        goToPos(currentPos + 1);
-        updateDisplay();
-      }, 2000);
-    };
-    updateDisplay();
-    restartAutoplay();
-
-    // Thumb strip listeners
-    if (strip) {
-      const isHoverDevice = window.matchMedia('(hover: hover)').matches;
-      if (isHoverDevice) {
-        thumbs.forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            e.preventDefault();
-            const idx = parseInt(btn.getAttribute('data-index') || '0', 10);
-            applyPos(order.indexOf(idx));
-          });
-        });
-
-        strip.addEventListener('pointerenter', () => {
-          slider.classList.add('is-previewing');
-        });
-        strip.addEventListener('pointermove', (e) => {
-          const idx = thumbIndexAtX(e.clientX);
-          if (idx >= 0 && idx !== currentPos) {
-            applyPos(idx);
-          }
-        });
-        strip.addEventListener('pointerleave', () => {
-          slider.classList.remove('is-previewing');
-        });
-      } else {
-        thumbs.forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            e.preventDefault();
-            const idx = parseInt(btn.getAttribute('data-index') || '0', 10);
-            applyPos(order.indexOf(idx));
-          });
-        });
-
-        strip.addEventListener('pointermove', (e) => {
-          const idx = thumbIndexAtX(e.clientX);
-          if (idx >= 0 && idx !== currentPos) {
-            applyPos(idx);
-          }
-        });
-      }
-    }
-
-    activeWrap?.addEventListener('click', (e) => {
-      const target = e.target as HTMLElement;
-      if (target.closest('.project-detail__nav-arrow')) return;
-      openLightbox(currentIdx);
-    });
-
-    // Hover pauses autoplay on the page-view image and inside the lightbox;
-    // it resumes as soon as the pointer leaves.
-    activeWrap?.addEventListener('mouseenter', stopAutoplay);
-    activeWrap?.addEventListener('mouseleave', restartAutoplay);
-    cardContainer?.addEventListener('mouseenter', stopAutoplay);
-    cardContainer?.addEventListener('mouseleave', () => { if (isOpen) restartAutoplay(); });
-
-    prevArrow?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      applyPos(currentPos - 1);
-    });
-
-    nextArrow?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      applyPos(currentPos + 1);
-    });
-
-    closeBtn?.addEventListener('click', closeLightbox);
-    lightbox?.querySelector('.lightbox-backdrop')?.addEventListener('click', closeLightbox);
-
-    // Header scrubber: click/drag jumps through the deck instantly
-    const scrubberEl = document.getElementById('lightbox-scrubber');
-    if (scrubberEl) {
-      const scrubTo = (clientX: number) => {
-        const rect = scrubberEl.getBoundingClientRect();
-        const t = Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1);
-        const pos = Math.round(t * (order.length - 1));
-        if (pos !== currentPos) {
-          applyPos(pos);
-        }
-      };
-      scrubberEl.addEventListener('pointerdown', (e) => {
-        e.preventDefault();
-        scrubberEl.setPointerCapture(e.pointerId);
-        scrubTo(e.clientX);
-      });
-      scrubberEl.addEventListener('pointermove', (e) => {
-        if (scrubberEl.hasPointerCapture && scrubberEl.hasPointerCapture(e.pointerId)) scrubTo(e.clientX);
-      });
-    }
-
-    if (lightboxImg) {
-      lightboxImg.addEventListener('click', (e) => {
-        e.stopPropagation();
-        applyPos(currentPos + 1);
-      });
-    }
-
-    prevBtn?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      applyPos(currentPos - 1);
-    });
-
-    nextBtn?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      applyPos(currentPos + 1);
-    });
-
-
-
-    document.addEventListener('keydown', (e) => {
-      if (!isOpen) return;
-      // While the lightbox is open the arrows drive it exclusively — stop the
-      // event before the site-wide prev/next-project handler can also fire.
-      if (e.key === 'ArrowRight') { e.preventDefault(); e.stopImmediatePropagation(); applyPos(currentPos + 1); }
-      if (e.key === 'ArrowLeft')  { e.preventDefault(); e.stopImmediatePropagation(); applyPos(currentPos - 1); }
-      if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); closeLightbox(); }
-    });
-
-    wireCollapse(designSection, 'project-design-click', 'project-design-toggle', 'project-design-panel');
-    wireCollapse(makingSection, 'project-making-click', 'project-making-toggle', 'project-making-panel');
-
-  }
-
-  function initScarpinSliders() {
-    const isScarpin = document.querySelector('.project-detail')?.getAttribute('data-is-scarpin') === 'true';
-    if (!isScarpin) return;
-
-    const items = document.querySelectorAll('.scarpin-grid-item');
-    const scarpinLb = document.getElementById('scarpin-lightbox');
-    if (!scarpinLb) return;
-
-    const lbImg = document.getElementById('scarpin-lightbox-img');
-    const lbVid = document.getElementById('scarpin-lightbox-vid');
-    const lbAmbient = document.getElementById('scarpin-lightbox-ambient');
-    const lbCounter = document.getElementById('scarpin-lightbox-counter');
-    const lbLabel = document.getElementById('scarpin-lightbox-label');
-    const lbPrev = document.getElementById('scarpin-lightbox-prev');
-    const lbNext = document.getElementById('scarpin-lightbox-next');
-    const lbClose = document.getElementById('scarpin-lightbox-close');
-
-    let lbImages = [];
-    let lbPos = 0;
-    let lbTitle = '';
-    let isLbOpen = false;
-
-    const updateLightbox = () => {
-      if (lbImages.length === 0) return;
-      const url = lbImages[lbPos];
-      if (url.endsWith('.mp4')) {
-        lbImg.style.display = 'none';
-        lbVid.style.display = 'block';
-        lbVid.src = url;
-        lbAmbient.src = '';
-      } else {
-        lbVid.style.display = 'none';
-        lbVid.src = '';
-        lbImg.style.display = 'block';
-        lbImg.src = url;
-        lbAmbient.src = url;
-      }
-      lbCounter.textContent = `${lbPos + 1} / ${lbImages.length}`;
-    };
-
-    const openScarpinLightbox = (images, pos, title) => {
-      lbImages = images;
-      lbPos = pos;
-      lbTitle = title;
-      lbLabel.textContent = title;
-      updateLightbox();
-      scarpinLb.style.display = 'block';
-      setTimeout(() => {
-        scarpinLb.classList.add('is-open');
-        scarpinLb.setAttribute('aria-hidden', 'false');
-        isLbOpen = true;
-      }, 10);
-    };
-
-    const closeScarpinLightbox = () => {
-      if (!isLbOpen) return;
-      scarpinLb.classList.remove('is-open');
-      scarpinLb.setAttribute('aria-hidden', 'true');
-      isLbOpen = false;
-      setTimeout(() => {
-        scarpinLb.style.display = 'none';
-        lbVid.src = ''; // stop video playback
-      }, 400);
-    };
-
-    lbClose?.addEventListener('click', closeScarpinLightbox);
-    scarpinLb?.querySelector('.lightbox-backdrop')?.addEventListener('click', closeScarpinLightbox);
-
-    lbPrev?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      lbPos = (lbPos - 1 + lbImages.length) % lbImages.length;
-      updateLightbox();
-    });
-
-    lbNext?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      lbPos = (lbPos + 1) % lbImages.length;
-      updateLightbox();
-    });
-
-    document.addEventListener('keydown', (e) => {
-      if (isLbOpen) {
-        if (e.key === 'ArrowRight') { e.preventDefault(); e.stopImmediatePropagation(); lbNext.click(); }
-        if (e.key === 'ArrowLeft') { e.preventDefault(); e.stopImmediatePropagation(); lbPrev.click(); }
-        if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); closeScarpinLightbox(); }
-      }
-    });
-
-    // Submission tabs — one pill per person; clicking swaps the visible panel
-    const scarpinTabs = document.querySelectorAll('.scarpin-tab-btn');
-    scarpinTabs.forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const target = btn.getAttribute('data-scarpin-tab');
-        scarpinTabs.forEach((b) => {
-          const m = b === btn;
-          b.classList.toggle('is-active', m);
-          b.setAttribute('aria-selected', String(m));
-        });
-        items.forEach((it) => {
-          it.classList.toggle('is-active', it.getAttribute('data-index') === target);
-        });
-      });
-    });
-
-    items.forEach(item => {
-      const urls = JSON.parse(item.getAttribute('data-images') || '[]');
-      if (urls.length === 0) return;
-
-      let pos = 0;
-      let timer = null;
-      let isHovered = false;
-      const AUTOPLAY_DELAY = 4000;
-
-      const counter = item.querySelector('.scarpin-item-counter');
-      const mediaWrap = item.querySelector('.scarpin-item-media-wrap');
-      const thumbs = item.querySelectorAll('.scarpin-thumb');
-      const title = item.querySelector('.scarpin-item-title').textContent;
-      const progressRing = item.querySelector('.scarpin-timer-ring');
-
-      const updateMedia = () => {
-        const url = urls[pos];
-        const existingMedia = mediaWrap.querySelector('.scarpin-media');
-
-        let newMedia;
-        if (url.endsWith('.mp4')) {
-          newMedia = document.createElement('video');
-          newMedia.className = 'scarpin-media scarpin-media--active';
-          newMedia.src = url;
-          newMedia.autoplay = true;
-          newMedia.loop = true;
-          newMedia.muted = true;
-          newMedia.playsInline = true;
-        } else {
-          newMedia = document.createElement('img');
-          newMedia.className = 'scarpin-media scarpin-media--active';
-          newMedia.src = url;
-          newMedia.loading = 'lazy';
-          newMedia.alt = title;
-        }
-
-        existingMedia.replaceWith(newMedia);
-        counter.textContent = `${pos + 1} / ${urls.length}`;
-
-        thumbs.forEach((thumb, idx) => {
-          thumb.classList.toggle('is-active', idx === pos);
-          if (idx === pos) {
-            thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-          }
-        });
-
-        resetTimer();
-      };
-
-      const resetTimer = () => {
-        clearInterval(timer);
-        const wrap = progressRing ? progressRing.closest('.autoplay-timer-ring') as HTMLElement | null : null;
-        if (wrap) {
-          // Restart the keyframe sweep: drop the class, set this slider's
-          // duration, force a reflow, then (below) re-add to run it fresh.
-          wrap.classList.remove('is-animating');
-          wrap.style.setProperty('--timer-dur', `${AUTOPLAY_DELAY}ms`);
-          void wrap.offsetWidth; // reflow so the re-added class restarts the animation
-        }
-
-        const hasHoverCapability = window.matchMedia('(hover: hover)').matches;
-        // Mobile (no hover): always auto-play
-        // Desktop (has hover): auto-play ONLY when hovering
-        const shouldPlay = !isLbOpen && urls.length > 1 && (!hasHoverCapability || isHovered);
-
-        if (shouldPlay) {
-          if (wrap) wrap.classList.add('is-animating');
-          timer = setInterval(() => {
-            pos = (pos + 1) % urls.length;
-            updateMedia();
-          }, AUTOPLAY_DELAY);
-        }
-      };
-
-      item.addEventListener('mouseenter', () => {
-        isHovered = true;
-        resetTimer();
-      });
-
-      item.addEventListener('mouseleave', () => {
-        isHovered = false;
-        resetTimer();
-      });
-
-      thumbs.forEach((thumb, idx) => {
-        thumb.addEventListener('click', (e) => {
-          e.stopPropagation();
-          pos = idx;
-          updateMedia();
-        });
-      });
-
-      mediaWrap?.addEventListener('click', () => {
-        openScarpinLightbox(urls, pos, title);
-      });
-
-      resetTimer();
-    });
-  }
-
   function initHeadingScrollTop() {
     // Card pages: header is always on screen, so tap-to-scroll-top is pointless
     const article = document.querySelector('.project-detail');
@@ -7775,32 +6182,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       e.stopPropagation();
       toggleSection();
     });
-  }
-
-  // Tab-layout pages: the project name tab plus its section tabs act as one
-  // accordion — only one open at a time (opening one closes the others), a
-  // single click toggles just that tab, and a double click opens or closes
-  // all of them together. Each tab's own header sticks to the top of the
-  // viewport (CSS: position:sticky) while its content is being scrolled. The
-  // section tabs are EITHER the generic Design / Making pair (work pages
-  // without chapters) OR one tab per chapter (the academic chapter pages) —
-  // whichever the page actually rendered.
-  function wireWorkAccordion() {
-    type Entry = { sect: Element; header: Element; toggle: Element };
-    const entries: Entry[] = [];
-    const add = (sect: Element | null, headerSel: string, toggleSel: string) => {
-      if (!sect) return;
-      const header = sect.querySelector(headerSel);
-      const toggle = sect.querySelector(toggleSel);
-      if (header && toggle) entries.push({ sect, header, toggle });
-    };
-    add(document.getElementById('project-dashboard'), '#project-name-header', '#project-name-toggle');
-    add(document.querySelector('.project-design-section'), '#project-design-click', '#project-design-toggle');
-    add(document.querySelector('.project-making-section'), '#project-making-click', '#project-making-toggle');
-    document.querySelectorAll('.project-chapter').forEach(ch =>
-      add(ch, '.project-chapter__header', '.project-detail-collapse-btn'));
-
-    wireAccordion(entries);
   }
 
   // Collapse every chapter accordion (module-level so the header tap can call it)
@@ -8091,7 +6472,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     initDeckAutoScroll();
     initPhoneCardSections();
   }
-
 
   // ── The deck loops ───────────────────────────────────────────────────
   // Three copies of the set live in the grid and the scroll position is
@@ -8549,7 +6929,5 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
   initLandscapeScrub();
   document.addEventListener('astro:after-swap', initLandscapeScrub);
-
-
 
 </script>

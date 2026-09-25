@@ -124,7 +124,7 @@ This entry supersedes earlier audit assumptions: website content and credits are
 - Shared public-project list retains the same ten projects. Homepage only features public projects with covers; featured data stays unchanged. Public projects are included in the sitemap.
 - Full-name search results and no-match state; stronger breadcrumb visibility.
 - Exclusive project/chapter toggles, keyboard gallery access and focus restoration; reduced-motion handling in the main gallery and homepage name effect.
-- Optional reusable page templates and Design/Making fields documented in PAGE-TEMPLATES.md. No project YAML changed.
+- Page templates: three remain (project-01, ai-portrait, ai-landscape) — see "The template list" in CLAUDE.md.
 - Notion comparison saved at /Users/adi/Dev/advaitakelkar-website/outputs/notion-website-comparison-2026-09-11.md. No Notion writes or full sync performed.
 - Validation: 80-page build, three style lints, TypeScript checks of new helpers, browser interaction checks, and 18 page/viewport overflow checks passed. Existing logo-resolution and admin-bundle build warnings remain.
 - Local changes only; not committed, pushed or published.

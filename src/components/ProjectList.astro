@@ -150,6 +150,18 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
               </button>
             </div>
           </div>
+            {/* Below 1024 the discipline pills become this: a dropdown the
+                same size as Categories, on the other side of the circles.
+                Its list scrolls vertically, where the pill strip ran sideways. */}
+            <div class="filter-select-wrap filter-select-wrap--tags">
+              <select id="tag-select" class="filter-select" aria-label="Filter by discipline">
+                <option value="">Filter</option>
+                {sortedTags.map(tag => (
+                  <option value={tag.id}>{tag.data.name}</option>
+                ))}
+              </select>
+              <Icon name="chevron" dir="s" class="filter-select-arrow" />
+            </div>
           </div>
         </div>
       </div>
@@ -596,6 +608,8 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   }
 
   /* Tag horizontal scrollable picker */
+  .filter-select-wrap--tags { display: none; }
+
   .tag-picker-wrapper {
     display: flex;
     align-items: center;
@@ -1048,12 +1062,39 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       min-width: 0;
       padding: 8px 32px 8px 14px;
     }
-    /* Tags fill the rest of the row */
+    /* [Categories] [@ ✱ ↗] [Filter]: the two dropdowns share the space
+       left by the circles equally. The tag group and its wrapper step out
+       of the way (display: contents) so the circles and the Filter dropdown
+       are flex items of the bar itself, beside Categories. */
     .filter-group--tags,
-    .tag-picker-wrapper,
+    .tag-picker-wrapper {
+      display: contents;
+    }
+    .tag-picker-divider,
     .tag-scroll-nav {
-      flex: 1;
+      display: none !important;
+    }
+    .filter-bar > .filter-group:first-child,
+    .filter-select-wrap--tags {
+      display: flex;
+      flex: 1 1 0;
       min-width: 0;
+    }
+    .filter-bar > .filter-group:first-child .filter-select-wrap {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+    .filter-select-wrap--tags .filter-select,
+    .filter-bar > .filter-group:first-child .filter-select {
+      width: 100%;
+      text-overflow: ellipsis;
+      /* Room for the whole word "Categories" on a 390 phone. */
+      padding-left: 12px;
+      padding-right: 26px;
+    }
+    .filter-select-wrap--tags .filter-select-arrow,
+    .filter-bar > .filter-group:first-child .filter-select-arrow {
+      right: 10px;
     }
     .tag-scroll-arrow {
       display: none !important; /* no arrow buttons on mobile */
@@ -1812,6 +1853,18 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   window.addEventListener('resize', updateScrollArrows, { passive: true });
 
   const allTagBtn = document.getElementById('all-tag-btn');
+  const tagSelect = document.getElementById('tag-select') as HTMLSelectElement | null;
+
+  // The phone/tablet Filter dropdown drives the same activeTag the pills do,
+  // and the pills and the All circle keep it in step.
+  tagSelect?.addEventListener('change', () => {
+    activeTag = tagSelect.value;
+    allTagBtn?.classList.toggle('is-active', !activeTag);
+    tagPicker?.querySelectorAll<HTMLElement>('.tag-picker-item').forEach(b => {
+      b.classList.toggle('is-active', !!activeTag && b.dataset.filter === activeTag);
+    });
+    applyFilter();
+  });
   const openOnlyBtn = document.getElementById('open-only-btn');
   const namesOnlyBtn = document.getElementById('names-only-btn');
 
@@ -1839,6 +1892,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     tagPicker?.querySelectorAll('.tag-picker-item').forEach(b => b.classList.remove('is-active'));
     allTagBtn.classList.add('is-active');
     activeTag = '';
+    if (tagSelect) tagSelect.value = '';
     applyFilter();
     setTimeout(updateScrollArrows, 50);
   });
@@ -1850,6 +1904,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
     const filter = (btn as HTMLElement).dataset.filter ?? '';
     activeTag = filter;
+    if (tagSelect) tagSelect.value = filter;
 
     // Set active state on clicked button and remove from all others (including All tag button)
     allTagBtn?.classList.remove('is-active');
@@ -1871,6 +1926,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     searchQuery = '';
     activeCat = '';
     activeTag = '';
+    if (tagSelect) tagSelect.value = '';
     openOnly = false;
     openOnlyBtn?.classList.remove('is-active');
     openOnlyBtn?.setAttribute('aria-pressed', 'false');
@@ -1950,10 +2006,12 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     document.removeEventListener('keydown', handleProjectSearchKeyboard);
   }, { once: true });
 
-  // Mobile space-saver: abbreviate "Categories".
-  if (window.matchMedia('(max-width: 1023.98px)').matches) {
+
+  // Phone: the dropdown is half the row beside the circles, where the plural
+  // does not fit whole. The singular does, and says the same.
+  if (window.matchMedia('(max-width: 699.98px)').matches) {
     const allCatOpt = catSelect?.querySelector('option[value=""]');
-    if (allCatOpt) allCatOpt.textContent = 'CTGRY';
+    if (allCatOpt) allCatOpt.textContent = 'Category';
   }
 
   // Pre-load search query from URL params if present (links from skillset click on About page)

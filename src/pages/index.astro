@@ -168,6 +168,16 @@ function getWords(name: string): string[] {
                     </div>
                   ))}
                 </div>
+                {/* Below 1024: the desktop slide's own bottom block — the
+                    subtitle, then the facts as pills — under the photo. */}
+                <div class="home-slider__mobile-about" aria-hidden="true">
+                  {realText(p.data.smallIntro) && <p class="home-slider__mobile-intro">{p.data.smallIntro}</p>}
+                  <ul class="home-slider__mobile-pills">
+                    {[p.data.year, p.data.location, p.data.category && catName(p.data.category.id), otherTags[0] && (tagMap[otherTags[0]] || otherTags[0])]
+                      .filter(Boolean)
+                      .map((v) => <li class="home-slider__pill">{v}</li>)}
+                  </ul>
+                </div>
                 {/* Mobile: one row under the photo —
                     left: year, location, tag (values only)
                     right: Category — <name>, tappable, opens the category page */}
@@ -506,6 +516,7 @@ function getWords(name: string): string[] {
          track's translation without needing a recompute on scroll. */
       slide.style.setProperty('--photo-l', left + 'px');
       slide.style.setProperty('--photo-b', bottom + 'px');
+      slide.style.setProperty('--photo-r', right + 'px');
 
       /* Desktop: the description lives in the space left of the photo and
          never runs under it. When that space is narrower than a readable
@@ -978,7 +989,8 @@ function getWords(name: string): string[] {
   .home-slider__mobile-head {
     display: none;
   }
-  .home-slider__mobile-bottom {
+  .home-slider__mobile-bottom,
+  .home-slider__mobile-about {
     display: none;
   }
   /* Mobile arrow + ring — hidden on desktop (the caption arrow serves
@@ -1299,41 +1311,39 @@ function getWords(name: string): string[] {
      the right one empty. Read
      more lays the two bio paragraphs in the first two columns and moves the
      archive paragraph to the third; the control drops under the first. */
+  /* The phone follows the tablet: the first sentence and Read more, then
+     the archive paragraph; Read more opens the two bio paragraphs. Only
+     the grid differs, one column instead of three (see the phone block). */
+  .home-intro__body {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: 24px;
+  }
   .home-intro__column--hi {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .home-intro__column--bio {
     display: none;
   }
-  @media (min-width: 700px) {
-    .home-intro__body {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      column-gap: 24px;
-    }
-    .home-intro__column--hi {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      grid-column: 1;
-      grid-row: 1;
-    }
-    .home-intro__column--bio {
-      display: none;
-    }
-    .home-intro__column--contact {
-      grid-column: 2;
-      grid-row: 1;
-    }
-    .home-intro__body[data-intro-open] .home-intro__column--bio {
-      display: flex;
-      grid-row: 1;
-    }
-    .home-intro__body[data-intro-open] .home-intro__column--bio:nth-child(2) { grid-column: 1; }
-    .home-intro__body[data-intro-open] .home-intro__column--bio:nth-child(3) { grid-column: 2; }
-    .home-intro__body[data-intro-open] .home-intro__column--contact { grid-column: 3; }
-    .home-intro__body[data-intro-open] .home-intro__column--hi {
-      grid-row: 2;
-    }
-    .home-intro__body[data-intro-open] .home-intro__hi {
-      display: none;
-    }
+  .home-intro__column--contact {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .home-intro__body[data-intro-open] .home-intro__column--bio {
+    display: flex;
+    grid-row: 1;
+  }
+  .home-intro__body[data-intro-open] .home-intro__column--bio:nth-child(2) { grid-column: 1; }
+  .home-intro__body[data-intro-open] .home-intro__column--bio:nth-child(3) { grid-column: 2; }
+  .home-intro__body[data-intro-open] .home-intro__column--contact { grid-column: 3; }
+  .home-intro__body[data-intro-open] .home-intro__column--hi {
+    grid-row: 2;
+  }
+  .home-intro__body[data-intro-open] .home-intro__hi {
+    display: none;
   }
   .home-intro__more {
     display: inline-flex;
@@ -1578,8 +1588,9 @@ function getWords(name: string): string[] {
          are the wrap's own insets, for the frame before the image loads. */
       top: auto !important;
       bottom: calc(var(--photo-b, 0px) + 16px) !important;
-      left: calc(var(--photo-l, 16px) + 16px) !important;
-      right: auto !important;
+      /* Bottom-right of the photo, where the desktop slide keeps it too. */
+      right: calc(var(--photo-r, 16px) + 16px) !important;
+      left: auto !important;
       z-index: 5 !important;
       font-size: 2.2rem !important; /* much bigger arrow and timer ring */
       width: 1.15em !important;
@@ -1604,8 +1615,36 @@ function getWords(name: string): string[] {
       display: none !important;
     }
 
-    /* One row under the photo: year/location/tag values left, category right */
-    .home-slider__mobile-bottom {
+    /* Under the photo: the desktop slide's subtitle and pills. The older
+       one-line facts row is retired in favour of it. */
+    .home-slider__mobile-bottom { display: none !important; }
+    .home-slider__mobile-about {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding-top: 10px;
+      flex: 0 0 auto;
+      margin-bottom: 24px;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity var(--_tokens---motion--slow) ease, transform var(--_tokens---motion--slow) cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .home-slider__slide.is-active .home-slider__mobile-about { opacity: 1; transform: none; transition-delay: 0.12s; }
+    .home-slider__mobile-intro {
+      margin: 0;
+      font-size: var(--_tokens---type--small);
+      line-height: 1.25;
+      color: var(--_tokens---color--fg);
+    }
+    .home-slider__mobile-pills {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .home-slider__mobile-retired {
       display: flex;
       align-items: baseline;
       justify-content: space-between;
@@ -1666,6 +1705,21 @@ function getWords(name: string): string[] {
       gap: 16px;
       padding-block: 10px;
     }
+    /* One column: every cell back on the auto rows, in reading order —
+       shut, the sentence and Read more then the archive; open, the two
+       bio paragraphs, the control, then the archive. */
+    .home-intro__body .home-intro__column--hi,
+    .home-intro__body .home-intro__column--bio,
+    .home-intro__body .home-intro__column--contact,
+    .home-intro__body[data-intro-open] .home-intro__column--bio:nth-child(2),
+    .home-intro__body[data-intro-open] .home-intro__column--bio:nth-child(3),
+    .home-intro__body[data-intro-open] .home-intro__column--contact,
+    .home-intro__body[data-intro-open] .home-intro__column--hi {
+      grid-column: 1;
+      grid-row: auto;
+    }
+    .home-intro__body[data-intro-open] .home-intro__column--hi { order: 3; }
+    .home-intro__body[data-intro-open] .home-intro__column--contact { order: 4; }
     .home-slider__slide {
       flex: 0 0 100%;
       --img-w: 100%;
