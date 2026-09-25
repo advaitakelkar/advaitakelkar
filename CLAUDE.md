@@ -171,7 +171,7 @@ something. Referrer class, dwell depth, local hour and device are the signals.
 ### Charts
 
 No categorical colour anywhere, deliberately — the site is monochrome across
-seven schemes. Every panel encodes its value with **length or position** and a
+five schemes. Every panel encodes its value with **length or position** and a
 single uniform fill, so no legend is needed and nothing depends on hue. The one
 ramp is the hour strip, where darkness genuinely encodes magnitude; its steps
 were validated for contrast (all ≥ 3:1 against the surface in both modes). Every
@@ -723,14 +723,12 @@ backdrop-filter: blur(20px);
 |---|---|---|---|
 | *(none/default)* | Void | `#ffffff` / dark: `#111111` | `#111111` / dark: `#ffffff` |
 | `sch1` | Moss | `#ECE7E2` | `#3D6355` |
-| `sch2` | Clay | `#fee7d5` | `#4b3935` |
 | `sch3` | Dusk | `#D7E7C3` | `#6C5383` |
 | `sch4` | Midnight | `#D2B96A` | `#0B1A35` |
 | `sch6` | Ember | `#ffe4a1` | `#97322D` |
-| `sch7` | Nomad | `#edcdc2` | `#006076` |
 
-Pool weights (in `Base.astro`): the pool holds 18 entries — Void 12/18 (~67%), the six
-colour schemes 1/18 each (~5.6%).
+Pool weights (in `Base.astro`): the pool holds 12 entries — Void 8/12 (~67%), the four
+colour schemes 1/12 each (~8.3%). Clay (`sch2`) and Nomad (`sch7`) were retired.
 
 ---
 
