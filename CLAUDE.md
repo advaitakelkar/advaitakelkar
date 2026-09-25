@@ -619,6 +619,11 @@ only thing that changes is what sits between them; scrolling as well costs
 the reader their place, and swiping through four sections would walk the page
 back to the top each time.
 
+**From 700 up the Skillset has no search field of its own**: the page's
+Quick Search bar filters the cloud as you type, and a Quick Search for a
+skill from any other page lands on `/about?skill=…` with the cloud filtered
+to it (`matchesSkill()` in `src/lib/skills.ts`, which is also where the
+skill list lives). Below 700 the Quick Search bar is not shown, so there the
 Skillset's search **docks above the nav bar** — `position: fixed`, which
 escapes the panel's `overflow: hidden`, so a `:has()` rule hides it while the
 section is shut. The cloud itself reads top-down: Languages leads and every

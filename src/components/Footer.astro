@@ -209,8 +209,16 @@ const { isEmbedded = false, isHome = false } = Astro.props;
 </style>
 
 <script>
-  // Enter takes the query to /projects, which filters its list by ?q=.
+  import { matchesSkill } from '../lib/skills';
+
+  // Enter takes the query where its answer is. A query that names a skill
+  // goes to About's Skillset, filtered to it; anything else goes to
+  // /projects, which filters its list by ?q=. On About this field IS the
+  // Skillset's search (about.astro filters the cloud as you type), so there
+  // Enter with a skill only brings the Skillset into view.
   // Escape and the ✕ clear the field.
+  const onAbout = () => (window.location.pathname.replace(/\/$/, '') || '/') === '/about';
+
   function initQuickSearch() {
     const input = document.getElementById('qs-input') as HTMLInputElement | null;
     const clearBtn = document.getElementById('qs-clear');
@@ -225,10 +233,18 @@ const { isEmbedded = false, isHome = false } = Astro.props;
         const q = input.value.trim();
         if (!q) return;
         e.preventDefault();
+        if (matchesSkill(q)) {
+          if (onAbout()) {
+            document.querySelector('.skillset-header')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          } else {
+            window.location.href = `/about?skill=${encodeURIComponent(q)}`;
+          }
+          return;
+        }
         window.location.href = `/projects?q=${encodeURIComponent(q)}`;
       } else if (e.key === 'Escape') {
         input.value = '';
-        sync();
+        input.dispatchEvent(new Event('input', { bubbles: true }));
         input.blur();
       }
     });
@@ -236,7 +252,7 @@ const { isEmbedded = false, isHome = false } = Astro.props;
     clearBtn?.addEventListener('click', (e) => {
       e.preventDefault();
       input.value = '';
-      sync();
+      input.dispatchEvent(new Event('input', { bubbles: true }));
       input.focus();
     });
   }
