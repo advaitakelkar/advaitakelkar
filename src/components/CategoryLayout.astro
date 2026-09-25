@@ -173,13 +173,13 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
               <p class="category-intro__desc" data-edit={editable ? `categories/${categoryId}/intro.${i}` : undefined}>{text}</p>
             </div>
           ))}
-          {introCols.length > 1 && (
-            <button class="category-readmore-btn" id="category-readmore-btn" type="button" aria-expanded="false">
-              <span>Read More</span>
-              <Arrow class="category-readmore-arrow" />
-            </button>
-          )}
         </div>
+        {/* Outside the body, so the four-line clamp on the body never cuts it
+            off. The script hides it when the copy already fits. */}
+        <button class="category-readmore-btn" id="category-readmore-btn" type="button" aria-expanded="false">
+          <span class="category-readmore-label">Read More</span>
+          <Arrow class="category-readmore-arrow" />
+        </button>
       </section>
 
       {categoryPeople.length > 0 && (
@@ -431,6 +431,32 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
          intro entry — everything after intro[0] is hidden behind Read More,
          so a split would bury half the sentence. Spaces still collapse. */
       white-space: pre-line;
+    }
+
+    /* From 700 up the description is always four lines when shut, however
+       its paragraphs happen to fall: the paragraphs run on as one passage
+       and the body is clamped, so a short first paragraph is topped up from
+       the next and a long one is cut. Read More opens every paragraph in
+       full; Read Less brings it back to four. */
+    @media (min-width: 700px) {
+      .category-intro__body:not(.is-expanded) {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 4;
+        line-clamp: 4;
+        overflow: hidden;
+        font-size: var(--_tokens---type--micro);
+        line-height: 1.55;
+      }
+      .category-intro__body:not(.is-expanded) .category-intro__column,
+      .category-intro__body:not(.is-expanded) .category-intro__desc {
+        display: inline;
+      }
+      .category-intro__body:not(.is-expanded) .category-intro__column + .category-intro__column::before {
+        content: ' ';
+      }
+      .category-readmore-btn { margin-top: 12px; }
+      .category-readmore-btn[hidden] { display: none; }
     }
 
     /* ── Header — identical rhythm to the home hero: same top padding,
@@ -1068,15 +1094,23 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
       const readMoreBtn = document.getElementById('category-readmore-btn');
 
       if (introBody && readMoreBtn) {
+        const label = readMoreBtn.querySelector('.category-readmore-label');
+        // The pill only shows when there is more than four lines to open.
+        // Measured shut: a clamped body is shorter than its content.
+        const fit = () => {
+          if (introBody.classList.contains('is-expanded')) return;
+          const clipped = introBody.scrollHeight > introBody.clientHeight + 1
+            || introBody.querySelector('.category-intro__column--more') !== null
+               && getComputedStyle(introBody.querySelector('.category-intro__column--more')!).display === 'none';
+          readMoreBtn.hidden = !clipped;
+        };
+        fit();
+        window.addEventListener('resize', fit, { passive: true });
         readMoreBtn.addEventListener('click', () => {
-          const isExpanded = introBody.classList.contains('is-expanded');
-          if (isExpanded) {
-            introBody.classList.remove('is-expanded');
-            readMoreBtn.setAttribute('aria-expanded', 'false');
-          } else {
-            introBody.classList.add('is-expanded');
-            readMoreBtn.setAttribute('aria-expanded', 'true');
-          }
+          const open = !introBody.classList.contains('is-expanded');
+          introBody.classList.toggle('is-expanded', open);
+          readMoreBtn.setAttribute('aria-expanded', String(open));
+          if (label) label.textContent = open ? 'Read Less' : 'Read More';
         });
       }
       
