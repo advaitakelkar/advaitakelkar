@@ -615,11 +615,13 @@ sticky**: it sits inside the Journey panel, which is `overflow: hidden` for
 its fold, and that makes the panel its sticky scrollport — `top: 44px`
 pinned it 44px down the panel, on top of the first row of the list.
 
-**From 700 up, Education, Journey and Skillset are drawn as project cards**:
-the card's tint, hairline and shadow, the name at the card's size, the arrow
-in the card's circle, 16px between them, and a closed section takes no
-room. Clicking anywhere on the row opens it (Base wires the whole
-`.page-toggle-header`).
+**From 700 up, Education, Journey and Skillset are plain headers with the
+project card's measure**: the name at the card's size and the arrow in the
+same 1.1em box, but no tint, no shadow and no circle. 16px between them, and
+a closed section takes no room. Clicking anywhere on the row opens it (Base
+wires the whole `.page-toggle-header`). **The rows inside are the cards**:
+each education entry, Journey row and Timeline year is the category page's
+compact project card, with its arrow in the circle.
 
 **Switching a section does not move the page.** The titles are docked, so the
 only thing that changes is what sits between them; scrolling as well costs

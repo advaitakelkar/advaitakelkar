@@ -178,10 +178,15 @@ const scrubImgs = visibleProjectImages(p.id, p.data?.passcode, scrubImgsRaw);
              the work actually is. Each says a different thing, so none of them
              repeats another. -->
         <div class="project-card__bottom-right">
-          {[categoryLabel, studioLabel, ...tagsArr].filter(Boolean).map((label: string) => (
+          {[
+            { label: categoryLabel, axis: 'category' },
+            { label: studioLabel, axis: 'studio' },
+            ...tagsArr.map((t: string) => ({ label: t, axis: 'tag' })),
+          ].filter((x) => x.label).map(({ label, axis }) => (
             <button
               type="button"
               class="project-card__filter-pill"
+              data-axis={axis}
               data-filter-value={String(label)}
               title={`Show only ${label}`}
             >
