@@ -100,14 +100,15 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
       </div>
     </div>
     {rooms.map(r => {
-      /* A group can carry a line of text (the first view's `note`). It sits
-         on the left, the pictures to the right of it. */
+      /* A group can carry a block of text (the first view's `note`). It is
+         the grid's first column, so the pictures follow it along the row. */
       const note = views.find(v => (v.room || name) === r && v.note)?.note;
+      const count = indexed.filter(v => v.room === r).length + (note ? 1 : 0);
       return (
-        <div class:list={['rrg__group', note && 'rrg__group--noted']} data-rrg-room={r}>
+        <div class="rrg__group" data-rrg-room={r}>
           <p class="rrg__label">{r}</p>
-          {note && <p class="rrg__note">{note}</p>}
-          <div class="rrg__grid" style={`--rrg-cols: ${Math.min(3, Math.max(1, indexed.filter(v => v.room === r).length))}`}>
+          <div class="rrg__grid" style={`--rrg-cols: ${Math.min(3, Math.max(1, count))}`}>
+            {note && <p class="rrg__note">{note}</p>}
             {indexed.filter(v => v.room === r).map(v => v.caption ? (
               <figure class="rrg__fig">
                 <img class="rrg__img" src={v.image} alt={`${name} — ${r}`} loading="lazy" decoding="async" />
@@ -520,15 +521,8 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
     line-height: 1.4;
     color: var(--_tokens---color--fg);
   }
-  /* Text left, pictures right: the note takes the first of the two columns
-     and the pictures share the second. */
-  .rrg__group--noted {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: 12px;
-    align-items: start;
-  }
-  .rrg__group--noted .rrg__label { grid-column: 1 / -1; }
+  /* The note is a column of text beside the pictures, the first cell of
+     the row. */
   .rrg__note {
     margin: 0;
     max-width: 40ch;
@@ -536,11 +530,8 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
     line-height: 1.4;
     color: var(--_tokens---color--fg);
   }
-  .rrg__group--noted .rrg__grid { grid-template-columns: minmax(0, 1fr); }
   @media (max-width: 699.98px) {
     .rrg__grid { grid-template-columns: minmax(0, 1fr); }
-    .rrg__group--noted { display: block; }
-    .rrg__note { margin-bottom: 12px; }
   }
 
   /* ── The work, and the takes beside it ─────────────────────────────── */
