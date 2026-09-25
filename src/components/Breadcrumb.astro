@@ -794,6 +794,79 @@ if (activeProject) {
     }
   }
 
+  /* ── Docked in the Quick Search bar (desktop) ───────────────
+     From 1024 up PageLayout moves this dropdown to the right end of the
+     footer's search bar. The trigger matches the field's height, and the
+     panel opens on whichever side of the bar has more room — up when the
+     bar is at the bottom of the window (always, on Home), down when a long
+     page has scrolled it near the top. */
+  .breadcrumb__custom-dropdown.is-docked {
+    flex-shrink: 0;
+  }
+  /* Docked, Pages is the right-hand segment of the search field itself: the
+     same fill, height, radius and type as .home-search__input, joined to it
+     by a hairline instead of floating beside it as a pill. */
+  .breadcrumb__custom-dropdown.is-docked .breadcrumb__dropdown-trigger,
+  .breadcrumb__custom-dropdown.is-docked .breadcrumb__search {
+    height: 42px;
+    padding-inline: 16px;
+    border: none;
+    border-left: 1px solid var(--_tokens---color--line-soft);
+    border-radius: 0 4px 4px 0;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    font-family: inherit;
+    letter-spacing: normal;
+  }
+  .breadcrumb__custom-dropdown.is-docked .breadcrumb__dropdown-trigger {
+    max-width: 220px;
+    color: var(--_tokens---color--muted);
+  }
+  .breadcrumb__custom-dropdown.is-docked .breadcrumb__search {
+    color: var(--_tokens---color--fg);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
+  }
+  .breadcrumb__custom-dropdown.is-docked .breadcrumb__search::placeholder {
+    letter-spacing: normal;
+  }
+  .breadcrumb__custom-dropdown.is-docked .breadcrumb__dropdown-trigger:focus-visible,
+  .breadcrumb__custom-dropdown.is-docked .breadcrumb__dropdown-trigger[aria-expanded="true"] {
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
+    color: var(--_tokens---color--fg);
+  }
+  @media (hover: hover) {
+    .breadcrumb__custom-dropdown.is-docked .breadcrumb__dropdown-trigger:hover {
+      background-color: color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
+      color: var(--_tokens---color--fg);
+    }
+  }
+  /* The field gives up its right corners and the gap, so the two read as
+     one bar. Global: those elements belong to Footer. */
+  :global(.home-search__bar:has(> .breadcrumb__custom-dropdown.is-docked)) {
+    gap: 0;
+  }
+  :global(.home-search__bar:has(> .breadcrumb__custom-dropdown.is-docked) .home-search__input) {
+    border-radius: 4px 0 0 4px;
+  }
+  .breadcrumb__custom-dropdown.is-docked .breadcrumb__dropdown-panel {
+    top: auto;
+    bottom: calc(100% + 6px);
+    transform-origin: bottom right;
+  }
+  .breadcrumb__custom-dropdown.is-docked[data-side="below"] .breadcrumb__dropdown-panel {
+    top: calc(100% + 6px);
+    bottom: auto;
+    transform-origin: top right;
+  }
+  .breadcrumb__custom-dropdown.is-docked .breadcrumb__pages-list {
+    max-height: var(--bc-dock-room, calc(100dvh - 100px));
+  }
+  /* The dim sits in the top bar's stacking context, which paints over the
+     search bar — it would cover the very list it frames. Outside clicks
+     still close the panel through the document listener. */
+  :global(html[data-pages-docked]) .breadcrumb__backdrop {
+    display: none !important;
+  }
+
   /* ── Pages list — ONE flat list on every breakpoint ─────────── */
   .breadcrumb__pages-list {
     display: flex;
