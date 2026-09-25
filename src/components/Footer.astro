@@ -157,6 +157,9 @@ const suggestions = allProjects
     --icon-size: var(--_tokens---arrow--sm);
   }
   .qs-sug__pill[hidden] { display: none; }
+  /* The one Enter opens. */
+  .qs-sug__pill:not(.is-sel) { opacity: 0.55; }
+  .qs-sug__pill.is-sel { outline: 1px solid var(--_tokens---color--fg); outline-offset: 2px; }
   @media (hover: hover) {
     .qs-sug__pill:hover { opacity: 0.8; }
   }
@@ -295,9 +298,9 @@ const suggestions = allProjects
 <script>
   import { matchesSkill } from '../lib/skills';
 
-  // Enter takes the query where its answer is. A query that names a skill
-  // goes to About's Skillset, filtered to it; anything else goes to
-  // /projects, which filters its list by ?q=. On About this field IS the
+  // Enter takes the query where its answer is: the best-matching project's
+  // own page; a skill to About's Skillset, filtered to it; and only with
+  // neither, /projects filtered by ?q=. On About this field IS the
   // Skillset's search (about.astro filters the cloud as you type), so there
   // Enter with a skill only brings the Skillset into view.
   // Escape and the ✕ clear the field.
@@ -316,16 +319,36 @@ const suggestions = allProjects
     // Not on About, where this field is the Skillset's search.
     const sug = document.getElementById('qs-sug');
     const pills = Array.from(sug?.querySelectorAll<HTMLAnchorElement>('.qs-sug__pill') ?? []);
+    /* Rank a matching project by how its NAME answers the query: the name
+       itself, then a name that starts with it, then a word in the name that
+       does, then everything that only matched its other text. The top one
+       is what Enter opens, so it is shown first and marked. */
+    const rank = (pl: HTMLAnchorElement, q: string) => {
+      const name = (pl.title || '').toLowerCase();
+      const label = (pl.textContent || '').trim().toLowerCase();
+      if (name === q || label === q) return 0;
+      if (name.startsWith(q) || label.startsWith(q)) return 1;
+      if (name.split(/\s+/).some(w => w.startsWith(q))) return 2;
+      return 3;
+    };
+    let ranked: HTMLAnchorElement[] = [];
+    let sel = 0;
+    const mark = () => pills.forEach(pl => pl.classList.toggle('is-sel', pl === ranked[sel]));
     const suggest = () => {
       if (!sug) return;
-      const kws = input.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
-      let any = false;
+      const q = input.value.trim().toLowerCase();
+      const kws = q.split(/\s+/).filter(Boolean);
+      ranked = [];
       pills.forEach(pl => {
         const on = !onAbout() && kws.length > 0 && kws.every(k => (pl.dataset.hay ?? '').includes(k));
         pl.hidden = !on;
-        if (on) any = true;
+        if (on) ranked.push(pl);
       });
-      sug.hidden = !any;
+      ranked.sort((a, b) => rank(a, q) - rank(b, q));
+      ranked.forEach((pl, i) => { pl.style.order = String(i); });
+      sel = 0;
+      mark();
+      sug.hidden = !ranked.length;
     };
     input.addEventListener('input', suggest);
     input.addEventListener('focus', suggest);
@@ -335,10 +358,25 @@ const suggestions = allProjects
     }, 150));
 
     input.addEventListener('keydown', (e) => {
+      if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && ranked.length) {
+        e.preventDefault();
+        sel = (sel + (e.key === 'ArrowDown' ? 1 : -1) + ranked.length) % ranked.length;
+        mark();
+        ranked[sel].scrollIntoView({ block: 'nearest' });
+        return;
+      }
       if (e.key === 'Enter') {
         const q = input.value.trim();
         if (!q) return;
         e.preventDefault();
+        /* Enter opens the project itself — the one marked in the
+           suggestions. A skill goes to About only when no project NAME
+           answers the query; with neither, the Database list is the answer. */
+        const top = ranked[sel];
+        if (top && (rank(top, q.toLowerCase()) < 3 || !matchesSkill(q))) {
+          window.location.href = top.href;
+          return;
+        }
         if (matchesSkill(q)) {
           if (onAbout()) {
             document.querySelector('.skillset-header')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
