@@ -186,6 +186,22 @@ bar is direct-labelled and a table view of the same numbers sits below.
 - **The dispatch call sits at the bottom of the script.** The render helpers are
   `const`, so calling into them any earlier hits the temporal dead zone.
 
+### Featured switches
+
+The console's **Projects** panel lists every project with its template and a
+Featured switch. A flip writes one Firestore document, `config/featured` =
+`{ ids, t }` (public read, owner-only write — see `firestore.rules`), and the
+home slider reads it over REST on load (`src/lib/featured.ts`), so the change
+is live on the next page load with no rebuild. Every project with a cover
+that is not locked ships as a slide; the list picks which show. `featured:`
+in the YAML is the fallback — used until the document exists, and whenever
+the read fails or takes more than 1.5s. Locked projects and projects without
+a cover get a disabled switch.
+
+The rules must be deployed once for this to work (CI deploys hosting only):
+`firebase deploy --only firestore:rules`. Until then the read is denied and
+the home page simply uses the YAML flags.
+
 ### Preview without data
 
 `/admin?demo=1` on **localhost only** renders the whole console with synthetic

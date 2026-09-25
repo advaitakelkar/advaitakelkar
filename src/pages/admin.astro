@@ -17,6 +17,27 @@
  * table view of the same numbers sits under each panel group.
  */
 import PageLayout from '../layouts/PageLayout.astro';
+import { getCollection } from 'astro:content';
+import { isProjectLocked } from '../lib/content';
+import { projectThumbnail } from '../lib/projectImages';
+
+/* Every project, for the Featured switches. A project can be featured only
+   when it has a cover and is not locked — the home slider has nothing to show
+   otherwise — so those rows carry a disabled switch and say why. */
+const categories = await getCollection('categories');
+const catName = (id?: string) => categories.find(c => c.id === id)?.data.displayName ?? id ?? '—';
+const projectRows = (await getCollection('projects'))
+  .map((p) => ({
+    slug: p.id,
+    name: p.data.name,
+    template: p.data.template ?? 'tabs',
+    category: catName(p.data.category?.id),
+    cover: p.data.coverImage ? projectThumbnail(p.data.coverImage) : '',
+    yaml: !!p.data.featured,
+    why: !p.data.coverImage ? 'no cover' : isProjectLocked(p.id) ? 'locked' : '',
+  }))
+  .sort((a, b) => a.name.localeCompare(b.name));
+const yamlFeatured = projectRows.filter(r => r.yaml && !r.why).map(r => r.slug);
 ---
 
 <PageLayout
@@ -62,6 +83,38 @@ import PageLayout from '../layouts/PageLayout.astro';
           <button class="ad__ghost" id="ad-out" type="button">Sign out</button>
         </div>
       </header>
+
+      <!-- Featured switches. Outside #ad-body so they work before any visit
+           has been recorded. -->
+      <section class="ad__panel ad__projects" id="ad-projects" data-yaml={JSON.stringify(yamlFeatured)}>
+        <div class="ad__panel-head">
+          <h2 class="ad__h2">Projects <span class="ad__count" id="ad-feat-count"></span></h2>
+          <p class="ad__note">
+            Switch a project on to put it in the home page's featured slider.
+            It saves straight away and shows on the live site on the next page
+            load — no rebuild. Locked projects and projects without a cover
+            cannot be featured.
+          </p>
+          <p class="ad__note ad__save" id="ad-feat-status" role="status"></p>
+        </div>
+        <ul class="ad__plist">
+          {projectRows.map((r) => (
+            <li class:list={["ad__prow", r.why && "is-off"]} data-slug={r.slug}>
+              <span class="ad__pthumb">{r.cover && <img src={r.cover} alt="" loading="lazy" />}</span>
+              <span class="ad__pname">
+                <a href={`/projects/${r.slug}`}>{r.name}</a>
+                <span class="ad__pmeta">{r.category}{r.why && ` · ${r.why}`}</span>
+              </span>
+              <span class="ad__ptpl">{r.template}</span>
+              <button class="ad__switch" type="button" role="switch"
+                      aria-checked={String(r.yaml && !r.why)} aria-label={`Feature ${r.name}`}
+                      disabled={!!r.why || undefined} data-slug={r.slug}>
+                <span class="ad__switch-knob"></span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <div id="ad-empty" class="ad__empty" hidden>
         <p><strong>No visits recorded yet.</strong></p>
@@ -174,7 +227,8 @@ import PageLayout from '../layouts/PageLayout.astro';
 <script>
   import { initializeApp } from 'firebase/app';
   import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth';
-  import { getFirestore, collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
+  import { getFirestore, collection, query, where, orderBy, limit, getDocs, doc, getDoc, setDoc, type Firestore } from 'firebase/firestore';
+  import { FEATURED_COLLECTION, FEATURED_DOC } from '../lib/featured';
   import { firebaseConfig, ADMIN_EMAIL, isConfigured } from '../lib/firebase-config';
   import { readIgnoreFlag, setIgnoreFlag } from '../lib/analytics';
   import {
@@ -231,6 +285,7 @@ import PageLayout from '../layouts/PageLayout.astro';
 
     $('ad-console').hidden = false;
     root.dataset.state = 'demo';
+    initFeatured(null);
     $('ad-body').hidden = false;
     $('ad-window').textContent =
       `DEMO — ${evs.length} synthetic views over 30 days. Not real data.`;
@@ -245,6 +300,61 @@ import PageLayout from '../layouts/PageLayout.astro';
     $('ad-out').addEventListener('click', () => { location.search = ''; });
   }
 
+  /* ── Featured switches ─────────────────────────────────────────
+     One document, config/featured = { ids, t }. It is read when the console
+     opens; until it exists the switches start from the YAML flags. Every flip
+     writes the whole list — it is a few dozen slugs, and a whole-list write
+     cannot leave the document half-updated. With no db (demo), flips stay on
+     the page. */
+  function initFeatured(db: Firestore | null) {
+    const panel = $('ad-projects');
+    const status = $('ad-feat-status');
+    const count = $('ad-feat-count');
+    const switches = Array.from(panel.querySelectorAll<HTMLButtonElement>('.ad__switch'));
+    const on = new Set<string>(JSON.parse(panel.dataset.yaml || '[]'));
+    const ref = db ? doc(db, FEATURED_COLLECTION, FEATURED_DOC) : null;
+
+    const paint = () => {
+      switches.forEach((b) => b.setAttribute('aria-checked', String(on.has(b.dataset.slug!))));
+      count.textContent = `${on.size} featured`;
+    };
+
+    if (ref) {
+      getDoc(ref).then((snap) => {
+        const ids = snap.exists() ? snap.data().ids : null;
+        if (Array.isArray(ids)) { on.clear(); ids.forEach((id: string) => on.add(id)); }
+        status.textContent = snap.exists()
+          ? `Live list · last changed ${new Date(snap.data().t).toLocaleString()}`
+          : 'No live list yet — showing the project files\' featured flags. The first switch saves one.';
+        paint();
+      }).catch((ex) => {
+        status.textContent = `Could not read the live list (${ex?.code ?? 'error'}). ` +
+          'If this is permission-denied, deploy the rules: firebase deploy --only firestore:rules';
+      });
+    } else {
+      status.textContent = 'Demo — switches are not saved.';
+    }
+    paint();
+
+    switches.forEach((b) => b.addEventListener('click', async () => {
+      const slug = b.dataset.slug!;
+      const was = on.has(slug);
+      if (was) on.delete(slug); else on.add(slug);
+      paint();
+      if (!ref) return;
+      status.textContent = 'Saving…';
+      try {
+        await setDoc(ref, { ids: [...on], t: new Date().toISOString() });
+        status.textContent = `Saved · live on the home page · ${new Date().toLocaleTimeString()}`;
+      } catch (ex: any) {
+        if (was) on.add(slug); else on.delete(slug);
+        paint();
+        status.textContent = `Not saved (${ex?.code ?? 'error'}). ` +
+          'If this is permission-denied, deploy the rules: firebase deploy --only firestore:rules';
+      }
+    }));
+  }
+
   function boot() {
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
@@ -252,6 +362,7 @@ import PageLayout from '../layouts/PageLayout.astro';
 
     let days = 7;
     let events: Ev[] = [];
+    let featuredReady = false;
     /* Firestore's JS SDK rejects limit() above 10000 with `invalid-argument`
        — not a permissions error, and it fires before the query reaches the
        server, so it looks like a broken console rather than a bad argument.
@@ -265,6 +376,7 @@ import PageLayout from '../layouts/PageLayout.astro';
         $('ad-console').hidden = false;
         root.dataset.state = 'in';
         load();
+        if (!featuredReady) { featuredReady = true; initFeatured(db); }
       } else {
         $('ad-gate').hidden = false;
         $('ad-console').hidden = true;
@@ -598,6 +710,40 @@ $('ad-csv').addEventListener('click', () => {
   .ad__h2 { font-size: var(--_tokens---type--small); font-weight: var(--_tokens---weight--base); letter-spacing: -0.01em; margin: 0; }
   .ad__note { font-size: var(--_tokens---type--ultrathin); color: var(--_tokens---color--muted); margin: 4px 0 0; line-height: 1.5; max-width: 34rem; }
   .ad__none { font-size: var(--_tokens---type--ultrathin); color: var(--_tokens---color--muted); }
+
+  /* ── Projects: the Featured switches ── */
+  .ad__projects { margin-bottom: 32px; }
+  .ad__count { color: var(--_tokens---color--muted); font-size: var(--_tokens---type--ultrathin); margin-left: 6px; }
+  .ad__save { min-height: 1.5em; }
+  .ad__plist { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr)); column-gap: 24px; }
+  .ad__prow {
+    display: grid; grid-template-columns: 36px minmax(0, 1fr) auto auto; align-items: center; gap: 12px;
+    padding: 8px 0; border-bottom: 1px solid var(--_tokens---color--line-soft);
+  }
+  .ad__prow.is-off .ad__pname, .ad__prow.is-off .ad__pthumb { opacity: 0.45; }
+  .ad__pthumb { width: 36px; height: 36px; border-radius: 4px; overflow: hidden; background: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent); }
+  .ad__pthumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .ad__pname { display: flex; flex-direction: column; min-width: 0; font-size: var(--_tokens---type--micro); }
+  .ad__pname a { color: var(--_tokens---color--fg); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ad__pmeta { font-size: var(--_tokens---type--ultrathin); color: var(--_tokens---color--muted); }
+  .ad__ptpl {
+    font-size: 0.6rem; padding: 2px 8px; white-space: nowrap;
+    border: var(--_tokens---pill-border); border-radius: var(--_tokens---radius--pill); color: var(--_tokens---color--muted);
+  }
+  .ad__switch {
+    position: relative; width: 36px; height: 20px; padding: 0; flex-shrink: 0; cursor: pointer;
+    border-radius: 999px; border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 30%, transparent);
+    background: transparent; transition: background-color var(--_tokens---motion--fast) ease;
+  }
+  .ad__switch-knob {
+    position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%;
+    background: var(--_tokens---color--fg); opacity: 0.45;
+    transition: transform var(--_tokens---motion--fast) ease, opacity var(--_tokens---motion--fast) ease, background-color var(--_tokens---motion--fast) ease;
+  }
+  .ad__switch[aria-checked="true"] { background: var(--_tokens---color--fg); }
+  .ad__switch[aria-checked="true"] .ad__switch-knob { transform: translateX(16px); background: var(--_tokens---color--bg); opacity: 1; }
+  .ad__switch:disabled { cursor: not-allowed; opacity: 0.35; }
+  .ad__switch:focus-visible { outline: 2px solid var(--_tokens---color--fg); outline-offset: 2px; }
 
   /* ── bars ── */
   .ad__bars { display: flex; flex-direction: column; gap: 10px; }
