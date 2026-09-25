@@ -727,8 +727,8 @@ backdrop-filter: blur(20px);
 | `sch4` | Midnight | `#D2B96A` | `#0B1A35` |
 | `sch6` | Ember | `#ffe4a1` | `#97322D` |
 
-Pool weights (in `Base.astro`): the pool holds 12 entries — Void 8/12 (~67%), the four
-colour schemes 1/12 each (~8.3%). Clay (`sch2`) and Nomad (`sch7`) were retired.
+Pool weights (in `Base.astro`): the pool holds 20 entries — Void 16/20 (80%), the four
+colour schemes 1/20 each (5%). Clay (`sch2`) and Nomad (`sch7`) were retired.
 
 ---
 
