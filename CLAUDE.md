@@ -719,12 +719,11 @@ elements and moves them back below 1024:
 
 The rail's lock toggle went with it; the site lock's own gate still works.
 
-**The Quick Search bar is fixed at the bottom of every desktop page, and the
-pill cloud is a panel behind it** (`#qs-panel` in `Footer.astro`). Focusing
-the field slides the cloud up; a click outside the field and panel, or
-Escape, slides it back. It hides with transform + visibility, never
-`display: none` — the row engine packs rows from the grid's measured width,
-and a `display: none` grid measures 0.
+**The Quick Search bar is fixed at the bottom of every desktop page**, and
+it is only a bar: the footer's cloud of every project as pills is gone from
+every page. Enter takes the query to `/projects?q=`, where the projects page
+filters its list by it. `/projects` is the one page with suggestion pills,
+its own, rising above its filters while you type.
 
 **The projects page takes the footer's place for itself on desktop.** Its
 own search is the fixed bottom bar (`data-pages-dock`, so Pages docks there;
