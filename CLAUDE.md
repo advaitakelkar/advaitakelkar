@@ -842,6 +842,14 @@ Three global scripts are injected into every page via `Base.astro`:
    reading as a keyboard.
 
 
+0d. **Keyboard.** Typing anywhere outside a field goes into the Quick Search
+   field (`PageLayout`; `/projects` routes it to its own search). Left/Right
+   walk Home → About → Projects → each category → Admin, stopping at the
+   ends (`data-page-order` on `.breadcrumb`); project pages keep prev/next.
+   Up/Down step through the cards on `/projects` and category pages, Enter
+   opens the selected one. Space scrolls — it no longer opens the retired
+   side panel.
+
 1. **Arrow rotation:** On hover over any `a, button, .project-card` etc., the `.link-arrow` SVG inside rotates to a random angle (smooth cubic-bezier transition).
 
 2. **Text scramble (Matrix decode):** On hover, text inside `[data-scramble]` elements (or auto-detected headings/links) plays a character-scramble animation. The `getScrambleTarget()` function has careful exclusions (breadcrumbs, proj-bubbles, long paragraphs, mailto links).
