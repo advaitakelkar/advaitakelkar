@@ -57,12 +57,14 @@ const currentPath = Astro.url.pathname;
   // Pages was, and Pages docks at the right end of the Quick Search bar.
   // Both are the same elements, moved — their listeners come with them —
   // and both go home again below 1024, where the bottom dock owns Pages
-  // and there are no swatches. A page with no Quick Search bar (Projects,
-  // Admin) keeps Pages in the top bar, after the swatches.
+  // and there are no swatches. A page with no such bar (Admin) keeps Pages
+  // in the top bar, after the swatches.
   const scheme   = document.getElementById('sn-scheme');
   const pages    = document.getElementById('breadcrumb-custom-dropdown');
   const rightNav = document.querySelector('.breadcrumb__project-nav');
-  const qsBar    = document.querySelector('.home-search__bar');
+  // Whichever bar carries data-pages-dock: the footer's Quick Search, or on
+  // the projects page its own search, which takes the footer's place.
+  const qsBar    = document.querySelector('[data-pages-dock]');
   if (scheme && pages && rightNav) {
     const schemeHome = { parent: scheme.parentElement!, next: scheme.nextSibling };
     const pagesHome  = { parent: pages.parentElement!,  next: pages.nextSibling };
@@ -103,6 +105,67 @@ const currentPath = Astro.url.pathname;
       pages.style.setProperty('--bc-dock-room', `${Math.max(160, side === 'below' ? below : above)}px`);
     }, { capture: true });
   }
+
+  // ── Keyboard ──────────────────────────────────────────────────
+  // Left/Right walk the pages (Breadcrumb.astro). These two cover the rest:
+  //  • typing anywhere lands in the page's search — the Quick Search bar, or
+  //    on /projects its own search, which handles this itself;
+  //  • Up/Down step through the project cards on /projects and on category
+  //    pages, and Enter opens the one selected.
+  // Neither acts while a field has focus, a modifier is held, or something
+  // is open over the page (Pages, a lightbox, the lock).
+  const isEditable = (el: Element | null) =>
+    !!el && ((el as HTMLElement).isContentEditable || !!el.closest('input, textarea, select, [contenteditable="true"]'));
+  const overlayOpen = () =>
+    !!document.querySelector(
+      '#breadcrumb-dropdown-panel.is-open, #project-lightbox.is-open, .site-lock:not([hidden]), [role="dialog"][open]'
+    );
+  const visible = (el: HTMLElement) => !el.hidden && el.getClientRects().length > 0;
+
+  document.addEventListener('keydown', (e) => {
+    if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (isEditable(e.target as Element) || isEditable(document.activeElement)) return;
+    if (overlayOpen()) return;
+
+    // Type to search. Space is left alone — it scrolls the page.
+    if (e.key.length === 1 && e.key !== ' ') {
+      if (document.getElementById('projects-search-input')) return; // ProjectList owns it
+      const qs = document.getElementById('qs-input') as HTMLInputElement | null;
+      if (!qs || !visible(qs)) return;
+      e.preventDefault();
+      qs.focus({ preventScroll: true });
+      qs.value += e.key;
+      qs.setSelectionRange(qs.value.length, qs.value.length);
+      qs.dispatchEvent(new Event('input', { bubbles: true }));
+      return;
+    }
+
+    // Up/Down through the card list.
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp' && e.key !== 'Enter') return;
+    const cards = Array.from(document.querySelectorAll<HTMLElement>('.project-cards-container .project-card'))
+      .filter(visible);
+    if (!cards.length) return;
+    const current = cards.findIndex(c => c.classList.contains('is-keyboard-selected'));
+
+    if (e.key === 'Enter') {
+      if (current === -1) return;
+      const link = cards[current].querySelector<HTMLAnchorElement>('.project-card__pill, a[href]');
+      if (!link) return;
+      e.preventDefault();
+      link.click();
+      return;
+    }
+
+    e.preventDefault();
+    const step = e.key === 'ArrowDown' ? 1 : -1;
+    const next = current === -1
+      ? (step > 0 ? 0 : cards.length - 1)
+      : Math.min(cards.length - 1, Math.max(0, current + step));
+    cards.forEach(c => { c.classList.remove('is-keyboard-selected'); c.removeAttribute('aria-current'); });
+    cards[next].classList.add('is-keyboard-selected');
+    cards[next].setAttribute('aria-current', 'true');
+    cards[next].scrollIntoView({ block: 'center', behavior: 'smooth' });
+  });
 </script>
 
 <style>

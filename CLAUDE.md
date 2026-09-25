@@ -719,6 +719,21 @@ elements and moves them back below 1024:
 
 The rail's lock toggle went with it; the site lock's own gate still works.
 
+**The Quick Search bar is fixed at the bottom of every desktop page, and the
+pill cloud is a panel behind it** (`#qs-panel` in `Footer.astro`). Focusing
+the field slides the cloud up; a click outside the field and panel, or
+Escape, slides it back. It hides with transform + visibility, never
+`display: none` — the row engine packs rows from the grid's measured width,
+and a `display: none` grid measures 0.
+
+**The projects page takes the footer's place for itself on desktop.** Its
+own search is the fixed bottom bar (`data-pages-dock`, so Pages docks there;
+PageLayout docks Pages into whichever bar carries that attribute), the
+category and discipline filters sit directly above it, always on, and there
+is no search field at the top. Its pill cloud rises above the filters only
+while something is typed, showing just the matches. The folding top panel
+now exists on the medium band (700–1023) only.
+
 What follows describes the rail as it was built — the markup still ships.
 
 `SideNav.astro` has two parts:
@@ -826,6 +841,14 @@ Three global scripts are injected into every page via `Base.astro`:
    behind the keyboard. The 120px floor keeps Safari's own toolbars from
    reading as a keyboard.
 
+
+0d. **Keyboard.** Typing anywhere outside a field goes into the Quick Search
+   field (`PageLayout`; `/projects` routes it to its own search). Left/Right
+   walk Home → About → Projects → each category → Admin, stopping at the
+   ends (`data-page-order` on `.breadcrumb`); project pages keep prev/next.
+   Up/Down step through the cards on `/projects` and category pages, Enter
+   opens the selected one. Space scrolls — it no longer opens the retired
+   side panel.
 
 1. **Arrow rotation:** On hover over any `a, button, .project-card` etc., the `.link-arrow` SVG inside rotates to a random angle (smooth cubic-bezier transition).
 

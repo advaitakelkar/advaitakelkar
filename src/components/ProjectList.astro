@@ -87,8 +87,10 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
           state. */}
       <div class="projects-sticky-header page-toggle-panel" id="projects-filter-panel">
 
-      <!-- Search bar matching home UI -->
-      <div class="projects-search-bar">
+      <!-- Search bar matching home UI. From 1024 up it is the page's Quick
+           Search bar: fixed at the bottom, Pages docked at its right end. -->
+      <div class="projects-search-bar" data-pages-dock>
+        <div class="projects-search-field">
         <input
           type="search"
           id="projects-search-input"
@@ -101,6 +103,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
         <button class="projects-search-clear" id="projects-search-clear" type="button" aria-label="Clear search and all filters" title="Clear search and filters" hidden>
           <Icon name="close" class="projects-search-clear__icon" />
         </button>
+        </div>
       </div>
 
       <!-- Filter bar with dropdown and scrollable tag picker -->
@@ -399,6 +402,15 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     margin: 0 0 18px;
     width: 100%;
     max-width: 100%;
+  }
+
+  /* The ✕ positions against the field, not the bar, so Pages can dock at
+     the bar's right end on desktop without sitting under it. */
+  .projects-search-field {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    display: flex;
   }
 
   .projects-search-input {
@@ -726,14 +738,6 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       transition: height var(--_tokens---motion--base) var(--_tokens---ease-out),
                   font-size var(--_tokens---motion--base) var(--_tokens---ease-out),
                   background-color var(--_tokens---motion--base);
-    }
-    .projects-fixed-wrapper.is-stuck .projects-search-input {
-      height: 52px;
-      font-size: var(--_tokens---type--medium);
-      padding-inline: 20px 64px;
-    }
-    .projects-fixed-wrapper.is-stuck .projects-search-bar {
-      margin-bottom: 10px;
     }
     .projects-fixed-wrapper.is-stuck .projects-header {
       padding: 6px 0 12px 0;
@@ -1247,6 +1251,166 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       padding-bottom: calc(var(--kb-h, 0px) + 124px);
     }
 }
+
+  /* ── Desktop: the search is the page's Quick Search bar ─────────────────
+     From 1024 up the projects page takes the footer's place for itself: the
+     search is the fixed bar at the bottom of the window (Pages docked at its
+     right end, like every other page), and the category and discipline
+     filters sit directly above it, always on. There is no search field at
+     the top. The pill cloud is suggestions: it rises above the filters only
+     while there is something typed, showing just the matches.
+
+     Same arrangement as the phone band below 700, which has always had its
+     controls at the bottom; the medium band keeps the folding top panel. */
+  @media (min-width: 1024px) {
+    .page-toggle-btn[data-page-toggle="projects-filter-panel"] {
+      display: none;
+    }
+    .projects-header .projects-title {
+      display: block !important;
+    }
+    .projects-header .projects-collapsed-search,
+    .projects-header .projects-collapsed-search-clear {
+      display: none !important;
+    }
+    #projects-filter-panel {
+      border-bottom: none;
+      max-height: none !important;
+      opacity: 1 !important;
+      overflow: visible !important;
+      margin-top: 0 !important;
+      padding: 0;
+    }
+    /* The pinned header is the title row alone now; its hairline is the
+       header's own. */
+    .projects-fixed-wrapper {
+      border-bottom: none;
+    }
+
+    .projects-search-bar {
+      position: fixed;
+      left: var(--_tokens---layout--gutter);
+      right: var(--_tokens---layout--gutter);
+      bottom: 12px;
+      /* Over the filter row: Pages opens upward out of this bar, across it. */
+      z-index: 96;
+      margin: 0;
+      width: auto;
+    }
+    /* The Quick Search field's own measurements (Footer.astro). */
+    .projects-search-input,
+    .projects-fixed-wrapper.is-stuck .projects-search-input {
+      height: 42px;
+      padding: 0 46px 0 16px;
+      font-size: var(--_tokens---type--micro);
+      font-weight: var(--_tokens---weight--base);
+      letter-spacing: normal;
+    }
+    .projects-search-input::placeholder {
+      font-weight: var(--_tokens---weight--base);
+      color: var(--_tokens---color--muted);
+      -webkit-text-fill-color: var(--_tokens---color--muted);
+    }
+    .projects-search-input::-webkit-search-cancel-button {
+      -webkit-appearance: none;
+      appearance: none;
+      display: none;
+    }
+    .projects-search-clear {
+      right: 6px;
+      width: 30px;
+      height: 30px;
+    }
+    .projects-search-clear__icon {
+      --icon-size: 16px;
+    }
+
+    .filter-bar {
+      position: fixed;
+      left: var(--_tokens---layout--gutter);
+      right: var(--_tokens---layout--gutter);
+      bottom: 66px; /* the search bar: 12 + 42 + 12 */
+      z-index: 95;
+      margin: 0;
+      width: auto;
+      padding-block: 8px;
+      background-color: var(--_tokens---color--bg);
+    }
+    /* Always on, not greyed out until touched. */
+    .filter-group--tags {
+      opacity: 1;
+    }
+
+    /* One opaque surface behind the whole bottom stack, with the house
+       hairline on top, so cards never show between the controls. */
+    .projects-page::after {
+      content: '';
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 120px;
+      background-color: var(--_tokens---color--bg);
+      border-top: 1px solid var(--_tokens---color--line-soft);
+      z-index: 80;
+      pointer-events: none;
+    }
+    .projects-page {
+      padding-bottom: 140px;
+    }
+
+    /* Suggestions: out of the page, up above the filters while typing. */
+    .projects-bottom-section {
+      position: fixed;
+      left: var(--_tokens---layout--gutter);
+      right: var(--_tokens---layout--gutter);
+      bottom: 120px;
+      z-index: 85;
+      margin: 0;
+      width: auto;
+      box-sizing: border-box;
+      max-height: 40dvh;
+      overflow-y: auto;
+      scrollbar-width: none;
+      padding: 12px 16px;
+      background-color: var(--_tokens---color--bg-overlay);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--_tokens---color--line-soft);
+      border-bottom: none;
+      border-radius: 8px 8px 0 0;
+      transform: translateY(calc(100% + 120px));
+      visibility: hidden;
+      transition: transform var(--_tokens---motion--slow) var(--_tokens---ease-out),
+                  visibility 0s linear var(--_tokens---motion--slow);
+    }
+    .projects-bottom-section::-webkit-scrollbar { display: none; }
+    .projects-bottom-section:has(.proj-bubbles.has-search .proj-bubble.is-match) {
+      transform: none;
+      visibility: visible;
+      transition: transform var(--_tokens---motion--slow) var(--_tokens---ease-out),
+                  visibility 0s;
+    }
+    /* Only the matches — suggestions, not the whole index dimmed. */
+    .proj-bubbles.has-search .proj-bubble:not(.is-match) {
+      display: none;
+    }
+    .projects-bottom-section .proj-bubble {
+      font-size: 0.6rem;
+      padding: 2px 8px;
+      gap: 4px;
+    }
+    .projects-bottom-section .proj-bubbles {
+      gap: 4px;
+    }
+  }
+
+  @media (min-width: 1024px) and (prefers-reduced-motion: reduce) {
+    .projects-bottom-section,
+    .projects-bottom-section:has(.proj-bubbles.has-search .proj-bubble.is-match) {
+      transition: none;
+    }
+  }
 </style>
 
 <script>
@@ -1748,12 +1912,15 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     // The two features were fighting over the same pixels; this gives each its
     // own territory. Also off mid-resize (see below) and for reduced motion.
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const folds = window.matchMedia('(min-width: 700px)');
+    // The panel folds on the medium band only. Below 700 and from 1024 up
+    // the search and filters are docked at the bottom of the screen and
+    // never fold.
+    const folds = window.matchMedia('(min-width: 700px) and (max-width: 1023.98px)');
     // Snapping is a desktop/tablet behaviour only. On the phone the cards
     // change height as you stop and start, which moves every snap point under
     // the snap engine while it is mid-flight — the two cannot both be smooth.
     // See the note on updateCardDensity.
-    const snaps = folds;
+    const snaps = window.matchMedia('(min-width: 700px)');
     // Must match the constant of the same name in the filter script — see the
     // note there. A threshold narrower than snap's resting slop latches on.
     const TOP_ZONE = 48;

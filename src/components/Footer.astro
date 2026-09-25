@@ -41,7 +41,10 @@ const sorted = [...allProjects].sort((a, b) => {
 
 <footer class:list={["home-search-footer", isEmbedded && "home-search-footer--embedded", isHome && "home-search-footer--home", hasActiveFilter && "is-category-filter"]} id="home-search-footer" data-category={categoryId}>
 
-  <!-- Pill/bubble search — rows are nowrap + clipped (stagger) -->
+  <!-- Pill/bubble search — rows are nowrap + clipped (stagger).
+       From 1024 up the count and the cloud are a panel that slides up from
+       behind the fixed Quick Search bar while the field is in use. -->
+  <div class="home-search__panel" id="qs-panel">
   <p role="status" class="home-search__count" id="qs-count" aria-live="polite"></p>
   <div class="proj-bubbles supersmall" id="qs-grid" role="list">
     {sorted.map(p => {
@@ -154,10 +157,12 @@ const sorted = [...allProjects].sort((a, b) => {
     </>)}
   </div>
 
+  </div>
+
   <!-- Search bar sits at the bottom of the footer -->
   {/* The field is wrapped so the ✕ positions against the field, not the bar:
       from 1024 up PageLayout docks the Pages button at the bar's right end. */}
-  <div class="home-search__bar">
+  <div class="home-search__bar" data-pages-dock>
     <div class="home-search__field">
       <input
         type="search"
@@ -241,6 +246,13 @@ const sorted = [...allProjects].sort((a, b) => {
     outline: none;
     opacity: 0.85;
     transition: background-color var(--_tokens---motion--base), opacity var(--_tokens---motion--base) ease;
+  }
+
+  /* The browser's own clear button doubled up with the ✕ beside it. */
+  .home-search__input::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+    display: none;
   }
 
   .home-search__input::placeholder {
@@ -341,7 +353,7 @@ const sorted = [...allProjects].sort((a, b) => {
     background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
     border: var(--_tokens---pill-border);
     border-radius: var(--_tokens---radius--pill);
-    padding: var(--_tokens---pill-pad--sm);
+    padding: var(--_tokens---pill-pad--xs);
     text-decoration: none;
     white-space: nowrap;
     cursor: pointer;
@@ -487,50 +499,105 @@ const sorted = [...allProjects].sort((a, b) => {
     }
   }
 
-  /* Desktop Home: footer fills Frame 2 height; pills fill available space, search bar fixed bottom */
+  /* ── Desktop: the bar is fixed, the cloud is a panel ─────────────────
+     On every page with a footer the Quick Search bar (Pages docked at its
+     right end) sits fixed at the bottom of the window, and the pill cloud is
+     hidden behind it. Focusing the field slides the cloud up out of the bar;
+     clicking anywhere else, or Escape, sends it back down. The footer itself
+     takes no room in the page any more.
+
+     Hidden with transform + visibility, never display:none — the row engine
+     measures the grid's width to pack the rows, and a display:none grid
+     measures 0 and builds nothing. */
   @media (min-width: 1024px) {
-    .home-search-footer--home {
-      border-top: none !important;
-      padding-top: 0;
-      padding-bottom: 0;
-      margin-top: 0;
-      /* Fill the remaining frame height so pills push against the search bar */
-      flex: 1 1 auto;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
+    .home-search-footer,
+    .home-search-footer:not(.home-search-footer--embedded) {
+      border-top: none;
+      padding: 0;
+      margin: 0;
     }
 
-    /* Pill cloud fills the space above the search bar */
-    .home-search-footer--home #qs-grid {
-      flex: 1 1 auto;
-      min-height: 0;
-      overflow: hidden;
-      /* In frame 2, align pill rows to the bottom so they read up from the bar */
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-    }
-
-    /* Count label sits just above the pills */
-    .home-search-footer--home #qs-count {
-      margin-top: auto;
-      margin-bottom: 8px;
-    }
-
-    /* Search bar: fixed to the very bottom of the viewport */
-    .home-search-footer--home .home-search__bar {
+    .home-search__bar {
       position: fixed;
       bottom: 0;
-      left: var(--_tokens---layout--nav, 44px);
+      left: var(--_tokens---layout--nav, 0px);
       right: 0;
       z-index: 80;
       background-color: var(--_tokens---color--bg);
       border-top: 1px solid var(--_tokens---color--line-soft);
       padding-inline: var(--_tokens---layout--gutter);
       padding-block: 12px;
-      margin-top: 0;
+      margin: 0;
       box-sizing: border-box;
+    }
+
+    .home-search__panel {
+      position: fixed;
+      left: calc(var(--_tokens---layout--nav, 0px) + var(--_tokens---layout--gutter));
+      right: var(--_tokens---layout--gutter);
+      bottom: 67px; /* the bar: 42px field + 24px padding + 1px hairline */
+      z-index: 79;
+      max-height: min(60dvh, 520px);
+      overflow-y: auto;
+      scrollbar-width: none;
+      box-sizing: border-box;
+      padding: 16px 16px 12px;
+      /* Overlay, not the 40% glass: this sits over photographs, and pills set
+         in ultrathin type over a portrait are unreadable at 40%. */
+      background-color: var(--_tokens---color--bg-overlay);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--_tokens---color--line-soft);
+      border-bottom: none;
+      border-radius: 8px 8px 0 0;
+      transform: translateY(calc(100% + 67px));
+      visibility: hidden;
+      transition: transform var(--_tokens---motion--slow) var(--_tokens---ease-out),
+                  visibility 0s linear var(--_tokens---motion--slow);
+    }
+    .home-search__panel::-webkit-scrollbar { display: none; }
+
+    .home-search-footer.is-open .home-search__panel {
+      transform: none;
+      visibility: visible;
+      transition: transform var(--_tokens---motion--slow) var(--_tokens---ease-out),
+                  visibility 0s;
+    }
+
+    /* No visible count line over the suggestions — the matching pills say it.
+       Kept for screen readers: it is the live region that announces "2
+       matches" as you type. */
+    .home-search__count {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    /* Suggestions, not a second navigation: the pills in the panel sit a
+       step under the ultrathin floor, with a tighter chip around them. */
+    .home-search__panel .proj-bubble {
+      font-size: 0.6rem;
+      padding: 2px 8px;
+      gap: 4px;
+    }
+    .home-search__panel .proj-bubbles {
+      gap: 4px;
+    }
+
+    /* Page content must end above the fixed bar. */
+    :global(.page-main:has(.home-search__bar)) {
+      padding-bottom: 96px;
+    }
+  }
+
+  @media (min-width: 1024px) and (prefers-reduced-motion: reduce) {
+    .home-search__panel,
+    .home-search-footer.is-open .home-search__panel {
+      transition: none;
     }
   }
 </style>
@@ -610,18 +677,47 @@ const sorted = [...allProjects].sort((a, b) => {
 
     render('');
 
-    // On desktop home: scrolling to Frame 2 when user first focuses the search input
-    const searchSection = document.getElementById('home-search-section');
-    function scrollToSearchFrame() {
-      const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
-      if (!isDesktop || !searchSection) return;
-      const rect = searchSection.getBoundingClientRect();
-      if (rect.top > 80) { // only scroll if Frame 2 is not already visible
-        searchSection.scrollIntoView({ behavior: 'smooth' });
-      }
-    }
+    // Desktop: the cloud is a panel behind the fixed bar. It opens while the
+    // field is in use and closes on a click anywhere outside the field and the
+    // panel — Pages sits in the same bar, and opening it closes the cloud.
+    const panel = footer.querySelector('#qs-panel') as HTMLElement | null;
+    const field = footer.querySelector('.home-search__field') as HTMLElement | null;
+    const setOpen = (open: boolean) => footer.classList.toggle('is-open', open);
+    input?.addEventListener('focus', () => setOpen(true));
 
-    input?.addEventListener('focus', scrollToSearchFrame);
+    // Hovering the field reveals the suggestions too, so they read as help
+    // sitting under the bar rather than something you have to know to click
+    // for. Leaving both closes them after a beat — the beat covers the 12px
+    // of bar between field and panel — unless the field is in use.
+    const canHover = window.matchMedia('(hover: hover)');
+    let hoverTimer: number | undefined;
+    const hoverIn = () => {
+      if (!canHover.matches) return;
+      window.clearTimeout(hoverTimer);
+      setOpen(true);
+    };
+    const hoverOut = () => {
+      if (!canHover.matches) return;
+      window.clearTimeout(hoverTimer);
+      hoverTimer = window.setTimeout(() => {
+        if (document.activeElement === input || input?.value.trim()) return;
+        setOpen(false);
+      }, 250);
+    };
+    [field, panel].forEach(el => {
+      el?.addEventListener('pointerenter', hoverIn);
+      el?.addEventListener('pointerleave', hoverOut);
+    });
+    input?.addEventListener('blur', () => {
+      if (!input.value.trim() && !panel?.matches(':hover')) setOpen(false);
+    });
+
+    document.addEventListener('pointerdown', (e) => {
+      const t = e.target as Node;
+      if (!footer.classList.contains('is-open')) return;
+      if (panel?.contains(t) || field?.contains(t)) return;
+      setOpen(false);
+    });
 
     input?.addEventListener('input', () => {
       render(input.value);
@@ -636,6 +732,7 @@ const sorted = [...allProjects].sort((a, b) => {
         render('');
         buildRows();
         input.blur();
+        setOpen(false);
       }
     });
 

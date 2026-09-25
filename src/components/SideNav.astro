@@ -919,6 +919,7 @@ const schemes = [
 
 <script>
   import { GLYPHS as SCRAMBLE_GLYPHS } from '../lib/glyphs';
+  import { initAudio, playTick } from '../lib/tick';
 
   // ── State ──────────────────────────────────────────────────
   let navOpen = false;
@@ -937,49 +938,7 @@ const schemes = [
   let isAnimating = false;
   let lastNearestIndex = -1;
   let isWrapping = false;
-  let audioCtx: AudioContext | null = null;
-
-  function initAudio() {
-    if (!audioCtx) {
-      audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    }
-    if (audioCtx.state === 'suspended') {
-      audioCtx.resume();
-    }
-  }
-
-  function playTick() {
-    initAudio();
-    if (!audioCtx || audioCtx.state === 'suspended') return;
-    
-    // Mechanical iPod click wheel tick (crisp high-pass white noise burst)
-    const duration = 0.005; // 5ms burst
-    const bufferSize = audioCtx.sampleRate * duration;
-    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = Math.random() * 2 - 1;
-    }
-    
-    const noise = audioCtx.createBufferSource();
-    noise.buffer = buffer;
-    
-    const filter = audioCtx.createBiquadFilter();
-    filter.type = 'bandpass';
-    filter.frequency.value = 1800; // crisp high pitch
-    filter.Q.value = 4.0;
-    
-    const gain = audioCtx.createGain();
-    gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration - 0.001);
-    
-    noise.connect(filter);
-    filter.connect(gain);
-    gain.connect(audioCtx.destination);
-    
-    noise.start();
-    noise.stop(audioCtx.currentTime + duration);
-  }
+  // The tick sound lives in src/lib/tick.ts, shared with the Pages list.
 
   // ── Logo spin driven by scroll velocity ────────────────────
   // Spins rapidly while the page is scrolling, then decelerates rapidly once it stops.
@@ -1154,6 +1113,10 @@ const schemes = [
   if (!(window as any).hasSideNavSpacebarInit) {
     (window as any).hasSideNavSpacebarInit = true;
     window.addEventListener('keydown', (e) => {
+      // Space opened the panel the rail slides out. The rail is retired at
+      // every width, so the panel has no visible trigger left — space goes
+      // back to scrolling the page. Returns to life if the rail does.
+      if (getComputedStyle(bar).display === 'none') return;
       const active = document.activeElement as HTMLElement | null;
       if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)) {
         return;
