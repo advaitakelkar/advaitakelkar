@@ -610,6 +610,70 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   /* Tag horizontal scrollable picker */
   .filter-select-wrap--tags { display: none; }
 
+  /* ── House dropdown (enhanced <select>) ── */
+  :global(.fsel-native) { display: none !important; }
+  :global(.fsel-btn) {
+    display: flex;
+    align-items: center;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  :global(.fsel-btn__label) {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  :global(.fsel-panel) {
+    position: absolute;
+    left: 0;
+    z-index: 130;
+    min-width: 100%;
+    max-width: min(320px, calc(100vw - 24px));
+    max-height: min(50vh, 360px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px;
+    box-sizing: border-box;
+    background-color: var(--_tokens---color--bg);
+    border: 1px solid var(--_tokens---color--line-soft);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--_tokens---color--fg) 10%, transparent);
+  }
+  :global(.fsel-panel[hidden]) { display: none; }
+  :global(.fsel-panel[data-dir="up"]) { bottom: calc(100% + 6px); }
+  :global(.fsel-panel[data-dir="down"]) { top: calc(100% + 6px); }
+  :global(.fsel-opt) {
+    appearance: none;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-size: var(--_tokens---type--micro);
+    color: var(--_tokens---color--fg);
+    text-align: left;
+    white-space: nowrap;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  :global(.fsel-opt.is-sel) {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+  }
+  @media (hover: hover) {
+    :global(.fsel-opt:not(.is-sel):hover) {
+      background-color: color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
+    }
+  }
+  /* Filter is Category's mirror: its list hangs from the right edge, the
+     words sit on the right, the arrow on the left. */
+  :global(.filter-select-wrap--tags .fsel-panel) { left: auto; right: 0; }
+  :global(.filter-select-wrap--tags .fsel-opt) { text-align: right; }
+  :global(.filter-select-wrap--tags .fsel-btn) { justify-content: flex-end; text-align: right; }
+
   .tag-picker-wrapper {
     display: flex;
     align-items: center;
@@ -1092,9 +1156,22 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       padding-left: 12px;
       padding-right: 26px;
     }
-    .filter-select-wrap--tags .filter-select-arrow,
     .filter-bar > .filter-group:first-child .filter-select-arrow {
       right: 10px;
+    }
+    /* Mirrored: the arrow on Filter's left, the padding swapped to match. */
+    .filter-select-wrap--tags .filter-select {
+      padding-left: 26px;
+      padding-right: 12px;
+    }
+    .filter-select-wrap--tags .filter-select-arrow {
+      right: auto;
+      left: 10px;
+    }
+    /* Both always on: the pair reads as one control split in two, and one
+       half greyed until touched made them look like different things. */
+    .filter-bar .filter-select-wrap {
+      opacity: 1;
     }
     .tag-scroll-arrow {
       display: none !important; /* no arrow buttons on mobile */
@@ -1526,6 +1603,105 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   const countLabel = document.querySelector('.projects-count');
 
   const catSelect = document.getElementById('cat-select') as HTMLSelectElement;
+
+  /* Category and Filter as house dropdowns. A native <select> opens the
+     platform's own list wherever it likes; this opens a panel under our
+     control — Category's hangs from its left edge, Filter's from its right,
+     text aligned to the same side — and scrolls vertically when the list is
+     long. The <select> stays in the page as the state: a choice here sets
+     its value and fires its change event, so every existing listener works
+     unchanged. It opens upward when there is more room above (the bar is
+     docked at the bottom on a phone and on a desktop). */
+  function enhanceFilterSelect(sel: HTMLSelectElement) {
+    const wrap = sel.closest<HTMLElement>('.filter-select-wrap');
+    if (!wrap || wrap.dataset.fsel) return;
+    wrap.dataset.fsel = '1';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'filter-select fsel-btn';
+    btn.setAttribute('aria-haspopup', 'listbox');
+    btn.setAttribute('aria-expanded', 'false');
+    btn.setAttribute('aria-label', sel.getAttribute('aria-label') || sel.options[0]?.text || 'Choose');
+    const label = document.createElement('span');
+    label.className = 'fsel-btn__label';
+    btn.appendChild(label);
+    const panel = document.createElement('div');
+    panel.className = 'fsel-panel';
+    panel.setAttribute('role', 'listbox');
+    panel.hidden = true;
+    Array.from(sel.options).forEach(o => {
+      const opt = document.createElement('button');
+      opt.type = 'button';
+      opt.className = 'fsel-opt';
+      opt.setAttribute('role', 'option');
+      opt.dataset.value = o.value;
+      opt.textContent = o.text;
+      opt.addEventListener('click', () => {
+        sel.value = o.value;
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+        close();
+        btn.focus();
+      });
+      panel.appendChild(opt);
+    });
+    // Carry Astro's scope attribute over, or none of this component's scoped
+    // rules (the select's width, padding, arrow side) would reach the button.
+    const scope = Array.from(sel.attributes).filter(a => a.name.startsWith('data-astro-cid'));
+    [btn, label, panel, ...Array.from(panel.children)].forEach(el => scope.forEach(a => el.setAttribute(a.name, a.value)));
+    sel.classList.add('fsel-native');
+    sel.tabIndex = -1;
+    sel.setAttribute('aria-hidden', 'true');
+    wrap.insertBefore(btn, sel);
+    wrap.appendChild(panel);
+    const sync = () => {
+      label.textContent = sel.options[sel.selectedIndex]?.text ?? '';
+      panel.querySelectorAll<HTMLElement>('.fsel-opt').forEach(b => {
+        const on = b.dataset.value === sel.value;
+        b.classList.toggle('is-sel', on);
+        b.setAttribute('aria-selected', String(on));
+      });
+    };
+    const close = () => {
+      panel.hidden = true;
+      btn.setAttribute('aria-expanded', 'false');
+      document.removeEventListener('click', outside, true);
+    };
+    const outside = (e: Event) => { if (!wrap.contains(e.target as Node)) close(); };
+    btn.addEventListener('click', () => {
+      if (!panel.hidden) { close(); return; }
+      document.querySelectorAll<HTMLElement>('.fsel-panel').forEach(p => { if (p !== panel) p.hidden = true; });
+      /* Fixed to the window, not absolute in the wrap: on a tablet the
+         filters live in a folding panel with overflow hidden, which cut the
+         list down to its first row. Placed from the button's own rect. */
+      const r = wrap.getBoundingClientRect();
+      const up = r.top > window.innerHeight - r.bottom;
+      const right = wrap.classList.contains('filter-select-wrap--tags');
+      panel.dataset.dir = up ? 'up' : 'down';
+      Object.assign(panel.style, {
+        position: 'fixed',
+        minWidth: `${r.width}px`,
+        left: right ? 'auto' : `${r.left}px`,
+        right: right ? `${window.innerWidth - r.right}px` : 'auto',
+        top: up ? 'auto' : `${r.bottom + 6}px`,
+        bottom: up ? `${window.innerHeight - r.top + 6}px` : 'auto',
+        maxHeight: `${Math.max(120, Math.min(360, (up ? r.top : window.innerHeight - r.bottom) - 18))}px`,
+      });
+      panel.hidden = false;
+      window.addEventListener('scroll', close, { once: true, passive: true });
+      window.addEventListener('resize', close, { once: true });
+      btn.setAttribute('aria-expanded', 'true');
+      panel.querySelector<HTMLElement>('.fsel-opt.is-sel')?.scrollIntoView({ block: 'nearest' });
+      document.addEventListener('click', outside, true);
+    });
+    wrap.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !panel.hidden) { close(); btn.focus(); } });
+    sel.addEventListener('change', sync);
+    (sel as any)._fsync = sync;
+    sync();
+  }
+  function syncFilterSelects() {
+    document.querySelectorAll<HTMLSelectElement>('.filter-bar select.filter-select').forEach(s => (s as any)._fsync?.());
+  }
+  document.querySelectorAll<HTMLSelectElement>('.filter-bar select.filter-select').forEach(enhanceFilterSelect);
   const tagPicker = document.getElementById('tag-picker');
 
   let searchQuery = '';
@@ -1688,6 +1864,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       else searchInput.classList.remove('is-active');
     }
     // 2. Category select dropdown
+    syncFilterSelects();
     const selectWrap = document.querySelector('.filter-select-wrap');
     if (catSelect && selectWrap) {
       if (catSelect.value) selectWrap.classList.add('is-active');
