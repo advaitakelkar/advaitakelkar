@@ -18,6 +18,8 @@ const home = await getEntry('pages', 'home');
 const homeTagline = home?.data.tagline ?? 'Architectural Designer';
 const homeIntro = home?.data.intro ?? [];
 const intro0 = homeIntro[0] ?? "Hey, I'm Adi (Advaita Kelkar), an architectural designer from Mumbai, currently at SCAD in Savannah, USA. I work across architecture, interiors, and urban design, plus everything in between: computation, sculpture, graphic design, product. To me these aren't separate pursuits; they're one way of seeing the world. Always curious, always making. Glad you're here.";
+// The intro's first full sentence, shown on its own while the intro is shut.
+const introLead = intro0.split(/(?<=[.!?])\s+(?=[A-Z])/)[0];
 const intro1 = homeIntro[1] ?? "I'm an architect at heart. I think in systems, in how many parts come together to form a coherent whole. Designing, ideating, prototyping, making, documenting: each is a different medium for the same architectural way of thinking. Like my work, this archive doesn't keep things in boxes. Wander through it freely, and you'll notice forms, materials, and ideas recur and evolve from one project to the next.";
 
 // Featured slider (featured:true, sorted by numbr)
@@ -62,7 +64,7 @@ function getWords(name: string): string[] {
         {/* From 700 up: the short greeting and the control that opens the
             two bio paragraphs. Hidden on the phone. */}
         <div class="home-intro__column home-intro__column--hi">
-          <p class="home-intro__desc home-intro__hi">Hi, I'm Adi.</p>
+          <p class="home-intro__desc home-intro__hi">{introLead}</p>
           <button type="button" class="home-intro__more" id="home-intro-more" aria-expanded="false" aria-controls="home-intro-body">
             <span class="home-intro__more-label">Read more</span>
             <Icon name="chevron" dir="s" class="home-intro__more-arrow" />
@@ -1291,8 +1293,9 @@ function getWords(name: string): string[] {
   }
 
   /* ── Tablet and desktop: a greeting, then the archive ───────────────
-     From 700 up, shut, the intro is three columns: "Hi, I'm Adi." and Read more on the
-     left, the archive paragraph in the middle, the right one empty. Read
+     From 700 up, shut, the intro is three columns: the first sentence of
+     the bio and Read more on the left, the archive paragraph in the middle,
+     the right one empty. Read
      more lays the two bio paragraphs in the first two columns and moves the
      archive paragraph to the third; the control drops under the first. */
   .home-intro__column--hi {
@@ -1309,9 +1312,6 @@ function getWords(name: string): string[] {
       gap: 12px;
       grid-column: 1;
       grid-row: 1;
-    }
-    .home-intro__hi {
-      color: var(--_tokens---color--fg);
     }
     .home-intro__column--bio {
       display: none;
