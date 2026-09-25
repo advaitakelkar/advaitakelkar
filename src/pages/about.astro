@@ -293,13 +293,23 @@ const journeyTabs = [
       <div class="about-bio__text" id="bio-text-container">
         <p data-edit="pages/about/bioLead" data-edit-html set:html={aboutBioLead} />
 
-        <div class="bio-collapsed-content" id="bio-collapsed-content">
+        {/* The rest of the bio sits behind the Bio pill in the row below:
+            the lead paragraph says who, the pill opens the rest. */}
+        <div class="bio-collapsed-content" id="bio-collapsed-content" hidden>
           {aboutBioMore.map((para, i) => (
             <p data-edit={`pages/about/bioMore.${i}`}>{para}</p>
           ))}
         </div>
 
         <div class="bio-buttons-row">
+          {aboutBioMore.length > 0 && (
+            <button class="about-link-row bio-more-btn" id="bio-read-more-btn" type="button" aria-expanded="false" aria-controls="bio-collapsed-content">
+              <span class="about-link-row__text">Bio</span>
+              <span class="about-link-row__arrow" aria-hidden="true">
+                <Arrow />
+              </span>
+            </button>
+          )}
 
           {hasCv && (
             <a href="/Adi-Advaita-Kelkar-CV-Sept-2026.pdf" class="about-link-row" target="_blank" rel="noopener">
@@ -1614,6 +1624,16 @@ const journeyTabs = [
     .education-more-link { align-self: flex-start; }
   }
 
+  .bio-collapsed-content[hidden] { display: none !important; }
+  .bio-more-btn[aria-expanded="true"] {
+    background-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    border-color: var(--_tokens---color--fg);
+  }
+  .bio-more-btn[aria-expanded="true"] .about-link-row__arrow {
+    transform: rotate(135deg);
+  }
+
   .bio-buttons-row {
     display: flex;
     flex-wrap: wrap;
@@ -2272,17 +2292,14 @@ const journeyTabs = [
     if (status) status.hidden = !expanded;
   });
   
-  const toggleBio = () => {
-    if (collapsedContent && readMoreBtn) {
-      const isHidden = collapsedContent.style.display === 'none';
-      collapsedContent.style.display = isHidden ? 'block' : 'none';
-      const span = readMoreBtn.querySelector('span');
-      if (span) span.textContent = isHidden ? 'Read Less' : 'Read More';
-    }
-  };
-
-  readMoreBtn?.addEventListener('click', toggleBio);
-  collapsedContent?.addEventListener('click', toggleBio);
+  // Bio: opens the rest of the bio under the lead paragraph and closes it
+  // again. The pill inverts while it is open, like every open pill here.
+  readMoreBtn?.addEventListener('click', () => {
+    if (!collapsedContent) return;
+    const open = collapsedContent.hidden;
+    collapsedContent.hidden = !open;
+    readMoreBtn.setAttribute('aria-expanded', String(open));
+  });
 
   // --- Journey tabs ---
   // Real tabs: one panel on screen at a time, nothing scrolls. Left/Right
