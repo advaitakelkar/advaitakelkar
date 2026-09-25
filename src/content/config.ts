@@ -153,6 +153,8 @@ const projects = defineCollection({
       // A line of text for the view's group. In the grid layout a group
       // whose first view carries one sets it on the left, the pictures right.
       note: z.string().optional(),
+      // A text block set under this one picture (grid layout only).
+      caption: z.string().optional(),
       image: z.string(),
       variations: z.array(z.string()).optional(),
     })).optional(),
