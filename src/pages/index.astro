@@ -20,10 +20,6 @@ const homeIntro = home?.data.intro ?? [];
 const intro0 = homeIntro[0] ?? "Hey, I'm Adi (Advaita Kelkar), an architectural designer from Mumbai, currently at SCAD in Savannah, USA. I work across architecture, interiors, and urban design, plus everything in between: computation, sculpture, graphic design, product. To me these aren't separate pursuits; they're one way of seeing the world. Always curious, always making. Glad you're here.";
 const intro1 = homeIntro[1] ?? "I'm an architect at heart. I think in systems, in how many parts come together to form a coherent whole. Designing, ideating, prototyping, making, documenting: each is a different medium for the same architectural way of thinking. Like my work, this archive doesn't keep things in boxes. Wander through it freely, and you'll notice forms, materials, and ideas recur and evolve from one project to the next.";
 
-const firstSentenceMatch = intro0.match(/^([^.?!]+[.?!])\s*(.*)$/s);
-const bioLead = firstSentenceMatch ? firstSentenceMatch[1] : intro0;
-const bioRest0 = firstSentenceMatch ? firstSentenceMatch[2] : '';
-
 // Featured slider (featured:true, sorted by numbr)
 const featured = allProjects
   .filter(p => p.data.featured && p.data.coverImage && !isProjectLocked(p.id))
@@ -58,25 +54,14 @@ function getWords(name: string): string[] {
         <h1 class="home-intro__label" id="tagline-main" data-scramble data-edit="pages/home/tagline">{homeTagline}</h1>
       </div>
 
-      <!-- Small About Me — flexible, responsive 3-column structure.
-           All columns always visible on all devices. -->
+      <!-- Small About Me — the same three paragraphs at the same size on every
+           device. The grid decides the columns: three on desktop, two on a
+           tablet, one on a phone. There used to be a phone/tablet version
+           that showed one line and hid the rest behind "Read more about me". -->
       <div class="home-intro__body" id="home-intro-body">
-        {/* Mobile & Tablet lead: full line introducing Adi */}
-        <p class="home-intro__desc home-intro__lead-mobile">
-          {bioLead}
-        </p>
-
-        {/* Mobile & Tablet toggle button */}
-        <div class="home-intro__toggle-wrap">
-          <button class="intro-bio-btn" id="intro-bio-btn" type="button" aria-expanded="false">
-            <span>Read more about me</span>
-            <Arrow class="intro-bio-arrow" />
-          </button>
-        </div>
-
         <div class="home-intro__column home-intro__column--bio">
           <p class="home-intro__desc" data-edit="pages/home/intro.0">
-            <span class="home-intro__lead-desktop">{bioLead} </span>{bioRest0}
+            {intro0}
           </p>
         </div>
         <div class="home-intro__column home-intro__column--bio">
@@ -490,6 +475,12 @@ function getWords(name: string): string[] {
          track's translation without needing a recompute on scroll. */
       slide.style.setProperty('--photo-l', left + 'px');
       slide.style.setProperty('--photo-b', bottom + 'px');
+
+      /* Desktop: the description lives in the space left of the photo and
+         never runs under it. When that space is narrower than a readable
+         column (a wide render in a narrow window) there is nowhere for it
+         to go, so it drops out, as it does on a tablet. */
+      slide.classList.toggle('is-tight', left - 24 < 224);
     });
   }
   // Coalesce to one fit per frame — scroll fires many times per frame and
@@ -542,28 +533,6 @@ function getWords(name: string): string[] {
     setupEmailCopy();
   }
   document.addEventListener('astro:after-swap', setupEmailCopy);
-
-  // ── Bio pill (mobile & tablet): reveals the two hidden bio columns ──
-  function setupIntroToggle() {
-    const bioBtn = document.getElementById('intro-bio-btn');
-    const body = document.getElementById('home-intro-body');
-    if (!bioBtn || bioBtn.dataset.bound === 'true') return;
-    bioBtn.dataset.bound = 'true';
-    bioBtn.addEventListener('click', () => {
-      if (!body) return;
-      const expanded = body.classList.toggle('is-expanded');
-      bioBtn.setAttribute('aria-expanded', String(expanded));
-      const span = bioBtn.querySelector('span');
-      if (span) span.textContent = expanded ? 'Read less' : 'Read more about me';
-    });
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', setupIntroToggle);
-  } else {
-    setupIntroToggle();
-  }
-  document.addEventListener('astro:after-swap', setupIntroToggle);
 
   // ── Scroll to Top on Home Tagline Header Tap ────────────────
   function setupHomeHeaderScroll() {
@@ -719,18 +688,6 @@ function getWords(name: string): string[] {
     color: var(--_tokens---color--muted);
     margin: 0;
     max-width: 68ch;
-  }
-
-  .home-intro__lead-mobile {
-    display: none;
-  }
-
-  .home-intro__toggle-wrap {
-    display: none;
-  }
-
-  .home-intro__lead-desktop {
-    display: inline;
   }
 
   /* Follow-on lines in a column read as one compact block — no gap
@@ -933,7 +890,14 @@ function getWords(name: string): string[] {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    max-width: min(440px, 52%); /* text stays a readable column, mostly in the gutter */
+    /* Stops 24px short of the photo's visible left edge (--photo-l, measured
+       by fitKnockouts) — the text never runs under the picture. */
+    max-width: min(440px, calc(var(--photo-l, 17%) - 24px));
+  }
+  @media (min-width: 1024px) {
+    .home-slider__slide.is-tight .home-slider__about {
+      display: none;
+    }
   }
 
   .home-slider__intro {
@@ -1162,47 +1126,6 @@ function getWords(name: string): string[] {
     padding: 24px 0 0; /* sits below the slides — breathing room above */
   }
 
-  /* Bio pill — mobile only; same pill language as the About page */
-  .intro-bio-btn {
-    display: none; /* hidden on desktop — all columns already visible */
-    align-items: center;
-    gap: var(--_tokens---pill-gap);
-    align-self: flex-start;
-    font-family: inherit;
-    font-size: var(--_tokens---type--ultrathin);
-    font-weight: var(--_tokens---weight--light);
-    letter-spacing: 0.05em;
-    color: var(--_tokens---color--muted);
-    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
-    border: var(--_tokens---pill-border);
-    border-radius: var(--_tokens---radius--pill);
-    padding: var(--_tokens---pill-pad--sm);
-    margin-bottom: 12px;
-    cursor: pointer;
-    transition: background-color var(--_tokens---motion--base), color var(--_tokens---motion--base), border-color var(--_tokens---motion--base);
-  }
-
-  .intro-bio-btn .intro-bio-arrow {
-    flex-shrink: 0;
-    opacity: 0.55;
-    transition: transform var(--_tokens---motion--base) cubic-bezier(0.16, 1, 0.3, 1), opacity var(--_tokens---motion--base) ease;
-  
-
-    --arrow-size: var(--_tokens---arrow--sm);
-
-  }
-
-  /* Open state: invert like the active tabs; arrow rotates to point down */
-  .intro-bio-btn[aria-expanded="true"] {
-    background-color: var(--_tokens---color--fg);
-    color: var(--_tokens---color--bg);
-    border-color: var(--_tokens---color--fg);
-  }
-  .intro-bio-btn[aria-expanded="true"] .intro-bio-arrow {
-    transform: rotate(135deg);
-    opacity: 1;
-  }
-
   .home-slider__dot {
     width: 8px; height: 8px;
     border-radius: 50%;
@@ -1424,57 +1347,16 @@ function getWords(name: string): string[] {
       text-transform: none !important;
       color: var(--_tokens---color--fg) !important;
     }
-    /* While the Bio is expanded its two paragraphs need room — let the
-       hero grow past one screen instead of crushing the photo */
-    .home-section--hero:has(.home-intro__body.is-expanded) {
-      height: auto;
-      min-height: 100dvh;
-      overflow: visible;
-    }
     .home-section--search {
       overflow-y: visible;
       padding-top: 40px; /* breathing room after the hero's pagination */
     }
+    /* The intro is the desktop intro here too: same three paragraphs, same
+       --type--micro size, same auto-fit grid (two columns on a tablet, one
+       on a phone). Only the vertical spacing tightens. */
     .home-intro__body {
-      grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
       gap: 16px;
       padding-block: 14px;
-    }
-    .home-intro__lead-mobile {
-      display: block;
-      grid-column: 1 / -1;
-      width: 100%;
-      margin: 0;
-    }
-    .home-intro__toggle-wrap {
-      display: block;
-      grid-column: 1 / -1;
-      width: 100%;
-      margin-top: -4px;
-      margin-bottom: 4px;
-    }
-    .home-intro__lead-desktop {
-      display: none;
-    }
-    .home-intro__column--contact {
-      grid-column: 1 / -1;
-    }
-    .home-intro__desc {
-      font-size: var(--_tokens---type--small);
-      line-height: 1.6;
-    }
-    .intro-bio-btn {
-      display: inline-flex;
-      margin-bottom: 0;
-    }
-    .home-intro__column--bio {
-      display: none;
-    }
-    .home-intro__body.is-expanded .home-intro__column--bio {
-      display: flex;
-      opacity: 1;
-      transform: none;
-      animation: none;
     }
     /* The slider fills whatever height is left under the intro; the photo
        flexes to absorb it, so the whole card (name, photo, facts, dots)
@@ -1702,9 +1584,6 @@ function getWords(name: string): string[] {
       grid-template-columns: 1fr;
       gap: 16px;
       padding-block: 10px;
-    }
-    .home-intro__column--contact {
-      grid-column: auto;
     }
     .home-slider__slide {
       flex: 0 0 100%;
