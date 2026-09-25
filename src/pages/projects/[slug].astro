@@ -5025,45 +5025,53 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
      rule of equal specificity would win on source order alone — which is the
      kind of thing that silently swaps when a block is moved. */
   @media (max-width: 699.98px) {
-    .project-detail[data-renders="true"]:not([data-chapters="true"]) #project-readmore-btn {
-      display: none !important;
-    }
-    .project-detail[data-renders="true"]:not([data-chapters="true"]) .project-phone-card .project-desc-readmore {
-      display: block !important;
-      max-height: none !important;
-      overflow: visible !important;
-    }
-    .project-detail[data-renders="true"]:not([data-chapters="true"]) .project-phone-card .project-card__desc {
-      display: block !important;
-      max-height: 32vh !important;
-      overflow-y: auto !important;
-      scrollbar-width: none;
-    }
+    /* Every renders card now reads the way the chapters card did: the
+       subtitle shows, the description sits behind Read more on its own row
+       above the filter pills, and opens to scroll at 32vh. */
     .project-detail[data-renders="true"] .project-phone-card .project-card__desc::-webkit-scrollbar {
       display: none;
     }
-    /* Chapters: the pill is the control, so it has to be visible and the
-       description has to start shut. The renders reset above sets this column
-       to `display: block !important`, which the card's own collapsed rule
-       cannot beat, so the closed state is restated here. Open, it scrolls at
-       32vh like the others. */
-    .project-detail[data-chapters="true"] .project-phone-actions .project-video-btn,
-    .project-detail[data-chapters="true"] .project-phone-actions #project-readmore-btn {
+    .project-detail[data-renders="true"] .project-phone-actions .project-video-btn,
+    .project-detail[data-renders="true"] .project-phone-actions #project-readmore-btn {
       display: inline-flex !important;
     }
-    .project-detail[data-chapters="true"] .project-phone-card .project-desc-readmore {
+    .project-detail[data-renders="true"] .project-phone-card .project-desc-readmore {
       display: none !important;
     }
-    .project-detail[data-chapters="true"] .project-phone-card.is-reading .project-desc-readmore {
+    .project-detail[data-renders="true"] .project-phone-card.is-reading .project-desc-readmore {
       display: block !important;
       max-height: none !important;
       overflow: visible !important;
     }
-    .project-detail[data-chapters="true"] .project-phone-card.is-reading .project-card__desc {
+    .project-detail[data-renders="true"] .project-phone-card.is-reading .project-card__desc {
       display: block !important;
       max-height: 32vh !important;
       overflow-y: auto !important;
       scrollbar-width: none;
+    }
+
+    /* The card's order, the category card's: faces, subtitle, description,
+       Read more, the filter pills, the credit. */
+    .project-detail[data-renders="true"] .project-phone-card > .project-people { order: 0; margin: 0 !important; }
+    .project-detail[data-renders="true"] .project-phone-card > .project-card-name-pagination-row { order: 1; }
+    .project-detail[data-renders="true"] .project-phone-card > .project-card__intro { order: 2; }
+    .project-detail[data-renders="true"] .project-phone-card > .project-desc-readmore { order: 3; }
+    .project-detail[data-renders="true"] .project-phone-card > .project-phone-actions { order: 4; }
+    .project-detail[data-renders="true"] .project-phone-card > .project-card__metaline { order: 5; }
+    .project-detail[data-renders="true"] .project-phone-card > .project-video-panel { order: 6; }
+    .project-detail[data-renders="true"] .project-phone-card > .renders-collection {
+      order: 7;
+      position: static;
+      margin: 2px 0 0;
+      padding: 8px 0 0;
+      gap: 8px;
+      font-size: var(--_tokens---type--micro);
+      box-shadow: none;
+      background: none;
+    }
+    .project-detail[data-renders="true"] .project-phone-card > .renders-collection .renders-collection__face {
+      width: 24px;
+      height: 24px;
     }
   }
 
@@ -6360,6 +6368,11 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
     if (!phone) {
       if (card) {
+        const ppl = card.querySelector('#project-people-panel') as HTMLElement | null;
+        const slot = document.getElementById('renders-people-slot');
+        if (ppl && slot) slot.insertBefore(ppl, slot.firstChild);
+        const credit = card.querySelector('.renders-collection') as HTMLElement | null;
+        if (credit) sendHome(credit);
         [...PHONE_CARD_PARTS, '.prompt-box', '.copy-prompt-btn', '.project-readmore-btn',
          '.project-phone-close', '.renders-aside__media', '.project-video-btn'].forEach(sel => {
           const el = detail.querySelector(sel) as HTMLElement | null;
@@ -6441,6 +6454,17 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     const close = detail.querySelector('.project-phone-close') as HTMLElement | null;
     if (close) { rememberHome(close); actions.appendChild(close); }
     if (actions.children.length && actions.parentElement !== card) card.appendChild(actions);
+
+    /* Renders pages read like a category card: the faces on a row of their
+       own at the top, then the subtitle, the description behind Read more,
+       the filter pills, and the collection credit last, over the nav bar.
+       The order itself is CSS (`order` on each part); these are moved in. */
+    if (detail.dataset.renders === 'true') {
+      const ppl = document.getElementById('project-people-panel');
+      if (ppl && ppl.parentElement !== card) card.insertBefore(ppl, card.firstChild);
+      const credit = detail.querySelector('.renders-collection') as HTMLElement | null;
+      if (credit) { rememberHome(credit); if (credit.parentElement !== card) card.appendChild(credit); }
+    }
 
     measureProjectPhoneCard();
   }
@@ -6765,7 +6789,9 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
        Inserted first, not appended: the credit line is already in the slot as
        markup, and the faces belong in front of the words that name them. */
     const place = () => {
-      const target = wide.matches ? slot : (titleSlot ?? slot);
+      const target = wide.matches
+        ? slot
+        : (detail.querySelector<HTMLElement>('.project-phone-card') ?? titleSlot ?? slot);
       if (target && people.parentElement !== target) target.insertBefore(people, target.firstChild);
     };
     if (!detail.dataset.rpWired) {

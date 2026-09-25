@@ -2220,6 +2220,12 @@ const journeyTabs = [
      Open, the title and its arrow are regular and light — the content
      under them is what you are reading. Shut, both go back to the heavier
      weight at full strength: the thing to press. At every width. */
+  /* An open section needs no rule under its title: its content starts
+     right there and reads as its own. Shut, a row keeps its hairline so the
+     closed sections still stack as rows. At every width. */
+  .about-page :is(.education-header, .career-header, .skillset-header):has(.page-toggle-btn[aria-expanded="true"]) {
+    border-bottom: none !important;
+  }
   .about-page :is(.education-header, .career-header, .skillset-header):has(.page-toggle-btn[aria-expanded="true"]) .profile-name {
     font-weight: 400;
   }
@@ -2552,8 +2558,10 @@ const journeyTabs = [
     setupScrollToTop();
   });
 
-  // ── Phone: three sections, one open, the closed ones docked ─────────
-  // Education, Journey and Skillset. Exactly one is open; the closed rows
+  // ── Phone: three sections, at most two open, the closed ones docked ──
+  // Education, Journey and Skillset. Up to two are open; opening a third
+  // closes the one farthest from it — the bottom one when you open the top,
+  // the top one when you open the bottom. The closed rows
   // above it stack at the TOP of the screen and the closed rows below it
   // stack at the BOTTOM, above the nav bar. So all three titles are on
   // screen however far you scroll, and each one stays on the side of the
@@ -2605,14 +2613,26 @@ const journeyTabs = [
       .filter(r => r.btn && r.hdr);
     const isOpen = (r: any) => r.btn.getAttribute('aria-expanded') !== 'false';
 
-    // One at a time. Opening a section closes whichever was open, so the one
-    // you want is never buried under two others you have to collapse first.
-    // The clicks are synthetic, so re-entry is guarded rather than trusted.
-    function solo(keep: number) {
+    // Two at a time. Opening a third closes the open one farthest from it
+    // (a tie — the middle one opened — closes whichever was opened first),
+    // so the one you want is never buried under two others. The clicks are
+    // synthetic, so re-entry is guarded rather than trusted.
+    const openedAt: number[] = rows.map(() => 0);
+    let clock = 0;
+    function closeWhere(test: (i: number) => boolean) {
       if ((page as any)._solo) return;
       (page as any)._solo = true;
-      rows.forEach((r, i) => { if (i !== keep && isOpen(r)) r.btn!.click(); });
+      rows.forEach((r, i) => { if (test(i) && isOpen(r)) r.btn!.click(); });
       (page as any)._solo = false;
+    }
+    function solo(keep: number) { closeWhere(i => i !== keep); }
+    function limitTwo(opened: number) {
+      openedAt[opened] = ++clock;
+      const others = rows.map((r, i) => i).filter(i => i !== opened && isOpen(rows[i]));
+      if (others.length < 2) return;
+      others.sort((a, b) => (Math.abs(b - opened) - Math.abs(a - opened)) || (openedAt[a] - openedAt[b]));
+      const drop = others[0];
+      closeWhere(i => i === drop);
     }
 
     // Rows up to and including the open one stick to the top, each below the
@@ -2625,7 +2645,10 @@ const journeyTabs = [
         page!.style.removeProperty('--ab-bot-h');
         return;
       }
-      const open = rows.findIndex(isOpen);
+      // The last open section is the pivot: every row down to it docks up,
+      // the rest dock down. With one open that is the open one.
+      let open = -1;
+      rows.forEach((r, i) => { if (isOpen(r)) open = i; });
       const h = rows.map(r => r.hdr!.getBoundingClientRect().height);
       const dockH = parseFloat(getComputedStyle(page!).getPropertyValue('--ab-dock-h')) || 66;
       let up = 0;
@@ -2650,6 +2673,7 @@ const journeyTabs = [
       if ((page as any)._collapsed || !phone.matches) return;
       (page as any)._collapsed = true;
       solo(0);
+      openedAt[0] = ++clock;
     }
 
     function apply() {
@@ -2683,7 +2707,7 @@ const journeyTabs = [
       rows.forEach((r, i) => {
         r.hdr!.addEventListener('click', () => {
           if ((page as any)._solo || !phone.matches) return;
-          if (isOpen(r)) solo(i);
+          if (isOpen(r)) limitTwo(i);
           dock();
           setTimeout(dock, 450);
         });
