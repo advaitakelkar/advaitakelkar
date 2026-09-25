@@ -59,8 +59,8 @@ function getWords(name: string): string[] {
            tablet, one on a phone. There used to be a phone/tablet version
            that showed one line and hid the rest behind "Read more about me". -->
       <div class="home-intro__body" id="home-intro-body">
-        {/* Tablet only: the short greeting and the control that opens the
-            two bio paragraphs. Hidden on the phone and from 1024 up. */}
+        {/* From 700 up: the short greeting and the control that opens the
+            two bio paragraphs. Hidden on the phone. */}
         <div class="home-intro__column home-intro__column--hi">
           <p class="home-intro__desc home-intro__hi">Hi, I'm Adi.</p>
           <button type="button" class="home-intro__more" id="home-intro-more" aria-expanded="false" aria-controls="home-intro-body">
@@ -500,6 +500,10 @@ function getWords(name: string): string[] {
   }
   window.addEventListener('load', scheduleFit);
   window.addEventListener('resize', scheduleFit);
+  // The window is not the only thing that resizes the slider: opening the
+  // intro's Read more takes height from it and shrinks every photo.
+  const sliderTrack = document.getElementById('slider-track');
+  if (sliderTrack && 'ResizeObserver' in window) new ResizeObserver(scheduleFit).observe(sliderTrack);
   document.querySelectorAll('.home-slider__image-wrap img').forEach(img => {
     if (!img.complete) img.addEventListener('load', scheduleFit);
   });
@@ -556,7 +560,7 @@ function getWords(name: string): string[] {
   }
   document.addEventListener('astro:after-swap', setupHomeHeaderScroll);
 
-  // Tablet intro: Read more opens the two bio paragraphs beside the archive
+  // Intro from 700 up: Read more opens the two bio paragraphs beside the archive
   // paragraph, three columns in all; Read less folds them away again.
   (() => {
     const btn = document.getElementById('home-intro-more');
@@ -1277,35 +1281,24 @@ function getWords(name: string): string[] {
     }
   }
 
-  /* ── Desktop: one paragraph over the slider ─────────────────────────
-     The two bio paragraphs are the About page's job; here only the third
-     column stays — what this archive is and where to find me — so the hero's
-     height goes to the featured slider, which flexes to fill it. */
+  /* ── Desktop: a wider share of the width for the featured picture. The
+     intro above it is the tablet's three columns (see below). */
   @media (min-width: 1024px) {
-    .home-intro__column--bio {
-      display: none;
-    }
-    .home-intro__body {
-      grid-template-columns: minmax(0, 1fr);
-    }
-    .home-intro__column--contact .home-intro__desc {
-      max-width: 90ch;
-    }
     /* A wider share of the width for the picture as well. */
     .home-slider__slide {
       --img-w: 72%;
     }
   }
 
-  /* ── Tablet: a greeting, then the archive ───────────────────────────
-     Shut, the intro is three columns: "Hi, I'm Adi." and Read more on the
+  /* ── Tablet and desktop: a greeting, then the archive ───────────────
+     From 700 up, shut, the intro is three columns: "Hi, I'm Adi." and Read more on the
      left, the archive paragraph in the middle, the right one empty. Read
      more lays the two bio paragraphs in the first two columns and moves the
      archive paragraph to the third; the control drops under the first. */
   .home-intro__column--hi {
     display: none;
   }
-  @media (min-width: 700px) and (max-width: 1023.98px) {
+  @media (min-width: 700px) {
     .home-intro__body {
       grid-template-columns: repeat(3, minmax(0, 1fr));
       column-gap: 24px;
