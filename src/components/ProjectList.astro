@@ -112,7 +112,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
           <span class="filter-label text-muted">Category</span>
           <div class="filter-select-wrap">
             <select id="cat-select" class="filter-select">
-              <option value="">All Categories</option>
+              <option value="">Categories</option>
               {allCats.map(cat => (
                 <option value={cat.id}>{cat.data.displayName}</option>
               ))}
@@ -123,7 +123,11 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
         
         <div class="filter-group filter-group--tags">
           <div class="tag-picker-wrapper">
-            <button class="tag-picker-item is-active" data-filter="" id="all-tag-btn" type="button">All</button>
+            {/* ✱ keeps only the projects that are open, whatever else is
+                chosen; All is a mark, the arrow in a circle, as on every
+                other All tab. */}
+            <button class="tag-picker-item tag-picker-item--mark" id="open-only-btn" type="button" aria-pressed="false" aria-label="Unlocked projects only" title="Unlocked projects only">✱</button>
+            <button class="tag-picker-item tag-picker-item--mark is-active" data-filter="" id="all-tag-btn" type="button" aria-label="All" title="All"><Icon name="arrow" /></button>
             <span class="tag-picker-divider">|</span>
             <div class="tag-scroll-nav">
               <button class="tag-scroll-arrow tag-scroll-arrow--left" id="tag-scroll-left" aria-label="Scroll tags left" type="button">
@@ -680,6 +684,20 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     letter-spacing: 0.04em;
     cursor: pointer;
     transition: background-color var(--_tokens---motion--base) ease, border-color var(--_tokens---motion--base) ease, color var(--_tokens---motion--base) ease;
+  }
+
+  /* A pill drawn as a circle: the same height as the labelled pills (its
+     6px padding top and bottom stays), as wide as it is tall. */
+  .tag-picker-item--mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    padding: 0;
+    width: calc(1lh + 14px);
+    height: calc(1lh + 14px);
+    letter-spacing: 0;
+    --icon-size: var(--_tokens---arrow--md);
   }
 
   .tag-picker-item.is-active {
@@ -1462,6 +1480,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   let searchQuery = '';
   let activeCat = '';
   let activeTag = '';
+  let openOnly = false;
   let keyboardProjectIndex = -1;
   const searchPrompts = [
     'Search by year',
@@ -1702,8 +1721,9 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
       const catMatch = !activeCat || catId === activeCat;
       const tagMatch = !activeTag || tagIds.includes(activeTag);
+      const openMatch = !openOnly || !card.classList.contains('is-locked');
 
-      if (searchMatch && catMatch && tagMatch) {
+      if (searchMatch && catMatch && tagMatch && openMatch) {
         matchingCards.push(card);
       }
     });
@@ -1782,6 +1802,16 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   window.addEventListener('resize', updateScrollArrows, { passive: true });
 
   const allTagBtn = document.getElementById('all-tag-btn');
+  const openOnlyBtn = document.getElementById('open-only-btn');
+
+  // ✱ is a toggle of its own: it narrows whatever the tags and category
+  // already show to the projects that are not locked.
+  openOnlyBtn?.addEventListener('click', () => {
+    openOnly = !openOnly;
+    openOnlyBtn.classList.toggle('is-active', openOnly);
+    openOnlyBtn.setAttribute('aria-pressed', String(openOnly));
+    applyFilter();
+  });
 
   // Static All Tag button click listener
   allTagBtn?.addEventListener('click', () => {
@@ -1821,6 +1851,9 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     searchQuery = '';
     activeCat = '';
     activeTag = '';
+    openOnly = false;
+    openOnlyBtn?.classList.remove('is-active');
+    openOnlyBtn?.setAttribute('aria-pressed', 'false');
     // Reset tag picker active states
     allTagBtn?.classList.add('is-active');
     tagPicker?.querySelectorAll('.tag-picker-item').forEach(btn => {
@@ -1897,7 +1930,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     document.removeEventListener('keydown', handleProjectSearchKeyboard);
   }, { once: true });
 
-  // Mobile space-saver: abbreviate "All Categories".
+  // Mobile space-saver: abbreviate "Categories".
   if (window.matchMedia('(max-width: 1023.98px)').matches) {
     const allCatOpt = catSelect?.querySelector('option[value=""]');
     if (allCatOpt) allCatOpt.textContent = 'CTGRY';
