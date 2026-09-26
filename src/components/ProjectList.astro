@@ -5,6 +5,7 @@ import PageLayout from '../layouts/PageLayout.astro';
 import Arrow from './Arrow.astro';
 import ProjectStackCard from './ProjectStackCard.astro';
 import ImageLightbox from './ImageLightbox.astro';
+import { isPublicProject } from '../lib/projectAccess';
 
 export interface Props {
   projects: any[];
@@ -18,8 +19,11 @@ const allTags = await getCollection('tags');
 const allCats = await getCollection('categories');
 const allStudios = await getCollection('studios');
 
-// Sort by number then year
+// Open projects first, so the list does not open on a locked row (AUDIT-3
+// #4); then by number, then year.
 const sorted = [...projects].sort((a, b) => {
+  const open = Number(isPublicProject(b.id)) - Number(isPublicProject(a.id));
+  if (open) return open;
   if (a.data.numbr && b.data.numbr) return a.data.numbr - b.data.numbr;
   if (a.data.numbr) return -1;
   if (b.data.numbr) return 1;
@@ -1541,7 +1545,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       display: none;
     }
     .projects-bottom-section .proj-bubble {
-      font-size: 0.6rem;
+      font-size: var(--_tokens---type--ultrathin);
       padding: 2px 8px;
       gap: 4px;
     }
@@ -1797,8 +1801,15 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     }
   }
 
-  // Project cards: shuffle so the list order is different on every load
-  if (container) shuffleChildren(container);
+  // Project cards: shuffle so the list order is different on every load,
+  // then move the locked ones (still shuffled) after the open ones, so the
+  // list never opens on a locked row (AUDIT-3 #4).
+  if (container) {
+    shuffleChildren(container);
+    Array.from(container.children)
+      .filter(child => child.matches('.is-locked') || child.querySelector(':scope > .project-card.is-locked'))
+      .forEach(child => container.appendChild(child));
+  }
 
   // Bottom bubbles: always present, grey by default, highlight on search match
   const grid = document.getElementById('proj-bubbles');

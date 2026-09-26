@@ -45,25 +45,42 @@ Reference a known-good file: `src/content/projects/carlo.yaml`.
 
 ## Status snapshot
 
-- **50 projects. 10 public, 40 locked.**
+Re-surveyed **2026-09-26** at HEAD `78361a4` with `pnpm audit:jev` (see below). Supersedes the
+2026-09-09 snapshot, whose cover count was wrong.
+
+- **52 projects. 12 public, 40 locked.**
+- **Images are the bottleneck, not writing.** Only **13 projects have a `coverImage`**, and only
+  those 13 have any gallery images at all. The 39 others render with no cover and no gallery.
 - **7 are hard placeholders** (literal "placeholder" text, no images).
-- **3 projects are featured on the homepage but locked** — the homepage promotes them, then a
-  visitor clicking through hits the password wall. Worst single UX issue. Fix these first.
-- **15 projects have no `coverImage`** → they render with no cover in the index/feature.
+- **2 are featured on the homepage data but locked:** `episodeone-powai`, `scad-design-built`.
+  (The homepage now only shows public projects with covers, so neither leaks, but see Tier 0.)
 - Pages (`home.yaml`, `about.yaml`) — copy is real and in good shape. No placeholders.
 
-### Public now (10) — leave locked-list alone, but re-check content quality
-`alt-verse` · `architect-x-architects` · `carlo` · `concrt` · `dhal-ni-pol` ·
-`human-pods` · `indian-royals` · `space-pirates` · `sups-cards` · `sups-in-the-hinterland`
+### Checking content with Jev
 
-### Tier 0 — featured but locked (do first, 3)
-These already show on the homepage slider. Highest embarrassment, highest payoff.
+```bash
+aihub run typesafe -- pnpm audit:jev
+```
+
+`scripts/jev-audit.mjs` checks fields, cover and image files in code, and asks Jev (TypeSafe) to
+score each `smallIntro` (0–3) and `description` (0–3) and flag draft leftovers. About $0.002 and
+under a second for all 52. Scores sort the worklist; they are not verdicts. Two known
+disagreements from the first run: `space-pirates` intro scored 2.0 but reads fine; `hanma-fam`
+got a 0.4 draft flag with no draft text in it. Pages near the cut-offs can flip between runs.
+
+### Public now (12) — leave locked-list alone, but re-check content quality
+`alt-verse` · `architect-x-architects` · `carlo` · `concrt` · `deleuze-guattari` · `hanma-fam` ·
+`indian-royals` · `shelf` · `space-pirates` · `sups-cards` · `sups-in-the-hinterland` · `xbkc`
+
+Weakest public text (intro/description): `sups-in-the-hinterland` (2.3/2.3), `alt-verse`
+(2.2/2.5). Tighten these first.
+
+### Tier 0 — featured but locked (2)
 
 | slug | name | gap |
 |---|---|---|
-| `episodeone-powai` | EPISODE Powai | strongest hospitality work (the Rockwell Group case). Content looks near-complete — verify images + credits, then unlock |
-| `shelf` | SHLF | verify, then unlock |
-| `scad-design-built` | SCAD Design Built | the thesis studio — biggest, uses `chapters`. May genuinely not be ready; if so, remove `featured: true` so the homepage stops promoting it |
+| `episodeone-powai` | EPISODE Powai | the Rockwell Group case. Text is top-scored (2.9/3.0) but there is **no `public/images/episodeone-powai/` at all**. Needs cover + ≥3 images, then unlock |
+| `scad-design-built` | SCAD Design Built | the thesis studio, uses `chapters`. Has cover + 11 images, text 3.0/2.6. Decide: finish and unlock, or drop `featured: true` |
 
 ### Tier 1 — hard placeholders (7)
 No real content at all. Each needs intro + description + cover + 3 images from scratch.
@@ -74,19 +91,26 @@ No real content at all. Each needs intro + description + cover + 3 images from s
 > `tower-of-the-quiet-witness` and `union-pier-charleston` are the active SCAD studios — their
 > source files carry the `TOQS_` / Union Pier working sets in `~/My Drive/HUB/00 Projects/`.
 
-### Tier 2 — locked, have some content, no cover (missing `coverImage`, ~12 after Tier 1)
-`the-4th-dimention` · `dhal-ni-pol`* · `vndls` · `open-source-design-library` · `virtual-gods` ·
-`union-pier-charleston` · `scarpin` · `archv`
-(*`dhal-ni-pol` is already public but coverless — fix its cover.)
+### Tier 2 — text is done, images missing (13)
+Jev scores the writing finished (intro ≥2.2, description ≥2.6). Only images stand between these
+and unlocking. Fastest wins on the site.
 
-### Tier 3 — locked, content + cover present, just needs a review pass then unlock
-Everything else in the 40. Work them in whatever order Adi cares about — probably:
-`episode-kolkata` · `social-malad` · `social-vashi` · `social-wadala` · `social-city-mall` ·
-`mainland-china-andheri` · `unplugged-jamshedpur` · `the-jude-bakery-project` · `xbkc` ·
-`goonj` · `gong-powai` · `seven-gardens` · `under-the-tree-karjat` · `saltwater-cafe-bandra` ·
-`house-by-the-sea` · `crematorium` · `pet-park` · `pet-pod` · `tilak-nagar-cricket-park` ·
-`reflct` · `roberto-burle-marx-stickers` · `the-4th-dimention` · `habersham-hall` · `dakughar` ·
-`scarpin` · `vndls` · `virtual-gods`
+`dakughar` · `dhal-ni-pol` · `episode-kolkata` · `house-by-the-sea` · `mumbai-airport-foodcourt` ·
+`saltwater-cafe-bandra` · `seven-gardens` · `social-vashi` · `social-wadala` ·
+`the-jude-bakery-project` · `under-the-tree-karjat` · `unplugged-jamshedpur`
+(+ `episodeone-powai`, Tier 0)
+
+### Tier 3 — text needs work, and images missing (19)
+Weakest description first (intro/description):
+
+`pet-pod` (1.9/1.8) · `vndls` (1.6/1.9) · `goonj` (2.1/1.9) · `scarpin` (2.3/1.9) ·
+`the-4th-dimention` (2.5/2.0) · `gully` (1.7/2.0) · `gong-powai` (1.9/2.0) · `pet-park` (2.4/2.0) ·
+`open-source-design-library` (2.2/2.2) · `reflct` (2.8/2.2) · `virtual-gods` (2.6/2.3) ·
+`human-pods` (2.8/2.4) · `roberto-burle-marx-stickers` (2.1/2.4) · `tilak-nagar-cricket-park` (2.0/2.5)
+
+Good description, weak intro line only (a one-line fix each):
+`habersham-hall` (0.1 — intro is a course code) · `union-pier-charleston` (0.0 — course code) ·
+`social-malad` (2.1) · `social-city-mall` (2.1) · `mainland-china-andheri` (2.0)
 
 ---
 
@@ -114,6 +138,8 @@ From `AUDIT-2.md` (code audit) — these aren't content, but they undercut a fir
 ## Log
 
 - 2026-09-09 — file created. Snapshot: 10/50 public, 7 placeholders, 3 featured-but-locked.
+- 2026-09-26 — re-surveyed with `pnpm audit:jev`. 12/52 public, 13 with covers, 7 placeholders,
+  2 featured-but-locked. Tiers regrouped by what blocks each project (images vs text).
 
 
 ## 2026-09-11 — Adi’s audit decisions and local implementation

@@ -103,11 +103,12 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
       /* A group can carry a block of text (the first view's `note`). It is
          the grid's first column, so the pictures follow it along the row. */
       const note = views.find(v => (v.room || name) === r && v.note)?.note;
-      const count = indexed.filter(v => v.room === r).length + (note ? 1 : 0);
+      const pics = indexed.filter(v => v.room === r).length;
+      const count = pics + (note ? 1 : 0);
       return (
         <div class="rrg__group" data-rrg-room={r}>
           <p class="rrg__label">{r}</p>
-          <div class="rrg__grid" style={`--rrg-cols: ${Math.min(3, Math.max(1, count))}`}>
+          <div class="rrg__grid" style={`--rrg-cols: ${Math.min(3, Math.max(1, count))}; --rrg-pics: ${Math.min(3, Math.max(1, pics))}`}>
             {note && <p class="rrg__note">{note}</p>}
             {indexed.filter(v => v.room === r).map(v => v.caption ? (
               <figure class="rrg__fig">
@@ -175,34 +176,6 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
 ) : (
 <section class="rr" data-rr data-rr-rooms={hasRooms ? "true" : "false"} aria-label={hasRooms ? `${name} — rooms` : `${name} — views`}>
 
-  {/* Rooms, as the About page's Journey tabs: All first (every view), then
-      one pill per room with its view count, and a round previous / next pair
-      at the right that wraps. Dropped when no view names a room — there is
-      nothing to choose between, and the rail is the way through the set. */}
-  {hasRooms && (
-    <div class="rr__tabrow">
-      <div class="rr__tabs" role="tablist" aria-label="Rooms">
-        <button class="rr__tab rr__tab--all is-active" role="tab" type="button" data-rr-room="all" aria-selected="true" aria-label="All" title="All">
-          <Icon name="arrow" />
-        </button>
-        {rooms.map(r => (
-          <button class="rr__tab" role="tab" type="button" data-rr-room={r} aria-selected="false">
-            <span>{r}</span>
-            <span class="rr__tab-n">{indexed.filter(v => v.room === r).length}</span>
-          </button>
-        ))}
-      </div>
-      <div class="rr__tabnav">
-        <button class="rr__tabstep" type="button" data-rr-step="-1" aria-label="Previous room">
-          <Icon name="chevron" dir="w" />
-        </button>
-        <button class="rr__tabstep" type="button" data-rr-step="1" aria-label="Next room">
-          <Icon name="chevron" dir="e" />
-        </button>
-      </div>
-    </div>
-  )}
-
   <div class="rr__body">
     <!-- The work. -->
     <div class="rr__stage" data-rr-stage>
@@ -259,6 +232,63 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
     {`${views.length} ${asChapters ? 'panels' : 'views'}`}
     {totalTakes > views.length && <> · {totalTakes} frames</>}
   </p>
+
+  {/* The rooms, under the slider, as About's Journey: a previous / next
+      pair on its own line at the right, Journey's small tabs, then one card
+      per room holding its views. All shows every room's card, open; a room
+      tab shows that room's card alone and plays that room on the slider.
+      A thumbnail in a card puts that view on the stage above. Dropped when
+      no view names a room — there is nothing to choose between. */}
+  {hasRooms && (
+    <div class="rr__rooms">
+      <div class="rr__tabnav">
+        <button class="rr__tabstep" type="button" data-rr-step="-1" aria-label="Previous room">
+          <Icon name="chevron" dir="w" />
+        </button>
+        <button class="rr__tabstep" type="button" data-rr-step="1" aria-label="Next room">
+          <Icon name="chevron" dir="e" />
+        </button>
+      </div>
+      <div class="rr__tabs" role="tablist" aria-label="Rooms">
+        <button class="rr__tab rr__tab--all is-active" role="tab" type="button" data-rr-room="all" aria-selected="true" aria-label="All" title="All">
+          <Icon name="arrow" />
+        </button>
+        {rooms.map(r => (
+          <button class="rr__tab" role="tab" type="button" data-rr-room={r} aria-selected="false">
+            <span>{r}</span>
+            <span class="rr__tab-n">{indexed.filter(v => v.room === r).length}</span>
+          </button>
+        ))}
+      </div>
+      <div class="rr__cards">
+        {rooms.map((r, ri) => {
+          const vs = indexed.filter(v => v.room === r);
+          return (
+            <section class="rr-card is-open" data-rr-card={r}>
+              <button class="rr-card__head" type="button" aria-expanded="true">
+                <h3 class="rr-card__name">{r}</h3>
+                <span class="rr-card__right">
+                  <span class="rr-card__n">{vs.length} {vs.length === 1 ? 'view' : 'views'}</span>
+                  <span class="rr-card__ring"><Icon name="arrow" class="rr-card__chev" /></span>
+                </span>
+              </button>
+              <div class="rr-card__body">
+                <div class="rr-card__inner">
+                  <div class="rr-card__grid">
+                    {vs.map(v => (
+                      <button class="rr-card__thumb" type="button" data-rr-jump={v.i} aria-label={`Show ${v.label === v.room ? v.room : `${v.room} · ${v.label}`}`}>
+                        <img src={projectThumbnail(v.image)} data-full={v.image} alt="" loading="lazy" decoding="async" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+          );
+        })}
+      </div>
+    </div>
+  )}
 </section>
 )}
 
@@ -401,10 +431,160 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
 
   .rrc__panel:focus-visible { outline: 2px solid var(--_tokens---color--fg); outline-offset: 2px; }
 
-  @media (max-width: 699.98px) {
+  @media (max-width: 1023.98px) {
     .rrc__head { padding: 14px 0 8px; gap: 10px; }
     .rrc__name { font-size: var(--_tokens---type--small); }
   }
+
+  /* ── Rooms under the slider: About's Journey, exactly ─────────────────
+     Prev / next on their own line at the right (31px house circles), then
+     Journey's small tabs, then one Journey card per room: 2.5% tint, the
+     soft shadow, the name, a quiet view count, the arrow in its circle.
+     Inside a card, the room's views as a grid of thumbnails. */
+  .rr__rooms {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .rr__rooms .rr__tabnav {
+    justify-content: flex-end;
+    gap: 6px;
+  }
+  .rr__rooms .rr__tabstep {
+    font-size: var(--_tokens---type--micro);
+    width: 31px;
+    height: 31px;
+    border-color: transparent;
+    --icon-size: 1.1em;
+  }
+  .rr__rooms .rr__tabs {
+    gap: 4px;
+    flex-wrap: wrap;
+    overflow: visible;
+    margin-bottom: 2px;
+  }
+  .rr__rooms .rr__tab {
+    font-size: var(--_tokens---type--micro);
+    line-height: 1.1;
+    letter-spacing: normal;
+    padding: 4px 8px;
+    gap: 4px;
+  }
+  .rr__rooms .rr__tab:not(.is-active) {
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 5%, transparent);
+  }
+  .rr__rooms .rr__tab--all {
+    width: calc(1lh + 8px + 2px);
+    height: calc(1lh + 8px + 2px);
+    padding: 0;
+    --icon-size: 1em;
+  }
+  .rr__rooms .rr__tab-n { font-size: inherit; }
+  .rr__cards {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .rr-card {
+    --row-name: 1.25rem;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 2.5%, var(--_tokens---color--bg));
+    box-shadow: 0 8px 24px -10px color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
+    padding-inline: 14px;
+  }
+  .rr-card[hidden] { display: none; }
+  .rr-card__head {
+    all: unset;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    width: 100%;
+    padding-block: 8px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .rr-card__head:focus-visible { outline: 1px solid var(--_tokens---color--fg); outline-offset: 2px; }
+  .rr-card__name {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    font-size: var(--row-name);
+    font-weight: var(--_tokens---weight--base);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    color: var(--_tokens---color--fg);
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .rr-card__right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+  .rr-card__n {
+    font-size: var(--_tokens---type--micro);
+    font-weight: var(--_tokens---weight--light);
+    color: var(--_tokens---color--muted);
+    white-space: nowrap;
+  }
+  .rr-card__ring {
+    font-size: var(--row-name);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.1em;
+    height: 1.1em;
+    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
+    border-radius: 50%;
+    color: var(--_tokens---color--fg);
+  }
+  .rr-card__chev {
+    --icon-size: 0.5em;
+    transition: transform var(--_tokens---motion--slow) cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .rr-card.is-open .rr-card__chev { transform: rotate(135deg); }
+  .rr-card__body {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows var(--_tokens---motion--slow) cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .rr-card.is-open .rr-card__body { grid-template-rows: 1fr; }
+  .rr-card__inner { min-height: 0; overflow: hidden; }
+  .rr-card.is-open .rr-card__inner { padding-bottom: 14px; }
+  .rr-card__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    gap: 4px;
+  }
+  .rr-card__thumb {
+    all: unset;
+    box-sizing: border-box;
+    display: block;
+    aspect-ratio: 3 / 2;
+    cursor: pointer;
+    outline: 1px solid transparent;
+    outline-offset: -1px;
+    transition: outline-color var(--_tokens---motion--fast) ease, opacity var(--_tokens---motion--fast) ease;
+  }
+  .rr-card__thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .rr-card__thumb.is-on { outline: 2px solid var(--_tokens---color--fg); outline-offset: -2px; }
+  .rr-card__thumb:focus-visible { outline: 2px solid var(--_tokens---color--fg); outline-offset: -2px; }
+  /* A room tab: no slider. The stage, rail and the lines under them are
+     All's; the room's card stands alone with its views one under another,
+     each at the card's full width. */
+  .rr.is-room > .rr__body,
+  .rr.is-room > .rr__rail,
+  .rr.is-room > .rr__bar,
+  .rr.is-room > .rr__total {
+    display: none;
+  }
+  .rr.is-room .rr__rooms { margin-top: 0; }
+  .rr.is-room .rr-card__grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .rr.is-room .rr-card__thumb { cursor: default; }
+  .rr.is-room .rr-card__thumb.is-on { outline-color: transparent; }
+  .rr.is-room .rr-card__thumb img { object-fit: contain; }
 
   /* ── Rooms: the Journey tabs ─────────────────────────────────────── */
   .rr__tabrow {
@@ -493,7 +673,7 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
       border-color: var(--_tokens---color--fg);
     }
   }
-  @media (max-width: 699.98px) {
+  @media (max-width: 1023.98px) {
     .rr__tab,
     .rr__tabstep { font-size: var(--_tokens---type--small); }
   }
@@ -537,12 +717,22 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
   /* The phone keeps the desktop's columns — two across, three across — so a
      pair still reads as a pair. Only the gap and the text tighten, so a note
      in a third of 366px is still readable. */
-  @media (max-width: 699.98px) {
+  @media (max-width: 1023.98px) {
     .rrg__grid { gap: 4px; }
     .rrg__note,
     .rrg__caption {
       font-size: var(--_tokens---type--micro);
       line-height: 1.35;
+    }
+  }
+  /* On a phone a third of the row is ~115px: a note there wrapped to fifteen
+     lines and was cut off at the row's height (AUDIT-3 #2). It takes the full
+     row instead, above the pictures, which keep their columns. */
+  @media (max-width: 699.98px) {
+    .rrg__grid { grid-template-columns: repeat(var(--rrg-pics, 2), minmax(0, 1fr)); }
+    .rrg__note {
+      grid-column: 1 / -1;
+      max-width: none;
     }
   }
 
@@ -678,7 +868,7 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
      on a page too short to scroll it back out. The 280 is that furniture,
      measured: at 375x812 it leaves the stage 231px, which is within 3px of
      the 3:2 it wants anyway — so the cap only bites on a shorter screen. */
-  @media (max-width: 699.98px) {
+  @media (max-width: 1023.98px) {
     /* The stage takes whatever the fixed furniture leaves. The subtrahend was
        280, which stopped the block about 70px short of the card on a 812-tall
        phone — a band of empty screen between the last line of the slider and
@@ -866,6 +1056,7 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
       if (on && !on.getAttribute('src') && on.dataset.src) on.src = on.dataset.src;
       imgs.forEach(im => im.classList.toggle('is-on', im === on));
       covers.forEach(c => c.classList.toggle('is-on', Number(c.dataset.rrCover) === view));
+      root.querySelectorAll<HTMLElement>('[data-rr-jump]').forEach(b => b.classList.toggle('is-on', Number(b.dataset.rrJump) === view));
       const list = shown();
       const at = list.findIndex(c => Number(c.dataset.rrCover) === view);
       const cov = covers.find(c => Number(c.dataset.rrCover) === view);
@@ -950,6 +1141,22 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
        nobody knows to take. All is the exception: it is playing through the
        whole flat, and a column of takes changing every three seconds under a
        picture you did not choose is noise. There they open on a click. */
+    const cards = Array.from(root.querySelectorAll<HTMLElement>('[data-rr-card]'));
+    function setCardOpen(c: HTMLElement, on: boolean) {
+      c.classList.toggle('is-open', on);
+      c.querySelector('.rr-card__head')?.setAttribute('aria-expanded', String(on));
+    }
+    cards.forEach(c => c.querySelector('.rr-card__head')?.addEventListener('click', () => {
+      setCardOpen(c, !c.classList.contains('is-open'));
+    }));
+    root.querySelectorAll<HTMLButtonElement>('[data-rr-jump]').forEach(b => b.addEventListener('click', () => {
+      // Only All has a slider to send the view to.
+      if (room !== 'all') return;
+      setView(Number(b.dataset.rrJump), false);
+      // The stage is above the cards; bring it back into view.
+      root.querySelector('[data-rr-stage]')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }));
+
     function setView(v: number, openTakes: boolean) {
       view = v; take = takeFor(v);
       if (openTakes || room !== 'all') buildTakes();
@@ -981,6 +1188,18 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
          under the picture names the one you are on, and the outline says
          which thumbnail that is; the full name stays on aria-label. */
       covers.forEach(c => { c.hidden = !(r === 'all' || c.dataset.rrRoom === r); });
+      // The slider belongs to All alone. A room tab puts away the stage and
+      // rail and shows that room's card by itself, its views at full size.
+      root.classList.toggle('is-room', r !== 'all');
+      cards.forEach(c => {
+        const on = r === 'all' || c.dataset.rrCard === r;
+        c.hidden = !on;
+        if (on) setCardOpen(c, true);
+        if (on && r !== 'all') c.querySelectorAll<HTMLImageElement>('img[data-full]').forEach(im => {
+          im.loading = 'eager';
+          if (im.src !== new URL(im.dataset.full!, location.href).href) im.src = im.dataset.full!;
+        });
+      });
       const first = shown()[0];
       if (first) setView(Number(first.dataset.rrCover), false);
     }
