@@ -210,15 +210,13 @@ const scrubImgs = visibleProjectImages(p.id, p.data?.passcode, scrubImgsRaw);
 
   @media (max-width: 699.98px) {
 
-    /* The list is inverted here: it grows up out of the controls, so a card
-       comes to rest on its BOTTOM edge against them rather than its top edge
-       against the header. Snapping to `start` landed cards under the control
-       stack with their lower half cut off.
+    /* The list reads top-down on the projects page, so a card comes to rest
+       on its TOP edge under the pinned header — the same alignment as every
+       other band. (It ran bottom-up once, and snapped to `end` for that.)
        Qualified by the container because the base rule is the same single
-       class — a media query adds no specificity, so without this the later of
-       the two simply wins and the alignment never changed. */
+       class — a media query adds no specificity. */
     .project-cards-container .project-card {
-      scroll-snap-align: end;
+      scroll-snap-align: start;
     }
 }
 
@@ -790,17 +788,22 @@ const scrubImgs = visibleProjectImages(p.id, p.data?.passcode, scrubImgsRaw);
       display: none;
     }
 
-    /* Cards stack upward out of the controls. In column-reverse the main axis
-       runs bottom-to-top, so items pack against the BOTTOM — which is what
-       stops a short result set stranding itself at the top of the screen with
-       a gap above the controls, as a four-result search did. The min-height
-       is what gives them a full screen to sit at the bottom of.
-       Visual order only: DOM order, and with it reading and tab order, is
-       unchanged. */
+    /* Cards stack DOWNWARD, in the list's own order, whatever is filtered:
+       All, a category, a discipline and any mix of them all read the same
+       way, first result at the top. It ran column-reverse for a while, which
+       put the first project 4,400px down at the bottom of the page and made
+       a filtered list pack against the controls while All started at the
+       top — two behaviours for one list. Category pages still grow upward
+       and restate that on .cat-card-list. */
     .project-cards-container {
-      flex-direction: column-reverse;
-      justify-content: flex-start;
-      min-height: calc(100dvh - var(--stack-clear, 210px));
+      flex-direction: column;
+      /* A short result set sits down on the controls, not up under the
+         header with a screen of nothing between it and the filters: the
+         list is given a full screen and packs to its BOTTOM. Order is
+         unchanged — the first result is still the highest — and a list
+         longer than the screen reads exactly as before. */
+      justify-content: flex-end;
+      min-height: calc(100dvh - var(--stack-clear, 229px));
     }
 
     /* Tighter card rhythm: more of the list on screen per scroll. */

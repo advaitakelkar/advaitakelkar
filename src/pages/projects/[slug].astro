@@ -319,6 +319,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                    initRendersPeople. */
                 <div class="renders-people renders-people--title" id="renders-people-title"></div>
               )}
+
               {isOriginalCardPage && !isPortraits && (
                 <button class="page-toggle-btn project-detail-collapse-btn" id="project-name-toggle" type="button" aria-expanded="true" aria-label="Toggle project details">
                   <Arrow />
@@ -666,6 +667,18 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
           {/* Two or more chapters read as tabs: a numbered row, one chapter
               on screen. A single chapter keeps its dropdown. */}
           {chapterTabs && (
+            /* Previous / next through the chapters: their own line under the
+               title's rule, at the right, above the tabs they step through. */
+            <div class="project-chapter-tabs__nav">
+              <button class="project-chapter-tabs__step" type="button" data-ch-step="-1" aria-label="Previous chapter">
+                <Icon name="chevron" dir="w" />
+              </button>
+              <button class="project-chapter-tabs__step" type="button" data-ch-step="1" aria-label="Next chapter">
+                <Icon name="chevron" dir="e" />
+              </button>
+            </div>
+          )}
+          {chapterTabs && (
             <div class="project-chapter-tabs">
               <div class="project-chapter-tabs__list" role="tablist" aria-label="Chapters">
                 {/* All comes first and is where the page opens: every chapter,
@@ -681,14 +694,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                   </button>
                 ))}
               </div>
-              <div class="project-chapter-tabs__nav">
-                <button class="project-chapter-tabs__step" type="button" data-ch-step="-1" aria-label="Previous chapter">
-                  <Icon name="chevron" dir="w" />
-                </button>
-                <button class="project-chapter-tabs__step" type="button" data-ch-step="1" aria-label="Next chapter">
-                  <Icon name="chevron" dir="e" />
-                </button>
-              </div>
             </div>
           )}
           {data.chapters.map((ch: { title: string; subtitle?: string; body: string }, chIdx: number) => {
@@ -699,8 +704,26 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
             const hasLead = words.length > 2;
             const lead = hasLead ? words.slice(0, 2).join(' ') : '';
             const rest = hasLead ? words.slice(2).join(' ') : words.join(' ');
-            return (
-            <section class:list={["project-chapter", chapterTabs && "is-active is-expanded"]} data-ch={chIdx} role={chapterTabs ? 'tabpanel' : undefined}>
+            return chapterTabs ? (
+            /* A tabbed chapter is a Journey card: its name, where it sits in
+               the set, and the arrow in its circle; the body folds under it.
+               All shows every card shut; a chapter tab shows its card open. */
+            <section class="project-chapter ch-card is-active is-open" data-ch={chIdx} role="tabpanel">
+              <button class="ch-card__header" type="button" aria-expanded="true">
+                <h3 class="ch-card__title">{ch.subtitle || ch.title}</h3>
+                <span class="ch-card__right">
+                  <span class="ch-card__n">{String(chIdx + 1).padStart(2, '0')} / {String(data.chapters.length).padStart(2, '0')}</span>
+                  <span class="ch-card__ring"><Icon name="arrow" class="ch-card__chevron" /></span>
+                </span>
+              </button>
+              <div class="ch-card__body">
+                <div class="ch-card__inner">
+                  <div class="project-chapter__body" set:html={ch.body} />
+                </div>
+              </div>
+            </section>
+            ) : (
+            <section class="project-chapter" data-ch={chIdx}>
               <div class="project-header-title-row project-chapter__header">
                 <h3 class="project-chapter__title">
                   {lead && <span class="project-chapter__title-lead">{lead}</span>}
@@ -729,7 +752,9 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
           the wide band, and the two drew over each other. This is the page's
           middle; it does not belong in a layout built to stand text beside
           one image. */}
-      {isRenders && renderViews.length > 0 && (
+      {/* A project told in chapter cards carries its pictures inside them;
+          the stage and rail would be the same images a second time. */}
+      {isRenders && renderViews.length > 0 && !chapterTabs && (
         <section class="renders-section">
           <RenderRooms views={renderViews} name={data.name} groups={data.groups ?? "tabs"} />
         </section>
@@ -2361,13 +2386,145 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     .project-chapter-tab,
     .project-chapter-tabs__step { font-size: var(--_tokens---type--small); }
   }
-  .project-chapters--tabs .project-chapter { display: none; border-top: none; margin-top: 0; }
+  .project-chapters--tabs .project-chapter { display: none; border-top: none; margin-top: 0; padding-top: 0; }
   .project-chapters--tabs .project-chapter.is-active { display: block; }
-  .project-chapters--tabs.is-all .project-chapter + .project-chapter {
-    border-top: 1px solid var(--_tokens---color--line-soft);
-    margin-top: 48px;
-    padding-top: 24px;
+
+  /* ── Tabbed chapters are About's Journey, exactly ──────────────────────
+     The tabs are Journey's small pills (micro type, 4/8 padding, count
+     beside the name), and each chapter is a Journey card: 2.5% tint, the
+     soft drop shadow, the name on one line, a quiet "01 / 04" where a card
+     has its dates, and the arrow in a circle that turns when it opens.
+     Cards stack 8px apart; All shows every chapter open, one after
+     another, and each still folds on its own header. Same at every width, as About's are. */
+  .project-chapters--tabs {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }
+  .project-chapters--tabs .project-chapter-tabs {
+    padding-top: 12px;
+    margin-bottom: 2px;
+    /* The title above already closes with a hairline; a second one here
+       drew two rules 30px apart. */
+    border-top: none;
+  }
+  .project-chapters--tabs .project-chapter-tabs__list { gap: 4px; }
+  .project-chapters--tabs .project-chapter-tab {
+    font-size: var(--_tokens---type--micro);
+    line-height: 1.1;
+    letter-spacing: normal;
+    padding: 4px 8px;
+    gap: 4px;
+  }
+  .project-chapters--tabs .project-chapter-tab:not([aria-selected="true"]) {
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 5%, transparent);
+  }
+  .project-chapters--tabs .project-chapter-tab--all {
+    font-size: var(--_tokens---type--micro);
+    line-height: 1.1;
+    width: calc(1lh + 8px + 2px);
+    height: calc(1lh + 8px + 2px);
+    padding: 0;
+    --icon-size: 1em;
+  }
+  /* Their own line above the tabs, at the right end: the About Journey
+     header's 31px house circles. */
+  .project-chapters--tabs > .project-chapter-tabs__nav {
+    justify-content: flex-end;
+    gap: 6px;
+    padding-top: 12px;
+    margin-bottom: -4px;
+  }
+  .project-chapters--tabs .project-chapter-tabs__step {
+    font-size: var(--_tokens---type--micro);
+    width: 31px;
+    height: 31px;
+    padding: 0;
+    border-color: transparent;
+    --icon-size: 1.1em;
+  }
+  .project-chapters--tabs .project-chapter-tab__n {
+    font-size: inherit;
+    opacity: 0.6;
+  }
+  .ch-card {
+    --row-name: 1.25rem;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 2.5%, var(--_tokens---color--bg));
+    box-shadow: 0 8px 24px -10px color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
+    padding-inline: 14px;
+  }
+  .ch-card__header {
+    all: unset;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    width: 100%;
+    padding-block: 8px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .ch-card__header:focus-visible {
+    outline: 1px solid var(--_tokens---color--fg);
+    outline-offset: 2px;
+  }
+  .ch-card__title {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    font-size: var(--row-name);
+    font-weight: var(--_tokens---weight--base);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    color: var(--_tokens---color--fg);
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .ch-card__right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .ch-card__n {
+    font-size: var(--_tokens---type--micro);
+    font-weight: var(--_tokens---weight--light);
+    font-variant-numeric: tabular-nums;
+    color: var(--_tokens---color--muted);
+    white-space: nowrap;
+  }
+  .ch-card__ring {
+    font-size: var(--row-name);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 1.1em;
+    height: 1.1em;
+    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
+    border-radius: 50%;
+    color: var(--_tokens---color--fg);
+  }
+  .ch-card__ring :global(.ch-card__chevron) {
+    --icon-size: 0.5em;
+    transition: transform var(--_tokens---motion--slow) cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .ch-card.is-open .ch-card__ring :global(.ch-card__chevron) {
+    transform: rotate(135deg);
+  }
+  .ch-card__body {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows var(--_tokens---motion--slow) cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .ch-card.is-open .ch-card__body { grid-template-rows: 1fr; }
+  .ch-card__inner {
+    min-height: 0;
+    overflow: hidden;
+  }
+  .ch-card.is-open .ch-card__inner { padding-bottom: 14px; }
   .project-chapters--tabs .project-chapter__header { cursor: default; }
   .project-chapters--tabs .project-detail-collapse-btn { display: none; }
   .project-chapters--tabs .project-chapter__content { grid-template-rows: 1fr; }
@@ -5093,22 +5250,24 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     .project-detail[data-renders="true"] .project-phone-card:not(.is-reading) > .renders-collection {
       display: none;
     }
-    /* The ✕ is the way out of an open card, so it is big — four times the
-       glyph it was — and centred on the card's right edge rather than tucked
-       at the end of a row. The open card keeps a column clear for it. */
+    /* The ✕ is the way out of an open card: bottom right, within a thumb's
+       reach, 40% smaller than the 72px mark that hung mid-card. The copy
+       gets the card's full width back; only the last line of pills, which
+       shares the bottom edge with it, keeps a column clear for it. */
     .project-detail[data-renders="true"] .project-phone-card .project-phone-close {
       position: absolute;
       right: 8px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 72px;
-      height: 72px;
+      bottom: 8px;
+      top: auto;
+      transform: none;
+      width: 43px;
+      height: 43px;
       margin: 0;
-      --icon-size: 64px;
+      --icon-size: 38px;
       z-index: 2;
     }
-    .project-detail[data-renders="true"] .project-phone-card:has(.project-phone-close:not([hidden])) {
-      padding-right: 84px;
+    .project-detail[data-renders="true"] .project-phone-card:has(.project-phone-close:not([hidden])) .project-meta-row--pills {
+      padding-right: 52px;
     }
     .project-detail[data-renders="true"] .project-phone-card > .renders-collection .renders-collection__face {
       display: none;
@@ -5135,6 +5294,36 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
        and the clearance stops being a number anyone has to keep right. */
     .project-detail[data-renders="true"] .project-dashboard-wrap {
       position: static !important;
+      /* No box: the title is a page heading, set exactly like the name at
+         the top of About — no white card, no shadow behind it. */
+      background-color: transparent !important;
+      box-shadow: none !important;
+      /* Without the box the title aligns with the page edge, like the tabs
+         and copy under it, rather than inset by the card's own padding. */
+      padding-inline: 0 !important;
+    }
+    .project-detail[data-renders="true"] .project-name-title {
+      font-size: var(--_tokens---type--medium) !important;
+      font-weight: var(--_tokens---weight--base) !important;
+      letter-spacing: -0.02em !important;
+      line-height: 1.1 !important;
+    }
+    /* The faces are part of what Read more reveals: shut, the card is the
+       question and one paragraph; open, it is the whole credit. */
+    .project-detail[data-renders="true"] .project-phone-card:not(.is-reading) > .project-people {
+      display: none !important;
+    }
+    /* The question is a lead-in, not a headline: one step above the body
+       copy (10px) rather than bold micro, which ran it to four heavy lines. */
+    .project-detail[data-renders="true"] .project-phone-card .project-card__intro {
+      font-size: var(--_tokens---type--ultrathin) !important;
+      font-weight: 600 !important;
+      line-height: 1.4 !important;
+    }
+    /* The credit line goes on the phone; the faces beside the copy already
+       say who it was made with. */
+    .project-detail[data-renders="true"] .renders-credit {
+      display: none !important;
     }
     .project-detail[data-renders="true"] {
       padding-top: 0 !important;
@@ -5147,7 +5336,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
        scroll available to bring it back. Unreachable content, on the two
        smallest phones, to save space that was never the thing taking up the
        room. The gap is closed by the stage taking the slack instead. */
-    .renders-section {
+    .renders-section,
+    .project-chapters--tabs {
       padding-bottom: calc(var(--pp-card-h, 80px) + var(--pp-dock-h, 66px) + 16px);
     }
     /* The stage's own height lives in RenderRooms.astro. A rule for it
@@ -6136,10 +6326,17 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     document.querySelectorAll<HTMLElement>('.project-chapters--tabs').forEach(wrap => {
       const tabs = Array.from(wrap.querySelectorAll<HTMLButtonElement>('.project-chapter-tab'));
       const panels = Array.from(wrap.querySelectorAll<HTMLElement>('.project-chapter'));
+      const setOpen = (p: HTMLElement, on: boolean) => {
+        p.classList.toggle('is-open', on);
+        p.querySelector('.ch-card__header')?.setAttribute('aria-expanded', String(on));
+      };
       const select = (tab: HTMLButtonElement) => {
         const n = tab.dataset.ch;
         tabs.forEach(t => t.setAttribute('aria-selected', String(t === tab)));
         panels.forEach(p => p.classList.toggle('is-active', n === 'all' || p.dataset.ch === n));
+        // All: every chapter open, one after another. A chapter tab: its one
+        // card, open.
+        panels.forEach(p => setOpen(p, n === 'all' || p.dataset.ch === n));
         wrap.classList.toggle('is-all', n === 'all');
         // Into view inside the tab row only — scrollIntoView moves the page.
         const row = tab.parentElement;
@@ -6151,6 +6348,12 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         refreshFixedHead();
       };
       tabs.forEach(tab => tab.addEventListener('click', () => select(tab)));
+      // A card's own header folds and unfolds that card alone; the others
+      // stay as they are, so All can read straight through.
+      panels.forEach(p => p.querySelector('.ch-card__header')?.addEventListener('click', () => {
+        setOpen(p, !p.classList.contains('is-open'));
+        refreshFixedHead();
+      }));
       // Previous / next step through the chapters, wrapping at the ends.
       wrap.querySelectorAll<HTMLButtonElement>('[data-ch-step]').forEach(btn => btn.addEventListener('click', () => {
         const cur = tabs.findIndex(t => t.getAttribute('aria-selected') === 'true');

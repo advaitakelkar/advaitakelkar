@@ -117,7 +117,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
                 <option value={cat.id}>{cat.data.displayName}</option>
               ))}
             </select>
-            <Icon name="chevron" dir="s" class="filter-select-arrow" />
+            <Icon name="chevron" dir="e" class="filter-select-arrow" />
           </div>
         </div>
         
@@ -160,7 +160,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
                   <option value={tag.id}>{tag.data.name}</option>
                 ))}
               </select>
-              <Icon name="chevron" dir="s" class="filter-select-arrow" />
+              <Icon name="chevron" dir="w" class="filter-select-arrow" />
             </div>
           </div>
         </div>
@@ -244,8 +244,14 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
          bottom, so the snapport inset is the bar, not a token 12px. */
       scroll-padding-top: var(--snap-offset, 12px);
       /* And the bottom of the snapport stops above the control stack, so a
-         card settling against it is never cut by the selector or the search. */
-      scroll-padding-bottom: 168px;
+         card settling against it is never cut by the selectors or the nav. */
+      scroll-padding-bottom: 109px;
+    }
+    /* A snap point at the very top, so mandatory snapping (below 700) can
+       still come to rest on the page's own start rather than parking just
+       past it on the first card. */
+    .projects-page {
+      scroll-snap-align: start;
     }
 }
 
@@ -599,7 +605,10 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     position: absolute;
     right: 14px;
     top: 50%;
-    transform: translateY(-50%);
+    /* Centre, then turn to the Icon's direction: Category points east,
+       Filter (its mirror) west. A bare translateY here used to swallow the
+       rotation, so every chevron pointed east whatever dir it was given. */
+    transform: translateY(-50%) rotate(var(--arrow-rot, 0deg));
     font-size: var(--_tokens---type--micro);
     pointer-events: none;
     color: var(--_tokens---color--fg);
@@ -659,12 +668,16 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     border-radius: 4px;
     cursor: pointer;
   }
+  :global(.fsel-opt:disabled) {
+    opacity: 0.3;
+    cursor: default;
+  }
   :global(.fsel-opt.is-sel) {
     background-color: var(--_tokens---color--fg);
     color: var(--_tokens---color--bg);
   }
   @media (hover: hover) {
-    :global(.fsel-opt:not(.is-sel):hover) {
+    :global(.fsel-opt:not(.is-sel):not(:disabled):hover) {
       background-color: color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent);
     }
   }
@@ -1299,16 +1312,11 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
        selector, then the cards stacking upward away from your thumb. Both
        controls are fixed rather than sticky — they are permanent on this
        band, not things that park when you reach them. */
+    /* No search field on the phone: the selectors are the whole control,
+       sitting straight on the nav bar. Typing still reaches the (hidden)
+       field through Base's keyboard routing on devices that have one. */
     .projects-search-bar {
-      position: fixed;
-      /* Flush with the cards. This was insetting by the index rail's width,
-         which is not rendered on this band any more. */
-      left: 12px;
-      right: 12px;
-      bottom: 62px;
-      z-index: 95;
-      margin: 0;
-      width: auto;
+      display: none;
     }
 
     /* One surface behind the whole bottom stack. The controls are separate
@@ -1329,7 +1337,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       left: 0;
       right: 0;
       bottom: 0;
-      height: 168px;
+      height: 109px;
       background-color: var(--_tokens---color--bg);
       z-index: 80;
       pointer-events: none;
@@ -1356,7 +1364,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       position: fixed;
       left: 12px;
       right: 12px;
-      bottom: 120px;
+      bottom: 61px;
       z-index: 95;
       margin: 0;
       width: auto;
@@ -1381,9 +1389,15 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
       display: none;
     }
 
-    /* Clear the whole bottom stack: breadcrumb, search and selector. */
+    /* Clear the whole bottom stack: the nav and the selectors. */
     .projects-page {
-      padding-bottom: 186px;
+      padding-bottom: 127px;
+    }
+    /* PageLayout also pads .page-main to clear the nav; this page already
+       clears the whole stack itself, and the two together made a short
+       result set scroll 76px for nothing. */
+    :global(.page-main:has(> .projects-page)) {
+      padding-bottom: 0 !important;
     }
     /* With the keyboard up the stack is shorter by the nav bar but stands on
        the keyboard, so the clearance is measured from there instead. Without
@@ -1906,6 +1920,7 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
   }
   updateCardDensity();
 
+  let lastFilterSig: string | null = null;
   function applyFilter() {
     updateFieldActivation();
     updateCardDensity();
@@ -1959,6 +1974,48 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
 
     applyVisibility(matchingCards);
     updateBubbles(keywords, matchingCards);
+    updateFacets(keywords);
+
+    // Any change to WHICH projects are listed starts the list again from its
+    // first result, so every combination of category, discipline, ✱ and @
+    // lands the same way. Typing is exempt: the field would jump under you
+    // on every key. Instant, not smooth — a smooth scroll through a list
+    // that just changed length is the jank this removes.
+    const sig = `${activeCat}|${activeTag}|${openOnly}`;
+    if (lastFilterSig !== null && sig !== lastFilterSig) {
+      window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+    }
+    lastFilterSig = sig;
+  }
+
+  /* Faceting: an option that would empty the list, given everything else
+     already chosen, is disabled rather than offered. Category × discipline
+     × ✱ × the search can then never land on 0 of 52 by a dropdown choice. */
+  function countWith(cat: string, tag: string, keywords: string[]) {
+    return cards.filter(card => {
+      if (cat && (card.dataset.catId ?? '') !== cat) return false;
+      if (tag && !(card.dataset.tagIds ?? '').split(',').includes(tag)) return false;
+      if (openOnly && card.classList.contains('is-locked')) return false;
+      if (!keywords.length) return true;
+      const hay = ['name','loc','year','client','status','size','program','cat','studio','tags','text']
+        .map(k => (card.dataset[k] ?? '').toLowerCase()).join(' ');
+      return keywords.every(kw => hay.includes(kw));
+    }).length;
+  }
+  function updateFacets(keywords: string[]) {
+    const mark = (sel: HTMLSelectElement | null, count: (v: string) => number) => {
+      if (!sel) return;
+      const wrap = sel.closest('.filter-select-wrap');
+      Array.from(sel.options).forEach(o => {
+        if (!o.value) return;
+        const off = o.value !== sel.value && count(o.value) === 0;
+        o.disabled = off;
+        const btn = wrap?.querySelector<HTMLButtonElement>(`.fsel-opt[data-value="${CSS.escape(o.value)}"]`);
+        if (btn) { btn.disabled = off; btn.setAttribute('aria-disabled', String(off)); }
+      });
+    };
+    mark(catSelect, v => countWith(v, activeTag, keywords));
+    mark(document.getElementById('tag-select') as HTMLSelectElement | null, v => countWith(activeCat, v, keywords));
   }
 
   // Input typing listener
@@ -2053,6 +2110,9 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     namesOnlyBtn.classList.toggle('is-active', on);
     namesOnlyBtn.setAttribute('aria-pressed', String(on));
     document.getElementById('project-cards-container')?.classList.toggle('is-names-only', on);
+    // Every card changes height, so the old position means nothing: start
+    // from the top, as a filter change does.
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
   });
 
   // ✱ is a toggle of its own: it narrows whatever the tags and category
@@ -2272,10 +2332,12 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     // the search and filters are docked at the bottom of the screen and
     // never fold.
     const folds = window.matchMedia('(min-width: 700px) and (max-width: 1023.98px)');
-    // Snapping is a desktop/tablet behaviour only. On the phone the cards
-    // change height as you stop and start, which moves every snap point under
-    // the snap engine while it is mid-flight — the two cannot both be smooth.
-    // See the note on updateCardDensity.
+    // From 700 up snapping is `proximity` and stands down near the top, where
+    // the panel folds. On the phone nothing folds and cards no longer change
+    // height while the list moves, so it is `mandatory` and always on: the
+    // list always comes to rest with a whole card under the header, never
+    // halfway through one. .projects-page carries a snap point at 0 so the
+    // top of the page stays reachable.
     const snaps = window.matchMedia('(min-width: 700px)');
     // Must match the constant of the same name in the filter script — see the
     // note there. A threshold narrower than snap's resting slop latches on.
@@ -2283,7 +2345,11 @@ const sortedTags = [...allTags].sort((a, b) => (tagCounts[b.id] || 0) - (tagCoun
     let atTopNow = true;
     let resizing = false;
     const updateSnap = () => {
-      const on = snaps.matches && !atTopNow && !resizing && !reducedMotion.matches;
+      if (!snaps.matches) {
+        root.style.setProperty('--page-snap', resizing ? 'none' : 'y mandatory');
+        return;
+      }
+      const on = !atTopNow && !resizing && !reducedMotion.matches;
       root.style.setProperty('--page-snap', on ? 'y proximity' : 'none');
     };
 
