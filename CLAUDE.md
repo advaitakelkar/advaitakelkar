@@ -275,6 +275,13 @@ Defined in `src/lib/breakpoints.ts`. **Three stops, six strings, nothing else.**
 @media (min-width: 1366px)    { }   /* wide only        */
 ```
 
+**Tablet portrait takes the phone layout** on Home, Projects, the category
+pages and the nav dock (Sept 2026): in `index.astro`, `ProjectList`,
+`ProjectStackCard`, `CategoryLayout`, `Breadcrumb` and `PageLayout` the
+phone rules are written `max-width: 1023.98px`, the medium-only blocks are
+gone, and "700 and up" became "1024 and up". The `medium` band still exists
+on the ladder for About and the project pages.
+
 The `.98` complements make each min/max pair exhaustive and mutually exclusive.
 That is the point: the old code mixed `max-width: 767px` with `min-width: 769px`,
 so a viewport of exactly **768px — a 9.7" iPad in portrait —** matched neither.
