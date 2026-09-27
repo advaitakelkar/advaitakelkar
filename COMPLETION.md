@@ -89,7 +89,7 @@ No real content at all. Each needs intro + description + cover + 3 images from s
 `siddharth-municipal-general-hospital` · `skadoogee` · `tower-of-the-quiet-witness`
 
 > `tower-of-the-quiet-witness` and `union-pier-charleston` are the active SCAD studios — their
-> source files carry the `TOQS_` / Union Pier working sets in `~/My Drive/HUB/00 Projects/`.
+> source files carry the `TOQS_` / Union Pier working sets in `~/My Drive/HUB/1 Projects/`.
 
 ### Tier 2 — text is done, images missing (13)
 Jev scores the writing finished (intro ≥2.2, description ≥2.6). Only images stand between these

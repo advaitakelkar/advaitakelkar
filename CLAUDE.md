@@ -1570,7 +1570,7 @@ Three systems hold this work. They **nest** rather than mirror — `Drive ⊂ We
 |---|---|---|
 | Website (this repo) | 52 YAML files in `src/content/projects/` | What's published |
 | Notion — *Master Projects Database* | 150 rows | Full archive, published or not |
-| Google Drive — `HUB/00 Projects` | 60 `STUDIO_Project` folders | Heavy source files only |
+| Google Drive — `HUB/1 Projects` | 60 `STUDIO_Project` folders | Heavy source files only |
 
 ### Drive layout
 

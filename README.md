@@ -286,7 +286,7 @@ pnpm dev
 
 ## For Continuing Agents
 
-The workspace folder is `advaitakelkar-website/` inside the user's Google Drive ("01 Websites").
+The workspace folder is `advaitakelkar-website/` inside the user's Google Drive ("5 Websites").
 
 **Key things to know:**
 - Always use `pnpm` not `npm` — `npm` errors on this repo due to an arborist version-parsing bug
