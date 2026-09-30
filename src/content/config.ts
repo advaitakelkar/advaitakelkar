@@ -101,6 +101,8 @@ const projects = defineCollection({
     leadSlides: z.object({
       label: z.string().optional(),
       text: z.string().optional(),
+      // Facts under the text, as label + value pills.
+      pillRows: z.array(z.object({ label: z.string(), items: z.array(z.string()) })).optional(),
       images: z.array(z.string()),
     }).optional(),
     /* Same slot, moving. When set, the still is played instead of shown, and

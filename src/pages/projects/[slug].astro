@@ -793,6 +793,12 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
               <div class="renders-lead__text">
                 {(data as any).leadSlides.label && <p class="renders-lead__label">{(data as any).leadSlides.label}</p>}
                 {(data as any).leadSlides.text && <p class="renders-lead__note">{(data as any).leadSlides.text}</p>}
+                {((data as any).leadSlides.pillRows ?? []).map((row: { label: string; items: string[] }) => (
+                  <div class="project-participants" aria-label={row.label}>
+                    <span class="project-participants__pill project-participants__label">{row.label}</span>
+                    {row.items.map((n: string) => <span class="project-participants__pill">{n}</span>)}
+                  </div>
+                ))}
               </div>
               <div class="renders-lead__slides ch-slides-auto">
                 {(data as any).leadSlides.images.map((src: string, i: number) => (
@@ -5005,12 +5011,15 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     color: var(--_tokens---color--muted);
   }
   .renders-lead__note {
-    margin: 0;
+    margin: 0 0 14px;
     font-size: var(--_tokens---type--small);
-    line-height: 1.4;
+    line-height: 1.45;
     color: var(--_tokens---color--fg);
-    max-width: 32ch;
+    max-width: 40ch;
   }
+  /* Clearance under the last pictures, so they never sit on the fixed
+     Quick Search bar at the foot of the page. */
+  .renders-lead--split { margin-bottom: clamp(64px, 10vh, 120px); }
   /* One frame, the pictures stacked in it and faded through in turn. */
   .renders-lead__slides {
     display: grid;
