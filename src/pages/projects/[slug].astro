@@ -778,8 +778,9 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       {isRenders && renderViews.length > 0 && !chapterTabs && (
         <section class="renders-section">
           {/* One picture shown whole above the room tabs — a drawing or a cut
-              file wider than a room's tiles would crop it. Never cropped. */}
-          {(data as any).leadImage && (
+              file wider than a room's tiles would crop it. Never cropped.
+              (On a page with a slider it comes last instead; see below.) */}
+          {(data as any).leadImage && !(data as any).leadSlides && (
             <figure class="renders-lead">
               <img src={(data as any).leadImage} alt={`${data.name}`} loading="lazy" />
             </figure>
@@ -816,6 +817,13 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
             </div>
           ) : (
             <RenderRooms views={renderViews} name={data.name} groups={data.groups ?? "tabs"} />
+          )}
+          {/* With a slider the page reads place → work → drawing: the whole
+              picture (a cut file) comes last, after the installation. */}
+          {(data as any).leadImage && (data as any).leadSlides && (
+            <figure class="renders-lead renders-lead--last">
+              <img src={(data as any).leadImage} alt={`${data.name}`} loading="lazy" />
+            </figure>
           )}
         </section>
       )}
@@ -5009,6 +5017,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
   .renders-lead { margin: 0 0 24px; }
   .renders-lead img { width: 100%; height: auto; display: block; object-fit: contain; }
+  .renders-lead--figure { margin-top: clamp(24px, 4vh, 40px); }
   .renders-lead__caption { margin-top: 8px; font-size: var(--_tokens---type--micro); color: var(--_tokens---color--muted); }
   .renders-lead--split { display: grid; gap: 16px; align-items: start; }
   @media (min-width: 1024px) {
@@ -5029,7 +5038,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   .renders-lead__note :global(a) { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
   /* Clearance under the last pictures, so they never sit on the fixed
      Quick Search bar at the foot of the page. */
-  .renders-lead--split { margin-bottom: clamp(64px, 10vh, 120px); }
+  .renders-lead--split { margin-bottom: 40px; }
+  .renders-section > :last-child { margin-bottom: clamp(64px, 10vh, 120px); }
   /* One frame, the pictures stacked in it and faded through in turn. */
   .renders-lead__slides {
     display: grid;
