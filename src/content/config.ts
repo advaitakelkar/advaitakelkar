@@ -191,6 +191,11 @@ const projects = defineCollection({
     // sit left of the divider. Augments the global always-professor list
     // (Samir, Faizan, Siddhesh, and the SCAD professors).
     professors: z.array(z.string()).optional(),
+    // How two or more chapters are moved between. 'tabs' (default): the row
+    // picks the one chapter on screen. 'scroll': every chapter open, read
+    // straight through; the row stays pinned under the top bar, a tap scrolls
+    // to its chapter, and the highlight follows the reader.
+    chapterNav: z.enum(['tabs', 'scroll']).optional(),
     // Long-form chapter dropdowns rendered below the summary on the project
     // page (replaces the Design/Making sections). body is raw HTML.
     chapters: z.array(z.object({

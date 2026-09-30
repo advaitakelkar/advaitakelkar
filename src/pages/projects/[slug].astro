@@ -684,7 +684,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
       <!-- NON-ORIGINAL-CARD PAGES: chapter dropdowns (when defined) or Design & Making -->
       {!isOriginalCardPage && (data.chapters?.length ?? 0) > 0 && (
-        <div class:list={["project-chapters", chapterTabs && "project-chapters--tabs is-all"]}>
+        <div class:list={["project-chapters", chapterTabs && "project-chapters--tabs is-all", chapterTabs && (data as any).chapterNav === 'scroll' && "project-chapters--scroll"]}>
           {/* Two or more chapters read as tabs: a numbered row, one chapter
               on screen. A single chapter keeps its dropdown. */}
           {chapterTabs && (
@@ -2465,6 +2465,27 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     font-size: inherit;
     opacity: 0.6;
   }
+  /* chapterNav: 'scroll' — the tab row pinned under the top bar (54px on a
+     wide page; the bar docks to the foot below 1024, so there it pins to the
+     top), and each chapter's header pinned under the row while it is read. */
+  .project-chapters--scroll { --ch-bar: 54px; --ch-row: 45px; }
+  @media (max-width: 1023.98px) { .project-chapters--scroll { --ch-bar: 0px; } }
+  .project-chapters--scroll .project-chapter-tabs {
+    position: sticky;
+    top: var(--ch-bar);
+    z-index: 6;
+    padding-block: 10px;
+    background-color: var(--_tokens---color--bg);
+  }
+  .project-chapters--scroll .ch-card__header {
+    position: sticky;
+    top: calc(var(--ch-bar) + var(--ch-row));
+    z-index: 5;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 2.5%, var(--_tokens---color--bg));
+    cursor: default;
+  }
+  .project-chapters--scroll .ch-card__ring { display: none; }
+
   .ch-card {
     --row-name: 1.25rem;
     background-color: color-mix(in srgb, var(--_tokens---color--fg) 2.5%, var(--_tokens---color--bg));
@@ -6631,10 +6652,61 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         }
         refreshFixedHead();
       };
-      tabs.forEach(tab => tab.addEventListener('click', () => select(tab)));
+      /* chapterNav: 'scroll' — every chapter stays open and the row
+         navigates by scrolling: a tap goes to its chapter, and the
+         highlighted tab follows the reader down the page. */
+      const scrollMode = wrap.classList.contains('project-chapters--scroll');
+      const mark = (tab: HTMLButtonElement) => {
+        tabs.forEach(t => t.setAttribute('aria-selected', String(t === tab)));
+        const row = tab.parentElement;
+        if (row) {
+          const l = tab.offsetLeft - row.offsetLeft, r = l + tab.offsetWidth;
+          if (l < row.scrollLeft) row.scrollLeft = l;
+          else if (r > row.scrollLeft + row.clientWidth) row.scrollLeft = r - row.clientWidth;
+        }
+      };
+      const pinned = () => {
+        const cs = getComputedStyle(wrap);
+        return (parseFloat(cs.getPropertyValue('--ch-bar')) || 0) + (parseFloat(cs.getPropertyValue('--ch-row')) || 0);
+      };
+      /* A jump, not a glide: the chapters are long and full of lazy
+         pictures, which load as a smooth scroll passes them and push the
+         target further down than where the glide was aimed. So go straight
+         there, then settle once the pictures now on screen have loaded. */
+      let settling = 0;
+      const goTo = (tab: HTMLButtonElement) => {
+        const n = tab.dataset.ch;
+        const target = n === 'all' ? wrap : panels.find(p => p.dataset.ch === n);
+        if (!target) return;
+        const offset = n === 'all' ? (parseFloat(getComputedStyle(wrap).getPropertyValue('--ch-bar')) || 0) : pinned();
+        const align = () => {
+          const y = target.getBoundingClientRect().top + window.scrollY - offset - 4;
+          if (Math.abs(y - window.scrollY) > 2) window.scrollTo({ top: y, behavior: 'instant' as ScrollBehavior });
+        };
+        mark(tab);
+        const run = ++settling;
+        align();
+        [150, 500, 1200].forEach(ms => setTimeout(() => { if (run === settling) align(); }, ms));
+      };
+      if (scrollMode) {
+        panels.forEach(p => { p.classList.add('is-active'); setOpen(p, true); });
+        let ticking = false;
+        const spy = () => {
+          ticking = false;
+          const line = pinned() + 12;
+          let current: HTMLButtonElement | undefined = tabs[0];
+          panels.forEach(p => {
+            if (p.getBoundingClientRect().top <= line) current = tabs.find(t => t.dataset.ch === p.dataset.ch) ?? current;
+          });
+          if (current && current.getAttribute('aria-selected') !== 'true') mark(current);
+        };
+        window.addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(spy); } }, { passive: true });
+      }
+      tabs.forEach(tab => tab.addEventListener('click', () => scrollMode ? goTo(tab) : select(tab)));
       // A card's own header folds and unfolds that card alone; the others
-      // stay as they are, so All can read straight through.
-      panels.forEach(p => p.querySelector('.ch-card__header')?.addEventListener('click', () => {
+      // stay as they are, so All can read straight through. (Scroll mode
+      // keeps every chapter open.)
+      if (!scrollMode) panels.forEach(p => p.querySelector('.ch-card__header')?.addEventListener('click', () => {
         setOpen(p, !p.classList.contains('is-open'));
         refreshFixedHead();
       }));
@@ -6642,7 +6714,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       wrap.querySelectorAll<HTMLButtonElement>('[data-ch-step]').forEach(btn => btn.addEventListener('click', () => {
         const cur = tabs.findIndex(t => t.getAttribute('aria-selected') === 'true');
         const next = (cur + Number(btn.dataset.chStep) + tabs.length) % tabs.length;
-        select(tabs[next]);
+        scrollMode ? goTo(tabs[next]) : select(tabs[next]);
       }));
     });
 
