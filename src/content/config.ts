@@ -161,6 +161,11 @@ const projects = defineCollection({
       image: z.string(),
       variations: z.array(z.string()).optional(),
     })).optional(),
+    // One line under the description: what the work set out to do.
+    aim: z.string().optional(),
+    // Everyone who made the work, as pills under the description — for
+    // collaborations larger than the people row (ARCHV's open calls).
+    participants: z.array(z.string()).optional(),
     // Team members shown as avatar circles + names on the project page.
     // Names must match the PEOPLE registry in projects/[slug].astro.
     // Defaults to Advaita only when omitted.

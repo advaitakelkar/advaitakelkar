@@ -396,6 +396,18 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                         </button>
                       </div>
                     )}
+                    {/* The aim, then everyone who made the work — for the ARCHV
+                        collaborations with more hands than the people row can
+                        carry. The filter pill's spec (ProjectStackCard), set
+                        here because that sheet only loads where the card
+                        does; the label is the same pill, inverted. */}
+                    {(data as any).aim && <p class="project-aim">{(data as any).aim}</p>}
+                    {((data as any).participants?.length ?? 0) > 0 && (
+                      <div class="project-participants" aria-label="Participants">
+                        <span class="project-participants__pill project-participants__label">Participants</span>
+                        {(data as any).participants.map((n: string) => <span class="project-participants__pill">{n}</span>)}
+                      </div>
+                    )}
                     {/* Phone only, and only where there is a reel to show. It
                         sits beside Read more in the card's actions row, and
                         the panel it opens holds the SAME video element that is
@@ -1467,6 +1479,40 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
   .project-card__desc :global(p) {
     margin-bottom: 1em;
+  }
+
+  .project-aim {
+    margin: 14px 0 0;
+    font-size: var(--_tokens---type--small);
+    line-height: 1.5;
+    color: var(--_tokens---color--fg);
+    max-width: 68ch;
+  }
+  .project-participants {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 14px;
+    max-width: 72ch;
+  }
+  .project-participants__pill {
+    display: inline-flex;
+    align-items: center;
+    color: var(--_tokens---color--muted);
+    background: color-mix(in srgb, var(--_tokens---color--fg) 5%, transparent);
+    border: var(--_tokens---pill-border--mid);
+    border-radius: var(--_tokens---radius--pill);
+    padding: var(--_tokens---pill-pad--xs);
+    font-size: var(--_tokens---type--ultrathin);
+    font-weight: var(--_tokens---weight--light);
+    line-height: 1.1;
+    white-space: nowrap;
+  }
+  .project-participants__label {
+    background-color: var(--_tokens---color--fg);
+    border-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+    font-weight: var(--_tokens---weight--base);
   }
 
   .project-card__metaline {
@@ -2700,6 +2746,36 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   .project-chapter__body :global(.ch-facts > li > span:first-child) { color: var(--_tokens---color--muted); }
   .project-chapter__body :global(.ch-facts > li > span:last-child) { color: var(--_tokens---color--fg); }
   .project-chapter__body :global(.ch-facts .ch-list) { margin: 0; }
+
+  /* Text beside a picture: the words on the left, the picture on the right
+     (stacked on phones). The words past the first paragraphs fold behind a
+     Read more — a native <details>, so it needs no script. */
+  .project-chapter__body :global(.ch-split) { display: grid; gap: 24px; margin-top: 20px; align-items: start; }
+  @media (min-width: 1024px) {
+    .project-chapter__body :global(.ch-split) { grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr); gap: var(--_tokens---space--medium, 3rem); }
+  }
+  .project-chapter__body :global(.ch-split .ch-prose) { margin: 0; }
+  .project-chapter__body :global(.ch-split figure) { margin: 0; }
+  .project-chapter__body :global(.ch-split figure img) { width: 100%; height: auto; display: block; }
+  .project-chapter__body :global(.ch-split figcaption) { margin-top: 8px; font-size: var(--_tokens---type--micro); color: var(--_tokens---color--muted); }
+  .project-chapter__body :global(.ch-more > summary) {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    list-style: none;
+    cursor: pointer;
+    padding: var(--_tokens---pill-pad--xs);
+    border: var(--_tokens---pill-border);
+    border-radius: var(--_tokens---radius--pill);
+    font-size: var(--_tokens---type--micro);
+    color: var(--_tokens---color--fg);
+    margin: 4px 0 12px;
+  }
+  .project-chapter__body :global(.ch-more > summary::-webkit-details-marker) { display: none; }
+  .project-chapter__body :global(.ch-more > summary::after) { content: '↓'; font-size: 0.9em; }
+  .project-chapter__body :global(.ch-more[open] > summary::after) { content: '↑'; }
+  .project-chapter__body :global(.ch-more[open] > summary .ch-more__open) { display: none; }
+  .project-chapter__body :global(.ch-more:not([open]) > summary .ch-more__close) { display: none; }
 
   .project-chapter__body :global(.ch-grid) {
     display: grid;
