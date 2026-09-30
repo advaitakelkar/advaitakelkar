@@ -2785,6 +2785,13 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     gap: 24px 12px;
     margin: 20px 0;
   }
+  /* --fluid: three across at least, more as the column widens — a column is
+     never narrower than --min (300px), so a very wide screen takes four, then
+     five. No breakpoint: the count follows the column's own width. Phones
+     keep the two-up rule below. */
+  .project-chapter__body :global(.ch-grid--fluid) {
+    grid-template-columns: repeat(auto-fill, minmax(min(var(--min, 300px), calc((100% - 24px) / 3)), 1fr));
+  }
   .project-chapter__body :global(.ch-grid figure) { margin: 0; min-width: 0; }
   .project-chapter__body :global(.ch-grid img) { width: 100%; height: auto; display: block; }
   .project-chapter__body :global(.ch-grid--frame img) {
@@ -5068,7 +5075,16 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     color: var(--_tokens---color--muted);
     flex: 1 1 12ch;
     min-width: 0;
+    /* Shown on demand: hovering the faces (or focusing into them) reveals who
+       it was made with; on a touch screen a tap on a face toggles it
+       (initCreditReveal). The line keeps its place, so nothing jumps. */
+    opacity: 0;
+    transition: opacity var(--_tokens---motion--base) ease;
   }
+  .renders-people:hover .renders-credit,
+  .renders-people:focus-within .renders-credit,
+  .renders-credit.is-open { opacity: 1; }
+  #project-people-panel .project-people__person { cursor: pointer; }
 
   /* ── The fixed picture beside the copy (wide band only) ────────────────
      Two columns: the whole copy block on the left — faces and credit,
@@ -5434,10 +5450,15 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       font-weight: 600 !important;
       line-height: 1.4 !important;
     }
-    /* The credit line goes on the phone; the faces beside the copy already
-       say who it was made with. */
+    /* On the phone the credit takes no room until a face is tapped; the
+       faces beside the copy already say who it was made with. */
     .project-detail[data-renders="true"] .renders-credit {
       display: none !important;
+    }
+    .project-detail[data-renders="true"] .renders-credit.is-open {
+      display: block !important;
+      flex-basis: 100%;
+      margin-top: 6px;
     }
     .project-detail[data-renders="true"] {
       padding-top: 0 !important;
@@ -7161,6 +7182,10 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         ? slot
         : (detail.querySelector<HTMLElement>('.project-phone-card') ?? titleSlot ?? slot);
       if (target && people.parentElement !== target) target.insertBefore(people, target.firstChild);
+      /* The credit travels with the faces, straight after them, so a tap on
+         a face on the phone opens the line right there. */
+      const credit = detail.querySelector<HTMLElement>('.renders-credit');
+      if (credit && people.nextElementSibling !== credit) people.after(credit);
     };
     if (!detail.dataset.rpWired) {
       detail.dataset.rpWired = '1';
@@ -7344,5 +7369,21 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
   initChapterSlides();
   document.addEventListener('astro:after-swap', initChapterSlides);
+
+  // "In collaboration with …" is shown on demand: hover on a pointer device
+  // (CSS), and a tap on any face toggles it — the way to see it on a phone.
+  function initCreditReveal() {
+    const panel = document.getElementById('project-people-panel');
+    if (!panel || panel.dataset.creditWired) return;
+    panel.dataset.creditWired = '1';
+    /* Capture phase: something inside the faces stops the click from
+       bubbling, so a bubbling listener here never hears the tap. */
+    panel.addEventListener('click', (e) => {
+      if (!(e.target as HTMLElement).closest('.project-people__person')) return;
+      document.querySelector('.renders-credit')?.classList.toggle('is-open');
+    }, true);
+  }
+  initCreditReveal();
+  document.addEventListener('astro:after-swap', initCreditReveal);
 
 </script>
