@@ -427,10 +427,11 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                       </div>
                     )}
 
-                    {/* Virtual Gods keeps the standard ARCHV page; the one-page
-                        scroll exhibition lives further down this same page. */}
+                    {/* Virtual Gods keeps the standard ARCHV page; the exhibition
+                        itself has its own pages, entered at /virtual-gods (the
+                        one-page scroll version still sits further down). */}
                     {project.id === 'virtual-gods' && (
-                      <a class="project-exhibition-pill" href="#exhibition">
+                      <a class="project-exhibition-pill" href="/virtual-gods">
                         <span>Enter the exhibition</span>
                         <Arrow />
                       </a>
@@ -2649,6 +2650,89 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   .project-chapter__body :global(.ch-slides img) { grid-area: 1 / 1; width: 100%; height: auto; display: block; opacity: 0; transition: opacity var(--_tokens---motion--base) ease; }
   .project-chapter__body :global(.ch-slides img.is-on) { opacity: 1; }
   .project-chapter__body :global(.ch-caption) { margin: 6px 0 28px; text-align: center; }
+
+  /* ── ARCHV: study, catalogue and exhibit patterns ──────────────────────
+     .ch-prose   a study read as an article: one column at the body size.
+     .ch-facts   Published / Mentors / Participants / Aim, as label + value.
+     .ch-grid    pictures on a grid of --cols columns; each cell is a
+                 figure, its caption a <strong> title over a muted line.
+                 --frame sets every picture whole inside the same tile
+                 (never cropped), for sets whose shapes differ.
+     Phones take two to a row (or --cols-sm, which matrices set to three),
+     and one where the grid is only two wide. */
+  .project-chapter__body :global(.ch-prose) { max-width: 68ch; margin: 20px 0 0; }
+  .project-chapter__body :global(.ch-prose p) {
+    font-size: var(--_tokens---type--small);
+    line-height: 1.55;
+    color: var(--_tokens---color--fg);
+    margin: 0 0 0.9em;
+  }
+  .project-chapter__body :global(.ch-prose h4) {
+    font-size: var(--_tokens---type--small);
+    font-weight: var(--_tokens---weight--strong);
+    color: var(--_tokens---color--fg);
+    margin: 1.6em 0 0.4em;
+  }
+  .project-chapter__body :global(.ch-prose ul:not(.ch-list)) {
+    margin: 0 0 0.9em;
+    padding-left: 1.1em;
+    font-size: var(--_tokens---type--small);
+    line-height: 1.55;
+  }
+  .project-chapter__body :global(.ch-prose .ch-list) { margin: 6px 0 16px; }
+
+  .project-chapter__body :global(.ch-facts) {
+    list-style: none;
+    margin: 20px 0 0;
+    padding: 0;
+    max-width: 68ch;
+    border-top: 1px solid var(--_tokens---color--line-soft);
+  }
+  .project-chapter__body :global(.ch-facts > li) {
+    display: grid;
+    grid-template-columns: minmax(7em, 0.3fr) 1fr;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--_tokens---color--line-soft);
+    font-size: var(--_tokens---type--micro);
+    line-height: 1.5;
+  }
+  .project-chapter__body :global(.ch-facts > li > span:first-child) { color: var(--_tokens---color--muted); }
+  .project-chapter__body :global(.ch-facts > li > span:last-child) { color: var(--_tokens---color--fg); }
+  .project-chapter__body :global(.ch-facts .ch-list) { margin: 0; }
+
+  .project-chapter__body :global(.ch-grid) {
+    display: grid;
+    grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
+    gap: 24px 12px;
+    margin: 20px 0;
+  }
+  .project-chapter__body :global(.ch-grid figure) { margin: 0; min-width: 0; }
+  .project-chapter__body :global(.ch-grid img) { width: 100%; height: auto; display: block; }
+  .project-chapter__body :global(.ch-grid--frame img) {
+    aspect-ratio: var(--ratio, 1 / 1);
+    object-fit: contain;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 4%, transparent);
+  }
+  .project-chapter__body :global(.ch-grid .ch-slides) { margin: 0; }
+  .project-chapter__body :global(.ch-grid figcaption) {
+    margin-top: 8px;
+    font-size: var(--_tokens---type--micro);
+    line-height: 1.4;
+    color: var(--_tokens---color--muted);
+  }
+  .project-chapter__body :global(.ch-grid figcaption strong) {
+    display: block;
+    font-weight: var(--_tokens---weight--base);
+    color: var(--_tokens---color--fg);
+  }
+  .project-chapter__body :global(.ch-grid figcaption p) { margin: 6px 0 0; }
+  @media (max-width: 1023.98px) {
+    .project-chapter__body :global(.ch-grid) { grid-template-columns: repeat(var(--cols-sm, min(var(--cols, 3), 2)), minmax(0, 1fr)); }
+  }
+  @media (max-width: 699.98px) {
+    .project-chapter__body :global(.ch-grid[style*="--cols:2"]) { grid-template-columns: 1fr; }
+  }
   @media (max-width: 1023.98px) {
     .project-chapter__body :global(.ch-row) { flex-wrap: wrap; }
     .project-chapter__body :global(.ch-row figure) { flex-basis: calc(50% - 5px); }

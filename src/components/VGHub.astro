@@ -9,6 +9,22 @@
 // original's #f2f2f2 page colour in every scheme; on a dark scheme the lines
 // would otherwise vanish.
 
+import { getEntry } from 'astro:content';
+import { hrefForArchvPage } from '../lib/vg';
+
+export interface Props {
+  /** 'exhibition' links into the exhibition pages; 'archv' into the rebuilt originals. */
+  links?: 'exhibition' | 'archv';
+  /** The archv.in page this map is shown on (VG01, HejdukxScarpa…); its tile is marked. */
+  current?: string;
+  /** Small, as a map in a page's margin rather than the entrance. */
+  compact?: boolean;
+}
+const { links = 'exhibition', current, compact = false } = Astro.props;
+const ex = await getEntry('exhibitions', 'virtual-gods');
+const quadrants = ex!.data.quadrants;
+const hrefOf = (page: string) => links === 'archv' ? `/archv-in/${page}.html` : hrefForArchvPage(quadrants, page);
+
 const S = 702; // the original composition's side, px
 const T = 207; // one tile, px
 const img = (p: string) => `/archv-in/images/${p}`;
@@ -32,11 +48,12 @@ const tiles = [
 const pct = (v: number) => `${(v / S * 100).toFixed(3)}%`;
 ---
 
-<nav class="vgh" aria-label="Virtual Gods — the eight pairs and four worlds">
+<nav class:list={['vgh', compact && 'vgh--compact', current && 'has-current']} aria-label="Virtual Gods — the eight pairs and four worlds">
   {tiles.map((t) => (
     <a
-      class="vgh__tile"
-      href={`/archv-in/${t.href}.html`}
+      class:list={['vgh__tile', t.href === current && 'is-current']}
+      href={hrefOf(t.href)}
+      aria-current={t.href === current ? 'page' : undefined}
       style={`left:${pct(t.x)};top:${pct(t.y)};width:${pct(T)};`}
       aria-label={t.label}
     >
@@ -94,6 +111,12 @@ const pct = (v: number) => `${(v / S * 100).toFixed(3)}%`;
     transition: opacity var(--_tokens---motion--base) ease;
   }
   .vgh__tile:hover .vgh__label, .vgh__tile:focus-visible .vgh__label { opacity: 1; }
+
+  /* As a map: the other tiles recede so "you are here" reads at a glance. */
+  .vgh.has-current .vgh__tile:not(.is-current) { opacity: 0.45; }
+  .vgh.has-current .vgh__tile:not(.is-current):hover { opacity: 1; }
+  .vgh__tile.is-current { z-index: 3; filter: drop-shadow(0 0 10px var(--ex-accent, rgb(0 0 0 / 0.25))); }
+  .vgh--compact .vgh__label { display: none; }
 
   @media (prefers-reduced-motion: reduce) {
     .vgh__tile, .vgh__label { transition: none; }

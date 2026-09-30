@@ -1,0 +1,171 @@
+---
+// One pair of the exhibition: two people, two architects, one fused form.
+// Read top to bottom it is the pair's own story — each member's
+// illustration, each member's module, the fusion, the model — with the
+// pair's archv.in text set where it speaks to each stage.
+import { getEntry } from 'astro:content';
+import ExhibitionLayout from '../../../layouts/ExhibitionLayout.astro';
+import VGHub from '../../../components/VGHub.astro';
+import VGExhibitionStyles from '../../../components/VGExhibitionStyles.astro';
+import { publicFileExists } from '../../../lib/content';
+import { PAIR, WORLD_URL, worldHref, pairHref, stageOf, isPersons, isPairsFusion } from '../../../lib/vg';
+
+export async function getStaticPaths() {
+  const ex = await getEntry('exhibitions', 'virtual-gods');
+  const qs = ex!.data.quadrants;
+  const order = qs.flatMap((q: any) => q.pairs.map((p: any) => ({ q, p })));
+  return order.map(({ q, p }: any, i: number) => ({
+    params: { world: WORLD_URL[q.slug], pair: PAIR[p.slug].url },
+    props: { q, p, prev: order[(i - 1 + order.length) % order.length], next: order[(i + 1) % order.length] },
+  }));
+}
+
+const { q, p, prev, next } = Astro.props as any;
+const meta = PAIR[p.slug];
+const partner = q.pairs.find((x: any) => x.slug !== p.slug);
+const gallery: string[] = p.gallery ?? [];
+const worldGallery: string[] = q.gallery ?? [];
+const vg = (rel: string) => `/images/virtual-gods/vg/${rel}`;
+
+const illustrations = p.members.map((m: any) => ({
+  m, src: gallery.find(g => stageOf(g) === 'illustration' && isPersons(g, m.name)),
+}));
+const modules = p.members.map((m: any) => {
+  const gif = gallery.find(g => stageOf(g) === 'module' && isPersons(g, m.name));
+  const video = !gif && m.module && publicFileExists(vg(`modules/${m.module}.mp4`)) ? vg(`modules/${m.module}.mp4`) : null;
+  const views = gallery.filter(g => stageOf(g) === 'module-view' && isPersons(g, m.name));
+  return { m, gif, video, views };
+});
+const fusion = worldGallery.find(g => isPairsFusion(g, p.members));
+const fusionVideo = !fusion && publicFileExists(vg(`mergers/${p.slug}.mp4`)) ? vg(`mergers/${p.slug}.mp4`) : null;
+const fusionViews = gallery.filter(g => stageOf(g) === 'fusion-view');
+const fusionSteps = gallery.filter(g => stageOf(g) === 'fusion-step');
+const process = gallery.filter(g => stageOf(g) === 'process');
+const film = p.film && publicFileExists(vg(`films/${p.film}.mp4`)) ? vg(`films/${p.film}.mp4`) : null;
+
+// The pair's archv.in text: what came before "Illustrations exchanged between
+// …" is about the two architects; what comes after is how they fused.
+const body: string[] = p.body ?? [];
+const cut = body.findIndex(t => /^Illustrations exchanged between|^Roberto Burle Marx by/.test(t));
+const onArchitects = cut >= 0 ? body.slice(0, cut) : body;
+const exchanged = cut >= 0 ? body[cut] : null;
+const onFusion = cut >= 0 ? body.slice(cut + 1) : [];
+const isVideo = (s: string) => s.endsWith('.mp4');
+---
+
+<ExhibitionLayout
+  title={`${meta.title} — Virtual Gods`}
+  description={`${p.members.map((m: any) => m.name).join(' and ')} fuse ${meta.title} — a pair of Virtual Gods, ARCHV 2020.`}
+  trail={[{ label: q.number, href: worldHref(q.slug) }, { label: meta.title }]}
+  accent={q.color}
+>
+  <VGExhibitionStyles />
+  <div class="vge">
+    <div class="vge-layout">
+      <aside class="vge-map" aria-label="Where you are">
+        <p class="vge-map__label">{q.number} · pair</p>
+        <VGHub compact current={meta.archv} />
+      </aside>
+
+      <article>
+        <header class="vge-head">
+          <p class="vge-kicker">{q.number} · a pair</p>
+          <h1 class="vge-title">{meta.title}</h1>
+          <ul class="vge-pills">
+            {p.members.map((m: any) => <li>{m.name} · {m.architect}</li>)}
+          </ul>
+          {onArchitects[0] && <p class="vge-lead">{onArchitects[0]}</p>}
+        </header>
+
+        {onArchitects.length > 1 && (
+          <div class="vge-prose" style="margin-top:20px">{onArchitects.slice(1).map((t: string) => <p>{t}</p>)}</div>
+        )}
+
+        <section class="vge-stage">
+          <div class="vge-stage__head"><span class="vge-stage__n">01</span><h2 class="vge-stage__title">One person, in 2D — the illustrations</h2></div>
+          {exchanged && <p class="vge-stage__sub">{exchanged}</p>}
+          <div class="vge-grid" style="--cols:2">
+            {illustrations.filter((x: any) => x.src).map((x: any) => (
+              <figure><img class="vge-work vge-work--photo" src={x.src} alt={`${x.m.architect}, by ${x.m.name}`} loading="lazy" style="--ratio:4/5" />
+                <figcaption><strong>{x.m.name}</strong>repping {x.m.architect}</figcaption></figure>
+            ))}
+          </div>
+        </section>
+
+        <section class="vge-stage">
+          <div class="vge-stage__head"><span class="vge-stage__n">02</span><h2 class="vge-stage__title">One person, in 3D — the modules</h2></div>
+          <p class="vge-stage__sub">Each member distilled their architect into a single module.</p>
+          <div class="vge-grid" style="--cols:2">
+            {modules.map((x: any) => (
+              <figure>
+                {x.gif
+                  ? <img class="vge-work" src={x.gif} alt={`${x.m.name}'s module`} loading="lazy" />
+                  : x.video
+                    ? <video class="vge-work" src={x.video} autoplay muted loop playsinline preload="metadata"></video>
+                    : <div class="vge-work" aria-hidden="true"></div>}
+                <figcaption><strong>{x.m.name}</strong>{x.m.architect}</figcaption>
+              </figure>
+            ))}
+          </div>
+          {modules.some((x: any) => x.views.length) && (
+            <div class="vge-grid" style="--cols:6;--cols-sm:3;margin-top:12px">
+              {modules.flatMap((x: any) => x.views.map((v: string) => (
+                <figure><img class="vge-work" src={v} alt={`${x.m.name}'s module, a view`} loading="lazy" /></figure>
+              )))}
+            </div>
+          )}
+        </section>
+
+        <section class="vge-stage">
+          <div class="vge-stage__head"><span class="vge-stage__n">03</span><h2 class="vge-stage__title">Two people — the fusion</h2></div>
+          {onFusion.length > 0 && <div class="vge-prose">{onFusion.map((t: string) => <p>{t}</p>)}</div>}
+          <div class="vge-grid" style="--cols:2;margin-top:16px">
+            {fusion && <figure><img class="vge-work" src={fusion} alt={`${meta.title}, the fused form`} loading="lazy" /><figcaption><strong>The fused form</strong>{meta.title}</figcaption></figure>}
+            {fusionVideo && <figure><video class="vge-work" src={fusionVideo} autoplay muted loop playsinline preload="metadata"></video><figcaption><strong>The fused form</strong>{meta.title}</figcaption></figure>}
+            {p.sketchfab && (
+              <figure>
+                <iframe class="vge-model" style="aspect-ratio:1/1" title={`${meta.title} — 3D model`} loading="lazy"
+                  src={`https://sketchfab.com/models/${p.sketchfab}/embed?autospin=0.2&autostart=0&ui_infos=0&ui_watermark=1`}
+                  allow="autoplay; fullscreen; xr-spatial-tracking" allowfullscreen></iframe>
+                <figcaption><strong>In 3D</strong>Drag to turn it — Sketchfab</figcaption>
+              </figure>
+            )}
+          </div>
+          {fusionViews.length > 0 && (
+            <div class="vge-grid" style="--cols:6;--cols-sm:3;margin-top:12px">
+              {fusionViews.map((v: string) => <figure><img class="vge-work" src={v} alt={`${meta.title}, a view`} loading="lazy" /></figure>)}
+            </div>
+          )}
+          {fusionSteps.length > 0 && (
+            <>
+              <p class="vge-stage__sub" style="margin-top:20px">How it fused, step by step.</p>
+              <div class="vge-grid" style={`--cols:${Math.min(fusionSteps.length, 6)};--cols-sm:3`}>
+                {fusionSteps.map((v: string, i: number) => <figure><img class="vge-work" src={v} alt={`${meta.title}, step ${i + 1}`} loading="lazy" /><figcaption>Step {i + 1}</figcaption></figure>)}
+              </div>
+            </>
+          )}
+          {process.length > 0 && (
+            <div class="vge-grid" style="--cols:6;--cols-sm:3;margin-top:12px">
+              {process.map((v: string) => <figure><img class="vge-work vge-work--photo" src={v} alt={`${meta.title}, process`} loading="lazy" /></figure>)}
+            </div>
+          )}
+        </section>
+
+        {film && (
+          <section class="vge-stage">
+            <div class="vge-stage__head"><span class="vge-stage__n">04</span><h2 class="vge-stage__title">The film</h2></div>
+            <video class="vge-film" src={film} controls muted playsinline preload="metadata"></video>
+          </section>
+        )}
+
+        <nav class="vge-walk" aria-label="Walk on">
+          <a href={worldHref(q.slug)}><span>The world</span>{q.number} · {q.architects.join(' × ')}</a>
+          {partner && <a href={pairHref(q.slug, partner.slug)}><span>Its partner pair</span>{PAIR[partner.slug].title}</a>}
+          <a href={pairHref(prev.q.slug, prev.p.slug)}><span>Previous pair</span>{PAIR[prev.p.slug].title}</a>
+          <a href={pairHref(next.q.slug, next.p.slug)}><span>Next pair</span>{PAIR[next.p.slug].title}</a>
+          <a href={`/archv-in/${meta.archv}.html`}><span>As it was</span>The original page on archv.in</a>
+        </nav>
+      </article>
+    </div>
+  </div>
+</ExhibitionLayout>

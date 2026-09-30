@@ -1,0 +1,129 @@
+---
+// One world of the exhibition: four people, two pairs, one surreal world.
+// Its archv.in text (process, and for three of the four a poem), the two
+// pairs that fused into it, the model, the film, and the renders — the
+// final artwork.
+import { getEntry } from 'astro:content';
+import ExhibitionLayout from '../../../layouts/ExhibitionLayout.astro';
+import VGHub from '../../../components/VGHub.astro';
+import VGExhibitionStyles from '../../../components/VGExhibitionStyles.astro';
+import { publicFileExists } from '../../../lib/content';
+import { PAIR, WORLD_URL, worldHref, pairHref, stageOf, isPairsFusion } from '../../../lib/vg';
+
+export async function getStaticPaths() {
+  const ex = await getEntry('exhibitions', 'virtual-gods');
+  const qs = ex!.data.quadrants;
+  return qs.map((q: any, i: number) => ({
+    params: { world: WORLD_URL[q.slug] },
+    props: { q, prev: qs[(i - 1 + qs.length) % qs.length], next: qs[(i + 1) % qs.length] },
+  }));
+}
+
+const { q, prev, next } = Astro.props as any;
+const vg = (rel: string) => `/images/virtual-gods/vg/${rel}`;
+const gallery: string[] = q.gallery ?? [];
+const people = q.pairs.flatMap((p: any) => p.members);
+
+// The text: prose, then (where there is one) the poem — short lines set as
+// verse — and the participants line, which the pills already carry.
+const body: string[] = (q.body ?? []).filter((t: string) => !/^Participants:/.test(t));
+const blocks: { verse: boolean; lines: string[] }[] = [];
+for (const t of body) {
+  const verse = t.length < 95 && !/[.:]$/.test(t.trim()) || /^['‘“]/.test(t);
+  const last = blocks[blocks.length - 1];
+  if (last && last.verse === verse) last.lines.push(t); else blocks.push({ verse, lines: [t] });
+}
+
+const diagram = gallery.filter(g => /Process-Diagram/i.test(g));
+const evolution = gallery.filter(g => /Evolution/i.test(g));
+const pairsFused = q.pairs.map((p: any) => ({ p, src: gallery.find(g => isPairsFusion(g, p.members)) }));
+const used = new Set([...diagram, ...evolution, ...pairsFused.map((x: any) => x.src)]);
+const artwork = gallery.filter(g => !used.has(g) && stageOf(g) !== 'module');
+const film = q.film && publicFileExists(vg(`films/${q.film}.mp4`)) ? vg(`films/${q.film}.mp4`) : null;
+const renders = [...(q.renders ?? [])].map((r: string) => vg(`posters/${r}.webp`)).filter((s: string) => publicFileExists(s));
+---
+
+<ExhibitionLayout
+  title={`${q.number} — Virtual Gods`}
+  description={`${q.number}: ${q.architects.join(', ')} — four people, two pairs, one world. Virtual Gods, ARCHV 2020.`}
+  trail={[{ label: q.number }]}
+  accent={q.color}
+>
+  <VGExhibitionStyles />
+  <div class="vge">
+    <div class="vge-layout">
+      <aside class="vge-map" aria-label="Where you are">
+        <p class="vge-map__label">{q.number} · world</p>
+        <VGHub compact current={q.number} />
+      </aside>
+
+      <article>
+        <header class="vge-head">
+          <p class="vge-kicker">A world · four people, two pairs</p>
+          <h1 class="vge-title">{q.number}</h1>
+          <p class="vge-lead">{q.architects.join(' × ')}</p>
+          <ul class="vge-pills">{people.map((m: any) => <li>{m.name}</li>)}</ul>
+        </header>
+
+        <section class="vge-stage">
+          <div class="vge-stage__head"><span class="vge-stage__n">01</span><h2 class="vge-stage__title">The two pairs</h2></div>
+          <p class="vge-stage__sub">Two pairs fused their modules first; their two forms then became this world.</p>
+          <div class="vge-grid" style="--cols:2">
+            {pairsFused.map(({ p, src }: any) => (
+              <figure><a href={pairHref(q.slug, p.slug)}>
+                {src
+                  ? <img class="vge-work" src={src} alt={PAIR[p.slug].title} loading="lazy" />
+                  : <video class="vge-work" src={vg(`mergers/${p.slug}.mp4`)} autoplay muted loop playsinline preload="metadata"></video>}
+                <figcaption><strong>{PAIR[p.slug].title} →</strong>{p.members.map((m: any) => m.name).join(' and ')}</figcaption>
+              </a></figure>
+            ))}
+          </div>
+        </section>
+
+        <section class="vge-stage">
+          <div class="vge-stage__head"><span class="vge-stage__n">02</span><h2 class="vge-stage__title">Four people — the world</h2></div>
+          <div class="vge-prose">
+            {blocks.map(b => b.verse
+              ? <div class="vge-verse">{b.lines.map(l => <p>{l}</p>)}</div>
+              : b.lines.map(l => <p>{l}</p>))}
+          </div>
+          {(diagram.length > 0 || evolution.length > 0) && (
+            <div class="vge-grid" style="--cols:2;margin-top:16px">
+              {diagram.map((s: string) => <figure><img class="vge-work vge-work--photo" style="--ratio:auto;object-fit:contain" src={s} alt={`${q.number}, process diagram`} loading="lazy" /><figcaption><strong>Process diagram</strong></figcaption></figure>)}
+              {evolution.map((s: string) => <figure><img class="vge-work" src={s} alt={`${q.number}, evolution`} loading="lazy" /><figcaption><strong>Evolution</strong>The world, loop by loop</figcaption></figure>)}
+            </div>
+          )}
+          <div class="vge-grid" style="--cols:2;margin-top:12px">
+            {q.sketchfab && (
+              <figure>
+                <iframe class="vge-model" style="aspect-ratio:1/1" title={`${q.number} — 3D model`} loading="lazy"
+                  src={`https://sketchfab.com/models/${q.sketchfab}/embed?autospin=0.2&autostart=0&ui_infos=0&ui_watermark=1`}
+                  allow="autoplay; fullscreen; xr-spatial-tracking" allowfullscreen></iframe>
+                <figcaption><strong>In 3D</strong>Drag to turn it — Sketchfab</figcaption>
+              </figure>
+            )}
+            {film && <figure><video class="vge-film" style="aspect-ratio:1/1;object-fit:cover" src={film} controls muted playsinline preload="metadata"></video><figcaption><strong>The film</strong></figcaption></figure>}
+          </div>
+        </section>
+
+        {(artwork.length > 0 || renders.length > 0) && (
+          <section class="vge-stage">
+            <div class="vge-stage__head"><span class="vge-stage__n">03</span><h2 class="vge-stage__title">The final artwork</h2></div>
+            <div class="vge-grid" style="--cols:3">
+              {[...artwork, ...renders].map((s: string, i: number) => (
+                <figure><img class="vge-work vge-work--photo" src={s} alt={`${q.number}, render ${i + 1}`} loading="lazy" /></figure>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <nav class="vge-walk" aria-label="Walk on">
+          {q.pairs.map((p: any) => <a href={pairHref(q.slug, p.slug)}><span>A pair of this world</span>{PAIR[p.slug].title}</a>)}
+          <a href={worldHref(prev.slug)}><span>Previous world</span>{prev.number}</a>
+          <a href={worldHref(next.slug)}><span>Next world</span>{next.number}</a>
+          <a href={`/archv-in/${q.number}.html`}><span>As it was</span>The original page on archv.in</a>
+        </nav>
+      </article>
+    </div>
+  </div>
+</ExhibitionLayout>
