@@ -93,6 +93,9 @@ const projects = defineCollection({
        work and it moves; this is a still to read the text against. Defaults
        to nothing, so a project without one simply keeps the full-width copy. */
     sideImage: z.string().optional(),
+    // Project Template 01: one picture shown whole, at its own proportions,
+    // above the room tabs (a cut file, a long drawing). Never cropped.
+    leadImage: z.string().optional(),
     /* Same slot, moving. When set, the still is played instead of shown, and
        `sideImage` becomes its poster — so a project declares one or the other
        picture and never two competing ones. Muted and looping, because it
