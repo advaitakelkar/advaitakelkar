@@ -206,6 +206,12 @@ const exhibitionPair = z.object({
   slug: z.string(),
   label: z.string(),
   film: z.string().default(''),
+  // The pair's page on the original archv.in, paragraph by paragraph.
+  body: z.array(z.string()).optional(),
+  // Every picture that page carried, in its order (the rebuilt originals in public/archv-in/images/).
+  gallery: z.array(z.string()).optional(),
+  // The pair's fused model on Sketchfab (model uid), as embedded on archv.in.
+  sketchfab: z.string().optional(),
   members: z.array(exhibitionMember),
 });
 
@@ -216,6 +222,8 @@ const exhibitions = defineCollection({
     year: z.string().optional(),
     tagline: z.string().optional(),
     intro: z.array(z.string()).optional(),
+    // The exhibition hub on archv.in, picture by picture.
+    gallery: z.array(z.string()).optional(),
     quadrants: z.array(z.object({
       slug: z.string(),
       position: z.enum(['tl', 'tr', 'bl', 'br']),
@@ -223,6 +231,14 @@ const exhibitions = defineCollection({
       label: z.string(),
       architects: z.array(z.string()),
       film: z.string().default(''),
+      // VG01–VG04, as the worlds were numbered on archv.in.
+      number: z.string().optional(),
+      // The world's page on the original archv.in, paragraph by paragraph.
+      body: z.array(z.string()).optional(),
+      // Every picture that page carried, in its order.
+      gallery: z.array(z.string()).optional(),
+      // The world's model on Sketchfab (model uid), as embedded on archv.in.
+      sketchfab: z.string().optional(),
       methodology: z.array(z.string()).optional(),
       renders: z.array(z.string()).optional(),
       pairs: z.array(exhibitionPair),
