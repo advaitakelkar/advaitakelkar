@@ -96,6 +96,13 @@ const projects = defineCollection({
     // Project Template 01: one picture shown whole, at its own proportions,
     // above the room tabs (a cut file, a long drawing). Never cropped.
     leadImage: z.string().optional(),
+    // Project Template 01: text on the left, pictures on the right as a
+    // slider that advances by itself — shown instead of the rooms.
+    leadSlides: z.object({
+      label: z.string().optional(),
+      text: z.string().optional(),
+      images: z.array(z.string()),
+    }).optional(),
     /* Same slot, moving. When set, the still is played instead of shown, and
        `sideImage` becomes its poster — so a project declares one or the other
        picture and never two competing ones. Muted and looping, because it

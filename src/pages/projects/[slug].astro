@@ -776,7 +776,25 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
               <img src={(data as any).leadImage} alt={`${data.name}`} loading="lazy" />
             </figure>
           )}
-          <RenderRooms views={renderViews} name={data.name} groups={data.groups ?? "tabs"} />
+          {/* Text on the left, the pictures on the right as a slider that
+              advances by itself (initChapterSlides). A project that sets this
+              shows it instead of the rooms — the same pictures twice would
+              be noise. */}
+          {(data as any).leadSlides ? (
+            <div class="renders-lead renders-lead--split">
+              <div class="renders-lead__text">
+                {(data as any).leadSlides.label && <p class="renders-lead__label">{(data as any).leadSlides.label}</p>}
+                {(data as any).leadSlides.text && <p class="renders-lead__note">{(data as any).leadSlides.text}</p>}
+              </div>
+              <div class="renders-lead__slides ch-slides-auto">
+                {(data as any).leadSlides.images.map((src: string, i: number) => (
+                  <img src={src} alt={`${data.name}, ${i + 1} of ${(data as any).leadSlides.images.length}`} loading={i === 0 ? 'eager' : 'lazy'} />
+                ))}
+              </div>
+            </div>
+          ) : (
+            <RenderRooms views={renderViews} name={data.name} groups={data.groups ?? "tabs"} />
+          )}
         </section>
       )}
 
@@ -4969,6 +4987,38 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
   .renders-lead { margin: 0 0 24px; }
   .renders-lead img { width: 100%; height: auto; display: block; object-fit: contain; }
+  .renders-lead--split { display: grid; gap: 16px; align-items: start; }
+  @media (min-width: 1024px) {
+    .renders-lead--split { grid-template-columns: minmax(0, 0.9fr) minmax(0, 2.1fr); gap: 20px; }
+  }
+  .renders-lead__label {
+    margin: 0 0 6px;
+    font-size: var(--_tokens---type--micro);
+    color: var(--_tokens---color--muted);
+  }
+  .renders-lead__note {
+    margin: 0;
+    font-size: var(--_tokens---type--small);
+    line-height: 1.4;
+    color: var(--_tokens---color--fg);
+    max-width: 32ch;
+  }
+  /* One frame, the pictures stacked in it and faded through in turn. */
+  .renders-lead__slides {
+    display: grid;
+    aspect-ratio: 3 / 2;
+    overflow: hidden;
+    border-radius: var(--_tokens---radius--small);
+  }
+  .renders-lead__slides img {
+    grid-area: 1 / 1;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity var(--_tokens---motion--slow) ease;
+  }
+  .renders-lead__slides img.is-on { opacity: 1; }
 
   .renders-section {
     width: 100%;
@@ -7363,7 +7413,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   // every five seconds as the original did. Held still under reduced motion.
   function initChapterSlides() {
     const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    document.querySelectorAll<HTMLElement>('.ch-slides:not([data-wired])').forEach((box) => {
+    document.querySelectorAll<HTMLElement>('.ch-slides:not([data-wired]), .ch-slides-auto:not([data-wired])').forEach((box) => {
       box.dataset.wired = '1';
       const imgs = Array.from(box.querySelectorAll('img'));
       if (!imgs.length) return;
