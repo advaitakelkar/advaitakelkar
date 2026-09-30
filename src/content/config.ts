@@ -96,6 +96,9 @@ const projects = defineCollection({
     // Project Template 01: one picture shown whole, at its own proportions,
     // above the room tabs (a cut file, a long drawing). Never cropped.
     leadImage: z.string().optional(),
+    // Project Template 01: full-width pictures above the rooms or slider,
+    // each with an optional line under it (the place, before the work).
+    leadFigures: z.array(z.object({ image: z.string(), caption: z.string().optional() })).optional(),
     // Project Template 01: text on the left, pictures on the right as a
     // slider that advances by itself — shown instead of the rooms.
     leadSlides: z.object({

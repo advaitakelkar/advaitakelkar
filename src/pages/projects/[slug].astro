@@ -784,6 +784,14 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
               <img src={(data as any).leadImage} alt={`${data.name}`} loading="lazy" />
             </figure>
           )}
+          {/* Full-width pictures with a line under each — the place itself,
+              before the work in it. */}
+          {((data as any).leadFigures ?? []).map((f: { image: string; caption?: string }) => (
+            <figure class="renders-lead renders-lead--figure">
+              <img src={f.image} alt={f.caption ?? data.name} loading="lazy" />
+              {f.caption && <figcaption class="renders-lead__caption">{f.caption}</figcaption>}
+            </figure>
+          ))}
           {/* Text on the left, the pictures on the right as a slider that
               advances by itself (initChapterSlides). A project that sets this
               shows it instead of the rooms — the same pictures twice would
@@ -5001,6 +5009,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
   .renders-lead { margin: 0 0 24px; }
   .renders-lead img { width: 100%; height: auto; display: block; object-fit: contain; }
+  .renders-lead__caption { margin-top: 8px; font-size: var(--_tokens---type--micro); color: var(--_tokens---color--muted); }
   .renders-lead--split { display: grid; gap: 16px; align-items: start; }
   @media (min-width: 1024px) {
     .renders-lead--split { grid-template-columns: minmax(0, 0.9fr) minmax(0, 2.1fr); gap: 20px; }
