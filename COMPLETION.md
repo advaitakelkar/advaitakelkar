@@ -100,11 +100,17 @@ and unlocking. Fastest wins on the site.
 `the-jude-bakery-project` · `under-the-tree-karjat` · `unplugged-jamshedpur`
 (+ `episodeone-powai`, Tier 0)
 
-### Tier 3 — text needs work, and images missing (19)
+### Ready for visual review (1)
+
+`gong-powai` — project text rebuilt from the drawing set; client corrected to Speciality
+Restaurants; 5 interior visualisations and 23 text-free plans, sections and bar details added.
+The project remains password-protected until the assembled page has been reviewed.
+
+### Tier 3 — text needs work, and images missing (18)
 Weakest description first (intro/description):
 
 `pet-pod` (1.9/1.8) · `vndls` (1.6/1.9) · `goonj` (2.1/1.9) · `scarpin` (2.3/1.9) ·
-`the-4th-dimention` (2.5/2.0) · `gully` (1.7/2.0) · `gong-powai` (1.9/2.0) · `pet-park` (2.4/2.0) ·
+`the-4th-dimention` (2.5/2.0) · `gully` (1.7/2.0) · `pet-park` (2.4/2.0) ·
 `open-source-design-library` (2.2/2.2) · `reflct` (2.8/2.2) · `virtual-gods` (2.6/2.3) ·
 `human-pods` (2.8/2.4) · `roberto-burle-marx-stickers` (2.1/2.4) · `tilak-nagar-cricket-park` (2.0/2.5)
 
