@@ -2619,6 +2619,43 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     display: block;
   }
 
+  /* A row of pictures on the grid the original archv.in page used. Each
+     image carries its share of the row as --w (and a leading offset as
+     --x), measured from the archived layout, so diagrams keep their own
+     proportions — nothing is cropped. Phones take two to a row. */
+  .project-chapter__body :global(.ch-row) {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 10px 0;
+  }
+  /* Each cell is a figure: the picture and, where the original had one, its
+     caption underneath. */
+  .project-chapter__body :global(.ch-row figure) {
+    flex: 0 1 var(--w, 100%);
+    min-width: 0;
+    margin: 0;
+  }
+  .project-chapter__body :global(.ch-row img) {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .project-chapter__body :global(.ch-row figcaption) { margin-top: 4px; }
+  .project-chapter__body :global(.ch-row figure:first-child) { margin-left: var(--x, 0); }
+  /* archv.in's slideshow: several pictures in one frame, one at a time,
+     advancing every five seconds (the script at the bottom of the page). */
+  .project-chapter__body :global(.ch-slides) { margin: 10px 0; display: grid; }
+  .project-chapter__body :global(.ch-slides img) { grid-area: 1 / 1; width: 100%; height: auto; display: block; opacity: 0; transition: opacity var(--_tokens---motion--base) ease; }
+  .project-chapter__body :global(.ch-slides img.is-on) { opacity: 1; }
+  .project-chapter__body :global(.ch-caption) { margin: 6px 0 28px; text-align: center; }
+  @media (max-width: 1023.98px) {
+    .project-chapter__body :global(.ch-row) { flex-wrap: wrap; }
+    .project-chapter__body :global(.ch-row figure) { flex-basis: calc(50% - 5px); }
+    .project-chapter__body :global(.ch-row figure:first-child) { margin-left: 0; }
+    .project-chapter__body :global(.ch-row figure.ch-row__full) { flex-basis: 100%; }
+  }
+
   /* ── Design & Making Sections (Standard Pages Only) ── */
   .project-metadata-sections {
     width: 100%;
@@ -7122,5 +7159,26 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
   initLandscapeScrub();
   document.addEventListener('astro:after-swap', initLandscapeScrub);
+
+  // archv.in's slideshows (.ch-slides): one picture on at a time, advancing
+  // every five seconds as the original did. Held still under reduced motion.
+  function initChapterSlides() {
+    const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document.querySelectorAll<HTMLElement>('.ch-slides:not([data-wired])').forEach((box) => {
+      box.dataset.wired = '1';
+      const imgs = Array.from(box.querySelectorAll('img'));
+      if (!imgs.length) return;
+      let i = 0;
+      imgs[0].classList.add('is-on');
+      if (still || imgs.length < 2) return;
+      setInterval(() => {
+        imgs[i].classList.remove('is-on');
+        i = (i + 1) % imgs.length;
+        imgs[i].classList.add('is-on');
+      }, 5000);
+    });
+  }
+  initChapterSlides();
+  document.addEventListener('astro:after-swap', initChapterSlides);
 
 </script>
