@@ -160,3 +160,25 @@ This entry supersedes earlier audit assumptions: website content and credits are
 - Notion comparison saved at /Users/adi/Dev/advaitakelkar-website/outputs/notion-website-comparison-2026-09-11.md. No Notion writes or full sync performed.
 - Validation: 80-page build, three style lints, TypeScript checks of new helpers, browser interaction checks, and 18 page/viewport overflow checks passed. Existing logo-resolution and admin-bundle build warnings remain.
 - Local changes only; not committed, pushed or published.
+
+## 2026-09-30 — One Virtual Gods exhibition entrance
+
+Adi confirmed `/projects/virtual-gods` is the main exhibition page. Removed the redundant
+Enter the exhibition links and duplicate `/virtual-gods` landing page; the old address redirects
+to the project page. World and pair navigation returns there. The embedded map now introduces
+the works without repeating the exhibition title and introductory prose.
+
+### Virtual Gods navigator redesign
+
+Adi requested the circle alone as the opening slide. The project URL now renders a dedicated
+map-only entrance. All four world and eight pair pages share a persistent map and linked
+world/pair key with current-page indication, plus previous/next and return-to-map links.
+The project content remains in YAML; the former long scroll exhibition is not mounted.
+
+Adi refined the entrance: use the standard GONG-style project introduction above the
+circular navigator. Virtual Gods now reuses the project template for title, metadata,
+people, original description and cover as side image, then shows the map without the
+old chapter/scroll duplication.
+
+Virtual Gods uses only the Void scheme on its project page and all exhibition routes.
+The colour selector is hidden there; other site pages retain their existing preferences.

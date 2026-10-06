@@ -1,0 +1,22 @@
+---
+import { getEntry } from 'astro:content';
+import VGHub from './VGHub.astro';
+import { PAIR, worldHref, pairHref } from '../lib/vg';
+const { current } = Astro.props;
+const ex = await getEntry('exhibitions', 'virtual-gods');
+const worlds = [...ex!.data.quadrants].sort((a, b) => a.number.localeCompare(b.number));
+const inkFor = (hex: string) => {
+  const rgb = hex.replace('#', '').match(/.{2}/g)!.map(v => parseInt(v, 16) / 255).map(v => v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+  const luminance = rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722;
+  return luminance > 0.179 ? '#111111' : '#ffffff';
+};
+---
+<aside class="vge-map" aria-label="Exhibition key">
+  <div class="vge-key-map"><VGHub compact current={current} /></div>
+  <nav class="vge-key-list" aria-label="Worlds and pairs">
+    {worlds.map(q => <div class="vge-key-group" style={`--key-color:${q.color};--key-ink:${inkFor(q.color)}`}>
+      <a class="vge-key-world" href={worldHref(q.slug)} aria-current={current === q.number ? 'page' : undefined}>VG WORLD {q.number.replace('VG', '')}</a>
+      {q.pairs.map(p => <a href={pairHref(q.slug, p.slug)} aria-current={current === PAIR[p.slug].archv ? 'page' : undefined}>{PAIR[p.slug].title}</a>)}
+    </div>)}
+  </nav>
+</aside>

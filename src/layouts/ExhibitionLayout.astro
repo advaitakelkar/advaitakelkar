@@ -26,13 +26,19 @@ const currentPath = Astro.url.pathname;
 ---
 
 <Base title={title} description={description}>
+  <script is:inline>
+    if (window.parent !== window && new URLSearchParams(location.search).get('embedded') === '1') {
+      document.documentElement.classList.add('vg-embedded');
+      document.addEventListener('DOMContentLoaded', () => window.parent.postMessage({ type: 'vg-ready' }, location.origin));
+    }
+  </script>
   <div class="page-wrap">
     <SideNav currentPath={currentPath} />
 
     <div class="ex-lightbox" style={accent ? `--ex-accent: ${accent}; --q: ${accent}` : undefined}>
       <header class="ex-bar">
         <nav class="ex-bar__trail" aria-label="Exhibition">
-          <a href="/virtual-gods" class="ex-bar__home">Virtual Gods</a>
+          <a href="/projects/virtual-gods" class="ex-bar__home">Virtual Gods</a>
           {trail.map(t => (
             <>
               <span class="ex-bar__sep" aria-hidden="true">/</span>
@@ -43,8 +49,8 @@ const currentPath = Astro.url.pathname;
           ))}
         </nav>
 
-        <a href="/projects/virtual-gods" class="ex-bar__exit" data-ex-exit aria-label="Close the exhibition">
-          <span class="ex-bar__exit-text">Close</span>
+        <a href="/projects/virtual-gods" class="ex-bar__exit" data-ex-exit aria-label="Return to exhibition map">
+          <span class="ex-bar__exit-text">Map</span>
           <Icon name="close" />
         </a>
       </header>
@@ -56,6 +62,15 @@ const currentPath = Astro.url.pathname;
   </div>
 </Base>
 
+<style is:global>
+  html.vg-embedded .vge { max-width: none; margin-inline: 0; padding-inline: 0; width: 100%; }
+  html.vg-embedded .vge-head .vge-kicker { display: none; }
+  html.vg-embedded .ex-bar, html.vg-embedded .page-wrap > :not(.ex-lightbox) { display: none; }
+  html.vg-embedded .ex-lightbox { inset: auto; position: relative; width: 100%; overflow: visible; backdrop-filter: none; background: var(--_tokens---color--bg); }
+  html.vg-embedded .ex-main { flex: none; overflow: visible; }
+  html.vg-embedded .page-wrap { min-height: 0; }
+  html.vg-embedded, html.vg-embedded body { min-height: 0; height: auto; }
+</style>
 <style>
   .page-wrap {
     display: flex;

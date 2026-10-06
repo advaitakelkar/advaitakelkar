@@ -4,15 +4,16 @@
 // illustration, each member's module, the fusion, the model — with the
 // pair's archv.in text set where it speaks to each stage.
 import { getEntry } from 'astro:content';
+import VGModel from '../../../components/VGModel.astro';
 import ExhibitionLayout from '../../../layouts/ExhibitionLayout.astro';
-import VGHub from '../../../components/VGHub.astro';
+import VGNavigation from '../../../components/VGNavigation.astro';
 import VGExhibitionStyles from '../../../components/VGExhibitionStyles.astro';
 import { publicFileExists } from '../../../lib/content';
 import { PAIR, WORLD_URL, worldHref, pairHref, stageOf, isPersons, isPairsFusion } from '../../../lib/vg';
 
 export async function getStaticPaths() {
   const ex = await getEntry('exhibitions', 'virtual-gods');
-  const qs = ex!.data.quadrants;
+  const qs = [...ex!.data.quadrants].sort((a, b) => a.number.localeCompare(b.number));
   const order = qs.flatMap((q: any) => q.pairs.map((p: any) => ({ q, p })));
   return order.map(({ q, p }: any, i: number) => ({
     params: { world: WORLD_URL[q.slug], pair: PAIR[p.slug].url },
@@ -62,10 +63,7 @@ const isVideo = (s: string) => s.endsWith('.mp4');
   <VGExhibitionStyles />
   <div class="vge">
     <div class="vge-layout">
-      <aside class="vge-map" aria-label="Where you are">
-        <p class="vge-map__label">{q.number} · pair</p>
-        <VGHub compact current={meta.archv} />
-      </aside>
+      <VGNavigation current={meta.archv} />
 
       <article>
         <header class="vge-head">
@@ -124,10 +122,8 @@ const isVideo = (s: string) => s.endsWith('.mp4');
             {fusionVideo && <figure><video class="vge-work" src={fusionVideo} autoplay muted loop playsinline preload="metadata"></video><figcaption><strong>The fused form</strong>{meta.title}</figcaption></figure>}
             {p.sketchfab && (
               <figure>
-                <iframe class="vge-model" style="aspect-ratio:1/1" title={`${meta.title} — 3D model`} loading="lazy"
-                  src={`https://sketchfab.com/models/${p.sketchfab}/embed?autospin=0.2&autostart=0&ui_infos=0&ui_watermark=1`}
-                  allow="autoplay; fullscreen; xr-spatial-tracking" allowfullscreen></iframe>
-                <figcaption><strong>In 3D</strong>Drag to turn it — Sketchfab</figcaption>
+                <VGModel uid={p.sketchfab} title={`${meta.title} — 3D model`} poster={fusion ?? modules.find((m: any) => m.gif)?.gif} />
+                <figcaption><strong>In 3D</strong>Drag to turn it · <a href={`https://sketchfab.com/models/${p.sketchfab}`} target="_blank" rel="noopener noreferrer">Open on Sketchfab ↗</a></figcaption>
               </figure>
             )}
           </div>
@@ -159,6 +155,7 @@ const isVideo = (s: string) => s.endsWith('.mp4');
         )}
 
         <nav class="vge-walk" aria-label="Walk on">
+          <a href="/projects/virtual-gods"><span>Exhibition map</span>All worlds and pairs</a>
           <a href={worldHref(q.slug)}><span>The world</span>{q.number} · {q.architects.join(' × ')}</a>
           {partner && <a href={pairHref(q.slug, partner.slug)}><span>Its partner pair</span>{PAIR[partner.slug].title}</a>}
           <a href={pairHref(prev.q.slug, prev.p.slug)}><span>Previous pair</span>{PAIR[prev.p.slug].title}</a>

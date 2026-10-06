@@ -10,6 +10,7 @@ export interface Props {
 }
 
 const { title, description = 'Advaita Kelkar — Architect & Designer', ogImage, noindex = false } = Astro.props;
+const voidOnly = /^\/(?:projects\/virtual-gods|virtual-gods)(?:\/|$)/.test(Astro.url.pathname);
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 // Absolute share image (per-page override → site default). Crawlers need an
 // absolute URL, so resolve against the canonical site origin.
@@ -17,7 +18,7 @@ const shareImage = new URL(ogImage ?? '/images/people/advaita-kelkar.jpg', Astro
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" data-void-only={voidOnly ? "true" : undefined}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -97,6 +98,11 @@ const shareImage = new URL(ogImage ?? '/images/people/advaita-kelkar.jpg', Astro
         if (storedMode === 'dark')  document.documentElement.classList.add('mode-dark');
         if (storedMode === 'light') document.documentElement.classList.add('mode-light');
 
+        if (document.documentElement.dataset.voidOnly === 'true') {
+          setClass('default');
+          return;
+        }
+
         if (userPickedValid) {
           setClass(userPicked);
           sessionStorage.setItem('aks', userPicked);
@@ -121,6 +127,7 @@ const shareImage = new URL(ogImage ?? '/images/people/advaita-kelkar.jpg', Astro
   </head>
   <body>
     <style is:global>
+      html[data-void-only="true"] #sn-scheme { display: none !important; }
       html, body {
         /* Snapping is off everywhere by default and a page opts in by setting
            --page-snap. The !important has to stay: it is what keeps stray

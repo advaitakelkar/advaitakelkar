@@ -6,14 +6,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { getCollection, getEntry } from 'astro:content';
 import PageLayout from '../../layouts/PageLayout.astro';
-import VGScrollExhibition from '../../components/VGScrollExhibition.astro';
+import VGHub from '../../components/VGHub.astro';
 import RenderRooms from '../../components/RenderRooms.astro';
 import { isPlaceholder, realText, publicFileExists } from '../../lib/content';
 import Arrow from '../../components/Arrow.astro';
 
 export async function getStaticPaths() {
   const projects = await getCollection('projects');
-  return projects.map(p => ({
+  return projects.filter(p => p.id !== 'virtual-gods').map(p => ({
     params: { slug: p.id },
     props: { project: p },
   }));
@@ -34,7 +34,7 @@ const gallery = views.length
   ? views.map((v: any) => v.image)
   : (data.multiImage ?? []).filter(Boolean);
 let allImages = views.length ? gallery : [data.coverImage, ...gallery].filter(Boolean);
-let hasImages = allImages.length > 0;
+let hasImages = project.id !== 'virtual-gods' && allImages.length > 0;
 /* Keyed by the image the deck shows, so the client can find a view's
    alternates from whatever is on screen without carrying an index around. */
 const variationsByImage: Record<string, string[]> = {};
@@ -160,7 +160,7 @@ const isOriginalCardPage = template.cards;
 const isRenders = template.renders;
 /* The fixed picture beside the copy. Only where it has room to exist without
    taking any from the work — see the CSS, which confines it to 1024 and up. */
-const sideImage = isRenders ? (data.sideImage ?? null) : null;
+const sideImage = isRenders && project.id !== 'virtual-gods' ? (data.sideImage ?? null) : null;
 // The same slot, moving. `sideImage` is its poster when both are set.
 const sideVideo = isRenders ? ((data as any).sideVideo ?? null) : null;
 /* The chapters mode of Template 01. It reads as an argument rather than as a
@@ -447,15 +447,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                       </div>
                     )}
 
-                    {/* Virtual Gods keeps the standard ARCHV page; the exhibition
-                        itself has its own pages, entered at /virtual-gods (the
-                        one-page scroll version still sits further down). */}
-                    {project.id === 'virtual-gods' && (
-                      <a class="project-exhibition-pill" href="/virtual-gods">
-                        <span>Enter the exhibition</span>
-                        <Arrow />
-                      </a>
-                    )}
                   </div>
 
                 </div>
@@ -683,7 +674,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       )}
 
       <!-- NON-ORIGINAL-CARD PAGES: chapter dropdowns (when defined) or Design & Making -->
-      {!isOriginalCardPage && (data.chapters?.length ?? 0) > 0 && (
+      {project.id !== 'virtual-gods' && !isOriginalCardPage && (data.chapters?.length ?? 0) > 0 && (
         <div class:list={["project-chapters", chapterTabs && "project-chapters--tabs is-all", chapterTabs && (data as any).chapterNav === 'scroll' && "project-chapters--scroll"]}>
           {/* Two or more chapters read as tabs: a numbered row, one chapter
               on screen. A single chapter keeps its dropdown. */}
@@ -775,7 +766,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
           one image. */}
       {/* A project told in chapter cards carries its pictures inside them;
           the stage and rail would be the same images a second time. */}
-      {isRenders && renderViews.length > 0 && !chapterTabs && (
+      {project.id !== 'virtual-gods' && isRenders && renderViews.length > 0 && !chapterTabs && (
         <section class="renders-section">
           {/* One picture shown whole above the room tabs — a drawing or a cut
               file wider than a room's tiles would crop it. Never cropped.
@@ -888,12 +879,32 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       )}
 
 
-      {project.id === 'virtual-gods' && <VGScrollExhibition />}
 
+      {project.id === 'virtual-gods' && (
+        <section class="vg-browser" aria-label="Virtual Gods exhibition">
+          <nav class="vg-browser__trail" aria-label="Exhibition navigation"><a href="#vg-map" data-vg-home>Map</a><span data-vg-trail></span><span class="vg-browser__kind" data-vg-kind></span></nav>
+          <div class="vg-entrance" id="vg-map" aria-label="Virtual Gods exhibition navigator">
+            <div class="vg-entrance__map"><VGHub /></div>
+          </div>
+          <iframe class="vg-browser__frame" title="Virtual Gods exhibition work" allow="autoplay; fullscreen; xr-spatial-tracking" allowfullscreen data-vg-frame hidden></iframe>
+        </section>
+      )}
     </article>
 </PageLayout>
 
 <style>
+  .vg-browser { grid-column: 1 / -1; width: 100%; min-width: 0; }
+  .vg-browser__trail { position: sticky; top: var(--vg-bar-top, 0px); z-index: 40; display: flex; gap: 10px; align-items: center; min-height: 48px; border-block: 1px solid var(--_tokens---color--line-soft); font-size: var(--_tokens---type--micro); background: var(--_tokens---color--bg); }
+  .vg-browser__trail :global(a) { color: inherit; text-decoration: none; }
+  .vg-browser__trail :global(a:hover) { text-decoration: underline; }
+  .vg-browser__trail :global([data-vg-trail]) { display: flex; gap: 10px; align-items: center; }
+  .vg-browser__kind { margin-left: 0; padding-left: 0; font-size: var(--_tokens---type--ultrathin); letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; }
+  .vg-browser__frame { display: block; width: 100%; height: 85svh; border: 0; }
+  .vg-browser__frame[hidden], .vg-entrance[hidden] { display: none; }
+  .vg-entrance { grid-column: 1 / -1; width: 100%; min-width: 0; min-height: calc(100svh - 100px); display: grid; place-items: center; padding: 48px 40px; border-top: 1px solid var(--_tokens---color--line-soft); box-sizing: border-box; }
+  .vg-entrance__map { width: min(66svh, 680px); max-width: 100%; }
+  @media (max-width: 699.98px) { .vg-entrance { padding: 36px 28px; } .vg-entrance__map { width: 100%; } }
+
   .project-detail {
     padding-bottom: clamp(4rem, 8vh, 8rem);
     min-height: 100dvh;
@@ -1461,35 +1472,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
 
   /* ── Download pills (Summary / Book) ── */
-  /* Inverted by default — it's the one call to action on the page. */
-  .project-exhibition-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--_tokens---pill-gap);
-    align-self: flex-start;
-    margin-top: 18px;
-    padding: var(--_tokens---pill-pad--lg-compact);
-    font-size: var(--_tokens---type--micro);
-    font-weight: var(--_tokens---weight--base);
-    text-decoration: none;
-    color: var(--_tokens---color--bg);
-    background-color: var(--_tokens---color--fg);
-    border: var(--_tokens---pill-border--strong);
-    border-radius: var(--_tokens---radius--pill);
-    transition: background-color var(--_tokens---motion--base) ease, color var(--_tokens---motion--base) ease;
-  }
-
-  .project-exhibition-pill svg {
-    --icon-size: 0.9em;
-  }
-
-  @media (hover: hover) {
-    .project-exhibition-pill:hover {
-    background-color: transparent;
-    color: var(--_tokens---color--fg);
-  }
-  }
-
   .project-downloads {
     display: flex;
     flex-wrap: wrap;
@@ -7607,4 +7589,67 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   initCreditReveal();
   document.addEventListener('astro:after-swap', initCreditReveal);
 
+</script>
+
+<script>
+  function initVGViewer() {
+    const host = document.querySelector<HTMLElement>('.vg-browser');
+    if (!host || host.dataset.ready) return;
+    host.dataset.ready = 'true';
+    const topBar = document.querySelector<HTMLElement>('.page-breadcrumb');
+    const updateBarOffset = () => {
+      const rect = topBar?.getBoundingClientRect();
+      host.style.setProperty('--vg-bar-top', `${rect && rect.top < 100 ? Math.max(0, rect.bottom) : 0}px`);
+    };
+    updateBarOffset();
+    if (topBar) new ResizeObserver(updateBarOffset).observe(topBar);
+    window.addEventListener('resize', updateBarOffset);
+    const map = host.querySelector<HTMLElement>('.vg-entrance')!;
+    const frame = host.querySelector<HTMLIFrameElement>('[data-vg-frame]')!;
+    const trail = host.querySelector<HTMLElement>('[data-vg-trail]')!;
+    const kind = host.querySelector<HTMLElement>('[data-vg-kind]')!;
+    const home = () => { kind.textContent = ''; map.hidden = false; frame.hidden = true; frame.removeAttribute('src'); trail.replaceChildren(); };
+    const open = (href: string) => {
+      const url = new URL(href, location.href);
+      if (url.pathname === '/projects/virtual-gods' || url.pathname === '/virtual-gods') { home(); return; }
+      url.searchParams.set('embedded', '1');
+      map.hidden = true; frame.hidden = false; frame.src = url.href;
+    };
+    host.addEventListener('click', e => {
+      const link = (e.target as Element).closest<HTMLAnchorElement>('a');
+      if (!link || e instanceof MouseEvent && (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)) return;
+      if (link.hasAttribute('data-vg-home')) { e.preventDefault(); home(); }
+      else if (new URL(link.href).pathname.startsWith('/virtual-gods/')) { e.preventDefault(); open(link.href); }
+    });
+    const syncFrame = () => {
+      const doc = frame.contentDocument;
+      if (!doc || frame.hidden) return;
+      trail.replaceChildren();
+      doc.querySelectorAll('.ex-bar__trail .ex-bar__crumb').forEach(item => {
+        const sep = document.createElement('span'); sep.textContent = '/'; sep.setAttribute('aria-hidden', 'true');
+        trail.append(sep, item.cloneNode(true));
+      });
+      const kicker = doc.querySelector<HTMLElement>('.vge-head .vge-kicker');
+      kind.textContent = (kicker?.textContent ?? '').replace(/^VG\d+\s*·\s*/i, '');
+      if (kicker) kind.style.color = frame.contentWindow!.getComputedStyle(kicker).color;
+      frame.title = doc.title;
+      const content = doc.querySelector<HTMLElement>('.ex-main');
+      const resizeFrame = () => { if (content && !frame.hidden) frame.style.height = `${Math.ceil(content.getBoundingClientRect().height)}px`; };
+      resizeFrame();
+      if (doc.documentElement.dataset.vgBound) return;
+      if (content) new ResizeObserver(resizeFrame).observe(content);
+      doc.documentElement.dataset.vgBound = 'true';
+      doc.addEventListener('click', e => {
+        const link = (e.target as Element).closest<HTMLAnchorElement>('a');
+        if (!link || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        const url = new URL(link.href);
+        if (url.origin !== location.origin) return;
+        if (url.pathname.startsWith('/virtual-gods') || url.pathname === '/projects/virtual-gods') { e.preventDefault(); open(link.href); }
+      });
+    };
+    frame.addEventListener('load', syncFrame);
+    window.addEventListener('message', e => { if (e.origin === location.origin && e.source === frame.contentWindow && e.data?.type === 'vg-ready') syncFrame(); });
+  }
+  initVGViewer();
+  document.addEventListener('astro:after-swap', initVGViewer);
 </script>

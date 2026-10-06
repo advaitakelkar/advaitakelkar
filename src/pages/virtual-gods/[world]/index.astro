@@ -4,15 +4,16 @@
 // pairs that fused into it, the model, the film, and the renders — the
 // final artwork.
 import { getEntry } from 'astro:content';
+import VGModel from '../../../components/VGModel.astro';
 import ExhibitionLayout from '../../../layouts/ExhibitionLayout.astro';
-import VGHub from '../../../components/VGHub.astro';
+import VGNavigation from '../../../components/VGNavigation.astro';
 import VGExhibitionStyles from '../../../components/VGExhibitionStyles.astro';
 import { publicFileExists } from '../../../lib/content';
 import { PAIR, WORLD_URL, worldHref, pairHref, stageOf, isPairsFusion } from '../../../lib/vg';
 
 export async function getStaticPaths() {
   const ex = await getEntry('exhibitions', 'virtual-gods');
-  const qs = ex!.data.quadrants;
+  const qs = [...ex!.data.quadrants].sort((a, b) => a.number.localeCompare(b.number));
   return qs.map((q: any, i: number) => ({
     params: { world: WORLD_URL[q.slug] },
     props: { q, prev: qs[(i - 1 + qs.length) % qs.length], next: qs[(i + 1) % qs.length] },
@@ -52,21 +53,54 @@ const renders = [...(q.renders ?? [])].map((r: string) => vg(`posters/${r}.webp`
   <VGExhibitionStyles />
   <div class="vge">
     <div class="vge-layout">
-      <aside class="vge-map" aria-label="Where you are">
-        <p class="vge-map__label">{q.number} · world</p>
-        <VGHub compact current={q.number} />
-      </aside>
+      <VGNavigation current={q.number} />
 
       <article>
         <header class="vge-head">
-          <p class="vge-kicker">A world · four people, two pairs</p>
+          <p class="vge-kicker">{q.number} · a world</p>
           <h1 class="vge-title">{q.number}</h1>
           <p class="vge-lead">{q.architects.join(' × ')}</p>
           <ul class="vge-pills">{people.map((m: any) => <li>{m.name}</li>)}</ul>
         </header>
 
         <section class="vge-stage">
-          <div class="vge-stage__head"><span class="vge-stage__n">01</span><h2 class="vge-stage__title">The two pairs</h2></div>
+          <div class="vge-stage__head"><span class="vge-stage__n">01</span><h2 class="vge-stage__title">Four people — the world</h2></div>
+          <div class="vge-grid" style="--cols:2;margin-top:12px">
+            {q.sketchfab && (
+              <figure>
+                <VGModel uid={q.sketchfab} title={`${q.number} — 3D model`} poster={evolution[0] ?? artwork[0]} />
+                <figcaption><strong>In 3D</strong>Drag to turn it · <a href={`https://sketchfab.com/models/${q.sketchfab}`} target="_blank" rel="noopener noreferrer">Open on Sketchfab ↗</a></figcaption>
+              </figure>
+            )}
+            {film && <figure><video class="vge-film" style="aspect-ratio:1/1;object-fit:cover" src={film} controls muted playsinline preload="metadata"></video><figcaption><strong>The film</strong></figcaption></figure>}
+          </div>
+          <div class="vge-prose">
+            {blocks.map(b => b.verse
+              ? <div class="vge-verse">{b.lines.map(l => <p>{l}</p>)}</div>
+              : b.lines.map(l => <p>{l}</p>))}
+          </div>
+          {(diagram.length > 0 || evolution.length > 0) && (
+            <div class="vge-grid" style="--cols:2;margin-top:16px">
+              {diagram.map((s: string) => <figure><img class="vge-work vge-work--photo" style="--ratio:auto;object-fit:contain" src={s} alt={`${q.number}, process diagram`} loading="lazy" /><figcaption><strong>Process diagram</strong></figcaption></figure>)}
+              {evolution.map((s: string) => <figure><img class="vge-work" src={s} alt={`${q.number}, evolution`} loading="lazy" /><figcaption><strong>Evolution</strong>The world, loop by loop</figcaption></figure>)}
+            </div>
+          )}
+
+        </section>
+
+        {(artwork.length > 0 || renders.length > 0) && (
+          <section class="vge-stage">
+            <div class="vge-stage__head"><span class="vge-stage__n">02</span><h2 class="vge-stage__title">The final artwork</h2></div>
+            <div class="vge-grid" style="--cols:3">
+              {[...artwork, ...renders].map((s: string, i: number) => (
+                <figure><img class="vge-work vge-work--photo" src={s} alt={`${q.number}, render ${i + 1}`} loading="lazy" /></figure>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <section class="vge-stage">
+          <div class="vge-stage__head"><span class="vge-stage__n">03</span><h2 class="vge-stage__title">The two pairs</h2></div>
           <p class="vge-stage__sub">Two pairs fused their modules first; their two forms then became this world.</p>
           <div class="vge-grid" style="--cols:2">
             {pairsFused.map(({ p, src }: any) => (
@@ -80,44 +114,8 @@ const renders = [...(q.renders ?? [])].map((r: string) => vg(`posters/${r}.webp`
           </div>
         </section>
 
-        <section class="vge-stage">
-          <div class="vge-stage__head"><span class="vge-stage__n">02</span><h2 class="vge-stage__title">Four people — the world</h2></div>
-          <div class="vge-prose">
-            {blocks.map(b => b.verse
-              ? <div class="vge-verse">{b.lines.map(l => <p>{l}</p>)}</div>
-              : b.lines.map(l => <p>{l}</p>))}
-          </div>
-          {(diagram.length > 0 || evolution.length > 0) && (
-            <div class="vge-grid" style="--cols:2;margin-top:16px">
-              {diagram.map((s: string) => <figure><img class="vge-work vge-work--photo" style="--ratio:auto;object-fit:contain" src={s} alt={`${q.number}, process diagram`} loading="lazy" /><figcaption><strong>Process diagram</strong></figcaption></figure>)}
-              {evolution.map((s: string) => <figure><img class="vge-work" src={s} alt={`${q.number}, evolution`} loading="lazy" /><figcaption><strong>Evolution</strong>The world, loop by loop</figcaption></figure>)}
-            </div>
-          )}
-          <div class="vge-grid" style="--cols:2;margin-top:12px">
-            {q.sketchfab && (
-              <figure>
-                <iframe class="vge-model" style="aspect-ratio:1/1" title={`${q.number} — 3D model`} loading="lazy"
-                  src={`https://sketchfab.com/models/${q.sketchfab}/embed?autospin=0.2&autostart=0&ui_infos=0&ui_watermark=1`}
-                  allow="autoplay; fullscreen; xr-spatial-tracking" allowfullscreen></iframe>
-                <figcaption><strong>In 3D</strong>Drag to turn it — Sketchfab</figcaption>
-              </figure>
-            )}
-            {film && <figure><video class="vge-film" style="aspect-ratio:1/1;object-fit:cover" src={film} controls muted playsinline preload="metadata"></video><figcaption><strong>The film</strong></figcaption></figure>}
-          </div>
-        </section>
-
-        {(artwork.length > 0 || renders.length > 0) && (
-          <section class="vge-stage">
-            <div class="vge-stage__head"><span class="vge-stage__n">03</span><h2 class="vge-stage__title">The final artwork</h2></div>
-            <div class="vge-grid" style="--cols:3">
-              {[...artwork, ...renders].map((s: string, i: number) => (
-                <figure><img class="vge-work vge-work--photo" src={s} alt={`${q.number}, render ${i + 1}`} loading="lazy" /></figure>
-              ))}
-            </div>
-          </section>
-        )}
-
         <nav class="vge-walk" aria-label="Walk on">
+          <a href="/projects/virtual-gods"><span>Exhibition map</span>All worlds and pairs</a>
           {q.pairs.map((p: any) => <a href={pairHref(q.slug, p.slug)}><span>A pair of this world</span>{PAIR[p.slug].title}</a>)}
           <a href={worldHref(prev.slug)}><span>Previous world</span>{prev.number}</a>
           <a href={worldHref(next.slug)}><span>Next world</span>{next.number}</a>

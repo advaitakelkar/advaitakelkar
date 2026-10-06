@@ -1,0 +1,64 @@
+---
+const { uid, title, poster } = Astro.props;
+---
+<div class="vg-model" data-vg-model={uid}>
+  <iframe title={title} allow="autoplay; fullscreen; xr-spatial-tracking" allowfullscreen></iframe>
+  <div class="vg-model__cover">
+    {poster && <img src={poster} alt={`${title} preview`} loading="lazy" />}
+    <div class="vg-model__action">
+      <p role="status">Interactive 3D model</p>
+      <button type="button">Load 3D model</button>
+      <a href={`https://sketchfab.com/models/${uid}`} target="_blank" rel="noopener noreferrer">Open on Sketchfab ↗</a>
+    </div>
+  </div>
+</div>
+<style>
+.vg-model { position: relative; aspect-ratio: 1; background: #f2f2f2; border-radius: var(--_tokens---radius--small); overflow: hidden; }
+.vg-model iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.vg-model__cover { position: absolute; inset: 0; display: grid; align-items: end; background: #f2f2f2; }
+.vg-model__cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.vg-model__action { position: relative; padding: 18px; background: rgb(255 255 255 / 94%); color: #111; display: grid; justify-items: start; gap: 10px; }
+.vg-model__action p { margin: 0; font-size: var(--_tokens---type--micro); }
+.vg-model__action button { border: 0; border-radius: 999px; background: #111; color: #fff; padding: 10px 16px; cursor: pointer; }
+.vg-model__action a { font-size: var(--_tokens---type--micro); color: #111; }
+.vg-model.is-ready .vg-model__cover { display: none; }
+</style>
+<script>
+let sdk: Promise<any> | undefined;
+function loadSDK() {
+  if (!sdk) sdk = new Promise((resolve, reject) => {
+    if ((window as any).Sketchfab) { resolve((window as any).Sketchfab); return; }
+    const script = document.createElement('script');
+    script.src = 'https://static.sketchfab.com/api/sketchfab-viewer-1.12.1.js';
+    script.onload = () => resolve((window as any).Sketchfab);
+    script.onerror = () => { sdk = undefined; script.remove(); reject(new Error('Viewer unavailable')); };
+    document.head.append(script);
+  });
+  return sdk;
+}
+document.querySelectorAll<HTMLElement>('[data-vg-model]').forEach(host => {
+  const button = host.querySelector('button')!;
+  const status = host.querySelector('[role="status"]')!;
+  let attempt = 0;
+  button.addEventListener('click', async () => {
+    const current = ++attempt;
+    button.disabled = true; status.textContent = 'Loading interactive model…';
+    const fail = () => { if (attempt !== current) return; attempt++; status.textContent = 'The 3D viewer could not load here. The preview is still available.'; button.disabled = false; button.textContent = 'Retry 3D model'; };
+    const timer = window.setTimeout(fail, 25000);
+    try {
+      const Sketchfab = await loadSDK();
+      if (attempt !== current) return;
+      const old = host.querySelector('iframe')!;
+      const frame = old.cloneNode(false) as HTMLIFrameElement; old.replaceWith(frame);
+      new Sketchfab('1.12.1', frame).init(host.dataset.vgModel, {
+        autostart: 1, ui_infos: 0, ui_watermark: 1,
+        success(api: any) {
+          api.addEventListener('viewerready', () => { if (attempt !== current) return; clearTimeout(timer); host.classList.add('is-ready'); status.textContent = 'Model ready'; });
+          api.start();
+        },
+        error() { clearTimeout(timer); fail(); }
+      });
+    } catch { clearTimeout(timer); fail(); }
+  });
+});
+</script>

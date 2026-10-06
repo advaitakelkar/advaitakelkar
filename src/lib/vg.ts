@@ -46,7 +46,7 @@ export function hrefForArchvPage(quadrants: any[], page: string): string {
     if ((q.number ?? '').replace('_', '') === page) return worldHref(q.slug);
     for (const p of q.pairs) if (PAIR[p.slug]?.archv === page) return pairHref(q.slug, p.slug);
   }
-  return '/virtual-gods';
+  return '/projects/virtual-gods';
 }
 
 const fileName = (src: string) => decodeURIComponent(src.split('/').pop() ?? '').replace(/^\d{3}_/, '');
