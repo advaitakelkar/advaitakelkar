@@ -7,6 +7,7 @@ import path from 'node:path';
 import { getCollection, getEntry } from 'astro:content';
 import PageLayout from '../../layouts/PageLayout.astro';
 import VGHub from '../../components/VGHub.astro';
+import VGToolbar from '../../components/VGToolbar.astro';
 import RenderRooms from '../../components/RenderRooms.astro';
 import { isPlaceholder, realText, publicFileExists } from '../../lib/content';
 import Arrow from '../../components/Arrow.astro';
@@ -882,7 +883,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
       {project.id === 'virtual-gods' && (
         <section class="vg-browser" aria-label="Virtual Gods exhibition">
-          <nav class="vg-browser__trail" aria-label="Exhibition navigation"><a href="#vg-map" data-vg-home>Map</a><span data-vg-trail></span><span class="vg-browser__kind" data-vg-kind></span></nav>
+          <VGToolbar />
           <div class="vg-entrance" id="vg-map" aria-label="Virtual Gods exhibition navigator">
             <div class="vg-entrance__map"><VGHub /></div>
           </div>
@@ -894,11 +895,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
 <style>
   .vg-browser { grid-column: 1 / -1; width: 100%; min-width: 0; }
-  .vg-browser__trail { position: sticky; top: var(--vg-bar-top, 0px); z-index: 40; display: flex; gap: 10px; align-items: center; min-height: 48px; border-block: 1px solid var(--_tokens---color--line-soft); font-size: var(--_tokens---type--micro); background: var(--_tokens---color--bg); }
-  .vg-browser__trail :global(a) { color: inherit; text-decoration: none; }
-  .vg-browser__trail :global(a:hover) { text-decoration: underline; }
-  .vg-browser__trail :global([data-vg-trail]) { display: flex; gap: 10px; align-items: center; }
-  .vg-browser__kind { margin-left: 0; padding-left: 0; font-size: var(--_tokens---type--ultrathin); letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; }
   .vg-browser__frame { display: block; width: 100%; height: 85svh; border: 0; }
   .vg-browser__frame[hidden], .vg-entrance[hidden] { display: none; }
   .vg-entrance { grid-column: 1 / -1; width: 100%; min-width: 0; min-height: calc(100svh - 100px); display: grid; place-items: center; padding: 48px 40px; border-top: 1px solid var(--_tokens---color--line-soft); box-sizing: border-box; }
@@ -7606,15 +7602,27 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     window.addEventListener('resize', updateBarOffset);
     const map = host.querySelector<HTMLElement>('.vg-entrance')!;
     const frame = host.querySelector<HTMLIFrameElement>('[data-vg-frame]')!;
-    const trail = host.querySelector<HTMLElement>('[data-vg-trail]')!;
-    const kind = host.querySelector<HTMLElement>('[data-vg-kind]')!;
-    const home = () => { kind.textContent = ''; map.hidden = false; frame.hidden = true; frame.removeAttribute('src'); trail.replaceChildren(); };
+    const worldSelect = host.querySelector<HTMLSelectElement>('[data-vg-world]')!;
+    const pairSelect = host.querySelector<HTMLSelectElement>('[data-vg-pair]')!;
+    const mapLink = host.querySelector<HTMLAnchorElement>('[data-vg-home]')!;
+    const syncNavigation = (pathname: string) => {
+      const path = pathname.replace(/\/$/, '');
+      const pair = [...pairSelect.options].find(option => option.value === path);
+      pairSelect.value = pair?.value ?? '';
+      worldSelect.value = pair?.dataset.world ?? ([...worldSelect.options].some(option => option.value === path) ? path : '');
+      mapLink.toggleAttribute('aria-current', !worldSelect.value);
+      if (!worldSelect.value) mapLink.setAttribute('aria-current', 'page');
+    };
+    const home = () => { map.hidden = false; frame.hidden = true; frame.removeAttribute('src'); syncNavigation(''); };
     const open = (href: string) => {
       const url = new URL(href, location.href);
       if (url.pathname === '/projects/virtual-gods' || url.pathname === '/virtual-gods') { home(); return; }
+      syncNavigation(url.pathname);
       url.searchParams.set('embedded', '1');
       map.hidden = true; frame.hidden = false; frame.src = url.href;
     };
+    worldSelect.addEventListener('change', () => worldSelect.value ? open(worldSelect.value) : home());
+    pairSelect.addEventListener('change', () => pairSelect.value ? open(pairSelect.value) : worldSelect.value ? open(worldSelect.value) : home());
     host.addEventListener('click', e => {
       const link = (e.target as Element).closest<HTMLAnchorElement>('a');
       if (!link || e instanceof MouseEvent && (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)) return;
@@ -7624,14 +7632,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     const syncFrame = () => {
       const doc = frame.contentDocument;
       if (!doc || frame.hidden) return;
-      trail.replaceChildren();
-      doc.querySelectorAll('.ex-bar__trail .ex-bar__crumb').forEach(item => {
-        const sep = document.createElement('span'); sep.textContent = '/'; sep.setAttribute('aria-hidden', 'true');
-        trail.append(sep, item.cloneNode(true));
-      });
-      const kicker = doc.querySelector<HTMLElement>('.vge-head .vge-kicker');
-      kind.textContent = (kicker?.textContent ?? '').replace(/^VG\d+\s*·\s*/i, '');
-      if (kicker) kind.style.color = frame.contentWindow!.getComputedStyle(kicker).color;
+      syncNavigation(new URL(doc.URL).pathname);
       frame.title = doc.title;
       const content = doc.querySelector<HTMLElement>('.ex-main');
       const resizeFrame = () => { if (content && !frame.hidden) frame.style.height = `${Math.ceil(content.getBoundingClientRect().height)}px`; };

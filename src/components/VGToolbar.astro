@@ -1,0 +1,32 @@
+---
+import { getEntry } from 'astro:content';
+import { PAIR, worldHref, pairHref } from '../lib/vg';
+const exhibition = await getEntry('exhibitions', 'virtual-gods');
+const worlds = [...exhibition!.data.quadrants].sort((a, b) => a.number.localeCompare(b.number));
+---
+<nav class="vg-toolbar" aria-label="Exhibition navigation">
+  <a href="#vg-map" data-vg-home aria-current="page">Map</a>
+  <span class="vg-toolbar__divider" aria-hidden="true">|</span>
+  <select aria-label="World" data-vg-world>
+    <option value="">World</option>
+    {worlds.map(world => <option value={worldHref(world.slug)}>World · {world.number}</option>)}
+  </select>
+  <span class="vg-toolbar__divider" aria-hidden="true">|</span>
+  <select aria-label="Pair" data-vg-pair>
+    <option value="">Pair</option>
+    {worlds.map(world => <optgroup label={world.number}>
+      {world.pairs.map(pair => <option value={pairHref(world.slug, pair.slug)} data-world={worldHref(world.slug)}>Pair · {PAIR[pair.slug].title}</option>)}
+    </optgroup>)}
+  </select>
+</nav>
+<style>
+  .vg-toolbar { position: sticky; top: var(--vg-bar-top, 0px); z-index: 40; display: flex; align-items: center; gap: 12px; min-height: 48px; padding-block: 8px; border-block: 1px solid var(--_tokens---color--line-soft); font-size: var(--_tokens---type--micro); background: var(--_tokens---color--bg); }
+  .vg-toolbar a { color: inherit; text-decoration: none; white-space: nowrap; }
+  .vg-toolbar a:hover { text-decoration: underline; }
+  .vg-toolbar a[aria-current="page"] { text-decoration: underline; text-underline-offset: 4px; }
+  .vg-toolbar select { font: inherit; color: inherit; background-color: var(--_tokens---color--bg); border: 0; border-radius: 0; cursor: pointer; max-width: 100%; min-width: 0; padding: 8px 4px; }
+  .vg-toolbar [data-vg-pair] { flex: 0 1 auto; }
+  .vg-toolbar__divider { opacity: 0.5; }
+  .vg-toolbar :is(a, select):focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+  @media (max-width: 699.98px) { .vg-toolbar { gap: 6px; } .vg-toolbar [data-vg-world] { max-width: 125px; flex-shrink: 0; } }
+</style>

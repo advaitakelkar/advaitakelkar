@@ -182,3 +182,11 @@ old chapter/scroll duplication.
 
 Virtual Gods uses only the Void scheme on its project page and all exhibition routes.
 The colour selector is hidden there; other site pages retain their existing preferences.
+
+## 2026-10-05 — Virtual Gods navigation dropdowns
+
+Replaced the embedded exhibition breadcrumb with Map | World | Pair navigation.
+World lists all four worlds; Pair groups the eight pairs by world. Selections stay
+in sync with both the circular map and links inside the exhibition. Map returns to
+the entrance. Validation: 90-page build, all three style lints, and browser checks
+of world selection, pair selection, and the matching world passed.
