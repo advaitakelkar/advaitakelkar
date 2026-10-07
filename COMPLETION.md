@@ -257,3 +257,10 @@ of world selection, pair selection, and the matching world passed.
 ## 2026-10-07 — XBKC replacement image set
 
 Eleven supplied room views edited with the built-in image tool for a cohesive photographic material palette, including the later kitchen image. Replaced all 52 older website images/variations with one eleven-view shared slider, new cover and five listing thumbnails. PNG masters and old web images are archived under ignored source-files/xbkc/. Prompt set and checks: docs/xbkc-image-edits-2026-10-07.md. Build (98 pages) and lint passed; compiled page contains exactly eleven carousel images. Browser visual verification blocked because browser security policy was unavailable.
+
+
+### 2026-10-07 — Hybrid Media Assignment 01 final
+
+- Replaced the Archi-Selfie cover, listing preview and presentation image with Adi’s approved final two-view image on black. Preserved the existing course page and ongoing course status; identified Assignment 01 as the final submission.
+- New asset filename avoids the previously cached image URL. Exported as WebP at its original proportions.
+- Validation: 98-page build passed; compiled Hybrid Media page references the new final image and Assignment 01 text with no old image URL. WebP checked visually against the approved final.
