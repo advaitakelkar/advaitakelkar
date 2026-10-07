@@ -95,6 +95,16 @@ function getWords(name: string): string[] {
     <!-- Featured Slider. -->
     {featured.length > 0 && (
       <div class="home-slider" aria-label="Featured projects" data-swipe-own>
+        {/* Desktop only: step through the featured projects by hand. The
+            same round step as the room tabs on a project page. */}
+        <div class="home-slider__nav">
+          <button class="home-slider__step" type="button" data-slider-step="-1" aria-label="Previous featured project">
+            <Icon name="chevron" dir="w" />
+          </button>
+          <button class="home-slider__step" type="button" data-slider-step="1" aria-label="Next featured project">
+            <Icon name="chevron" />
+          </button>
+        </div>
         <div class="home-slider__track" id="slider-track" data-pending>
           {featured.map((p, i) => {
             const tagIds = (p.data.tags ?? []).map((t) => t.id);
@@ -381,6 +391,20 @@ function getWords(name: string): string[] {
         }
       }
 
+      // One step back, wrapping from the first slide onto the prepended
+      // clone of the last, the mirror of advance().
+      function retreat() {
+        if (current - 1 < 0) {
+          jumping = true;
+          center(lastClone, true);
+          updateDots(n - 1);
+          current = n - 1;
+          setTimeout(() => { center(realAt(n - 1), false); activate(realAt(n - 1)); jumping = false; }, 700);
+        } else {
+          goTo(current - 1, true);
+        }
+      }
+
       function restartRing() {
         if (!activeSlide) return;
         activeSlide.querySelectorAll('.home-slider__ring-fill').forEach(r => {
@@ -405,6 +429,13 @@ function getWords(name: string): string[] {
       // Start centered on the real first slide (last/next slides peek at edges).
       requestAnimationFrame(() => { center(realAt(0), false); activate(realAt(0)); });
       startAuto();
+
+      document.querySelectorAll<HTMLButtonElement>('[data-slider-step]').forEach(b => b.addEventListener('click', () => {
+        if (jumping) return;
+        stopAuto();
+        if (b.dataset.sliderStep === '-1') retreat(); else advance();
+        startAuto();
+      }));
 
       dots.forEach((d, i) => d.addEventListener('click', () => {
         if (jumping) return;
@@ -816,7 +847,46 @@ function getWords(name: string): string[] {
     justify-content: flex-start;
     margin-top: 0;
     overflow: hidden;
+    position: relative;
   }
+
+  /* ‹ › at the top right, desktop only — touch already swipes. */
+  .home-slider__nav { display: none; }
+  @media (min-width: 1024px) {
+    .home-slider__nav {
+      position: absolute;
+      top: 0;
+      right: var(--_tokens---layout--gutter, 24px);
+      z-index: 3;
+      display: flex;
+      gap: 6px;
+    }
+  }
+  .home-slider__step {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: calc(1lh + 20px + 2px);
+    height: calc(1lh + 20px + 2px);
+    padding: 0;
+    border-radius: 50%;
+    border: var(--_tokens---pill-border);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    color: var(--_tokens---color--muted);
+    font-size: calc(var(--_tokens---type--small) * 1.2);
+    line-height: 1.2;
+    cursor: pointer;
+    --icon-size: 0.8em;
+    transition: background-color var(--_tokens---motion--base) ease, color var(--_tokens---motion--base) ease, border-color var(--_tokens---motion--base) ease;
+  }
+  @media (hover: hover) {
+    .home-slider__step:hover {
+      background-color: var(--_tokens---color--fg);
+      border-color: var(--_tokens---color--fg);
+      color: var(--_tokens---color--bg);
+    }
+  }
+  .home-slider__step:focus-visible { outline: 1px solid var(--_tokens---color--fg); outline-offset: 2px; }
 
   .home-slider__track {
     display: flex;
