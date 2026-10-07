@@ -32,7 +32,8 @@ const categoryLabel = p.data.category ? (catMap[p.data.category.id] || p.data.ca
 const studioLabel = p.data.studio ? (studioMap[p.data.studio.id] || p.data.studio.id) : '';
 const tagsArr = (p.data.tags ?? []).map((t: any) => tagMap[t.id] || t.id);
 const axisLabels = new Set(
-  [categoryLabel, studioLabel, ...tagsArr].filter(Boolean).map((t: any) => dedupeKey(String(t)))
+  // The studio id too, so a client "SCAD" is not printed beside "M.Arch SCAD".
+  [categoryLabel, studioLabel, p.data.studio?.id, ...tagsArr].filter(Boolean).map((t: any) => dedupeKey(String(t)))
 );
 // Ordered by how much it identifies the project. The responsive tiers reveal
 // the first N of these, so the order IS the priority.
