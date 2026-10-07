@@ -190,3 +190,34 @@ World lists all four worlds; Pair groups the eight pairs by world. Selections st
 in sync with both the circular map and links inside the exhibition. Map returns to
 the entrance. Validation: 90-page build, all three style lints, and browser checks
 of world selection, pair selection, and the matching world passed.
+
+
+### 2026-10-06 — GONG and Dhal Ni Pol local review
+- Added the supplied labels, dimensions where supplied, material notes and source credits as editable text within all 23 GONG illustration sheets. Drawing images retain their full proportions.
+- Verified 28 GONG assets and Dhal's cover/three new views against Desktop originals. Refreshed Dhal's transparent cut-file asset losslessly at original resolution.
+- Moved `Desktop/Work Folders/newGong` into `HUB/2 Selected/Work/FKD/Gong, Powai/Edit 1`, including the text/index. Merged six byte-identical Dhal PNGs into existing Selected/Edit 1 files, then removed the empty Desktop folder.
+- Local preview: http://127.0.0.1:4322. Lint and static build passed. Build reports an existing homepage CSS brace warning. No deployment; existing unrelated working changes preserved.
+
+
+### 2026-10-06 — GONG presentation refinement
+- Replaced five stacked interior figures with a five-view automatic slider beside the introduction, including previous/next and pause controls; respects reduced motion. Mobile stacks the slider above drawings.
+- Added GONG-specific drawing tabs: All, Plans, Wall elevations, Cross sections, Bar details. All keeps enlarged wall parts folded; the wall tab opens paired parts. Plans and full wall elevations span the page; cross sections and bar details form grouped sheets, with three bar elevations together.
+- Folded longer introduction and drawing notes behind Read more; all supplied text retained. Verified slider controls, tab isolation, three wall-part disclosures, note expansion and mobile overflow. Local review only.
+
+- Later refinement: introduction now shows one sentence with a Read more / Read less pill. Slider occupies 48% of the desktop copy area with a 4:3 stage. Removed enlarged wall parts from presentation; retained source assets. Bar plan uses the smaller left column with elevations and sections alongside. Build/lint passed; fresh browser preview reaches the existing password gate, while previously unlocked tabs timed out during browser control.
+
+- Latest refinement: larger slider at 56% of desktop intro width, active images use natural height with no fixed-ratio frame; responsive height reservation follows active image. Square 05-bar-detail moved into Bar details beneath the smaller plan. Four images remain in slider. Build and rendered-content assertions passed; existing preview tabs remain inaccessible to browser control.
+
+- Final curation: removed furniture layout, section reference plan, all six enlarged AA–CC parts, and bar section 02 from project content and public image assets. GONG now presents 14 drawings (2 plans, 3 full wall elevations, 4 cross sections, 5 bar drawings). Source originals remain in Selected; removed WebP copies recoverable in /private/tmp/gong-removed-drawings-2026-10-06.
+
+- Bar layout refined: plan and square render in equal columns, followed by all three elevations and section 01 in a three-column grid; mobile stacks to one column.
+
+
+### 2026-10-06 — Barley and Bun
+- Restored missing `bnb-khar` project page using Notion project 823-15 metadata: proposed café concept, Khar/Mumbai, 2019, Studio 823; collaborator names checked against linked Notion records. Client left unset because the current record has no client.
+- Added five latest Desktop/GPT views as optimised WebP images. Same project template, left-column introduction with Read more, empty right side, automatic full-width slider below. Pause/previous/next and original image proportions preserved; no drawing gallery.
+- Finished Desktop package moved into existing Selected/Work/823/Barley and Bun/Edit 5 with a website index and source hashes. Existing editions preserved. Local review only; project access policy unchanged.
+
+- Listing refinement: GONG and Barley and Bun now show exactly five selected render thumbnails, using the curated preview behaviour established for ARCHV. GONG uses interiors rather than drawings; the square bar render remains outside its main slider. Project page access gates unchanged.
+
+- Barley and Bun text preference: removed its Read more disclosure; both description paragraphs display in full above the slider.

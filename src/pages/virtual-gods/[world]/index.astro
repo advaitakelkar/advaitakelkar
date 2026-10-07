@@ -6,21 +6,20 @@
 import { getEntry } from 'astro:content';
 import VGModel from '../../../components/VGModel.astro';
 import ExhibitionLayout from '../../../layouts/ExhibitionLayout.astro';
-import VGNavigation from '../../../components/VGNavigation.astro';
 import VGExhibitionStyles from '../../../components/VGExhibitionStyles.astro';
 import { publicFileExists } from '../../../lib/content';
-import { PAIR, WORLD_URL, worldHref, pairHref, stageOf, isPairsFusion } from '../../../lib/vg';
+import { WORLD_URL, stageOf, isPairsFusion } from '../../../lib/vg';
 
 export async function getStaticPaths() {
   const ex = await getEntry('exhibitions', 'virtual-gods');
   const qs = [...ex!.data.quadrants].sort((a, b) => a.number.localeCompare(b.number));
-  return qs.map((q: any, i: number) => ({
+  return qs.map((q: any) => ({
     params: { world: WORLD_URL[q.slug] },
-    props: { q, prev: qs[(i - 1 + qs.length) % qs.length], next: qs[(i + 1) % qs.length] },
+    props: { q },
   }));
 }
 
-const { q, prev, next } = Astro.props as any;
+const { q } = Astro.props as any;
 const vg = (rel: string) => `/images/virtual-gods/vg/${rel}`;
 const gallery: string[] = q.gallery ?? [];
 const people = q.pairs.flatMap((p: any) => p.members);
@@ -52,8 +51,7 @@ const renders = [...(q.renders ?? [])].map((r: string) => vg(`posters/${r}.webp`
 >
   <VGExhibitionStyles />
   <div class="vge">
-    <div class="vge-layout">
-      <VGNavigation current={q.number} />
+    <div class="vge-layout vge-layout--content">
 
       <article>
         <header class="vge-head">
@@ -99,28 +97,9 @@ const renders = [...(q.renders ?? [])].map((r: string) => vg(`posters/${r}.webp`
           </section>
         )}
 
-        <section class="vge-stage">
-          <div class="vge-stage__head"><span class="vge-stage__n">03</span><h2 class="vge-stage__title">The two pairs</h2></div>
-          <p class="vge-stage__sub">Two pairs fused their modules first; their two forms then became this world.</p>
-          <div class="vge-grid" style="--cols:2">
-            {pairsFused.map(({ p, src }: any) => (
-              <figure><a href={pairHref(q.slug, p.slug)}>
-                {src
-                  ? <img class="vge-work" src={src} alt={PAIR[p.slug].title} loading="lazy" />
-                  : <video class="vge-work" src={vg(`mergers/${p.slug}.mp4`)} autoplay muted loop playsinline preload="metadata"></video>}
-                <figcaption><strong>{PAIR[p.slug].title} →</strong>{p.members.map((m: any) => m.name).join(' and ')}</figcaption>
-              </a></figure>
-            ))}
-          </div>
-        </section>
 
-        <nav class="vge-walk" aria-label="Walk on">
-          <a href="/projects/virtual-gods"><span>Exhibition map</span>All worlds and pairs</a>
-          {q.pairs.map((p: any) => <a href={pairHref(q.slug, p.slug)}><span>A pair of this world</span>{PAIR[p.slug].title}</a>)}
-          <a href={worldHref(prev.slug)}><span>Previous world</span>{prev.number}</a>
-          <a href={worldHref(next.slug)}><span>Next world</span>{next.number}</a>
-          <a href={`/archv-in/${q.number}.html`}><span>As it was</span>The original page on archv.in</a>
-        </nav>
+
+
       </article>
     </div>
   </div>

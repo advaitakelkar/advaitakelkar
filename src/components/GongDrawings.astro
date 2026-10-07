@@ -1,0 +1,76 @@
+---
+import GongDrawing from './GongDrawing.astro';
+const { views, barFigure } = Astro.props;
+const groups = [
+  { key: 'plans', label: 'Plans', items: views.filter((v: any) => v.room === 'Plans') },
+  { key: 'walls', label: 'Wall elevations', items: views.filter((v: any) => v.room === 'Sections AA–CC') },
+  { key: 'cross', label: 'Cross sections', items: views.filter((v: any) => v.room === 'Cross Sections') },
+  { key: 'bar', label: 'Bar details', items: views.filter((v: any) => v.room === 'Bar Details') },
+];
+---
+<section class="gong-drawings" data-gong-drawings data-mode="all" aria-label="GONG drawings">
+  <div class="gong-drawings__tabs" role="tablist" aria-label="Drawing groups">
+    <button type="button" role="tab" data-tab="all" aria-selected="true" aria-controls="gong-all">All</button>
+    {groups.map(group => <button type="button" role="tab" data-tab={group.key} aria-selected="false" aria-controls={`gong-${group.key}`}>{group.label}</button>)}
+  </div>
+  <div id="gong-all" class="gong-drawings__intro">Plans, wall elevations, cross sections and bar details. Open Read more for drawing labels, materials and dimensions.</div>
+  {groups.map(group => <section id={`gong-${group.key}`} data-group={group.key} class="gong-drawings__group" aria-label={group.label}>
+    <h2>{group.label}</h2>
+    {group.key === 'walls' ? group.items.map(view => <div class="gong-drawings__sheet">
+      <GongDrawing view={view} wide />
+    </div>) : group.key === 'bar' ? <>
+      <div class="gong-drawings__bar-layout">
+        <GongDrawing view={group.items[0]} />
+        {barFigure && <figure class="gong-drawings__bar-view"><img src={barFigure.image} alt={barFigure.caption ?? 'GONG stone bar'} loading="lazy" /><figcaption>{barFigure.caption}</figcaption></figure>}
+      </div>
+      <div class="gong-drawings__grid gong-drawings__bar-details">
+        {group.items.slice(1).map((v: any) => <GongDrawing view={v} />)}
+      </div>
+    </> : <div class="gong-drawings__grid">
+      {group.items.map((v: any, i: number) => <GongDrawing view={v} wide={group.key === 'plans' || (group.key === 'bar' && i === 0)} />)}
+    </div>}
+  </section>)}
+</section>
+<style>
+  .gong-drawings__tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+  .gong-drawings__tabs button { min-height: 44px; padding: 8px 16px; border-radius: 24px; border: 1px solid var(--_tokens---color--line-soft); background: transparent; color: inherit; font: inherit; font-size: var(--_tokens---type--small); cursor: pointer; }
+  .gong-drawings__tabs button[aria-selected="true"] { color: var(--_tokens---color--bg); background: var(--_tokens---color--fg); }
+  .gong-drawings__intro { font-size: var(--_tokens---type--micro); color: var(--_tokens---color--muted); margin-bottom: 24px; }
+  .gong-drawings__group { margin-bottom: 32px; }
+  .gong-drawings__group[hidden], .gong-drawings__intro[hidden] { display: none; }
+  h2 { font-size: var(--_tokens---type--small); font-weight: 500; margin: 0 0 16px; }
+  .gong-drawings__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
+  .gong-drawings__bar-view { margin: 0; }
+  .gong-drawings__bar-view img { width: 100%; height: auto; display: block; }
+  .gong-drawings__bar-view figcaption { margin-top: 8px; font-size: var(--_tokens---type--micro); color: var(--_tokens---color--muted); }
+  .gong-drawings__bar-layout { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
+  .gong-drawings__bar-details { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 20px; }
+  .gong-drawings__sheet h3 { font-size: var(--_tokens---type--micro); font-weight: 500; margin: 0 0 10px; }
+  .gong-drawings__sheet + .gong-drawings__sheet { margin-top: 20px; }
+  @media (max-width: 699.98px) { .gong-drawings__grid, .gong-drawings__bar-layout { grid-template-columns: 1fr; } }
+</style>
+<script>
+  function initGongDrawings() {
+    document.querySelectorAll<HTMLElement>('[data-gong-drawings]:not([data-wired])').forEach(root => {
+      root.dataset.wired = 'true';
+      const tabs = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-tab]'));
+      const select = (key: string) => {
+        root.dataset.mode = key;
+        tabs.forEach(tab => tab.setAttribute('aria-selected', String(tab.dataset.tab === key)));
+        root.querySelectorAll<HTMLElement>('[data-group]').forEach(group => { group.hidden = key !== 'all' && key !== group.dataset.group; });
+        root.querySelector<HTMLElement>('.gong-drawings__intro')!.hidden = key !== 'all';
+      };
+      tabs.forEach((tab, i) => {
+        tab.addEventListener('click', () => select(tab.dataset.tab!));
+        tab.addEventListener('keydown', e => {
+          if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+          e.preventDefault();
+          const next = e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : (i + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+          tabs[next].focus(); select(tabs[next].dataset.tab!);
+        });
+      });
+    });
+  }
+  initGongDrawings();
+  document.addEventListener('astro:after-swap', initGongDrawings);
+</script>

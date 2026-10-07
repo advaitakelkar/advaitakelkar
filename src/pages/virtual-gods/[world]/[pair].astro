@@ -6,24 +6,22 @@
 import { getEntry } from 'astro:content';
 import VGModel from '../../../components/VGModel.astro';
 import ExhibitionLayout from '../../../layouts/ExhibitionLayout.astro';
-import VGNavigation from '../../../components/VGNavigation.astro';
 import VGExhibitionStyles from '../../../components/VGExhibitionStyles.astro';
 import { publicFileExists } from '../../../lib/content';
-import { PAIR, WORLD_URL, worldHref, pairHref, stageOf, isPersons, isPairsFusion } from '../../../lib/vg';
+import { PAIR, WORLD_URL, worldHref, stageOf, isPersons, isPairsFusion } from '../../../lib/vg';
 
 export async function getStaticPaths() {
   const ex = await getEntry('exhibitions', 'virtual-gods');
   const qs = [...ex!.data.quadrants].sort((a, b) => a.number.localeCompare(b.number));
   const order = qs.flatMap((q: any) => q.pairs.map((p: any) => ({ q, p })));
-  return order.map(({ q, p }: any, i: number) => ({
+  return order.map(({ q, p }: any) => ({
     params: { world: WORLD_URL[q.slug], pair: PAIR[p.slug].url },
-    props: { q, p, prev: order[(i - 1 + order.length) % order.length], next: order[(i + 1) % order.length] },
+    props: { q, p },
   }));
 }
 
-const { q, p, prev, next } = Astro.props as any;
+const { q, p } = Astro.props as any;
 const meta = PAIR[p.slug];
-const partner = q.pairs.find((x: any) => x.slug !== p.slug);
 const gallery: string[] = p.gallery ?? [];
 const worldGallery: string[] = q.gallery ?? [];
 const vg = (rel: string) => `/images/virtual-gods/vg/${rel}`;
@@ -62,8 +60,7 @@ const isVideo = (s: string) => s.endsWith('.mp4');
 >
   <VGExhibitionStyles />
   <div class="vge">
-    <div class="vge-layout">
-      <VGNavigation current={meta.archv} />
+    <div class="vge-layout vge-layout--content">
 
       <article>
         <header class="vge-head">
@@ -154,14 +151,7 @@ const isVideo = (s: string) => s.endsWith('.mp4');
           </section>
         )}
 
-        <nav class="vge-walk" aria-label="Walk on">
-          <a href="/projects/virtual-gods"><span>Exhibition map</span>All worlds and pairs</a>
-          <a href={worldHref(q.slug)}><span>The world</span>{q.number} · {q.architects.join(' × ')}</a>
-          {partner && <a href={pairHref(q.slug, partner.slug)}><span>Its partner pair</span>{PAIR[partner.slug].title}</a>}
-          <a href={pairHref(prev.q.slug, prev.p.slug)}><span>Previous pair</span>{PAIR[prev.p.slug].title}</a>
-          <a href={pairHref(next.q.slug, next.p.slug)}><span>Next pair</span>{PAIR[next.p.slug].title}</a>
-          <a href={`/archv-in/${meta.archv}.html`}><span>As it was</span>The original page on archv.in</a>
-        </nav>
+
       </article>
     </div>
   </div>

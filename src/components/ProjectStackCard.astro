@@ -80,8 +80,13 @@ const viewImgs: string[] = ((p.data as any).views ?? [])
   .map((v: any) => v?.image)
   .filter(Boolean);
 const hasViews = viewImgs.length > 0;
-// Scrub shows only the curated set when a project defines one
-const scrubImgsRaw: string[] = hasViews
+// ARCHV uses its curated previews while the project page keeps its access gate.
+const isArchv = p.data.category?.id === 'archv';
+const hasCuratedPreview = isArchv || ['gong-powai', 'bnb-khar'].includes(p.id);
+const curatedImgs = p.data.scrubImages as string[] | undefined;
+const scrubImgsRaw: string[] = hasCuratedPreview && curatedImgs?.length
+  ? curatedImgs
+  : hasViews
   // Cover first so the card opens on the picture it is known by, then each
   // view's chosen frame. Deduped: the cover is usually one of the views.
   ? [...new Set([p.data.coverImage, ...viewImgs].filter(Boolean))] as string[]
@@ -89,8 +94,10 @@ const scrubImgsRaw: string[] = hasViews
   ? (p.data.scrubImages as string[])
   : allImgs;
 const isLocked = isProjectLocked(p.id, p.data?.passcode);
-// A locked project shows no imagery anywhere in a listing.
-const scrubImgs = visibleProjectImages(p.id, p.data?.passcode, scrubImgsRaw);
+// Curated ARCHV, GONG and Barley and Bun previews are visible in listings.
+const scrubImgs = hasCuratedPreview
+  ? [...new Set(scrubImgsRaw)].slice(0, 5)
+  : visibleProjectImages(p.id, p.data?.passcode, scrubImgsRaw);
 ---
 
 <div

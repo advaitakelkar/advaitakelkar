@@ -164,6 +164,9 @@ const projects = defineCollection({
        deck shows the chosen ones, one per view, and a card shows the cover
        alone: a thumbnail strip of the same room six times says nothing. */
     views: z.array(z.object({
+      alt: z.string().optional(),
+      annotations: z.array(z.object({ heading: z.string(), lines: z.array(z.string()) })).optional(),
+      drawingSource: z.string().optional(),
       // The room this view is of. The renders template makes one tab per
       // room, in the order the rooms first appear here.
       room: z.string().optional(),

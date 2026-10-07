@@ -9,6 +9,8 @@ import PageLayout from '../../layouts/PageLayout.astro';
 import VGHub from '../../components/VGHub.astro';
 import VGToolbar from '../../components/VGToolbar.astro';
 import RenderRooms from '../../components/RenderRooms.astro';
+import GongSlider from '../../components/GongSlider.astro';
+import GongDrawings from '../../components/GongDrawings.astro';
 import { isPlaceholder, realText, publicFileExists } from '../../lib/content';
 import Arrow from '../../components/Arrow.astro';
 
@@ -22,6 +24,13 @@ export async function getStaticPaths() {
 
 const { project } = Astro.props;
 const { data } = project;
+const gongParagraphs = project.id === 'gong-powai' ? (data.description ?? '').match(/<p>[\s\S]*?<\/p>/g) ?? [] : [];
+const gongIntro = gongParagraphs[0]?.replace(/<\/?p>/g, '') ?? '';
+const gongIntroBreak = gongIntro.indexOf('. ') + 1;
+const gongDescription = gongParagraphs.length > 1 && gongIntroBreak > 0
+  ? `<p>${gongIntro.slice(0, gongIntroBreak)}</p><details class="gong-intro-more"><summary><span class="gong-more-label">Read more</span><span class="gong-less-label">Read less</span></summary><p>${gongIntro.slice(gongIntroBreak).trim()}</p>${gongParagraphs.slice(1).join('')}</details>`
+  : data.description;
+
 
 // Resolve tag and category references
 const tags = await Promise.all((data.tags ?? []).map(t => getEntry(t)));
@@ -296,6 +305,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       data-project-id={project.id}
       data-project-name={data.name}
       data-is-card="true"
+      data-bnb={project.id === "bnb-khar" ? "true" : undefined}
+      data-gong={project.id === "gong-powai" ? "true" : undefined}
       data-renders={isRenders ? "true" : "false"}
       data-category={category ? category.id : ''}
       data-tab-layout="false"
@@ -385,7 +396,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                     {data.smallIntro && <p class="project-card__intro">{data.smallIntro}</p>}
                     {data.description && (
                       <div class="project-desc-readmore" id="project-desc-readmore">
-                        <div class="project-card__desc project-desc-clip" id="project-desc-clip" set:html={data.description} />
+                        <div class="project-card__desc project-desc-clip" id="project-desc-clip" set:html={project.id === "gong-powai" ? gongDescription : data.description} />
                         <button
                           class="project-readmore-btn"
                           id="project-readmore-btn"
@@ -460,7 +471,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                     below, so an empty alt keeps it out of the way. */}
                 {(sideVideo || sideImage) && (
                   <figure class="renders-aside">
-                    {sideVideo ? (
+                    {project.id === "gong-powai" ? <GongSlider figures={(data.leadFigures ?? []).filter(f => !f.image.endsWith("05-bar-detail.webp"))} /> : sideVideo ? (
                       /* The video and its control are one object. The figure
                          spans the whole copy block and the picture centres
                          inside it, so a control hung off the figure would sit
@@ -779,7 +790,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
           )}
           {/* Full-width pictures with a line under each — the place itself,
               before the work in it. */}
-          {((data as any).leadFigures ?? []).map((f: { image: string; caption?: string }) => (
+          {(["gong-powai", "bnb-khar"].includes(project.id) ? [] : (data as any).leadFigures ?? []).map((f: { image: string; caption?: string }) => (
             <figure class="renders-lead renders-lead--figure">
               <img src={f.image} alt={f.caption ?? data.name} loading="lazy" />
               {f.caption && <figcaption class="renders-lead__caption">{f.caption}</figcaption>}
@@ -808,7 +819,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
               </div>
             </div>
           ) : (
-            <RenderRooms views={renderViews} name={data.name} groups={data.groups ?? "tabs"} />
+            project.id === "bnb-khar" ? <div class="bnb-slider"><GongSlider name={data.name} figures={data.leadFigures ?? []} /></div> : project.id === "gong-powai" ? <GongDrawings views={renderViews} barFigure={(data.leadFigures ?? []).find(f => f.image.endsWith("05-bar-detail.webp"))} /> : <RenderRooms views={renderViews} name={data.name} groups={data.groups ?? "tabs"} />
           )}
           {/* With a slider the page reads place → work → drawing: the whole
               picture (a cut file) comes last, after the installation. */}
@@ -5255,6 +5266,31 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
      1024 and up only. Below that the column is already the width of the page
      and there is nothing to spare. */
   .renders-aside { display: none; }
+  .project-detail[data-bnb="true"] .project-card__desc { font-size: var(--_tokens---type--small); line-height: 1.55; }
+  .project-detail[data-bnb="true"][data-renders="true"] #project-readmore-btn { display: none !important; }
+  .project-detail[data-bnb="true"][data-renders="true"] .project-phone-card:not(.is-reading) .project-card__desc { max-height: none !important; overflow: visible !important; }
+
+  .bnb-slider { width: 100%; }
+  @media (min-width: 1024px) {
+    .project-detail[data-bnb="true"][data-renders="true"] .project-card-info { min-height: 0 !important; }
+    .project-detail[data-bnb="true"] .project-card-info > * { max-width: 48%; }
+  }
+
+  .project-detail[data-gong="true"] :global(.gong-intro-more summary) { cursor: pointer; display: inline-flex; align-items: center; border: 1px solid var(--_tokens---color--line-soft); border-radius: 24px; padding: 8px 16px; margin: 6px 0 12px; min-height: 44px; box-sizing: border-box; font-size: var(--_tokens---type--small); }
+  .project-detail[data-gong="true"] :global(.gong-intro-more .gong-less-label) { display: none; }
+  .project-detail[data-gong="true"] :global(.gong-intro-more[open] .gong-more-label) { display: none; }
+  .project-detail[data-gong="true"] :global(.gong-intro-more[open] .gong-less-label) { display: inline; }
+  @media (min-width: 1024px) {
+    .project-detail[data-gong="true"][data-renders="true"] .project-card-info { --rr-aside-w: 56%; --rr-aside-h: 540px; }
+    .project-detail[data-gong="true"][data-renders="true"] .project-card-info > .renders-aside { align-items: flex-start; }
+  }
+  .project-detail[data-gong="true"] .project-card__desc { font-size: var(--_tokens---type--small); line-height: 1.55; }
+  .project-detail[data-gong="true"] .renders-aside :global(.gong-slider__stage img) { width: 100%; height: auto; max-height: none; display: none; opacity: 0; }
+  .project-detail[data-gong="true"] .renders-aside :global(.gong-slider__stage img.is-active) { display: block; opacity: 1; }
+  @media (max-width: 1023.98px) {
+    .project-detail[data-gong="true"] .project-card-info > .renders-aside { display: block; position: static; margin: 20px 0; width: 100%; }
+  }
+
 
   @media (min-width: 1024px) {
     .project-detail[data-renders="true"] .project-card-info {
@@ -7602,16 +7638,35 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     window.addEventListener('resize', updateBarOffset);
     const map = host.querySelector<HTMLElement>('.vg-entrance')!;
     const frame = host.querySelector<HTMLIFrameElement>('[data-vg-frame]')!;
-    const worldSelect = host.querySelector<HTMLSelectElement>('[data-vg-world]')!;
-    const pairSelect = host.querySelector<HTMLSelectElement>('[data-vg-pair]')!;
+    const worldMenu = host.querySelector<HTMLDetailsElement>('[data-vg-world]')!;
+    const pairMenu = host.querySelector<HTMLDetailsElement>('[data-vg-pair]')!;
+    const menus = [worldMenu, pairMenu];
+    const worldLinks = [...worldMenu.querySelectorAll<HTMLAnchorElement>('[data-vg-option]')];
+    const pairLinks = [...pairMenu.querySelectorAll<HTMLAnchorElement>('[data-vg-option]')];
     const mapLink = host.querySelector<HTMLAnchorElement>('[data-vg-home]')!;
+    const closeMenus = () => menus.forEach(menu => { menu.open = false; });
+    menus.forEach(menu => menu.addEventListener('toggle', () => {
+      if (menu.open) menus.forEach(other => { if (other !== menu) other.open = false; });
+    }));
+    document.addEventListener('click', e => { if (!(e.target as Element).closest('.vg-dropdown')) closeMenus(); });
+    host.addEventListener('keydown', e => {
+      if (e.key !== 'Escape') return;
+      const active = menus.find(menu => menu.open);
+      closeMenus();
+      active?.querySelector('summary')?.focus();
+    });
     const syncNavigation = (pathname: string) => {
       const path = pathname.replace(/\/$/, '');
-      const pair = [...pairSelect.options].find(option => option.value === path);
-      pairSelect.value = pair?.value ?? '';
-      worldSelect.value = pair?.dataset.world ?? ([...worldSelect.options].some(option => option.value === path) ? path : '');
-      mapLink.toggleAttribute('aria-current', !worldSelect.value);
-      if (!worldSelect.value) mapLink.setAttribute('aria-current', 'page');
+      const pair = pairLinks.find(link => new URL(link.href).pathname === path);
+      const worldPath = pair?.dataset.world ?? path;
+      const world = worldLinks.find(link => new URL(link.href).pathname === worldPath);
+      worldMenu.querySelector('[data-vg-label]')!.textContent = world?.dataset.worldLabel ?? 'World';
+      pairMenu.querySelector('[data-vg-label]')!.textContent = pair?.textContent ?? 'Pair';
+      [...worldLinks, ...pairLinks, mapLink].forEach(link => link.removeAttribute('aria-current'));
+      world?.setAttribute('aria-current', 'page');
+      pair?.setAttribute('aria-current', 'page');
+      if (!world) mapLink.setAttribute('aria-current', 'page');
+      closeMenus();
     };
     const home = () => { map.hidden = false; frame.hidden = true; frame.removeAttribute('src'); syncNavigation(''); };
     const open = (href: string) => {
@@ -7621,8 +7676,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       url.searchParams.set('embedded', '1');
       map.hidden = true; frame.hidden = false; frame.src = url.href;
     };
-    worldSelect.addEventListener('change', () => worldSelect.value ? open(worldSelect.value) : home());
-    pairSelect.addEventListener('change', () => pairSelect.value ? open(pairSelect.value) : worldSelect.value ? open(worldSelect.value) : home());
     host.addEventListener('click', e => {
       const link = (e.target as Element).closest<HTMLAnchorElement>('a');
       if (!link || e instanceof MouseEvent && (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)) return;
