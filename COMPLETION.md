@@ -236,3 +236,9 @@ of world selection, pair selection, and the matching world passed.
 ### 2026-10-07 — CONCRT slider layout
 
 - Changed CONCRT to the shared Barley and Bun slider layout: all six gallery images appear in one automatic slider below the introduction, starting with the updated cover. Removed the right-side image and room tabs. Retained the existing detail caption and collection credit.
+
+### 2026-10-07 — Shared project reading hierarchy
+
+- Project subtitles now use the small type token, with descriptions using micro: subtitle larger, supporting prose smaller, including phones.
+- Slider pages keep short descriptions fully visible. Descriptions over 450 characters with multiple blocks keep their opening paragraph left and reveal the remaining blocks in the empty right column at desktop widths through the shared Read more pill. On phones the existing reading card expands instead.
+- Slider stages keep original image proportions and reserve a stable height capped by the viewport, including short screens. Verified CONCRT desktop reading panel and phone expansion, and Barley and Bun full short description.

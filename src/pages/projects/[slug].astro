@@ -5235,7 +5235,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
      1024 and up only. Below that the column is already the width of the page
      and there is nothing to spare. */
   .renders-aside { display: none; }
-  .project-detail[data-slider="true"][data-renders="true"] #project-readmore-btn { display: none !important; }
   .project-detail[data-slider="true"][data-renders="true"] .project-phone-card:not(.is-reading) .project-card__desc { max-height: none !important; overflow: visible !important; }
 
   .lead-slider { width: 100%; }
@@ -5244,7 +5243,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
      page's length on every slide (and dropped to nothing while a lazy one
      loaded), so the browser clamped the scroll and the page jumped up. */
   .lead-slider :global(.gong-slider__stage) {
-    height: clamp(320px, 70vh, 760px);
+    height: min(70svh, calc(100svh - 160px), 760px);
   }
   .lead-slider :global(.gong-slider__stage img) {
     width: 100%;
@@ -5253,7 +5252,18 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
   @media (min-width: 1024px) {
     .project-detail[data-slider="true"][data-renders="true"] .project-card-info { min-height: 0 !important; }
-    .project-detail[data-slider="true"] .project-card-info > * { max-width: 48%; }
+    .project-detail[data-slider="true"][data-renders="true"] .project-card-info {
+      display: grid !important;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      column-gap: 4%;
+      align-items: start;
+    }
+    .project-detail[data-slider="true"] .project-card-info > * { max-width: none; grid-column: 1; }
+    .project-detail[data-slider="true"] .project-card-info > .renders-people { grid-row: 1; }
+    .project-detail[data-slider="true"] .project-card-info > .project-card__row2 { grid-row: 2; }
+    .project-detail[data-slider="true"] .project-card-info > .project-reading-panel { grid-column: 2; grid-row: 2; }
+    .project-detail[data-slider="true"] .project-desc-clip > :global(.project-desc-continuation) { display: none; }
+    .project-detail[data-slider="true"] .project-desc-clip { max-height: none !important; overflow: visible !important; }
   }
 
   @media (min-width: 1024px) {
@@ -5905,6 +5915,27 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       min-height: 0 !important;
     }
   }
+
+  /* Shared project hierarchy: subtitle leads, description is smaller prose. */
+  .project-detail .project-card__intro,
+  .project-detail[data-renders="true"] .project-phone-card .project-card__intro {
+    font-size: var(--_tokens---type--small) !important;
+    line-height: 1.45 !important;
+  }
+  .project-detail .project-card__desc,
+  .project-detail .project-card__desc :global(p),
+  .project-detail .project-card__desc :global(em) {
+    font-size: var(--_tokens---type--micro) !important;
+    line-height: 1.55 !important;
+  }
+  .project-detail[data-slider="true"] #project-readmore-btn:not([hidden]) { display: inline-flex !important; }
+  .project-detail[data-slider="true"] #project-readmore-btn[hidden] { display: none !important; }
+  .project-reading-panel { margin: 0; min-width: 0; }
+  .project-reading-panel[hidden] { display: none !important; }
+  @media (max-width: 1023.98px) {
+    .project-reading-panel { display: none !important; }
+    .project-detail[data-slider="true"] #project-readmore-btn[hidden] { display: none !important; }
+  }
 </style>
 
 <script>
@@ -5982,6 +6013,51 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     const btn  = document.getElementById('project-readmore-btn') as HTMLButtonElement | null;
 
     if (!clip || !btn) return;
+
+    const detail = clip.closest<HTMLElement>('.project-detail');
+    // Slider pages reserve their second column for continued reading.
+    // Short descriptions (including Barley and Bun) remain fully open.
+    if (detail?.dataset.slider === 'true') {
+      if (clip.dataset.readingWired) return;
+      clip.dataset.readingWired = 'true';
+      const blocks = Array.from(clip.children) as HTMLElement[];
+      const long = (clip.textContent ?? '').trim().length > 450 && blocks.length > 1;
+      btn.hidden = !long;
+      if (!long) return;
+      // Keep Astro's scope attribute so the shared prose rules apply.
+      const panel = clip.cloneNode(false) as HTMLElement;
+      panel.className = 'project-reading-panel project-card__desc';
+      panel.id = 'project-reading-panel';
+      panel.setAttribute('role', 'region');
+      panel.setAttribute('aria-label', 'Continued project description');
+      panel.hidden = true;
+      blocks.slice(1).forEach(block => {
+        block.classList.add('project-desc-continuation');
+        const copy = block.cloneNode(true) as HTMLElement;
+        copy.classList.remove('project-desc-continuation');
+        copy.removeAttribute('id');
+        copy.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+        panel.append(copy);
+      });
+      detail.querySelector('.project-card-info')?.append(panel);
+      const wide = window.matchMedia('(min-width: 1024px)');
+      const first = blocks[0];
+      const reflect = () => {
+        const open = btn.getAttribute('aria-expanded') === 'true';
+        panel.hidden = !wide.matches || !open;
+        if (wide.matches) clip.style.maxHeight = 'none';
+        else clip.style.maxHeight = open ? clip.scrollHeight + 'px' : first.offsetHeight + 'px';
+        btn.setAttribute('aria-controls', wide.matches ? panel.id : clip.id);
+      };
+      btn.addEventListener('click', () => {
+        btn.setAttribute('aria-expanded', btn.getAttribute('aria-expanded') === 'true' ? 'false' : 'true');
+        reflect();
+      });
+      wide.addEventListener('change', reflect);
+      document.addEventListener('astro:before-swap', () => wide.removeEventListener('change', reflect), { once: true });
+      reflect();
+      return;
+    }
 
     // Measure height of just the first child block (first <p> or first child)
     const firstChild = clip.firstElementChild as HTMLElement | null;
