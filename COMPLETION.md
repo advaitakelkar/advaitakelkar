@@ -232,3 +232,7 @@ of world selection, pair selection, and the matching world passed.
 - Kept `/Users/adi/Dev/advaitakelkar-live` as the only active local working copy; the live copy is hosted at advaitakelkar.com. `dist/` remains the generated deployment output.
 - Moved the obsolete `Dev/_archive/advaitakelkar-website` and cache-only `Dev/advaitakelkar-website` to Mac Trash. Old archive was clean; its files and separate Git history remain recoverable in Trash. Its only extra assets were the superseded CONCRT cover and a generated thumbnail.
 - Moved historical local audits into `docs/archive/` and clarified folder roles in README. CONCRT commit ed17125 is still awaiting a successful GitHub push after repeated remote server errors.
+
+### 2026-10-07 — CONCRT slider layout
+
+- Changed CONCRT to the shared Barley and Bun slider layout: all six gallery images appear in one automatic slider below the introduction, starting with the updated cover. Removed the right-side image and room tabs. Retained the existing detail caption and collection credit.
