@@ -875,27 +875,31 @@ function getWords(name: string): string[] {
       gap: 6px;
     }
   }
-  /* The countdown ring's design (.home-slider__ring below): a thin circle
-     in the ink at 40%, nothing filled, sized off the slider heading, the
-     glyph at half the ring. On hover the circle goes full ink. */
+  /* The round step of the room tabs on a project page (.rr__tabstep). The
+     countdown arrow at the bottom right takes the same circle. */
   .home-slider__step {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: var(--_tokens---type--big);
-    width: 1.05em;
-    height: 1.05em;
+    width: calc(1lh + 20px + 2px);
+    height: calc(1lh + 20px + 2px);
     padding: 0;
     border-radius: 50%;
-    border: 0.0315em solid color-mix(in srgb, var(--_tokens---color--fg) 40%, transparent);
-    background: transparent;
-    color: var(--_tokens---color--fg);
+    border: var(--_tokens---pill-border);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    color: var(--_tokens---color--muted);
+    font-size: calc(var(--_tokens---type--small) * 1.2);
+    line-height: 1.2;
     cursor: pointer;
-    --icon-size: 0.4em;
-    transition: border-color var(--_tokens---motion--base) ease, transform var(--_tokens---motion--base) ease;
+    --icon-size: 0.8em;
+    transition: background-color var(--_tokens---motion--base) ease, color var(--_tokens---motion--base) ease, border-color var(--_tokens---motion--base) ease;
   }
   @media (hover: hover) {
-    .home-slider__step:hover { border-color: var(--_tokens---color--fg); }
+    .home-slider__step:hover {
+      background-color: var(--_tokens---color--fg);
+      border-color: var(--_tokens---color--fg);
+      color: var(--_tokens---color--bg);
+    }
   }
   .home-slider__step:focus-visible { outline: 1px solid var(--_tokens---color--fg); outline-offset: 2px; }
 
@@ -1143,22 +1147,39 @@ function getWords(name: string): string[] {
   /* Desktop arrow: the circle matches the H1 project name's height.
      The container is a real box the size of the ring, so it always has
      room and never gets clipped. */
+  /* The countdown: the same round step as the ‹ › pair at the top right
+     (.home-slider__step), with the 3s timer drawn on its edge. */
   .home-slider__arrow {
     align-self: flex-end; /* bottom of the row */
     margin-left: auto;    /* always pinned to the right */
-    position: relative;   /* the countdown ring centres on the arrow */
+    position: relative;   /* the countdown ring sits on the circle's edge */
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    font-size: var(--_tokens---type--big); /* ring scales with the name */
-    width: 1.15em;
-    height: 1.15em;
-    transition: transform var(--_tokens---motion--base) ease;
+    font-size: calc(var(--_tokens---type--small) * 1.2);
+    line-height: 1.2;
+    width: calc(1lh + 20px + 2px);
+    height: calc(1lh + 20px + 2px);
+    border-radius: 50%;
+    border: var(--_tokens---pill-border);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    color: var(--_tokens---color--muted);
+    transition: background-color var(--_tokens---motion--base) ease, color var(--_tokens---motion--base) ease, border-color var(--_tokens---motion--base) ease;
   }
   .home-slider__arrow .home-slider__ring {
-    width: 1.05em;
-    height: 1.05em;
+    width: calc(100% + 2px);
+    height: calc(100% + 2px);
+    color: var(--_tokens---color--fg);
+  }
+  .home-slider__arrow .home-slider__ring-track { opacity: 0; } /* the border is the track */
+  .home-slider__arrow .home-slider__ring circle { stroke-width: 4; }
+  @media (hover: hover) {
+    .home-slider__slide:hover .home-slider__arrow {
+      background-color: var(--_tokens---color--fg);
+      border-color: var(--_tokens---color--fg);
+      color: var(--_tokens---color--bg);
+    }
   }
 
   /* Countdown ring around the arrow — fills over the auto-advance time (3s) */
@@ -1189,17 +1210,11 @@ function getWords(name: string): string[] {
   }
 
   .home-slider__arrow .link-arrow {
-    /* Sized off the slider heading, not the arrow tokens — the ring around it
-       is what sets the scale here. Declared as --icon-size so the pen curve
-       sees the real rendered size instead of falling back to the md default. */
-    --icon-size: 0.5em;
+    /* The step buttons' glyph size. Declared as --icon-size so the pen curve
+       sees the real rendered size. */
+    --icon-size: 0.8em;
   }
 
-  @media (hover: hover) {
-    .home-slider__slide:hover .home-slider__arrow {
-    transform: translate(2px, -2px);
-  }
-  }
 
   .link-arrow {
     vertical-align: middle;
