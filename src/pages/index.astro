@@ -364,7 +364,20 @@ function getWords(name: string): string[] {
         activeSlide = slide;
         slide.classList.add('is-active');
         scrambleName(slide);
+        alignNav();
       }
+
+      // The ‹ › pair shares the countdown ring's right edge, wherever the
+      // slide layout puts that ring at this width.
+      const nav = document.querySelector<HTMLElement>('.home-slider__nav');
+      function alignNav() {
+        const ring = activeSlide?.querySelector('.home-slider__arrow .home-slider__ring');
+        const box = nav?.offsetParent as HTMLElement | null;
+        if (!nav || !ring || !box) return;
+        const right = box.getBoundingClientRect().right - ring.getBoundingClientRect().right;
+        if (right >= 0) nav.style.right = `${Math.round(right)}px`;
+      }
+      window.addEventListener('resize', alignNav, { passive: true });
 
       // Scramble the name when hovering any slide
       track.querySelectorAll('.home-slider__slide').forEach(s =>
@@ -862,29 +875,27 @@ function getWords(name: string): string[] {
       gap: 6px;
     }
   }
+  /* The countdown ring's design (.home-slider__ring below): a thin circle
+     in the ink at 40%, nothing filled, sized off the slider heading, the
+     glyph at half the ring. On hover the circle goes full ink. */
   .home-slider__step {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: calc(1lh + 20px + 2px);
-    height: calc(1lh + 20px + 2px);
+    font-size: var(--_tokens---type--big);
+    width: 1.05em;
+    height: 1.05em;
     padding: 0;
     border-radius: 50%;
-    border: var(--_tokens---pill-border);
-    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
-    color: var(--_tokens---color--muted);
-    font-size: calc(var(--_tokens---type--small) * 1.2);
-    line-height: 1.2;
+    border: 0.0315em solid color-mix(in srgb, var(--_tokens---color--fg) 40%, transparent);
+    background: transparent;
+    color: var(--_tokens---color--fg);
     cursor: pointer;
-    --icon-size: 0.8em;
-    transition: background-color var(--_tokens---motion--base) ease, color var(--_tokens---motion--base) ease, border-color var(--_tokens---motion--base) ease;
+    --icon-size: 0.4em;
+    transition: border-color var(--_tokens---motion--base) ease, transform var(--_tokens---motion--base) ease;
   }
   @media (hover: hover) {
-    .home-slider__step:hover {
-      background-color: var(--_tokens---color--fg);
-      border-color: var(--_tokens---color--fg);
-      color: var(--_tokens---color--bg);
-    }
+    .home-slider__step:hover { border-color: var(--_tokens---color--fg); }
   }
   .home-slider__step:focus-visible { outline: 1px solid var(--_tokens---color--fg); outline-offset: 2px; }
 
