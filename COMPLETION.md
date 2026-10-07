@@ -264,3 +264,9 @@ Eleven supplied room views edited with the built-in image tool for a cohesive ph
 - Replaced the Archi-Selfie cover, listing preview and presentation image with Adi’s approved final two-view image on black. Preserved the existing course page and ongoing course status; identified Assignment 01 as the final submission.
 - New asset filename avoids the previously cached image URL. Exported as WebP at its original proportions.
 - Validation: 98-page build passed; compiled Hybrid Media page references the new final image and Assignment 01 text with no old image URL. WebP checked visually against the approved final.
+
+
+### 2026-10-07 — Hybrid Media reading layout
+
+- Enabled the shared Read more / Read less disclosure for Hybrid Media despite its short description. Expanded copy uses the existing balanced two-column desktop layout and phone reading panel.
+- Validation: 98-page build and all three style lints passed. Browser checks at 1440px and 390px confirmed initial collapse, expansion with intact assignment copy, two desktop columns, and Read less collapse.

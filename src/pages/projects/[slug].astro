@@ -6102,12 +6102,13 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
     const detail = clip.closest<HTMLElement>('.project-detail');
     // Slider pages reserve their second column for continued reading.
-    // Short descriptions (including Barley and Bun) remain fully open.
+    // Hybrid Media uses the same disclosure even with its short assignment text.
+    // Other short descriptions (including Barley and Bun) remain fully open.
     if (detail?.dataset.slider === 'true') {
       if (clip.dataset.readingWired) return;
       clip.dataset.readingWired = 'true';
       const blocks = Array.from(clip.children) as HTMLElement[];
-      const long = (clip.textContent ?? '').trim().length > 450 && blocks.length > 1;
+      const long = blocks.length > 1 && (detail.dataset.projectId === 'hybrid-media' || (clip.textContent ?? '').trim().length > 450);
       btn.hidden = !long;
       if (!long) return;
       detail.dataset.readingCollapsible = 'true';
