@@ -25,6 +25,8 @@ const studios = defineCollection({
     shortName: z.string().optional(),
     // The bucket this studio sits under, so /work/<studio> can be derived.
     category: reference('categories'),
+    // Tab position within its category, lowest first; unset ones follow.
+    order: z.number().optional(),
   }),
 });
 
