@@ -6,12 +6,12 @@ const { figures, name = 'GONG' } = Astro.props;
   <div class="gong-slider__stage">
     {figures.map((f, i) => <img src={f.image} alt={f.caption ?? `${name} interior ${i + 1}`} class:list={{'is-active': i === 0}} loading={i === 0 ? 'eager' : 'lazy'} />)}
   </div>
-  <div class="gong-slider__controls">
+  {figures.length > 1 && <div class="gong-slider__controls">
     <button type="button" data-prev aria-label="Previous interior view">←</button>
     <span data-count>1 / {figures.length}</span>
     <button type="button" data-pause aria-label="Pause slideshow">Pause</button>
     <button type="button" data-next aria-label="Next interior view">→</button>
-  </div>
+  </div>}
 </div>
 <style>
   .gong-slider { width: 100%; }
@@ -32,6 +32,8 @@ const { figures, name = 'GONG' } = Astro.props;
       const resize = new ResizeObserver(() => copy?.style.setProperty('--rr-aside-h', `${root.getBoundingClientRect().height}px`));
       resize.observe(root);
       document.addEventListener('astro:before-swap', () => resize.disconnect(), { once: true });
+      // One picture: no controls are drawn and there is nothing to advance.
+      if (images.length < 2) return;
       const pause = root.querySelector<HTMLButtonElement>('[data-pause]')!;
       let current = 0;
       let stopped = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
