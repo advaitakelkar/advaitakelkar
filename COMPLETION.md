@@ -252,3 +252,8 @@ of world selection, pair selection, and the matching world passed.
 
 - Long slider-page descriptions are fully hidden until Read more, placed to the right of the subtitle on desktop. Expanded prose flows continuously through two automatically balanced columns rather than separate paragraph panels.
 - Portraits reduced to 32px in a persistent credit strip above the fixed search/navigation dock. CONCRT collection link remains on its right. Short Barley and Bun description stays visible.
+
+
+## 2026-10-07 — XBKC replacement image set
+
+Eleven supplied room views edited with the built-in image tool for a cohesive photographic material palette, including the later kitchen image. Replaced all 52 older website images/variations with one eleven-view shared slider, new cover and five listing thumbnails. PNG masters and old web images are archived under ignored source-files/xbkc/. Prompt set and checks: docs/xbkc-image-edits-2026-10-07.md. Build (98 pages) and lint passed; compiled page contains exactly eleven carousel images. Browser visual verification blocked because browser security policy was unavailable.
