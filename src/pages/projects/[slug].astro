@@ -5270,7 +5270,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     .project-detail[data-slider="true"] .project-card-info > .renders-people { grid-row: 1; }
     .project-detail[data-slider="true"] .project-card-info > .project-card__row2 { grid-row: 2; }
     .project-detail[data-slider="true"] .project-card-info > .project-reading-panel { grid-column: 2; grid-row: 2; }
-    .project-detail[data-slider="true"] .project-desc-clip > :global(.project-desc-continuation) { display: none; }
     .project-detail[data-slider="true"] .project-desc-clip { max-height: none !important; overflow: visible !important; }
   }
 
@@ -5979,6 +5978,41 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     .project-bottom-credits { flex-wrap: wrap; }
     .project-bottom-credits .renders-collection { text-align: left; }
   }
+
+  /* Persistent compact credits, clear of the fixed search/navigation dock. */
+  .project-detail[data-slider="true"] { padding-bottom: 140px; }
+  .project-bottom-credits {
+    position: fixed; bottom: var(--rc-bottom, 68px); z-index: 5;
+    left: var(--page-gutter, 24px); right: var(--page-gutter, 24px);
+    width: auto; margin: 0; padding: 8px 0;
+    background: var(--_tokens---color--bg);
+  }
+  .project-bottom-credits .project-people__avatar {
+    width: 32px !important; height: 32px !important;
+  }
+  .project-bottom-credits .project-people__divider { height: 24px; }
+  .project-bottom-credits .project-people__name { font-size: var(--_tokens---type--ultrathin); }
+  @media (min-width: 1024px) {
+    .project-detail[data-reading-collapsible="true"] .project-card__intro { padding-right: 120px; }
+    .project-detail[data-reading-collapsible="true"] #project-readmore-btn {
+      grid-column: 2; grid-row: 1; justify-self: end; align-self: start; margin: 0;
+    }
+    .project-detail[data-reading-collapsible="true"]:not([data-reading-open="true"]) .project-desc-readmore { display: none !important; }
+    .project-detail[data-reading-open="true"] .project-desc-readmore { display: block !important; }
+  }
+  @media (max-width: 1023.98px) {
+    .project-bottom-credits { gap: 8px; flex-wrap: nowrap; }
+    .project-bottom-credits .renders-collection { font-size: var(--_tokens---type--ultrathin); }
+  }
+
+  @media (min-width: 1024px) {
+    .project-detail[data-slider="true"] .project-desc-readmore { grid-column: 1 / -1; }
+    .project-detail[data-slider="true"] .project-desc-clip {
+      display: block !important; max-width: none; column-count: 2; column-gap: 4%; column-fill: balance;
+    }
+    .project-detail[data-slider="true"] .project-desc-clip :global(p:first-child) { margin-top: 0; }
+    .project-detail[data-slider="true"] .project-desc-clip :global(p:last-child) { margin-bottom: 0; }
+  }
 </style>
 
 <script>
@@ -5991,7 +6025,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
      dock below it, and both change height with the band and the safe
      area, so it is measured rather than written down. */
   function initCollectionCredit() {
-    const credit = document.querySelector<HTMLElement>('.renders-collection');
+    const credit = document.querySelector<HTMLElement>('.project-bottom-credits, .renders-collection');
     if (!credit) return;
     const measure = () => {
       let clear = 0;
@@ -6005,6 +6039,14 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         }
       });
       credit.style.setProperty('--rc-bottom', `${Math.ceil(clear)}px`);
+      if (credit.classList.contains('project-bottom-credits')) {
+        const search = document.querySelector<HTMLElement>('.home-search__bar');
+        const bounds = search?.getBoundingClientRect();
+        if (bounds?.width) {
+          credit.style.left = bounds.left + 'px';
+          credit.style.right = (window.innerWidth - bounds.right) + 'px';
+        }
+      }
     };
     measure();
     window.addEventListener('resize', measure, { passive: true });
@@ -6067,30 +6109,19 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       const long = (clip.textContent ?? '').trim().length > 450 && blocks.length > 1;
       btn.hidden = !long;
       if (!long) return;
-      // Keep Astro's scope attribute so the shared prose rules apply.
-      const panel = clip.cloneNode(false) as HTMLElement;
-      panel.className = 'project-reading-panel project-card__desc';
-      panel.id = 'project-reading-panel';
-      panel.setAttribute('role', 'region');
-      panel.setAttribute('aria-label', 'Continued project description');
-      panel.hidden = true;
-      blocks.slice(1).forEach(block => {
-        block.classList.add('project-desc-continuation');
-        const copy = block.cloneNode(true) as HTMLElement;
-        copy.classList.remove('project-desc-continuation');
-        copy.removeAttribute('id');
-        copy.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
-        panel.append(copy);
-      });
-      detail.querySelector('.project-card-info')?.append(panel);
+      detail.dataset.readingCollapsible = 'true';
+      const wrapper = clip.parentElement!;
+      const info = detail.querySelector<HTMLElement>('.project-card-info')!;
       const wide = window.matchMedia('(min-width: 1024px)');
       const first = blocks[0];
       const reflect = () => {
         const open = btn.getAttribute('aria-expanded') === 'true';
-        panel.hidden = !wide.matches || !open;
+        detail.dataset.readingOpen = String(open);
+        if (wide.matches && btn.parentElement !== info) info.append(btn);
+        else if (!wide.matches && btn.parentElement === info) wrapper.append(btn);
         if (wide.matches) clip.style.maxHeight = 'none';
         else clip.style.maxHeight = open ? clip.scrollHeight + 'px' : first.offsetHeight + 'px';
-        btn.setAttribute('aria-controls', wide.matches ? panel.id : clip.id);
+        btn.setAttribute('aria-controls', clip.id);
       };
       btn.addEventListener('click', () => {
         btn.setAttribute('aria-expanded', btn.getAttribute('aria-expanded') === 'true' ? 'false' : 'true');

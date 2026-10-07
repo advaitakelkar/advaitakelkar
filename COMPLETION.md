@@ -247,3 +247,8 @@ of world selection, pair selection, and the matching world passed.
 
 - Full-width project subtitles now precede aligned two-column description text with Read more. People appear only in the bottom credits on slider pages; CONCRT portraits sit left and its collection link sits right, with clearance for the fixed search bar.
 - GONG now uses the shared slider below its text, keeps the four interior views and retains the drawing gallery beneath it. Its aim, setting and palette are included in the expanded description instead of separate pills.
+
+### 2026-10-07 — Compact continuous reading and persistent credits
+
+- Long slider-page descriptions are fully hidden until Read more, placed to the right of the subtitle on desktop. Expanded prose flows continuously through two automatically balanced columns rather than separate paragraph panels.
+- Portraits reduced to 32px in a persistent credit strip above the fixed search/navigation dock. CONCRT collection link remains on its right. Short Barley and Bun description stays visible.
