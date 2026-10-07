@@ -2,6 +2,7 @@
 import { projectThumbnail } from '../../lib/projectImages';
 import { projectTemplate } from "../../lib/projectTemplates";
 import Icon from '../../components/Icon.astro';
+import ReadMore from '../../components/ReadMore.astro';
 import fs from 'node:fs';
 import path from 'node:path';
 import { getCollection, getEntry } from 'astro:content';
@@ -28,7 +29,7 @@ const gongParagraphs = project.id === 'gong-powai' ? (data.description ?? '').ma
 const gongIntro = gongParagraphs[0]?.replace(/<\/?p>/g, '') ?? '';
 const gongIntroBreak = gongIntro.indexOf('. ') + 1;
 const gongDescription = gongParagraphs.length > 1 && gongIntroBreak > 0
-  ? `<p>${gongIntro.slice(0, gongIntroBreak)}</p><details class="gong-intro-more"><summary><span class="gong-more-label">Read more</span><span class="gong-less-label">Read less</span></summary><p>${gongIntro.slice(gongIntroBreak).trim()}</p>${gongParagraphs.slice(1).join('')}</details>`
+  ? `<p>${gongIntro.slice(0, gongIntroBreak)}</p><details class="gong-intro-more"><summary class="read-more"><span class="read-more__more">Read more</span><span class="read-more__less">Read less</span></summary><p>${gongIntro.slice(gongIntroBreak).trim()}</p>${gongParagraphs.slice(1).join('')}</details>`
   : data.description;
 
 
@@ -397,15 +398,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                     {data.description && (
                       <div class="project-desc-readmore" id="project-desc-readmore">
                         <div class="project-card__desc project-desc-clip" id="project-desc-clip" set:html={project.id === "gong-powai" ? gongDescription : data.description} />
-                        <button
-                          class="project-readmore-btn"
-                          id="project-readmore-btn"
-                          type="button"
-                          aria-expanded="false"
-                        >
-                          <span class="project-readmore-label">Read more</span>
-                          <Icon name="arrow" class="project-readmore-arrow" />
-                        </button>
+                        <ReadMore class="project-readmore-btn" id="project-readmore-btn" />
                       </div>
                     )}
                     {/* The aim, then everyone who made the work — for the ARCHV
@@ -902,7 +895,22 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         </section>
       )}
     </article>
+  {/* The Read more arrow for summaries written as strings (chapter YAML,
+      the GONG intro), which cannot render <Icon>. Cloned in below. */}
+  <template id="read-more-arrow"><Icon name="arrow" class="read-more__icon" /></template>
 </PageLayout>
+
+<script>
+  function addReadMoreArrows() {
+    const tpl = document.getElementById('read-more-arrow') as HTMLTemplateElement | null;
+    if (!tpl) return;
+    document.querySelectorAll('summary.read-more').forEach((summary) => {
+      if (!summary.querySelector('.read-more__icon')) summary.append(tpl.content.cloneNode(true));
+    });
+  }
+  addReadMoreArrows();
+  document.addEventListener('astro:page-load', addReadMoreArrows);
+</script>
 
 <style>
   .vg-browser { grid-column: 1 / -1; width: 100%; min-width: 0; }
@@ -2018,7 +2026,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     max-width: calc(100% - 32px);
     margin: 0;
     font-size: var(--_tokens---type--medium);
-    font-weight: var(--_tokens---weight--strong);
+    font-weight: var(--_tokens---weight--base);
     line-height: 1.02;
     letter-spacing: -0.02em;
     color: var(--_tokens---color--bg);
@@ -2126,7 +2134,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     font-family: var(--_tokens---font--mono);
     font-size: var(--_tokens---type--micro);
     color: var(--_tokens---color--muted);
-    font-weight: var(--_tokens---weight--strong);
+    font-weight: var(--_tokens---weight--base);
   }
 
   /* The sitter's name on a portrait page — left end of the meta row, opposite
@@ -2139,7 +2147,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   .page-card-name {
     font-family: var(--_tokens---font--mono);
     font-size: var(--_tokens---type--micro);
-    font-weight: var(--_tokens---weight--strong);
+    font-weight: var(--_tokens---weight--base);
     color: var(--_tokens---color--fg);
     letter-spacing: 0.04em;
     text-transform: none;
@@ -2219,7 +2227,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     font-family: var(--_tokens---font--mono);
     font-size: var(--_tokens---type--micro);
     color: var(--_tokens---color--muted);
-    font-weight: var(--_tokens---weight--strong);
+    font-weight: var(--_tokens---weight--base);
     text-align: right;
     white-space: nowrap;
   }
@@ -2587,7 +2595,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
   .project-chapter__body :global(.ch-statement) {
     font-size: var(--_tokens---type--small);
-    font-weight: var(--_tokens---weight--strong);
+    font-weight: var(--_tokens---weight--base);
     line-height: 1.45;
     color: var(--_tokens---color--fg);
     max-width: 72ch;
@@ -2616,7 +2624,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
   .project-chapter__body :global(.ch-stat) {
     font-size: var(--_tokens---type--medium);
-    font-weight: var(--_tokens---weight--strong);
+    font-weight: var(--_tokens---weight--base);
     line-height: 1.1;
     letter-spacing: -0.02em;
     color: var(--_tokens---color--fg);
@@ -2667,7 +2675,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
   .project-chapter__body :global(.ch-int h4) {
     font-size: var(--_tokens---type--medium);
-    font-weight: var(--_tokens---weight--strong);
+    font-weight: var(--_tokens---weight--base);
     line-height: 1.05;
     letter-spacing: -0.02em;
     color: var(--_tokens---color--fg);
@@ -2715,7 +2723,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     margin-top: 6px;
     padding-top: 8px;
     color: var(--_tokens---color--fg);
-    font-weight: var(--_tokens---weight--strong);
+    font-weight: var(--_tokens---weight--base);
   }
 
   .project-chapter__body :global(.ch-int__imgs) {
@@ -2780,7 +2788,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
   .project-chapter__body :global(.ch-prose h4) {
     font-size: var(--_tokens---type--small);
-    font-weight: var(--_tokens---weight--strong);
+    font-weight: var(--_tokens---weight--base);
     color: var(--_tokens---color--fg);
     margin: 1.6em 0 0.4em;
   }
@@ -2825,24 +2833,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   .project-chapter__body :global(.ch-split figure) { margin: 0; }
   .project-chapter__body :global(.ch-split figure img) { width: 100%; height: auto; display: block; }
   .project-chapter__body :global(.ch-split figcaption) { margin-top: 8px; font-size: var(--_tokens---type--micro); color: var(--_tokens---color--muted); }
-  .project-chapter__body :global(.ch-more > summary) {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    list-style: none;
-    cursor: pointer;
-    padding: var(--_tokens---pill-pad--xs);
-    border: var(--_tokens---pill-border);
-    border-radius: var(--_tokens---radius--pill);
-    font-size: var(--_tokens---type--micro);
-    color: var(--_tokens---color--fg);
-    margin: 4px 0 12px;
-  }
-  .project-chapter__body :global(.ch-more > summary::-webkit-details-marker) { display: none; }
-  .project-chapter__body :global(.ch-more > summary::after) { content: '↓'; font-size: 0.9em; }
-  .project-chapter__body :global(.ch-more[open] > summary::after) { content: '↑'; }
-  .project-chapter__body :global(.ch-more[open] > summary .ch-more__open) { display: none; }
-  .project-chapter__body :global(.ch-more:not([open]) > summary .ch-more__close) { display: none; }
+  /* Its summary is the site-wide .read-more pill (tokens.css). */
+  .project-chapter__body :global(.ch-more > summary) { margin: 4px 0 12px; }
 
   /* A study, compacted: two columns of text side by side (.ch-duo), each at
      the micro size; a data table (.ch-table) that scrolls sideways on a
@@ -2855,12 +2847,13 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   .project-chapter__body :global(.ch-small h4) {
     margin: 0 0 6px;
     font-size: var(--_tokens---type--micro);
-    font-weight: var(--_tokens---weight--strong);
+    font-weight: var(--_tokens---weight--base);
     color: var(--_tokens---color--fg);
   }
   .project-chapter__body :global(.ch-duo p),
   .project-chapter__body :global(.ch-duo li:not(.ch-list li)),
-  .project-chapter__body :global(.ch-small p) {
+  .project-chapter__body :global(.ch-small p),
+  .project-chapter__body :global(.ch-small li:not(.ch-list li)) {
     font-size: var(--_tokens---type--micro);
     line-height: 1.6;
     color: var(--_tokens---color--fg);
@@ -2869,6 +2862,11 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   .project-chapter__body :global(.ch-duo ul:not(.ch-list)) { margin: 0 0 0.8em; padding-left: 1.1em; }
   .project-chapter__body :global(.ch-duo .ch-list) { margin: 0 0 14px; }
   .project-chapter__body :global(.ch-small) { max-width: 72ch; margin: 18px 0 0; }
+  .project-chapter__body :global(.ch-small ul:not(.ch-list)) { margin: 0 0 0.8em; padding-left: 1.1em; }
+  /* The line back to the work's page on archv.in: a source note, so the
+     caption size and colour, not the 16px a bare <p> falls back to. */
+  .project-chapter__body :global(.ch-origin) { margin: 20px 0 0; font-size: var(--_tokens---type--micro); color: var(--_tokens---color--muted); }
+  .project-chapter__body :global(.ch-origin a) { color: inherit; }
   .project-chapter__body :global(.ch-table-wrap) { overflow-x: auto; margin: 20px 0; }
   .project-chapter__body :global(.ch-table) {
     width: 100%;
@@ -3609,7 +3607,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     color: #ffffff;
     background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0) 100%);
     text-transform: none;
-    font-weight: var(--_tokens---weight--strong);
+    font-weight: var(--_tokens---weight--base);
     letter-spacing: 0.05em;
     z-index: 3;
     pointer-events: none;
@@ -4230,7 +4228,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
   :global(.deck-logos-title) {
     font-size: var(--_tokens---type--micro) !important;
-    font-weight: var(--_tokens---weight--strong) !important; /* Semibold! */
+    font-weight: var(--_tokens---weight--base) !important;
     color: var(--_tokens---color--fg) !important;
     letter-spacing: 0.05em !important;
     text-transform: uppercase !important;
@@ -4361,7 +4359,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
 
   :global(.copied-indicator) {
-    font-size: 11px !important;
+    font-size: var(--_tokens---type--ultrathin) !important;
     font-weight: var(--_tokens---weight--base) !important;
     color: var(--_tokens---color--fg) !important;
   }
@@ -4399,41 +4397,12 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     transition: max-height var(--_tokens---motion--slow) cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  .project-readmore-btn {
-    all: unset;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: var(--_tokens---pill-gap);
-    margin-top: 10px;
-    align-self: flex-start;
-    font-size: var(--_tokens---type--micro);
-    font-weight: var(--_tokens---weight--base);
-    color: var(--_tokens---color--fg);
-    border: var(--_tokens---pill-border--mid);
-    border-radius: var(--_tokens---radius--pill);
-    padding: var(--_tokens---pill-pad--xs);
-    white-space: nowrap;
-    transition: background-color var(--_tokens---motion--base) ease, border-color var(--_tokens---motion--base) ease, color var(--_tokens---motion--base) ease;
-  }
-
-  @media (hover: hover) {
-    .project-readmore-btn:hover {
-    background-color: var(--_tokens---color--fg);
-    color: var(--_tokens---color--bg);
-    border-color: var(--_tokens---color--fg);
-  }
-  }
+  /* The pill itself is the site-wide .read-more (tokens.css); only the
+     space above it is this page's. */
+  .project-readmore-btn { margin-top: 10px; }
 
   .project-readmore-arrow {
-    transition: transform var(--_tokens---motion--slow) ease;
-
     --arrow-size: var(--_tokens---arrow--sm);
-
-  }
-
-  .project-readmore-btn[aria-expanded="true"] .project-readmore-arrow {
-    transform: rotate(135deg);
   }
 
   /* ══ Phone: two columns up top, the words underneath ════════════════
@@ -4751,58 +4720,51 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       margin: 0;
     }
 
-    /* Read more and Prompt are pills like the ones above them — same size,
-       fill, hairline and small arrow. They were the page's own display-scale
-       buttons, which on this card read as a different kind of control from
-       the row of filters two lines up. !important because their own rules
+    /* Video and Prompt sit in Read more's row, so they take its pill
+       (.read-more in tokens.css): the same size, hairline and arrow, so the
+       row reads as one kind of control. !important because their own rules
        carry it. */
-    .project-detail .project-phone-actions .project-readmore-btn,
     .project-detail .project-phone-actions .project-video-btn,
     .project-detail .project-phone-actions .project-prompt-btn {
       display: inline-flex !important;
       align-items: center !important;
-      gap: var(--_tokens---pill-gap--xs) !important;
+      gap: var(--_tokens---pill-gap) !important;
       margin: 0 !important;
       padding: var(--_tokens---pill-pad--xs) !important;
       border: var(--_tokens---pill-border--mid) !important;
       border-radius: var(--_tokens---radius--pill) !important;
-      background: color-mix(in srgb, var(--_tokens---color--fg) 5%, transparent) !important;
-      color: var(--_tokens---color--muted) !important;
+      background: transparent !important;
+      color: var(--_tokens---color--fg) !important;
       font-family: inherit !important;
-      font-size: var(--_tokens---type--ultrathin) !important;
-      font-weight: var(--_tokens---weight--light) !important;
-      line-height: 1.1 !important;
+      font-size: var(--_tokens---type--micro) !important;
+      font-weight: var(--_tokens---weight--base) !important;
+      line-height: 1.4 !important;
       letter-spacing: 0 !important;
       white-space: nowrap !important;
       text-transform: none !important;
       --icon-size: var(--_tokens---arrow--sm);
     }
-    .project-detail .project-phone-actions .project-readmore-btn svg,
     .project-detail .project-phone-actions .project-video-btn svg,
     .project-detail .project-phone-actions .project-prompt-btn svg {
       flex-shrink: 0;
-      opacity: 0.55;
     }
     @media (hover: hover) {
-      .project-detail .project-phone-actions .project-readmore-btn:hover,
       .project-detail .project-phone-actions .project-video-btn:hover,
       .project-detail .project-phone-actions .project-prompt-btn:hover {
-        color: var(--_tokens---color--fg) !important;
-        border-color: color-mix(in srgb, var(--_tokens---color--fg) 32%, transparent) !important;
-        background: color-mix(in srgb, var(--_tokens---color--fg) 9%, transparent) !important;
+        color: var(--_tokens---color--bg) !important;
+        border-color: var(--_tokens---color--fg) !important;
+        background: var(--_tokens---color--fg) !important;
       }
     }
     /* The one that is open is inverted, the way an active tab is everywhere
        else on the site — you can see which section you are in without reading
        the button label. */
-    .project-detail .project-phone-card.is-reading .project-phone-actions .project-readmore-btn,
     .project-detail .project-phone-card.is-watching .project-phone-actions .project-video-btn,
     .project-detail .project-phone-card.is-prompting .project-phone-actions .project-prompt-btn {
       background: var(--_tokens---color--fg) !important;
       border-color: var(--_tokens---color--fg) !important;
       color: var(--_tokens---color--bg) !important;
     }
-    .project-detail .project-phone-card.is-reading .project-phone-actions .project-readmore-btn svg,
     .project-detail .project-phone-card.is-watching .project-phone-actions .project-video-btn svg,
     .project-detail .project-phone-card.is-prompting .project-phone-actions .project-prompt-btn svg {
       opacity: 1;
@@ -4927,7 +4889,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     .project-detail .project-phone-card .project-card__intro {
       margin: 0;
       font-size: var(--_tokens---type--micro);
-      font-weight: var(--_tokens---weight--strong);
+      font-weight: var(--_tokens---weight--base);
       line-height: 1.35;
     }
     /* The description is a section the card opens, not two clamped lines
@@ -5266,7 +5228,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
      1024 and up only. Below that the column is already the width of the page
      and there is nothing to spare. */
   .renders-aside { display: none; }
-  .project-detail[data-bnb="true"] .project-card__desc { font-size: var(--_tokens---type--small); line-height: 1.55; }
   .project-detail[data-bnb="true"][data-renders="true"] #project-readmore-btn { display: none !important; }
   .project-detail[data-bnb="true"][data-renders="true"] .project-phone-card:not(.is-reading) .project-card__desc { max-height: none !important; overflow: visible !important; }
 
@@ -5276,15 +5237,11 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     .project-detail[data-bnb="true"] .project-card-info > * { max-width: 48%; }
   }
 
-  .project-detail[data-gong="true"] :global(.gong-intro-more summary) { cursor: pointer; display: inline-flex; align-items: center; border: 1px solid var(--_tokens---color--line-soft); border-radius: 24px; padding: 8px 16px; margin: 6px 0 12px; min-height: 44px; box-sizing: border-box; font-size: var(--_tokens---type--small); }
-  .project-detail[data-gong="true"] :global(.gong-intro-more .gong-less-label) { display: none; }
-  .project-detail[data-gong="true"] :global(.gong-intro-more[open] .gong-more-label) { display: none; }
-  .project-detail[data-gong="true"] :global(.gong-intro-more[open] .gong-less-label) { display: inline; }
   @media (min-width: 1024px) {
     .project-detail[data-gong="true"][data-renders="true"] .project-card-info { --rr-aside-w: 56%; --rr-aside-h: 540px; }
     .project-detail[data-gong="true"][data-renders="true"] .project-card-info > .renders-aside { align-items: flex-start; }
   }
-  .project-detail[data-gong="true"] .project-card__desc { font-size: var(--_tokens---type--small); line-height: 1.55; }
+  .project-detail[data-gong="true"] :global(.gong-intro-more > summary) { margin: 6px 0 12px; }
   .project-detail[data-gong="true"] .renders-aside :global(.gong-slider__stage img) { width: 100%; height: auto; max-height: none; display: none; opacity: 0; }
   .project-detail[data-gong="true"] .renders-aside :global(.gong-slider__stage img.is-active) { display: block; opacity: 1; }
   @media (max-width: 1023.98px) {
@@ -5524,12 +5481,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       max-height: 4.5em !important;
       overflow: hidden !important;
     }
-    /* Read more is always the inverted pill — it is the one control here. */
-    .project-detail[data-renders="true"] .project-phone-actions #project-readmore-btn {
-      background-color: var(--_tokens---color--fg) !important;
-      color: var(--_tokens---color--bg) !important;
-      border-color: var(--_tokens---color--fg) !important;
-    }
     .project-detail[data-renders="true"] .project-phone-card.is-reading .project-desc-readmore {
       display: block !important;
       max-height: none !important;
@@ -5631,7 +5582,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
        copy (10px) rather than bold micro, which ran it to four heavy lines. */
     .project-detail[data-renders="true"] .project-phone-card .project-card__intro {
       font-size: var(--_tokens---type--ultrathin) !important;
-      font-weight: 600 !important;
+      font-weight: var(--_tokens---weight--base) !important;
       line-height: 1.4 !important;
     }
     /* On the phone the credit takes no room until a face is tapped; the
@@ -5681,7 +5632,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   }
   .project-pipeline strong {
     color: var(--_tokens---color--fg);
-    font-weight: 600;
+    font-weight: var(--_tokens---weight--base);
   }
 
   /* On a phone it sits directly under the title, above the pills: the pills
@@ -6043,12 +5994,10 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       if (expanded) {
         // Collapse
         btn.setAttribute('aria-expanded', 'false');
-        btn.querySelector('.project-readmore-label')!.textContent = 'Read more';
         clip.style.maxHeight = collapsedHeight + 'px';
       } else {
         // Expand
         btn.setAttribute('aria-expanded', 'true');
-        btn.querySelector('.project-readmore-label')!.textContent = 'Read less';
         clip.style.maxHeight = clip.scrollHeight + 'px';
       }
     });
@@ -7324,8 +7273,6 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       // The buttons' own handlers never run on this band (the click is stopped
       // in capture), so their labels and arrows are set from here instead —
       // otherwise a collapsed card sat under a button reading "Read less".
-      const label = detail.querySelector('.project-readmore-label');
-      if (label) label.textContent = name === 'reading' ? 'Read less' : 'Read more';
       detail.querySelector('.project-readmore-btn')
         ?.setAttribute('aria-expanded', String(name === 'reading'));
       detail.querySelector('.project-prompt-btn')

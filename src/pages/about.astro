@@ -5,6 +5,7 @@ import PageLayout from '../layouts/PageLayout.astro';
 import Footer from '../components/Footer.astro';
 import { publicFileExists } from '../lib/content';
 import Arrow from '../components/Arrow.astro';
+import ReadMore from '../components/ReadMore.astro';
 import { skillsets } from '../lib/skills';
 
 // PDF links only render once the files actually exist in public/
@@ -303,12 +304,7 @@ const journeyTabs = [
 
         <div class="bio-buttons-row">
           {aboutBioMore.length > 0 && (
-            <button class="about-link-row bio-more-btn" id="bio-read-more-btn" type="button" aria-expanded="false" aria-controls="bio-collapsed-content">
-              <span class="about-link-row__text">Bio</span>
-              <span class="about-link-row__arrow" aria-hidden="true">
-                <Arrow />
-              </span>
-            </button>
+            <ReadMore id="bio-read-more-btn" aria-controls="bio-collapsed-content" />
           )}
 
           {hasCv && (
@@ -1010,8 +1006,7 @@ const journeyTabs = [
     width: var(--icon-size);
     height: var(--icon-size);
     flex-shrink: 0;
-    transition: transform var(--_tokens---motion--base) cubic-bezier(0.16, 1, 0.3, 1), opacity var(--_tokens---motion--base) ease;
-    opacity: 0.55;
+    transition: transform var(--_tokens---motion--base) cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   /* Scoped to the link row. This was a bare `.link-arrow` selector, so it
@@ -1484,7 +1479,7 @@ const journeyTabs = [
      suggestions and the project cards' filter pills. */
   @media (min-width: 1024px) {
     .skill-pill {
-      font-size: 0.7rem;
+      font-size: var(--_tokens---type--ultrathin);
       padding: 4px 10px;
       gap: 4px;
     }
@@ -1633,14 +1628,6 @@ const journeyTabs = [
   }
 
   .bio-collapsed-content[hidden] { display: none !important; }
-  .bio-more-btn[aria-expanded="true"] {
-    background-color: var(--_tokens---color--fg);
-    color: var(--_tokens---color--bg);
-    border-color: var(--_tokens---color--fg);
-  }
-  .bio-more-btn[aria-expanded="true"] .about-link-row__arrow {
-    transform: rotate(135deg);
-  }
 
   .bio-buttons-row {
     display: flex;
@@ -1650,28 +1637,30 @@ const journeyTabs = [
     align-self: flex-start;
   }
 
-  .bio-read-more-btn,
+  /* Resume, Portfolio and LinkedIn sit in Read more's row, so they take
+     its pill (.read-more in tokens.css) value for value. */
   .about-link-row {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    font-size: var(--_tokens---type--ultrathin);
-    font-weight: var(--_tokens---weight--light);
-    color: var(--_tokens---color--muted);
-    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
-    border: 1px solid var(--_tokens---color--line-soft);
+    gap: var(--_tokens---pill-gap);
+    font-size: var(--_tokens---type--micro);
+    font-weight: var(--_tokens---weight--base);
+    line-height: 1.4;
+    color: var(--_tokens---color--fg);
+    background-color: transparent;
+    border: var(--_tokens---pill-border--mid);
     border-radius: var(--_tokens---radius--pill);
-    padding: 6px 12px;
+    padding: var(--_tokens---pill-pad--xs);
     text-decoration: none;
     cursor: pointer;
-    transition: background-color var(--_tokens---motion--base), color var(--_tokens---motion--base), transform var(--_tokens---motion--fast), box-shadow var(--_tokens---motion--base);
+    transition: background-color var(--_tokens---motion--base), color var(--_tokens---motion--base), border-color var(--_tokens---motion--base);
   }
 
   @media (hover: hover) {
-    .bio-read-more-btn:hover, .about-link-row:hover, .education-more-link:hover {
+    .about-link-row:hover, .education-more-link:hover {
     background-color: var(--_tokens---color--fg);
+    border-color: var(--_tokens---color--fg);
     color: var(--_tokens---color--bg);
-    transform: translateY(-1px);
   }
   }
 
@@ -2212,7 +2201,7 @@ const journeyTabs = [
     border-bottom: none !important;
   }
   .about-page :is(.education-header, .career-header, .skillset-header):has(.page-toggle-btn[aria-expanded="true"]) .profile-name {
-    font-weight: 400;
+    font-weight: var(--_tokens---weight--base);
   }
   .about-page :is(.education-header, .career-header, .skillset-header) .page-toggle-btn[aria-expanded="true"] {
     --pen-boost: -0.35px;

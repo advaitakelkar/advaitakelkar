@@ -413,6 +413,13 @@ textarea {
   font-weight: inherit;
 }
 
+/* Headings take the body weight and mark their rank by size, the house rule
+   above the weight tokens. Without this, any heading a component or a YAML
+   string leaves unstyled falls back to the UA's 700. Emphasis inside running
+   text cannot move size, so it takes the one step up. */
+h1, h2, h3, h4, h5, h6 { font-weight: inherit; }
+b, strong { font-weight: var(--_tokens---weight--mid); }
+
 img {
   max-width: 100%;
   display: block;
@@ -625,6 +632,59 @@ html {
 
 @media (prefers-reduced-motion: reduce) {
   .link-arrow { transition: none; }
+}
+
+/* ── Read more ───────────────────────────────────────────────────────────
+   One disclosure pill for the whole site. Before this there were six — the
+   home intro, the category intro, About's bio, the project description, the
+   chapter folds and the GONG intro and drawings — in two sizes, three borders,
+   three glyphs (arrow, chevron, ↓/+) and two casings of "Read More".
+
+   Markup comes from ReadMore.astro (a <button> driven by aria-expanded, or
+   a <summary> inside a <details>). Strings that cannot render a component —
+   chapter YAML, the GONG intro — write the same classes and the project page
+   clones the arrow in. The label swaps here, so no script sets text. */
+.read-more {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: var(--_tokens---pill-gap);
+  padding: var(--_tokens---pill-pad--xs);
+  border: var(--_tokens---pill-border--mid);
+  border-radius: var(--_tokens---radius--pill);
+  font-family: var(--_tokens---font--body);
+  font-size: var(--_tokens---type--micro);
+  font-weight: var(--_tokens---weight--base);
+  line-height: 1.4;
+  color: var(--_tokens---color--fg);
+  white-space: nowrap;
+  list-style: none;
+  cursor: pointer;
+  --arrow-size: var(--_tokens---arrow--sm);
+  --icon-size: var(--_tokens---arrow--sm);
+  transition: background-color var(--_tokens---motion--base) ease, border-color var(--_tokens---motion--base) ease, color var(--_tokens---motion--base) ease;
+}
+.read-more::-webkit-details-marker { display: none; }
+.read-more[hidden] { display: none; }
+.read-more:focus-visible { outline: 1px solid var(--_tokens---color--fg); outline-offset: 2px; }
+@media (hover: hover) {
+  .read-more:hover {
+    background-color: var(--_tokens---color--fg);
+    border-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+  }
+}
+.read-more[aria-expanded="true"] .read-more__icon,
+details[open] > .read-more .read-more__icon { --arrow-rot: 135deg; }
+.read-more__less,
+.read-more[aria-expanded="true"] .read-more__more,
+details[open] > .read-more .read-more__more { display: none; }
+.read-more[aria-expanded="true"] .read-more__less,
+details[open] > .read-more .read-more__less { display: inline; }
+@media (prefers-reduced-motion: reduce) {
+  .read-more { transition: none; }
 }
 
 /* ── Touch targets ───────────────────────────────────────────────────────

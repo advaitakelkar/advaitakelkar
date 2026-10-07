@@ -5,6 +5,7 @@ import PageLayout from '../layouts/PageLayout.astro';
 import ProjectStackCard from './ProjectStackCard.astro';
 import ImageLightbox from './ImageLightbox.astro';
 import Arrow from './Arrow.astro';
+import ReadMore from './ReadMore.astro';
 
 export interface Props {
   projects: any[];
@@ -187,15 +188,12 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
             to its left in the same pill and are always there. */}
         <div class="category-intro__actions">
           {links.map(l => (
-            <a class="category-readmore-btn category-link-pill" href={l.href} target="_blank" rel="noopener">
+            <a class="read-more category-link-pill" href={l.href} target="_blank" rel="noopener">
               <span>{l.label}</span>
-              <Arrow class="category-readmore-arrow" />
+              <Arrow class="read-more__icon" />
             </a>
           ))}
-          <button class="category-readmore-btn" id="category-readmore-btn" type="button" aria-expanded="false">
-            <span class="category-readmore-label">Read More</span>
-            <Arrow class="category-readmore-arrow" />
-          </button>
+          <ReadMore id="category-readmore-btn" aria-controls="category-intro-body" />
         </div>
       </section>
 
@@ -324,25 +322,6 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
       display: block;
     }
 
-    /* Read More pill — same pill language as the home Bio pill */
-    .category-readmore-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--_tokens---pill-gap);
-      align-self: flex-start; /* Fit content size instead of stretching full width */
-      justify-self: start;
-      font-family: inherit;
-      font-size: var(--_tokens---type--ultrathin);
-      font-weight: var(--_tokens---weight--light);
-      letter-spacing: 0.05em;
-      color: var(--_tokens---color--muted);
-      background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
-      border: var(--_tokens---pill-border);
-      border-radius: var(--_tokens---radius--pill);
-      padding: var(--_tokens---pill-pad--xs);
-      cursor: pointer;
-      transition: background-color var(--_tokens---motion--base), color var(--_tokens---motion--base), border-color var(--_tokens---motion--base);
-    }
     .category-intro__actions {
       display: flex;
       flex-wrap: wrap;
@@ -350,24 +329,6 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
       gap: 8px;
     }
     .category-link-pill { text-decoration: none; }
-    .category-readmore-arrow {
-      flex-shrink: 0;
-      opacity: 0.55;
-      transition: transform var(--_tokens---motion--base) cubic-bezier(0.16, 1, 0.3, 1), opacity var(--_tokens---motion--base) ease;
-    
-
-      --arrow-size: var(--_tokens---arrow--sm);
-
-    }
-    .category-readmore-btn[aria-expanded="true"] {
-      background-color: var(--_tokens---color--fg);
-      color: var(--_tokens---color--bg);
-      border-color: var(--_tokens---color--fg);
-    }
-    .category-readmore-btn[aria-expanded="true"] .category-readmore-arrow {
-      transform: rotate(135deg);
-      opacity: 1;
-    }
 
     .category-intro__tagline {
       font-size: var(--_tokens---type--micro);
@@ -481,7 +442,6 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
         content: ' ';
       }
       .category-intro__actions { margin-top: 12px; }
-      .category-readmore-btn[hidden] { display: none; }
     }
 
     /* ── Header — identical rhythm to the home hero: same top padding,
@@ -934,7 +894,7 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
       .category-intro__tagline {
         margin: 0;
         font-size: var(--_tokens---type--micro);
-        font-weight: var(--_tokens---weight--strong);
+        font-weight: var(--_tokens---weight--base);
         line-height: 1.35;
       }
       .category-intro__body {
@@ -1120,7 +1080,6 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
       const readMoreBtn = document.getElementById('category-readmore-btn');
 
       if (introBody && readMoreBtn) {
-        const label = readMoreBtn.querySelector('.category-readmore-label');
         // The pill only shows when there is more than four lines to open.
         // Measured shut: a clamped body is shorter than its content.
         const fit = () => {
@@ -1136,7 +1095,6 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
           const open = !introBody.classList.contains('is-expanded');
           introBody.classList.toggle('is-expanded', open);
           readMoreBtn.setAttribute('aria-expanded', String(open));
-          if (label) label.textContent = open ? 'Read Less' : 'Read More';
         });
       }
       

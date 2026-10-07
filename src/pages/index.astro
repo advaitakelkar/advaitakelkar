@@ -1,6 +1,7 @@
 ---
 import PortfolioStatus from "../components/PortfolioStatus.astro";
 import Icon from '../components/Icon.astro';
+import ReadMore from '../components/ReadMore.astro';
 import { getCollection, getEntry } from 'astro:content';
 import PageLayout from '../layouts/PageLayout.astro';
 import Footer from '../components/Footer.astro';
@@ -68,10 +69,7 @@ function getWords(name: string): string[] {
             two bio paragraphs. Hidden on the phone. */}
         <div class="home-intro__column home-intro__column--hi">
           <p class="home-intro__desc home-intro__hi">{introLead}</p>
-          <button type="button" class="home-intro__more" id="home-intro-more" aria-expanded="false" aria-controls="home-intro-body">
-            <span class="home-intro__more-label">Read more</span>
-            <Icon name="chevron" dir="s" class="home-intro__more-arrow" />
-          </button>
+          <ReadMore class="home-intro__more" id="home-intro-more" aria-controls="home-intro-body" />
         </div>
         <div class="home-intro__column home-intro__column--bio">
           <p class="home-intro__desc" data-edit="pages/home/intro.0">
@@ -600,13 +598,11 @@ function getWords(name: string): string[] {
   (() => {
     const btn = document.getElementById('home-intro-more');
     const body = document.getElementById('home-intro-body');
-    const label = btn?.querySelector('.home-intro__more-label');
-    if (!btn || !body || !label) return;
+    if (!btn || !body) return;
     btn.addEventListener('click', () => {
       const open = btn.getAttribute('aria-expanded') !== 'true';
       btn.setAttribute('aria-expanded', String(open));
       body.toggleAttribute('data-intro-open', open);
-      label.textContent = open ? 'Read less' : 'Read more';
     });
   })();
 </script>
@@ -1345,33 +1341,6 @@ function getWords(name: string): string[] {
   .home-intro__body[data-intro-open] .home-intro__hi {
     display: none;
   }
-  .home-intro__more {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--_tokens---pill-gap--xs, 4px);
-    font: inherit;
-    font-size: var(--_tokens---type--ultrathin);
-    color: var(--_tokens---color--fg);
-    background: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
-    border: var(--_tokens---pill-border);
-    border-radius: var(--_tokens---radius--pill);
-    padding: var(--_tokens---pill-pad--xs);
-    cursor: pointer;
-    --icon-size: var(--_tokens---arrow--sm);
-    transition: background-color var(--_tokens---motion--base) ease, color var(--_tokens---motion--base) ease;
-  }
-  /* The chevron is drawn pointing east; a rule here replaces the
-     component's own rotation, so open points north outright. */
-  .home-intro__more[aria-expanded="true"] .home-intro__more-arrow {
-    transform: rotate(-90deg);
-  }
-  @media (hover: hover) {
-    .home-intro__more:hover {
-      background-color: var(--_tokens---color--fg);
-      color: var(--_tokens---color--bg);
-    }
-  }
-
   /* ══ Responsive ═════════════════════════════════════════════ */
   @media (max-width: 1365.98px) {
     .home-intro__body {
@@ -1794,6 +1763,5 @@ function getWords(name: string): string[] {
     .home-section--search {
       padding-bottom: 0;
     }
-  }
   }
 </style>
