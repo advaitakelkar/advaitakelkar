@@ -404,7 +404,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                     {data.smallIntro && <p class="project-card__intro">{data.smallIntro}</p>}
                     {data.description && (
                       <div class="project-desc-readmore" id="project-desc-readmore">
-                        <div class="project-card__desc project-desc-clip" id="project-desc-clip" set:html={project.id === "gong-powai" ? gongDescription : data.description} />
+                        <div class="project-card__desc project-desc-clip" id="project-desc-clip" set:html={project.id === "gong-powai" && !(data as any).slider ? gongDescription : data.description} />
                         <ReadMore class="project-readmore-btn" id="project-readmore-btn" />
                       </div>
                     )}
@@ -819,7 +819,10 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
               </div>
             </div>
           ) : (
-            (data as any).slider ? <div class="lead-slider"><GongSlider name={data.name} figures={data.leadFigures ?? []} /></div> : project.id === "gong-powai" ? <GongDrawings views={renderViews} barFigure={(data.leadFigures ?? []).find(f => f.image.endsWith("05-bar-detail.webp"))} /> : <RenderRooms views={renderViews} name={data.name} groups={data.groups ?? "tabs"} />
+            (data as any).slider ? <Fragment>
+              <div class="lead-slider"><GongSlider name={data.name} figures={(data.leadFigures ?? []).filter(f => project.id !== "gong-powai" || !f.image.endsWith("05-bar-detail.webp"))} /></div>
+              {project.id === "gong-powai" && <GongDrawings views={renderViews} barFigure={(data.leadFigures ?? []).find(f => f.image.endsWith("05-bar-detail.webp"))} />}
+            </Fragment> : project.id === "gong-powai" ? <GongDrawings views={renderViews} barFigure={(data.leadFigures ?? []).find(f => f.image.endsWith("05-bar-detail.webp"))} /> : <RenderRooms views={renderViews} name={data.name} groups={data.groups ?? "tabs"} />
           )}
           {/* With a slider the page reads place → work → drawing: the whole
               picture (a cut file) comes last, after the installation. */}
@@ -837,7 +840,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         const cc = (data as any).collectionCredit;
         return (
           <p class="renders-collection">
-            <img class="renders-collection__face" src={PEOPLE[cc.person] ?? PEOPLE['Advaita Kelkar']} alt={cc.person} loading="lazy" />
+            {!(data as any).slider && <img class="renders-collection__face" src={PEOPLE[cc.person] ?? PEOPLE['Advaita Kelkar']} alt={cc.person} loading="lazy" />}
             <span>
               {cc.text}{' '}
               <a href={cc.href} target="_blank" rel="noopener">{cc.label}<Arrow class="renders-collection__arrow" /></a>
@@ -845,6 +848,11 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
           </p>
         );
       })()}
+
+      {isRenders && (data as any).slider && <footer class="project-bottom-credits" aria-label="Project credits">
+        <div id="project-bottom-people"></div>
+        <div id="project-bottom-collection"></div>
+      </footer>}
 
       <!-- Fullscreen Lightbox: card pages get a horizontally scrolling deck -->
       {!isRenders && (
@@ -5936,6 +5944,41 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     .project-reading-panel { display: none !important; }
     .project-detail[data-slider="true"] #project-readmore-btn[hidden] { display: none !important; }
   }
+
+  /* One reading layout for pages whose slideshow sits below the copy. */
+  .project-detail[data-slider="true"] #renders-people-slot { display: none !important; }
+  .project-bottom-credits {
+    display: flex; align-items: center; justify-content: space-between;
+    width: 100%; max-width: none; grid-column: 1 / -1;
+    box-sizing: border-box;
+    gap: 24px; margin-top: 24px; padding: 16px 0 100px;
+    border-top: 1px solid var(--_tokens---color--line-soft);
+  }
+  .project-bottom-credits #project-people-panel {
+    position: static !important; margin: 0 !important; display: flex !important;
+    width: auto !important; max-width: none !important;
+  }
+  .project-bottom-credits .renders-collection {
+    position: static; margin: 0; padding: 0; border: 0;
+    box-shadow: none; background: transparent;
+    font-size: var(--_tokens---type--micro); text-align: right;
+  }
+  .project-bottom-credits .renders-credit { display: none; }
+  #project-bottom-collection { margin-left: auto; }
+  @media (min-width: 1024px) {
+    .project-detail[data-slider="true"] .project-card__row2,
+    .project-detail[data-slider="true"] .project-card__text-block { display: contents !important; }
+    .project-detail[data-slider="true"] .project-card__intro { grid-column: 1 / -1; grid-row: 1; max-width: none; }
+    .project-detail[data-slider="true"] .project-desc-readmore { grid-column: 1; grid-row: 2; }
+    .project-detail[data-slider="true"] .project-reading-panel { grid-column: 2; grid-row: 2; }
+    .project-detail[data-slider="true"] .project-aim,
+    .project-detail[data-slider="true"] .project-participants { grid-column: 1 / -1; }
+    .project-detail[data-slider="true"] .project-card-info { row-gap: 12px; }
+  }
+  @media (max-width: 1023.98px) {
+    .project-bottom-credits { flex-wrap: wrap; }
+    .project-bottom-credits .renders-collection { text-align: left; }
+  }
 </style>
 
 <script>
@@ -7455,9 +7498,13 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
        Inserted first, not appended: the credit line is already in the slot as
        markup, and the faces belong in front of the words that name them. */
     const place = () => {
-      const target = wide.matches
+      const bottom = detail.querySelector<HTMLElement>('#project-bottom-people');
+      const target = bottom ?? (wide.matches
         ? slot
-        : (detail.querySelector<HTMLElement>('.project-phone-card') ?? titleSlot ?? slot);
+        : (detail.querySelector<HTMLElement>('.project-phone-card') ?? titleSlot ?? slot));
+      const collection = detail.querySelector<HTMLElement>('.renders-collection');
+      const collectionSlot = detail.querySelector<HTMLElement>('#project-bottom-collection');
+      if (collection && collectionSlot && collection.parentElement !== collectionSlot) collectionSlot.append(collection);
       if (target && people.parentElement !== target) target.insertBefore(people, target.firstChild);
       /* The credit travels with the faces, straight after them, so a tap on
          a face on the phone opens the line right there. */
