@@ -7,6 +7,17 @@ Repo: [github.com/advaitakelkar/advaitakelkar](https://github.com/advaitakelkar/
 
 ---
 
+## Which copy to use
+
+- **Local working copy:** `/Users/adi/Dev/advaitakelkar-live`. Edit and preview here.
+- **Live website:** https://advaitakelkar.com. GitHub deploys it after a successful push to `main`.
+- **`dist/`:** generated upload files from `pnpm build`; do not edit them. They may contain changes that have not reached the live site yet.
+- **`src/` and `public/`:** website content, code and published assets.
+- **`source-files/`:** original supporting files; excluded from publishing.
+- **`docs/archive/`:** historical local audit reports.
+
+The obsolete clone and leftover caches were moved to Mac Trash on 7 October 2026. There is one active local repository; the old clone and its history remain recoverable in Trash.
+
 ## Stack
 
 | Layer | Tool |

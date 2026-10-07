@@ -226,3 +226,9 @@ of world selection, pair selection, and the matching world passed.
 
 - Replaced the old cover with Adi’s supplied Desktop/cover.png, exported at its original 1200 × 896 proportions. The new filename updates Featured, project listings and social preview metadata without reusing the cached old URL.
 - Added the updated pair view first in the project gallery; kept the other distinct gallery photographs. Removed the superseded cover asset.
+
+### 2026-10-07 — Mac website folder cleanup
+
+- Kept `/Users/adi/Dev/advaitakelkar-live` as the only active local working copy; the live copy is hosted at advaitakelkar.com. `dist/` remains the generated deployment output.
+- Moved the obsolete `Dev/_archive/advaitakelkar-website` and cache-only `Dev/advaitakelkar-website` to Mac Trash. Old archive was clean; its files and separate Git history remain recoverable in Trash. Its only extra assets were the superseded CONCRT cover and a generated thumbnail.
+- Moved historical local audits into `docs/archive/` and clarified folder roles in README. CONCRT commit ed17125 is still awaiting a successful GitHub push after repeated remote server errors.
