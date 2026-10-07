@@ -306,7 +306,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       data-project-id={project.id}
       data-project-name={data.name}
       data-is-card="true"
-      data-bnb={project.id === "bnb-khar" ? "true" : undefined}
+      data-slider={(data as any).slider ? "true" : undefined}
       data-gong={project.id === "gong-powai" ? "true" : undefined}
       data-renders={isRenders ? "true" : "false"}
       data-category={category ? category.id : ''}
@@ -783,7 +783,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
           )}
           {/* Full-width pictures with a line under each — the place itself,
               before the work in it. */}
-          {(["gong-powai", "bnb-khar"].includes(project.id) ? [] : (data as any).leadFigures ?? []).map((f: { image: string; caption?: string }) => (
+          {(project.id === "gong-powai" || (data as any).slider ? [] : (data as any).leadFigures ?? []).map((f: { image: string; caption?: string }) => (
             <figure class="renders-lead renders-lead--figure">
               <img src={f.image} alt={f.caption ?? data.name} loading="lazy" />
               {f.caption && <figcaption class="renders-lead__caption">{f.caption}</figcaption>}
@@ -812,7 +812,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
               </div>
             </div>
           ) : (
-            project.id === "bnb-khar" ? <div class="bnb-slider"><GongSlider name={data.name} figures={data.leadFigures ?? []} /></div> : project.id === "gong-powai" ? <GongDrawings views={renderViews} barFigure={(data.leadFigures ?? []).find(f => f.image.endsWith("05-bar-detail.webp"))} /> : <RenderRooms views={renderViews} name={data.name} groups={data.groups ?? "tabs"} />
+            (data as any).slider ? <div class="lead-slider"><GongSlider name={data.name} figures={data.leadFigures ?? []} /></div> : project.id === "gong-powai" ? <GongDrawings views={renderViews} barFigure={(data.leadFigures ?? []).find(f => f.image.endsWith("05-bar-detail.webp"))} /> : <RenderRooms views={renderViews} name={data.name} groups={data.groups ?? "tabs"} />
           )}
           {/* With a slider the page reads place → work → drawing: the whole
               picture (a cut file) comes last, after the installation. */}
@@ -5228,13 +5228,13 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
      1024 and up only. Below that the column is already the width of the page
      and there is nothing to spare. */
   .renders-aside { display: none; }
-  .project-detail[data-bnb="true"][data-renders="true"] #project-readmore-btn { display: none !important; }
-  .project-detail[data-bnb="true"][data-renders="true"] .project-phone-card:not(.is-reading) .project-card__desc { max-height: none !important; overflow: visible !important; }
+  .project-detail[data-slider="true"][data-renders="true"] #project-readmore-btn { display: none !important; }
+  .project-detail[data-slider="true"][data-renders="true"] .project-phone-card:not(.is-reading) .project-card__desc { max-height: none !important; overflow: visible !important; }
 
-  .bnb-slider { width: 100%; }
+  .lead-slider { width: 100%; }
   @media (min-width: 1024px) {
-    .project-detail[data-bnb="true"][data-renders="true"] .project-card-info { min-height: 0 !important; }
-    .project-detail[data-bnb="true"] .project-card-info > * { max-width: 48%; }
+    .project-detail[data-slider="true"][data-renders="true"] .project-card-info { min-height: 0 !important; }
+    .project-detail[data-slider="true"] .project-card-info > * { max-width: 48%; }
   }
 
   @media (min-width: 1024px) {

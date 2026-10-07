@@ -101,6 +101,10 @@ const projects = defineCollection({
     leadFigures: z.array(z.object({ image: z.string(), caption: z.string().optional() })).optional(),
     // Project Template 01: text on the left, pictures on the right as a
     // slider that advances by itself — shown instead of the rooms.
+    // Project Template 01: the copy, then every leadFigure in one slider
+    // below it — no picture beside the text, no rooms, no chapters.
+    // Barley and Bun and RFLCT.
+    slider: z.boolean().optional(),
     leadSlides: z.object({
       label: z.string().optional(),
       text: z.string().optional(),
