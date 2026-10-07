@@ -221,3 +221,8 @@ of world selection, pair selection, and the matching world passed.
 - Listing refinement: GONG and Barley and Bun now show exactly five selected render thumbnails, using the curated preview behaviour established for ARCHV. GONG uses interiors rather than drawings; the square bar render remains outside its main slider. Project page access gates unchanged.
 
 - Barley and Bun text preference: removed its Read more disclosure; both description paragraphs display in full above the slider.
+
+### 2026-10-07 — CONCRT cover refresh
+
+- Replaced the old cover with Adi’s supplied Desktop/cover.png, exported at its original 1200 × 896 proportions. The new filename updates Featured, project listings and social preview metadata without reusing the cached old URL.
+- Added the updated pair view first in the project gallery; kept the other distinct gallery photographs. Removed the superseded cover asset.
