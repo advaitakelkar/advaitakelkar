@@ -270,3 +270,9 @@ Eleven supplied room views edited with the built-in image tool for a cohesive ph
 
 - Enabled the shared Read more / Read less disclosure for Hybrid Media despite its short description. Expanded copy uses the existing balanced two-column desktop layout and phone reading panel.
 - Validation: 98-page build and all three style lints passed. Browser checks at 1440px and 390px confirmed initial collapse, expansion with intact assignment copy, two desktop columns, and Read less collapse.
+
+
+### 2026-10-07 — CARLO front view and shared slider
+
+- Removed the blue detail photograph from CARLO’s presentation and listing previews. The cream front view now opens the same shared full-width slider used by Barley and Bun, followed by the cream detail and two configurations. Retained the material note as the detail caption and the NMS collection credit.
+- Validation: 98-page build passed. Browser checks at 1440px and 390px confirmed four slides, cream front view first, no blue image, working previous/next controls and no horizontal overflow.
