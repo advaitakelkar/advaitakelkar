@@ -276,3 +276,29 @@ Eleven supplied room views edited with the built-in image tool for a cohesive ph
 
 - Removed the blue detail photograph from CARLO’s presentation and listing previews. The cream front view now opens the same shared full-width slider used by Barley and Bun, followed by the cream detail and two configurations. Retained the material note as the detail caption and the NMS collection credit.
 - Validation: 98-page build passed. Browser checks at 1440px and 390px confirmed four slides, cream front view first, no blue image, working previous/next controls and no horizontal overflow.
+
+
+### 2026-10-12 — AI Collaboration shared layout
+
+- Enabled the shared Barley and Bun reading layout and persistent bottom credits for AI Collaboration. Preserved all seven course sections; no image stage appears until project images are supplied.
+- Replaced the placeholder description with a concise draft grounded in the existing course outline. Professor precedes Advaita in credits.
+- Validation: 98-page build passed; local browser confirmed the two-column introduction, course sections and bottom credits. Local review only.
+
+### 2026-10-12 — AI Ethics Debate perspectives
+
+- Added credited official portraits of Molly Crabapple (Benjamin Aleshire) and Wolf dPrix (Gianmaria Gava), with one sourced position per person and links to the CAIR open letter and Deep Himmelblau research.
+- Side-by-side desktop comparison uses the existing chapter grid and stacks on smaller screens. Framing distinguishes different creative fields from a direct exchange.
+- Validation: 98-page build and all style lints passed; local browser confirmed portraits, points, credits, and chapter selection. Local review only.
+
+### 2026-10-12 — ComfyUI course workflow guides
+
+- Populated Text to Image and Image to Image with core node connections, three-step guides, original architectural prompt exercises, seed comparison and denoise experiments. Linked official ComfyUI documentation and the FLUX Krea workflow JSON.
+- Clarified checkpoint versus FLUX loaders and separated image transformation from the later image-to-3D exercise.
+- Validation: 98-page build passed; local browser confirmed both chapter selections, source links and two-column reading layouts. Guides researched against official docs; no local ComfyUI workflow execution performed.
+
+### 2026-10-12 — VANDLS content cleanup and prototype grids
+
+- Applied the shared Barley and Bun reading layout with persistent bottom credits. Consolidated the statement, purpose, method, mentor, full participant list and November 2020 Platform publication into one description. Removed the NA client pill and side cover.
+- Replaced repeated overview/research chapters with one open Prototypes section: all 15 rapid interventions and all 16 Initiative habitats, labeled in four-column desktop/two-column small-screen grids. Images link to full originals; archive links retain specifications, drawings and research.
+- Original full project YAML preserved at docs/archive/vndls-before-cleanup-2026-10-12.yaml. Existing source assets remain available.
+- Validation: all 31 grid image paths checked, 98-page build and style lints passed; browser confirmed expanded two-column description, prototype grid and bottom credits. Local review only.
