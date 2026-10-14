@@ -9,12 +9,14 @@ export interface Props {
   noindex?: boolean;
 }
 
-const { title, description = 'Advaita Kelkar — Architect & Designer', ogImage, noindex = false } = Astro.props;
+const { title, description = 'Advaita Kelkar — Architectural Designer', ogImage, noindex = false } = Astro.props;
 const voidOnly = /^\/(?:projects\/virtual-gods|virtual-gods)(?:\/|$)/.test(Astro.url.pathname);
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 // Absolute share image (per-page override → site default). Crawlers need an
-// absolute URL, so resolve against the canonical site origin.
-const shareImage = new URL(ogImage ?? '/images/people/advaita-kelkar.jpg', Astro.site).href;
+// absolute URL, so resolve against the canonical site origin. The default is
+// the AK mark rather than a portrait, so a shared link reads as the practice.
+const shareTitle = title === 'Home' ? 'Advaita Kelkar' : `${title} — Advaita Kelkar`;
+const shareImage = new URL(ogImage ?? '/og-default.png', Astro.site).href;
 ---
 
 <!doctype html>
@@ -53,7 +55,7 @@ const shareImage = new URL(ogImage ?? '/images/people/advaita-kelkar.jpg', Astro
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Advaita Kelkar" />
-    <meta property="og:title" content={title} />
+    <meta property="og:title" content={shareTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonicalURL} />
     <meta property="og:image" content={shareImage} />
@@ -61,7 +63,7 @@ const shareImage = new URL(ogImage ?? '/images/people/advaita-kelkar.jpg', Astro
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content={title} />
+    <meta name="twitter:title" content={shareTitle} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={shareImage} />
 
