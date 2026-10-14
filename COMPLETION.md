@@ -310,3 +310,9 @@ Eleven supplied room views edited with the built-in image tool for a cohesive ph
 - Nineteen views use the reviewed photographic edits; six additional Unplugged views complete its gallery. Seven Gardens remains reserved for Adi’s curation.
 - Added all five projects to the public-project list. Current source inventory: 60 projects, 28 public and 32 locked. Underlying academic work remains tracked separately from page completion.
 - Full-resolution masters and prompts remain in the separate Drive shortlist. Website images are WebP exports; existing descriptions, project status and credit rules are retained.
+
+
+### 2026-10-14 — Feature the five newly public professional galleries
+
+- Enabled homepage featured flags for Under the Tree, SOCIAL South City Mall, Jude Bakery, Unplugged and SOCIAL Malad. All five already appear publicly in Projects.
+- Live Featured document read currently returns HTTP 403, so the homepage uses the project-file fallback flags. Existing featured selections are retained.
