@@ -302,3 +302,11 @@ Eleven supplied room views edited with the built-in image tool for a cohesive ph
 - Replaced repeated overview/research chapters with one open Prototypes section: all 15 rapid interventions and all 16 Initiative habitats, labeled in four-column desktop/two-column small-screen grids. Images link to full originals; archive links retain specifications, drawings and research.
 - Original full project YAML preserved at docs/archive/vndls-before-cleanup-2026-10-12.yaml. Existing source assets remain available.
 - Validation: all 31 grid image paths checked, 98-page build and style lints passed; browser confirmed expanded two-column description, prototype grid and bottom credits. Local review only.
+
+
+## 2026-10-14 — Five professional projects published with final imagery
+
+- Added the final selected galleries for Under the Tree (3), SOCIAL South City Mall (3), Jude Bakery (3), Unplugged (8) and SOCIAL Malad (8), using the shared project-01 slider layout.
+- Nineteen views use the reviewed photographic edits; six additional Unplugged views complete its gallery. Seven Gardens remains reserved for Adi’s curation.
+- Added all five projects to the public-project list. Current source inventory: 60 projects, 28 public and 32 locked. Underlying academic work remains tracked separately from page completion.
+- Full-resolution masters and prompts remain in the separate Drive shortlist. Website images are WebP exports; existing descriptions, project status and credit rules are retained.
