@@ -316,3 +316,12 @@ Eleven supplied room views edited with the built-in image tool for a cohesive ph
 
 - Enabled homepage featured flags for Under the Tree, SOCIAL South City Mall, Jude Bakery, Unplugged and SOCIAL Malad. All five already appear publicly in Projects.
 - Live Featured document read currently returns HTTP 403, so the homepage uses the project-file fallback flags. Existing featured selections are retained.
+
+
+## 2026-10-14 — Gully Boy, GOONJ and Pet Pod completed and opened
+
+- Rebuilt the three pages from Varun Mehta’s supplied case-study links, preserving 44 project images including 11 original GIF animations. Added shared slider galleries, covers, listing previews and source links.
+- Gully credits Varun Mehta, Jeet Soneji and Advaita, with Excel Entertainment as collaborating organisation; client corrected to Urban Monkey India / Yash Gangwal and status to rejected proposal.
+- GOONJ credits Varun, Nayan Mote and Advaita; photography credits Bombay Frameworks. Event date/year corrected to 24 December 2019, venue/client to Forest Hills Tala. Removed the unsupported academic professor label.
+- Pet Pod corrected to a furniture-brand logo/identity project for Kuldeep Jhangid, credited to Varun and Advaita.
+- All three added to the public-project list: 31 public / 29 locked out of 60. Featured flags were left as configured; the previous five professional galleries remain featured.
