@@ -9,8 +9,9 @@
 // Nothing loads until a map is opened. The two data files (about 770 KB compressed) are
 // fetched once and shared by every map on the page.
 //
-// The page stays monochrome: colours are read from --color--fg / --color--bg on each draw,
-// so the five colour schemes and the light/dark switch carry through.
+// The map itself is drawn in the page's ink (--color--fg / --color--bg); the stations take
+// the Powerhouse data palette (--ph-red, --ph-orange). Both are read on every draw, so the
+// light/dark switch carries through.
 import { select } from 'd3-selection';
 import { zoom as d3zoom, zoomIdentity, type ZoomTransform, type ZoomBehavior } from 'd3-zoom';
 
@@ -175,7 +176,7 @@ export function createMap(
 
     // Stations, in screen pixels: dot area grows with plugs, and every dot grows a little
     // as you zoom so single stations separate out. Two batched fills, one per tone.
-    const base = Math.min(2.4, 0.42 * Math.sqrt(k));
+    const base = Math.min(7, 0.42 * Math.pow(k, 0.65));
     const tesla = new Path2D(), other = new Path2D();
     const square = base < 1.1;
     const { x, y, ac, dc, flags } = data;
@@ -183,16 +184,18 @@ export function createMap(
       if (!pass(i)) continue;
       const sx = x[i] * k + tx, sy = y[i] * k + ty;
       if (sx < -8 || sy < -8 || sx > w + 8 || sy > h + 8) continue;
-      const r = base * Math.min(5, Math.max(1, Math.sqrt(ac[i] + dc[i])));
+      const r = Math.min(16, base * Math.min(5, Math.max(1, Math.sqrt(ac[i] + dc[i]))));
       const path = flags[i] & 2 ? tesla : other;
       if (square) path.rect(sx - r, sy - r, r * 2, r * 2);
       else { path.moveTo(sx + r, sy); path.arc(sx, sy, r, 0, Math.PI * 2); }
     }
-    ctx.globalAlpha = 0.55;
-    ctx.fillStyle = mix(0.5);
+    // Data colours come from the Powerhouse palette on the page (--ph-*), not the ink.
+    const pal = getComputedStyle(el);
+    ctx.globalAlpha = 0.75;
+    ctx.fillStyle = pal.getPropertyValue('--ph-orange').trim() || '#ff8a34';
     ctx.fill(other);
-    ctx.globalAlpha = 0.9;
-    ctx.fillStyle = fg;
+    ctx.globalAlpha = 0.95;
+    ctx.fillStyle = pal.getPropertyValue('--ph-red').trim() || '#ff3b30';
     ctx.fill(tesla);
     ctx.globalAlpha = 1;
   };
@@ -284,5 +287,106 @@ export function createMap(
     setFilter(f) { filter = { ...filter, ...f }; redraw(); },
     fit(key) { if (data) animateTo(fitTransform(key)); },
     resize: size,
+  };
+}
+
+// ── Vector maps ──────────────────────────────────────────────────────────────────────────
+// A layered SVG built by scripts/build-powerhouse-svg-maps.mjs (OpenStreetMap roads, Census
+// boundaries, AFDC stations) — the same file that is placed in the InDesign book. Here it is
+// fetched on demand, inlined, and zoomed as a true vector with d3-zoom: lines keep their
+// hairline weight at any zoom, and dots grow only gently so single stations separate out.
+// Colours come from CSS on the layer ids, so the print colours in the file never show here.
+export function createSvgMap(el: HTMLElement, url: string): PowerhouseMap {
+  let filter: MapFilter = { access: 'public', network: 'all' };
+  let svg: SVGSVGElement | null = null;
+  let layer: SVGGElement | null = null;
+  let dots: { c: SVGCircleElement; r: number }[] = [];
+  let hub: [number, number] | undefined;
+  let k = 1;
+  let frame = 0;
+
+  el.classList.add('ph-map', 'ph-map--svg');
+  const hint = document.createElement('div');
+  hint.className = 'ph-map__hint';
+  hint.textContent = 'Hold ⌘ or Ctrl and scroll to zoom';
+  const controls = document.createElement('div');
+  controls.className = 'ph-map__controls';
+  controls.innerHTML = '<button type="button" data-z="in" aria-label="Zoom in">+</button><button type="button" data-z="out" aria-label="Zoom out">−</button><button type="button" data-z="reset" aria-label="Reset view">Reset</button>';
+
+  const apply = () => {
+    if (!svg) return;
+    const show = (id: string, on: boolean) => svg!.querySelector<SVGGElement>(`#${id}`)?.setAttribute('display', on ? 'inline' : 'none');
+    show('stations-private', filter.access !== 'public' && filter.network !== 'tesla');
+    show('stations-other', filter.access !== 'private' && filter.network !== 'tesla');
+    show('stations-tesla', filter.access !== 'private' && filter.network !== 'other');
+  };
+  const resizeDots = () => {
+    frame = 0;
+    // On screen a dot is r × k^0.75: zooming in makes stations clearly bigger, not just apart.
+    const s = Math.pow(k, -0.25);
+    for (const d of dots) d.c.setAttribute('r', (d.r * s).toFixed(2));
+  };
+
+  const ready = fetch(url)
+    .then((r) => r.text())
+    .then((text) => {
+      el.insertAdjacentHTML('afterbegin', text.replace(/<\?xml[^>]*>/, ''));
+      svg = el.querySelector('svg')!;
+      svg.removeAttribute('width');
+      svg.removeAttribute('height');
+      svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+      svg.setAttribute('role', 'img');
+      // Everything moves together inside one group.
+      layer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      while (svg.firstChild) layer.appendChild(svg.firstChild);
+      svg.appendChild(layer);
+      dots = [...svg.querySelectorAll<SVGCircleElement>('circle')].map((c) => ({ c, r: +c.getAttribute('r')! }));
+      // The stations' centre of mass, for the first zoom.
+      hub = dots.length
+        ? [dots.reduce((n, d) => n + +d.c.getAttribute('cx')!, 0) / dots.length, dots.reduce((n, d) => n + +d.c.getAttribute('cy')!, 0) / dots.length]
+        : undefined;
+      el.append(hint, controls);
+
+      const vb = svg.viewBox.baseVal;
+      let hintTimer = 0;
+      const behaviour = d3zoom<SVGSVGElement, unknown>()
+        .scaleExtent([1, 40])
+        .translateExtent([[0, 0], [vb.width, vb.height]])
+        .filter((e: Event) => {
+          if (e.type === 'wheel') {
+            const we = e as WheelEvent;
+            if (!(we.ctrlKey || we.metaKey)) {
+              hint.classList.add('is-on');
+              clearTimeout(hintTimer);
+              hintTimer = window.setTimeout(() => hint.classList.remove('is-on'), 1100);
+              return false;
+            }
+            return true;
+          }
+          return !(e as MouseEvent).button;
+        })
+        .on('zoom', (e) => {
+          layer!.setAttribute('transform', e.transform.toString());
+          k = e.transform.k;
+          if (!frame) frame = requestAnimationFrame(resizeDots);
+        });
+      const sel = select(svg).call(behaviour).on('dblclick.zoom', null);
+      controls.addEventListener('click', (e) => {
+        const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-z]');
+        if (!b) return;
+        if (b.dataset.z === 'reset') return sel.call(behaviour.transform, zoomIdentity);
+        // From the full view, zoom in on where the stations are, not the middle of the outline
+        // (for Florida that is the Gulf of Mexico). After that, zoom about the view's centre.
+        const toward: [number, number] | undefined = k === 1 && b.dataset.z === 'in' ? hub : undefined;
+        sel.call(behaviour.scaleBy, b.dataset.z === 'in' ? 2 : 0.5, toward);
+      });
+      apply();
+    });
+
+  return {
+    ready,
+    setFilter(f) { filter = { ...filter, ...f }; apply(); },
+    fit() {},
+    resize() {},
   };
 }

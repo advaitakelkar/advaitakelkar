@@ -327,9 +327,11 @@ Eleven supplied room views edited with the built-in image tool for a cohesive ph
 - All three added to the public-project list: 31 public / 29 locked out of 60. Featured flags were left as configured; the previous five professional galleries remain featured.
 
 
-## 2026-10-18 — Powerhouse infrastructure research slides & vector visualizers
+## 2026-10-18 — Powerhouse thesis book, storage-bar visualizers & zoomable maps
 
-- Structured `/powerhouse` into five slides: `01 USA`, `02 California`, `03 New York` (including the 5-borough NYC close-up), `04 Florida`, and `05 Comparison` (combining three-state infrastructure, 2015/2025/2040 vehicle stock, 2016–2025 growth trajectories, and the Powerhouse decision test).
-- Added vector highway and arterial road networks (`scripts/build-powerhouse-roads.mjs`, `src/data/powerhouse-roads.json`) from Natural Earth 10m Roads (USA, CA, NY, FL) and US Census TIGER/Line Primary & Secondary Roads (NYC).
-- Added D3-computed SVG data visualizers across all slides (port anatomy bars, network speed splits, 51-state rank distribution, per-state network rankings, 6-metric comparison dashboard, absolute and indexed 2016–2025 BEV trajectory curves, and 2025 vs. 2040 drivetrain shift bars) using strictly the two-color token system (`--_tokens---color--fg` and `--_tokens---color--bg` alpha steps).
-- Validation: production build and all style/breakpoint/glyph/icon lints pass.
+- Turned `/powerhouse` into the complete thesis book as one continuous document (`src/data/powerhouse-book.json`, `src/components/PowerhouseBookText.astro`) with 1.1 EV Infrastructure in the United States structured into five live evidence slides (`01 United States`, `02 California`, `03 New York`, `04 Florida`, `05 Comparison`).
+- Added `PowerhouseGlance.astro` and `src/lib/powerhouse-glance.ts` so every place opens with a storage-bar summary (every road vehicle from FHWA Table MV-1 + AFDC EVs, plug-in fleet breakdown, public plugs by network & speed, and access/charger-speed bars) alongside a zoomable map in a two-column split (`1024px+`).
+- Configured `/powerhouse` and `/projects/the-powerhouse` in `Base.astro` to render always in Void (`data-void-only`) while drawing data in the dusty-pastel Powerhouse storage-bar palette (`--ph-red`, `--ph-orange`, `--ph-yellow`, `--ph-green`, `--ph-teal`, `--ph-blue`, `--ph-grey`, `--ph-light`) documented in `CLAUDE.md`.
+- Built zoomable vector SVG state maps (`public/maps/{california,new-york,florida}.svg` via `scripts/build-powerhouse-svg-maps.mjs`) and `src/lib/powerhouse-map.ts` (Canvas + SVG `d3-zoom` with hub-centered zoom and scale-adaptive station radii).
+- Validation: 99-page production build and all style/breakpoint/glyph/icon lints pass.
+

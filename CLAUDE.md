@@ -50,6 +50,19 @@ InDesign book are synced — both ways, and **only when Adi asks**. The 1.1 maps
 `public/data/powerhouse-stations.json`, built by `scripts/build-powerhouse-stations.mjs`
 from the raw AFDC exports in `source-files/powerhouse/` (gitignored).
 
+**Two rules that hold only on Powerhouse pages** (`/powerhouse`, `/projects/the-powerhouse`):
+
+- **Always Void.** `Base.astro` sets `data-void-only` for these paths, so the scheme roll
+  and any stored pick are ignored and the swatches are hidden. Light/dark still works.
+- **Data is drawn in colour — a deliberate exception to the site's no-categorical-colour
+  rule.** The page stays black and white; only data uses the Powerhouse palette
+  (`--ph-red`, `--ph-orange`, `--ph-yellow`, `--ph-green`, `--ph-teal`, `--ph-blue`,
+  `--ph-grey`, `--ph-light`, defined on `.ph` with brighter dark-mode values), in the
+  manner of a storage bar. Keep each meaning on one colour across every chart: Tesla
+  networks red, other networks orange, battery-electric green, plug-in hybrid teal,
+  fuel light grey; California red, New York orange, Florida yellow. Label every segment
+  as well — colour is never the only key.
+
 ---
 
 ## Deploy Flow

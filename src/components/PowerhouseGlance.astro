@@ -1,0 +1,145 @@
+---
+// "At a glance" for one place in the Powerhouse evidence (the US, or a state): what is on
+// the road across the top, the place's map large on the left with three cards stacked
+// beside it (how many plug in, where people charge, what is public), and the years below.
+// Every card is one big figure, a storage-style 100% bar and labelled percentages; the
+// explanation and exact counts wait behind Read more.
+//
+// The map comes in through the `map` slot (it is page markup, styled by the page), and a
+// place without registration history passes its own time view through the `time` slot.
+import type { Card, StackBar } from '../lib/powerhouse-glance';
+interface Props {
+  title: string;
+  road: Card;
+  cards: [Card, Card, Card];
+  time?: { bars: StackBar[]; note: string; sources: string };
+}
+const { title, road, cards, time } = Astro.props;
+
+const fmt = (n: number) => Math.round(n).toLocaleString('en-US');
+const share = (v: number, t: number) => { const p = (v / t) * 100; return p < 0.1 ? '<0.1%' : p < 10 ? p.toFixed(1) + '%' : Math.round(p) + '%'; };
+const key = (bar: StackBar) => bar.segs.filter((g) => g.value / bar.total >= 0.002 && g.label !== 'Other / unknown');
+const areas = ['is-b', 'is-c', 'is-d'];
+---
+
+<section class="ph__chain">
+  <h2>{title}</h2>
+  <div class="ph__chain-grid ph__chain-grid--map">
+    {[road, ...cards].map((card, i) => (
+      <div class:list={['ph__chain-row', i === 0 ? 'is-a' : areas[i - 1]]}>
+        <div class="ph__chain-big"><strong>{card.big}</strong><span>{card.bigLabel}</span></div>
+        <div class="ph__stack100" role="img" aria-label={`${card.bigLabel}: ${card.bar.segs.map((g) => `${g.label} ${share(g.value, card.bar.total)}`).join(', ')}`}>
+          {card.bar.segs.map((g) => <i class={`c-${g.c}`} style={`flex-grow:${g.value}`} title={`${g.label}: ${share(g.value, card.bar.total)}`}></i>)}
+        </div>
+        <ul class="ph__stack100-key">
+          {key(card.bar).map((g) => <li><i class={`c-${g.c}`}></i>{g.label} <b>{share(g.value, card.bar.total)}</b></li>)}
+        </ul>
+        <details class="ph__more">
+          <summary>Read more</summary>
+          <p>{card.why}</p>
+          {card.figures !== false && (
+            <ul class="ph__more-figures">
+              {card.bar.segs.map((g) => <li>{g.label} <b>{fmt(g.value)}</b></li>)}
+              <li>In all <b>{fmt(card.bar.total)}</b></li>
+            </ul>
+          )}
+        </details>
+      </div>
+    ))}
+    <div class="ph__solo is-m"><slot name="map" /></div>
+  </div>
+
+  {time ? (
+    <div class="ph__chain-time">
+      <h3 class="ph__chain-sub">Then, now and 2040</h3>
+      <div class="ph__years">
+        {time.bars.map((bar) => (
+          <div class="ph__year" data-illustrative={bar.illustrative ? 'true' : undefined}>
+            <span class="ph__year-label">{bar.title}{bar.illustrative ? ' · outlook' : ''}</span>
+            <strong>{share(bar.segs[0].value + bar.segs[1].value, bar.total)}</strong>
+            <span class="ph__year-sub">of cars and light trucks plug in</span>
+            <div class="ph__stack100" role="img" aria-label={`${bar.title}: ${bar.segs.map((g) => `${g.label} ${share(g.value, bar.total)}`).join(', ')}`}>
+              {bar.segs.map((g) => <i class={`c-${g.c}`} style={`flex-grow:${g.value}`} title={`${g.label}: ${share(g.value, bar.total)}`}></i>)}
+            </div>
+            <ul class="ph__stack100-key">
+              {bar.segs.slice(0, 2).map((g) => <li><i class={`c-${g.c}`}></i>{g.label} <b>{share(g.value, bar.total)}</b></li>)}
+            </ul>
+          </div>
+        ))}
+      </div>
+      <details class="ph__more">
+        <summary>Read more</summary>
+        <p>{time.note}</p>
+        <ul class="ph__more-figures">
+          {time.bars.map((bar) => <li>{bar.title} <b>{fmt(bar.segs[0].value)} battery-electric · {fmt(bar.segs[1].value)} plug-in hybrid · {fmt(bar.total)} in all</b></li>)}
+        </ul>
+        <p class="ph__glance-sources">{time.sources}</p>
+      </details>
+    </div>
+  ) : (
+    <slot name="time" />
+  )}
+</section>
+
+<style is:global>
+  /* Global on purpose: these elements are rendered here but sit inside the page's .ph, and
+     every class is ph__-prefixed or scoped under .ph, so nothing reaches past it. */
+  .ph .c-red { background: var(--ph-red); } .ph .c-orange { background: var(--ph-orange); } .ph .c-yellow { background: var(--ph-yellow); }
+  .ph .c-green { background: var(--ph-green); } .ph .c-teal { background: var(--ph-teal); } .ph .c-blue { background: var(--ph-blue); }
+  .ph .c-grey { background: var(--ph-grey); } .ph .c-light { background: var(--ph-light); }
+  /* The composition — what is on the road across the full width, then the map
+     large on the left with the three charging cards stacked beside it, the years below */
+  @media (min-width: 1024px) {
+    .ph__chain-grid.ph__chain-grid--map { grid-template-columns: minmax(0, 2.6fr) minmax(15rem, 1fr); grid-template-areas: "a a" "m b" "m c" "m d"; grid-template-rows: auto auto auto 1fr; align-items: start; column-gap: var(--_tokens---space--small); row-gap: 28px; }
+    .ph__chain-grid--map > .is-a { grid-area: a; } .ph__chain-grid--map > .is-b { grid-area: b; }
+    .ph__chain-grid--map > .is-c { grid-area: c; } .ph__chain-grid--map > .is-d { grid-area: d; }
+    .ph__chain-grid--map > .is-m { grid-area: m; }
+  }
+  .ph__chain-grid--map .ph__stack100-key { gap: 4px 12px; }
+  .ph__chain-grid--map > .is-a .ph__stack100 { height: 34px; }
+  .ph__chain-grid--map > .is-a .ph__stack100-key { gap: 6px 28px; }
+  /* Storage-style 100% bars (Florida, from vehicles to the stop) */
+  .ph__chain { display: grid; gap: var(--_tokens---space--small); margin: 0 0 var(--_tokens---space--small); padding-top: var(--_tokens---space--micro); border-top: 1px solid var(--_tokens---color--fg); }
+  .ph__chain > h2 { font-size: var(--_tokens---type--small) !important; font-weight: 600 !important; }
+  .ph__chain-row { display: grid; gap: 8px; max-width: 980px; }
+  .ph__chain-row > p { font-size: var(--_tokens---type--micro); color: var(--_tokens---color--muted); line-height: 1.5; margin: 0; max-width: 80ch; }
+  .ph__chain-head { display: flex; justify-content: space-between; gap: 12px; font-size: var(--_tokens---type--micro); }
+  .ph__chain-head span { color: var(--_tokens---color--muted); }
+  .ph__stack100 { display: flex; height: 26px; border-radius: 6px; overflow: hidden; gap: 2px; background: var(--_tokens---color--bg); }
+  .ph__stack100 i { display: block; min-width: 3px; flex-basis: 0; }
+  .ph__stack100-key { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0; padding: 0; font-size: var(--_tokens---type--micro); color: var(--_tokens---color--muted); }
+  .ph__stack100-key li { display: flex; align-items: center; gap: 6px; }
+  .ph__stack100-key li i { width: 10px; height: 10px; border-radius: 50%; }
+  .ph__stack100-key b { color: var(--_tokens---color--fg); font-weight: 500; }
+  .ph__chain-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--_tokens---space--small) var(--_tokens---space--micro); }
+  .ph__chain-grid .ph__chain-row { max-width: none; align-content: start; }
+  /* What is on the road runs the full width; the three that follow sit side by side */
+  .ph__chain-grid .ph__chain-row.is-wide { grid-column: 1 / -1; }
+  .ph__chain-row.is-wide .ph__stack100 { height: 34px; }
+  .ph__chain-row.is-wide .ph__stack100-key { gap: 6px 28px; }
+  .ph__chain-big { display: grid; gap: 2px; }
+  .ph .ph__chain-sub { font-size: var(--_tokens---type--micro); font-weight: 600; margin: 0; }
+  /* Read more: the explanation and the exact counts wait behind one quiet pill */
+  .ph__more { font-size: var(--_tokens---type--micro); }
+  .ph__more > summary { list-style: none; display: inline-flex; align-items: center; padding: var(--_tokens---pill-pad--xs); border: var(--_tokens---pill-border); border-radius: var(--_tokens---radius--pill); color: var(--_tokens---color--muted); cursor: pointer; }
+  .ph__more > summary::-webkit-details-marker { display: none; }
+  .ph__more[open] > summary { color: var(--_tokens---color--fg); border-color: var(--_tokens---color--fg); }
+  @media (hover: hover) { .ph__more > summary:hover { color: var(--_tokens---color--fg); } }
+  .ph__more p { color: var(--_tokens---color--muted); line-height: 1.55; margin: 10px 0 0; max-width: 72ch; }
+  .ph__more-figures { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 4px; color: var(--_tokens---color--muted); font-variant-numeric: tabular-nums; }
+  .ph__more-figures b { color: var(--_tokens---color--fg); font-weight: 500; margin-left: 6px; }
+  .ph__chain-big strong { font-size: clamp(1.8rem, 1rem + 2.6vw, 3.4rem); font-weight: 400; letter-spacing: -.04em; line-height: 1; font-variant-numeric: tabular-nums; }
+  .ph__chain-big span { font-size: var(--_tokens---type--micro); color: var(--_tokens---color--muted); }
+  .ph__chain-time { display: grid; gap: 10px; }
+  .ph__chain-time > p { font-size: var(--_tokens---type--micro); color: var(--_tokens---color--muted); line-height: 1.5; margin: 0; max-width: 80ch; }
+  .ph__years { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--_tokens---space--micro); }
+  .ph__year { display: grid; gap: 8px; align-content: start; padding-top: 10px; border-top: 1px solid var(--_tokens---color--fg); }
+  .ph__year[data-illustrative] { border-top-style: dashed; }
+  .ph__year strong { font-size: clamp(1.8rem, 1rem + 2.6vw, 3.4rem); font-weight: 400; letter-spacing: -.04em; line-height: 1; font-variant-numeric: tabular-nums; }
+  .ph__year-label, .ph__year-sub { font-size: var(--_tokens---type--micro); color: var(--_tokens---color--muted); }
+  .ph__year-label { color: var(--_tokens---color--fg); font-weight: 600; }
+  .ph__stack100-key--list { display: grid; gap: 4px; }
+  @media (max-width: 1023.98px) { .ph__chain-grid, .ph__years { grid-template-columns: minmax(0, 1fr); } }
+  .ph .c-green-fill { fill: var(--ph-green); }
+  .ph__glance-sources { font-size: var(--_tokens---type--micro); }
+</style>
