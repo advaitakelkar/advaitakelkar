@@ -1,0 +1,18 @@
+---
+// One block of text transferred from the Powerhouse thesis book: paragraphs (some already
+// block HTML — a lead, a heading, a table) followed by that block's notes in book numbering.
+interface Props {
+  text: { body: string[]; notesStart: number; notes: string[] };
+}
+const { text } = Astro.props;
+const isBlock = (p: string) => p.startsWith('<p') || p.startsWith('<h3') || p.startsWith('<figure');
+---
+
+<div class="ph__book">
+  <div class="ph__book-body">{text.body.map((p) => (isBlock(p) ? <Fragment set:html={p} /> : <p set:html={p} />))}</div>
+  {text.notes.length > 0 && (
+    <ol class="ph__book-notes" start={text.notesStart} aria-label="Notes">
+      {text.notes.map((n) => <li set:html={n} />)}
+    </ol>
+  )}
+</div>

@@ -1,8 +1,11 @@
 ---
 import PageLayout from '../layouts/PageLayout.astro';
+import Icon from '../components/Icon.astro';
+import BookText from '../components/PowerhouseBookText.astro';
 import data from '../data/powerhouse-analysis.json';
 import networks from '../data/powerhouse-networks.json';
 import roads from '../data/powerhouse-roads.json';
+import bookTextData from '../data/powerhouse-book.json';
 
 const fmt = (n: number) => Math.round(n).toLocaleString('en-US');
 const kfmt = (n: number) => (n >= 1e6 ? (n / 1e6).toFixed(2) + 'm' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'k' : String(Math.round(n)));
@@ -199,6 +202,65 @@ const sources = {
   fhwa: 'https://www.fhwa.dot.gov/policyinformation/statistics/2015/mv1.cfm',
   use: 'https://www.nyc.gov/mayors-office/news/2024/08/adams-administration-wins-15-million-federal-grant-build-nation-s-largest-municipal-curbside-ev',
 };
+
+// The thesis book's structure (The Powerhouse_Thesis Book_Ch1-2, contents p.5 and the
+// framework flowchart p.6). Chapters are the main tabs; sections are the flow under each.
+// `page` is the book page; `planned` marks sections that exist only in the framework so far.
+type BookSection = { id: string; num: string; title: string; page?: number; planned?: boolean };
+const book: { id: string; num: string; short: string; title: string; sections: BookSection[] }[] = [
+  {
+    id: 'ch1', num: '1', short: 'Charging Anchor', title: 'A Sustainable Charging Anchor',
+    sections: [
+      { id: '1-1', num: '1.1', title: 'Electrification and Speed', page: 9 },
+      { id: '1-2', num: '1.2', title: 'The Architecture of the Stop', page: 9 },
+      { id: '1-3', num: '1.3', title: 'Charge Time', page: 10 },
+      { id: '1-4', num: '1.4', title: 'Public Space as Community', page: 10 },
+      { id: '1-5', num: '1.5', title: 'The Anchor', page: 10 },
+      { id: '1-6', num: '1.6', title: 'Argument, Objectives, and Scope', page: 11 },
+      { id: '1-7', num: '1.7', title: 'Theoretical Framework', page: 11 },
+      { id: '1-8', num: '1.8', title: 'Thesis Framework', page: 11 },
+    ],
+  },
+  {
+    id: 'ch2', num: '2', short: 'The Stop', title: 'The Stop: Parking, Travel and the Time to Charge',
+    sections: [
+      { id: '2-1', num: '2.1', title: 'A City Paved for Parking', page: 13 },
+      { id: '2-2', num: '2.2', title: 'The Infrastructure of Vehicle Travel', page: 13 },
+      { id: '2-3', num: '2.3', title: 'Stations, Airports and Service Areas', page: 14 },
+      { id: '2-4', num: '2.4', title: 'Vehicle Size and Charging Time', page: 14 },
+      { id: '2-5', num: '2.5', title: 'Regulation: Driving Breaks, Charger Standards and Zoning', page: 15 },
+      { id: '2-6', num: '2.6', title: 'Faster Charging and the Future of the Stop', page: 15 },
+    ],
+  },
+  {
+    id: 'ch3', num: '3', short: 'The Public Space', title: 'The Public Space: What Each Neighbourhood Needs',
+    sections: [
+      { id: '3-1', num: '3.1', title: 'Human and Cultural Aspects', planned: true },
+      { id: '3-2', num: '3.2', title: 'The Third Place', planned: true },
+      { id: '3-3', num: '3.3', title: 'Dwelling and Spirit of Place', planned: true },
+      { id: '3-4', num: '3.4', title: 'Leisure and Gathering', planned: true },
+      { id: '3-5', num: '3.5', title: 'Open Without Purchase', planned: true },
+      { id: '3-6', num: '3.6', title: 'From Forecourt to Plaza', planned: true },
+    ],
+  },
+  {
+    id: 'ch4', num: '4', short: 'The Programme', title: 'The Programme: Anchoring the Community Stop',
+    sections: [
+      { id: '4-1', num: '4.1', title: 'What Does It Need?', planned: true },
+      { id: '4-2', num: '4.2', title: 'Right to the City', planned: true },
+      { id: '4-3', num: '4.3', title: 'Who the Space Is For', planned: true },
+      { id: '4-4', num: '4.4', title: 'Rent, Revenue, Running Costs', planned: true },
+      { id: '4-5', num: '4.5', title: 'Programme by Length of Stay', planned: true },
+      { id: '4-6', num: '4.6', title: 'Open to All', planned: true },
+    ],
+  },
+];
+// The section that holds the five data slides below.
+const dataSection = '1-1';
+
+// Text transferred from the book, per section (src/data/powerhouse-book.json). `body` is HTML
+// paragraphs with the book's note numbers as <sup>; `notes` keep the book's numbering from `notesStart`.
+const bookText: Record<string, { body: string[]; notesStart: number; notes: string[] }> = bookTextData;
 ---
 
 <PageLayout
@@ -212,7 +274,83 @@ const sources = {
       <a href="/powerhouse/" class="ph__brand">The Powerhouse <span>/ Infrastructure research &amp; data visualiser</span></a>
       <span class="ph__stamp">Official sources · Vector GIS + D3 SVG · 18 October 2026</span>
     </header>
+
+    <!-- Introduction: sits above the slide nav and stays put whichever slide is open -->
+    <section class="ph__intro" aria-labelledby="ph-intro-title">
+      <div>
+        <p class="ph__kicker" id="ph-intro-title">Abstract</p>
+        <p>Road transport is going electric, and every electric vehicle has to stop to charge. Yet most charging sites are still car parks with a row of plugs, used by drivers and by no one else. This thesis proposes the Powerhouse, a new type of stop built on ground that parking already covers: chargers alongside a programme chosen for the neighbourhood, and public space open to everyone.</p>
+      </div>
+      <div>
+        <p class="ph__kicker">Hypothesis</p>
+        <p class="ph__intro-claim">An Electric Vehicle Powerhouse complex will turn charging activities into an opportunity for enhanced civic / community engagements.</p>
+      </div>
+    </section>
+
+    <!-- Main tabs (the book's chapters) with the contents index as a dropdown at the right end -->
+    <div class="ph__toc" data-toc>
+    <div class="ph__tabbar">
+    <nav class="ph__chapters" aria-label="Chapters">
+      <span class="ph__row-label" aria-hidden="true">Chapters</span>
+      {book.map((c, i) => (
+        <button type="button" data-chapter={c.id} aria-pressed={i === 0 ? 'true' : 'false'}>
+          <span>{c.num.padStart(2, '0')}</span> {c.short}
+        </button>
+      ))}
+    </nav>
+    <details class="ph__index">
+      <summary><span class="ph__index-label">Index</span> <b data-index-current></b><i class="ph__index-trigger-caret" aria-hidden="true"><Icon name="chevron" dir="s" /></i></summary>
+      <div class="ph__index-panel">
+      {book.map((c, i) => (
+        <div class="ph__index-ch" data-index-chapter={c.id} data-active={i === 0 ? 'true' : 'false'} data-open={i === 0 ? 'true' : 'false'}>
+          <button type="button" class="ph__index-chtitle" data-index-toggle={c.id} aria-expanded={i === 0 ? 'true' : 'false'}><span>{c.num}</span> {c.title}<i class="ph__index-caret" aria-hidden="true"><Icon name="chevron" dir="e" /></i></button>
+          <div class="ph__index-fold"><ol>
+            {c.sections.map((s, j) => (
+              <li>
+                <button type="button" data-section={s.id} aria-pressed={i === 0 && j === 0 ? 'true' : 'false'} data-planned={s.planned ? 'true' : undefined}>
+                  <span>{s.num}</span> {s.title}
+                </button>
+              </li>
+            ))}
+          </ol></div>
+        </div>
+      ))}
+      </div>
+    </details>
+    </div>
+
+    <!-- Secondary tabs: the open chapter's sections -->
+    {book.map((c, i) => (
+      <nav class="ph__subtabs" data-subtabs={c.id} aria-label={`Chapter ${c.num} sections`} hidden={i !== 0}>
+        <span class="ph__row-label" aria-hidden="true">Chapter {c.num}</span>
+        {c.sections.map((s, j) => (
+          <button type="button" data-section={s.id} aria-pressed={i === 0 && j === 0 ? 'true' : 'false'} data-planned={s.planned ? 'true' : undefined} title={`${s.num} ${s.title}`}>
+            <span>{s.num}</span> {s.title}
+          </button>
+        ))}
+      </nav>
+    ))}
+    </div>
+
+    <div class="ph__reader">
+    <div class="ph__reader-main">
+
+    <!-- One continuous document: each chapter's opening, then its sections in book order.
+         1.1 carries the five data slides; the tabs above jump to each section. -->
+    <header class="ph__chapter-head" id="ch1" data-chapter-head="ch1">
+      <p class="ph__kicker">Chapter {book[0].num}</p>
+      <h2>{book[0].title}</h2>
+      {bookText.ch1 && <BookText text={bookText.ch1} />}
+    </header>
+
+    <section class="ph__section" id={`s-${dataSection}`} data-section-panel={dataSection}>
+      <p class="ph__kicker">{book[0].sections[0].num} · Book page {book[0].sections[0].page}</p>
+      <h2>{book[0].sections[0].title}</h2>
+      {bookText[dataSection] && <BookText text={bookText[dataSection]} />}
+    </section>
+
     <nav class="ph__nav" aria-label="Analysis slides">
+      <span class="ph__row-label" aria-hidden="true">1.1 Maps</span>
       <a href="#usa" data-slide-link="0" aria-current="step"><span>01</span> USA</a>
       <a href="#california" data-slide-link="1"><span>02</span> California</a>
       <a href="#new-york" data-slide-link="2"><span>03</span> New York</a>
@@ -1155,6 +1293,25 @@ const sources = {
       <span id="ph-progress" aria-live="polite">01 / 05</span>
       <button type="button" id="ph-next">Next</button>
     </div>
+
+    {book.flatMap((c) => c.sections.map((sec, j) => ({ c, sec, first: j === 0 }))).filter(({ sec }) => sec.id !== dataSection).map(({ c, sec, first }) => (
+      <Fragment>
+        {first && (
+          <header class="ph__chapter-head" id={c.id} data-chapter-head={c.id}>
+            <p class="ph__kicker">Chapter {c.num}</p>
+            <h2>{c.title}</h2>
+            {bookText[c.id] && <BookText text={bookText[c.id]} />}
+          </header>
+        )}
+        <section class="ph__section" id={`s-${sec.id}`} data-section-panel={sec.id}>
+          <p class="ph__kicker">{sec.num} · {sec.planned ? 'In the framework, not yet written' : `Book page ${sec.page}`}</p>
+          <h2>{sec.title}</h2>
+          {bookText[sec.id] ? <BookText text={bookText[sec.id]} /> : <p class="ph__stub-note">To be transferred from the thesis book.</p>}
+        </section>
+      </Fragment>
+    ))}
+    </div>
+    </div>
   </article>
 
   <script
@@ -1183,10 +1340,100 @@ const sources = {
   .ph__header { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; padding-bottom: var(--_tokens---space--micro); border-bottom: 1px solid var(--_tokens---color--line); font-size: var(--_tokens---type--micro); }
   .ph__brand { font-weight: 600; text-decoration: none; }
   .ph__brand span, .ph__stamp { color: var(--_tokens---color--muted); font-weight: 400; }
-  .ph__nav { display: flex; gap: 8px; flex-wrap: wrap; margin: var(--_tokens---space--micro) 0 var(--_tokens---space--small); }
-  .ph__nav a, .ph__pager button { display: inline-flex; align-items: center; gap: 12px; min-height: 44px; padding: 8px 16px; border: 1px solid var(--_tokens---color--line); border-radius: var(--_tokens---radius--pill); font: inherit; font-size: var(--_tokens---type--micro); text-decoration: none; color: inherit; background: transparent; cursor: pointer; }
-  .ph__nav a[aria-current] { background: var(--_tokens---color--fg); color: var(--_tokens---color--bg); }
-  .ph__nav a span { font-variant-numeric: tabular-nums; opacity: .65; }
+  .ph__intro { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: var(--_tokens---space--small); padding: var(--_tokens---space--small) 0; border-bottom: 1px solid var(--_tokens---color--line); }
+  .ph__intro p:not(.ph__kicker) { font-size: var(--_tokens---type--small); line-height: 1.5; margin: 0; max-width: 64ch; }
+  .ph__intro p.ph__intro-claim { font-size: var(--_tokens---type--medium); line-height: 1.15; letter-spacing: -.03em; }
+  /* Main tabs (chapters), then the chapter's sections as a flow */
+  /* One pill family for every tab row, after the About page's Skillset cloud: tinted pills at
+     their natural width flowing like a paragraph, each row led by a black label pill. Chapters
+     take the full fill when chosen; sections and slides take a stronger tint and a hard edge. */
+  .ph__chapters, .ph__subtabs, .ph__nav { display: flex; flex-wrap: wrap; align-items: center; gap: var(--_tokens---bubble-gap-y) var(--_tokens---bubble-gap-x); }
+  .ph__chapters button, .ph__subtabs button, .ph__nav a, .ph__row-label { display: inline-flex; align-items: center; gap: var(--_tokens---pill-gap, 6px); min-height: 34px; padding: var(--_tokens---pill-pad--sm); border: var(--_tokens---pill-border); border-radius: var(--_tokens---radius--pill); font: inherit; font-size: var(--_tokens---type--micro); line-height: 1.2; white-space: nowrap; text-decoration: none; text-align: left; color: var(--_tokens---color--muted); background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent); cursor: pointer; transition: background-color var(--_tokens---motion--base), color var(--_tokens---motion--base), border-color var(--_tokens---motion--base); }
+  .ph__chapters button span, .ph__subtabs button span, .ph__nav a span { font-variant-numeric: tabular-nums; opacity: .6; }
+  .ph__row-label { background-color: var(--_tokens---color--fg); border-color: var(--_tokens---color--fg); color: var(--_tokens---color--bg); letter-spacing: -0.03em; cursor: default; }
+  @media (hover: hover) { .ph__chapters button:hover, .ph__subtabs button:hover, .ph__nav a:hover { background-color: color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent); color: var(--_tokens---color--fg); } }
+  .ph__chapters button[aria-pressed='true'] { background-color: var(--_tokens---color--fg); border-color: var(--_tokens---color--fg); color: var(--_tokens---color--bg); }
+  .ph__subtabs button[aria-pressed='true'], .ph__nav a[aria-current] { background-color: color-mix(in srgb, var(--_tokens---color--fg) 16%, transparent); border: var(--_tokens---pill-border--strong); color: var(--_tokens---color--fg); }
+  .ph__chapters button[aria-pressed='true'] span, .ph__subtabs button[aria-pressed='true'] span, .ph__nav a[aria-current] span { opacity: .75; }
+  .ph__subtabs button[data-planned='true'] { border-style: dashed; }
+  @media (pointer: coarse) { .ph__chapters button, .ph__subtabs button, .ph__nav a { min-height: 44px; } }
+  .ph__tabbar { scroll-margin-top: 72px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: var(--_tokens---space--small) 0 var(--_tokens---bubble-gap-y); }
+  .ph__tabbar .ph__chapters { margin: 0; flex: 1 1 auto; min-width: 0; }
+  @media (min-width: 1024px) { .ph__tabbar { flex-wrap: nowrap; align-items: flex-start; } .ph__tabbar .ph__chapters { flex: 1 1 auto; } .ph__index { flex: 0 1 26rem; } .ph__index > summary { display: flex; } }
+  /* Section tabs: equal pills in two rows; the number leads, the name truncates */
+  .ph__subtabs { margin: 0 0 var(--_tokens---space--small); }
+  .ph__subtabs[hidden] { display: none; }
+  /* The two tab rows stay pinned while the document scrolls under them */
+  .ph__toc { position: sticky; top: 0; z-index: 40; margin: var(--_tokens---space--small) calc(-1 * var(--_tokens---space--micro)) 0; padding: 8px var(--_tokens---space--micro) 0; background: var(--_tokens---color--bg); }
+  @media (min-width: 700px) { .ph__toc { top: var(--_tokens---layout--bar, 52px); } }
+  /* On a phone three rows of pills would cover half the screen; they scroll away there. */
+  @media (max-width: 699.98px) { .ph__toc { position: static; } }
+  .ph__toc .ph__tabbar { margin-top: 0; }
+  .ph__toc .ph__subtabs { margin-bottom: 0; padding-bottom: 10px; border-bottom: 1px solid var(--_tokens---color--line); }
+  .ph__section, .ph__chapter-head { scroll-margin-top: calc(var(--ph-toc-h, 140px) + 68px); }
+  .ph__section { padding: var(--_tokens---space--small) 0; }
+  .ph .ph__section > h2 { font-size: clamp(1.5rem, 1rem + 1.6vw, 2.5rem); line-height: 1.1; letter-spacing: -.035em; font-weight: var(--_tokens---weight--base); margin: 0 0 24px; }
+  .ph__chapter-head { padding: var(--_tokens---space--medium) 0 var(--_tokens---space--small); border-top: 1px solid var(--_tokens---color--fg); }
+  .ph__chapter-head:first-child { border-top: 0; padding-top: var(--_tokens---space--small); }
+  .ph .ph__chapter-head > h2 { font-size: clamp(2rem, 1.2rem + 2.6vw, 3.75rem); line-height: 1.05; letter-spacing: -.045em; font-weight: var(--_tokens---weight--base); margin: 0 0 var(--_tokens---space--micro); }
+
+  /* The index: a dropdown pill at the bar's right end, opening a panel of chapters that fold */
+  .ph__index { position: relative; flex: 0 1 auto; min-width: 0; margin-left: auto; font-size: var(--_tokens---type--micro); }
+  .ph__index > summary { list-style: none; display: inline-flex; align-items: center; gap: 8px; min-height: 34px; max-width: 100%; white-space: nowrap; padding: var(--_tokens---pill-pad--sm); border: var(--_tokens---pill-border); border-radius: var(--_tokens---radius--pill); background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent); font-size: var(--_tokens---type--micro); cursor: pointer; }
+  .ph__index > summary::-webkit-details-marker { display: none; }
+  .ph__index-label { color: var(--_tokens---color--muted); }
+  .ph__index > summary b { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ph__index-trigger-caret { display: inline-flex; font-style: normal; --icon-size: var(--_tokens---arrow--sm); transition: transform var(--_tokens---motion--base, .25s) ease; }
+  .ph__index[open] .ph__index-trigger-caret { transform: rotate(180deg); }
+  .ph__index[open] > summary { background: var(--_tokens---color--fg); color: var(--_tokens---color--bg); border-color: var(--_tokens---color--fg); }
+  .ph__index[open] > summary .ph__index-label { color: inherit; opacity: .65; }
+  .ph__index-panel { position: absolute; right: 0; top: calc(100% + 8px); z-index: 60; width: min(26rem, calc(100vw - 32px)); max-height: min(70dvh, 36rem); overflow-y: auto; padding: 16px; border: 1px solid var(--_tokens---color--line); border-radius: var(--_tokens---radius--medium); background-color: color-mix(in srgb, var(--_tokens---color--bg) 85%, transparent); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+  .ph__index-ch + .ph__index-ch { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--_tokens---color--line); }
+  .ph__index button { display: flex; gap: 8px; width: 100%; min-height: 36px; padding: 6px 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+  .ph__index button span { font-variant-numeric: tabular-nums; flex: 0 0 auto; }
+  .ph__index-chtitle { font-weight: 600 !important; }
+  .ph__index-ch[data-active='false'] .ph__index-chtitle { color: var(--_tokens---color--muted); font-weight: 500 !important; }
+  .ph__index ol { list-style: none; margin: 0; padding: 0 0 0 16px; min-height: 0; overflow: hidden; }
+  .ph__index-fold { display: grid; grid-template-rows: 1fr; transition: grid-template-rows var(--_tokens---motion--base, .25s) ease; }
+  .ph__index-ch[data-open='false'] .ph__index-fold { grid-template-rows: 0fr; }
+  .ph__index-ch[data-open='false'] ol { visibility: hidden; }
+  .ph__index-caret { margin-left: auto; padding-left: 8px; display: inline-flex; font-style: normal; color: var(--_tokens---color--muted); --icon-size: var(--_tokens---arrow--sm); transition: transform var(--_tokens---motion--base, .25s) ease; }
+  .ph__index-ch[data-open='true'] .ph__index-caret { transform: rotate(90deg); }
+  .ph__index ol button span { color: var(--_tokens---color--muted); min-width: 2.2em; }
+  .ph__index button[data-planned='true'] { color: var(--_tokens---color--muted); }
+  .ph__index ol button[aria-pressed='true'] { font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+  @media (hover: hover) { .ph__index-panel button:hover { text-decoration: underline; text-underline-offset: 3px; } }
+  @media (max-width: 699.98px) {
+    .ph__index { margin-left: 0; width: 100%; }
+    .ph__index > summary { display: flex; max-width: none; }
+    .ph__index-trigger-caret { margin-left: auto; }
+    .ph__index-panel { left: 0; right: auto; width: 100%; }
+  }
+  .ph__stub-note { color: var(--_tokens---color--muted); }
+  .ph :global(.ph__book) { display: grid; gap: var(--_tokens---space--small); }
+  .ph :global(.ph__book-body p) { font-size: var(--_tokens---type--small); line-height: 1.6; margin: 0 0 1em; max-width: 68ch; }
+  .ph :global(.ph__book sup) { font-size: .65em; line-height: 0; color: var(--_tokens---color--muted); }
+  .ph :global(.ph__book-body .ph__book-lead) { font-size: calc(var(--_tokens---type--small) * 1.25); line-height: 1.45; letter-spacing: -.01em; max-width: 60ch; margin-bottom: 1.5em; }
+  .ph :global(.ph__book-body .ph__book-h) { font-size: var(--_tokens---type--small); font-weight: 600; margin: 1.5em 0 .75em; }
+  .ph :global(.ph__book-body .ph__book-table) { margin: 1.5em 0 2em; }
+  .ph :global(.ph__book-body .ph__book-table figcaption) { font-size: var(--_tokens---type--micro); margin-bottom: 8px; }
+  .ph :global(.ph__book-body .ph__book-tscroll) { overflow-x: auto; }
+  .ph :global(.ph__book-body .ph__book-table table) { width: 100%; min-width: 36rem; border-collapse: collapse; font-size: var(--_tokens---type--micro); font-variant-numeric: tabular-nums; }
+  .ph :global(.ph__book-body .ph__book-table th), .ph :global(.ph__book-body .ph__book-table td) { text-align: left; vertical-align: top; padding: 8px 12px 8px 0; border-bottom: 1px solid var(--_tokens---color--line); }
+  .ph :global(.ph__book-body .ph__book-table thead th) { font-weight: 600; border-bottom-color: var(--_tokens---color--fg); }
+  .ph :global(.ph__book-body .ph__book-table tbody th) { font-weight: 500; }
+  .ph :global(.ph__book-body .ph__book-tnote) { font-size: var(--_tokens---type--micro); color: var(--_tokens---color--muted); line-height: 1.5; margin: 8px 0 0; max-width: none; }
+  @media (min-width: 1024px) {
+    .ph :global(.ph__book-body) { columns: 2; column-gap: var(--_tokens---space--small); }
+    .ph :global(.ph__book-body p) { max-width: none; }
+    .ph :global(.ph__book-body .ph__book-table), .ph :global(.ph__book-body .ph__book-h) { column-span: all; }
+    .ph :global(.ph__book-notes) { columns: 2; column-gap: var(--_tokens---space--small); display: block; }
+    .ph :global(.ph__book-notes li) { break-inside: avoid; margin-bottom: 8px; }
+  }
+  .ph :global(.ph__book-notes) { margin: 0; padding: 12px 0 0 1.6em; border-top: 1px solid var(--_tokens---color--line); font-size: var(--_tokens---type--micro); line-height: 1.5; color: var(--_tokens---color--muted); display: grid; gap: 8px; }
+  .ph :global(.ph__book-notes a) { color: inherit; overflow-wrap: anywhere; }
+  .ph__nav { scroll-margin-top: calc(var(--ph-toc-h, 140px) + 68px); margin: var(--_tokens---space--micro) 0 var(--_tokens---space--small); }
+  .ph__pager button { display: inline-flex; align-items: center; gap: 12px; min-height: 44px; padding: 8px 16px; border: 1px solid var(--_tokens---color--line); border-radius: var(--_tokens---radius--pill); font: inherit; font-size: var(--_tokens---type--micro); color: inherit; background: transparent; cursor: pointer; }
   .ph__slide { margin-bottom: var(--_tokens---space--medium); scroll-margin-top: 80px; }
   .ph__slide[hidden], .ph__pager[hidden] { display: none; }
   .ph__heading { margin-bottom: var(--_tokens---space--small); }
@@ -1378,6 +1625,94 @@ const sources = {
 </style>
 
 <script>
+  // Chapters (main tabs) and sections (the flow). Picking a chapter opens its first section.
+  const book = document.querySelector<HTMLElement>('[data-analysis]');
+  if (book) {
+    const chapterBtns = [...book.querySelectorAll<HTMLButtonElement>('[data-chapter]')];
+    const sectionBtns = [...book.querySelectorAll<HTMLButtonElement>('[data-section]')];
+    const sectionPanels = [...book.querySelectorAll<HTMLElement>('[data-section-panel]')];
+
+    const index = book.querySelector<HTMLDetailsElement>('.ph__index');
+    document.addEventListener('click', (e) => {
+      if (index?.open && !index.contains(e.target as Node)) index.open = false;
+    });
+    index?.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && index.open) { index.open = false; index.querySelector('summary')?.focus(); }
+    });
+    const indexChapters = [...book.querySelectorAll<HTMLElement>('[data-index-chapter]')];
+    // The index is a toggle list: one chapter open at a time, the open one shows its sections.
+    const openChapter = (ch: string | null) =>
+      indexChapters.forEach((c) => {
+        const open = c.dataset.indexChapter === ch;
+        c.dataset.open = String(open);
+        c.querySelector('[data-index-toggle]')?.setAttribute('aria-expanded', String(open));
+      });
+    book.querySelectorAll<HTMLButtonElement>('[data-index-toggle]').forEach((b) =>
+      b.addEventListener('click', () => {
+        const ch = b.dataset.indexToggle!;
+        openChapter(b.closest<HTMLElement>('[data-index-chapter]')!.dataset.open === 'true' ? null : ch);
+      })
+    );
+    const toc = book.querySelector<HTMLElement>('[data-toc]');
+    const pinned = () => !!toc && getComputedStyle(toc).position === 'sticky';
+    const syncTocHeight = () => toc && book.style.setProperty('--ph-toc-h', `${pinned() ? toc.offsetHeight : 0}px`);
+    syncTocHeight();
+    addEventListener('resize', syncTocHeight);
+
+    // Mark a section as current everywhere it is named: tabs, sub-tabs, the index.
+    let currentId = '';
+    const setCurrent = (id: string) => {
+      if (id === currentId) return;
+      currentId = id;
+      const ch = 'ch' + id.split('-')[0];
+      sectionBtns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.section === id)));
+      chapterBtns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.chapter === ch)));
+      indexChapters.forEach((c) => (c.dataset.active = String(c.dataset.indexChapter === ch)));
+      if (!index?.open) openChapter(ch);
+      book.querySelectorAll<HTMLElement>('[data-subtabs]').forEach((n) => (n.hidden = n.dataset.subtabs !== ch));
+      syncTocHeight();
+      const btn = sectionBtns.find((b) => b.dataset.section === id);
+      const current = book.querySelector('[data-index-current]');
+      if (current && btn) current.textContent = btn.textContent!.replace(/\s+/g, ' ').trim();
+    };
+
+    // Jump: the document is continuous, so a tab scrolls to its section rather than swapping it in.
+    const goTo = (target: HTMLElement | null, id: string) => {
+      index?.removeAttribute('open');
+      setCurrent(id);
+      target?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    };
+    chapterBtns.forEach((b) =>
+      b.addEventListener('click', () => {
+        const ch = b.dataset.chapter!;
+        goTo(book.querySelector<HTMLElement>(`[data-chapter-head="${ch}"]`), ch.replace('ch', '') + '-1');
+      })
+    );
+    sectionBtns.forEach((b) =>
+      b.addEventListener('click', () => goTo(book.querySelector<HTMLElement>(`#s-${b.dataset.section}`), b.dataset.section!))
+    );
+
+    // Chapter openings count as their chapter's first section, in document order.
+    const markers: [HTMLElement, string][] = [...book.querySelectorAll<HTMLElement>('[data-section-panel], [data-chapter-head]')].map((el) => [
+      el,
+      el.dataset.sectionPanel ?? el.dataset.chapterHead!.replace('ch', '') + '-1',
+    ]);
+    // Follow the scroll: the current section is the last one whose top has passed under the tabs.
+    let ticking = false;
+    const spy = () => {
+      ticking = false;
+      const line = (pinned() ? toc!.getBoundingClientRect().bottom : 0) + 120;
+      let id = '1-1';
+      for (const [el, sid] of markers) {
+        if (el.getBoundingClientRect().top <= line) id = sid;
+        else break;
+      }
+      setCurrent(id);
+    };
+    addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(spy); } }, { passive: true });
+    spy();
+  }
+
   const root = document.querySelector<HTMLElement>('[data-analysis]');
   if (root) {
     const slides = [...root.querySelectorAll<HTMLElement>('[data-slide]')];
@@ -1401,7 +1736,7 @@ const sources = {
       if (focus) {
         history.replaceState(null, '', '#' + ids[index]);
         root.querySelector<HTMLElement>(`#${ids[index]}-title`)?.focus({ preventScroll: true });
-        root.scrollIntoView({ block: 'start' });
+        root.querySelector<HTMLElement>('.ph__nav')?.scrollIntoView({ block: 'start' });
       }
     };
 
