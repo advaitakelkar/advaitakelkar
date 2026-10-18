@@ -325,3 +325,11 @@ Eleven supplied room views edited with the built-in image tool for a cohesive ph
 - GOONJ credits Varun, Nayan Mote and Advaita; photography credits Bombay Frameworks. Event date/year corrected to 24 December 2019, venue/client to Forest Hills Tala. Removed the unsupported academic professor label.
 - Pet Pod corrected to a furniture-brand logo/identity project for Kuldeep Jhangid, credited to Varun and Advaita.
 - All three added to the public-project list: 31 public / 29 locked out of 60. Featured flags were left as configured; the previous five professional galleries remain featured.
+
+
+## 2026-10-18 — Powerhouse infrastructure research slides
+
+- Replaced the site proposal narrative with three research slides: USA charging access/networks; top three states CA/NY/FL with expandable NYC detail; vehicle stock and growth. Added filters, maps and official-source links.
+- Separated ports from stations, public access from ownership, and vehicle electricity from public-port consumption. 2015 is clearly a different-scope FHWA total with unavailable fuel split; 2040 is an illustrative EIA-based state scenario.
+- Added source extracts, reproducible aggregation script and docs/powerhouse-infrastructure-sources-2026-10-18.md. Existing unrelated work retained.
+- Validation: production build, style lints and responsive browser interaction checks pass.

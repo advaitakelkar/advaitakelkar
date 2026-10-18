@@ -1,0 +1,228 @@
+---
+import PageLayout from '../layouts/PageLayout.astro';
+import data from '../data/powerhouse-analysis.json';
+import networks from '../data/powerhouse-networks.json';
+const fmt=(n:number)=>Math.round(n).toLocaleString('en-US');
+const million=(n:number)=>(n/1e6).toFixed(2)+'m';
+const pct=(n:number,d:number)=>(n/d*100).toFixed(1)+'%';
+const pub=data.usa.groups.public.all, priv=data.usa.groups.private.all;
+const tesla=data.usa.groups.public.tesla;
+const energy=data.energyUS['2025'];
+const future=data.outlook['2040'], base=data.outlook['2025'];
+const growth=future.total/base.total;
+const states=data.states.map(s=>{
+ const name=s.name as keyof typeof data.registrations['2025'];
+ const now=data.registrations['2025'][name], first=data.registrations['2016'][name];
+ const total=now.total*growth;
+ return {...s,now,first,energy:data.energy[name],historic:data.fhwa2015[name],scenario:{total,bev:total*future.bev/future.total,phev:total*future.phev/future.total,fuel:total*(future.total-future.bev-future.phev-future.hydrogen)/future.total},cagr:((now.bev/first.bev)**(1/9)-1)*100};
+});
+const size=(n:number)=>Math.min(4.5,0.5+Math.sqrt(n)*0.3);
+const sources={afdc:'https://developer.nlr.gov/docs/transportation/alt-fuel-stations-v1/all/',regs:'https://afdc.energy.gov/vehicle-registration',eia:'https://www.eia.gov/electricity/monthly/epm_table_grapher.php?t=table_d_1',stateEnergy:'https://www.eia.gov/state/seds/sep_fuel/html/fuel_eves.html',outlook:'https://www.eia.gov/outlooks/aeo/supplement/excel/suptab_39.xlsx',fhwa:'https://www.fhwa.dot.gov/policyinformation/statistics/2015/mv1.cfm',use:'https://www.nyc.gov/mayors-office/news/2024/08/adams-administration-wins-15-million-federal-grant-build-nation-s-largest-municipal-curbside-ev'};
+---
+<PageLayout title="The Powerhouse · Charging infrastructure" description="Three-slide analysis of US charging infrastructure, California, New York and Florida, and vehicle growth. Official federal and city sources." noindex showFooter={false}>
+<article class="ph" data-analysis>
+ <header class="ph__header">
+  <a href="/powerhouse/" class="ph__brand">The Powerhouse <span>/ Infrastructure research</span></a>
+  <span class="ph__stamp">Official sources · 18 October 2026</span>
+ </header>
+ <nav class="ph__nav" aria-label="Analysis slides">
+  <a href="#usa" data-slide-link="0" aria-current="step"><span>01</span> USA</a>
+  <a href="#states" data-slide-link="1"><span>02</span> Three states</a>
+  <a href="#vehicles" data-slide-link="2"><span>03</span> Vehicles &amp; growth</a>
+ </nav>
+
+ <section id="usa" class="ph__slide" data-slide="0" aria-labelledby="usa-title">
+  <div class="ph__heading"><p class="ph__kicker">01 / National infrastructure</p><h1 id="usa-title" tabindex="-1">Where charging meets demand</h1><p>A national baseline for comparing vehicle demand, charging access and the case for Powerhouse.</p></div>
+  <div class="ph__split">
+   <div>
+    <div class="ph__filters">
+     <label>Access<select id="ph-access"><option value="public">Public</option><option value="private">Private / restricted</option><option value="all">Both</option></select></label>
+     <label>Network<select id="ph-network"><option value="all">All networks</option><option value="tesla">Tesla + Tesla Destination</option><option value="other">Other / non-networked</option></select></label>
+    </div>
+    <figure class="ph__map">
+     <svg class="ph__svg ph__usa" viewBox="0 0 975 610" role="img" aria-labelledby="us-map-label"><title id="us-map-label">US charging ports: public stations, all networks</title>
+      <g class="ph__land">{data.usa.states.map(s=><path d={s.d}><title>{s.name}</title></path>)}</g>
+      <g class="ph__dots">{data.usa.dots.map(d=><circle cx={d.x} cy={d.y} r={size(d.l1+d.l2+d.dc)} data-access={d.access} data-network={d.network} class:list={[d.network==='tesla'?'is-tesla':'is-other',{'is-filtered':d.access!=='public'}]} />)}</g>
+     </svg>
+     <figcaption><span class="ph__key ph__key--tesla">Tesla networks</span><span class="ph__key ph__key--other">Other networks</span><span>Dot area increases with ports; dense cells capped.</span></figcaption>
+    </figure>
+    <div class="ph__selection" aria-live="polite" aria-atomic="true"><b id="ph-map-ports">{fmt(pub.ports)} ports</b><span id="ph-map-stations">{fmt(pub.stations)} stations · public access</span></div>
+   </div>
+   <aside class="ph__summary">
+    <div class="ph__metric"><span>Public charging ports</span><strong>{fmt(pub.ports)}</strong><small>{fmt(pub.stations)} stations · {fmt(pub.dc)} DC fast ports</small></div>
+    <div class="ph__metric"><span>Reported private ports</span><strong>{fmt(priv.ports)}</strong><small>{fmt(priv.stations)} restricted-access stations</small></div>
+    <div class="ph__bar-label"><b>Public ports in the three leading states</b><strong>{pct(states.reduce((n,s)=>n+s.groups.public.all.ports,0),pub.ports)}</strong></div>
+    <p class="ph__note">California, New York and Florida lead by public-port count. This is a shortlist by existing infrastructure, not a ranking of unmet need. States with few ports may have greater access gaps.</p>
+    <div class="ph__energy"><span>Electricity used by US plug-in vehicles · 2025</span><strong>{(energy.total/1e6).toFixed(2)} TWh</strong><p>EIA modeled estimate, including home, workplace and public charging. { (energy.bev/1e6).toFixed(2)} TWh battery EVs + {(energy.phev/1e6).toFixed(2)} TWh plug-in hybrids.</p></div>
+   </aside>
+  </div>
+  <div class="ph__table-wrap" tabindex="0" role="region" aria-label="Data table; scroll horizontally for more columns"><table><caption>Charging infrastructure by access and network</caption><thead><tr><th scope="col">Access / network</th><th scope="col">Stations</th><th scope="col">Level 1 ports</th><th scope="col">Level 2 ports</th><th scope="col">DC fast ports</th><th scope="col">All ports</th></tr></thead><tbody>
+   {(['public','private'] as const).flatMap(access=>(['tesla','other'] as const).map(network=>{const d=data.usa.groups[access][network];return <tr><th scope="row">{access==='public'?'Public':'Private'} / {network==='tesla'?'Tesla networks':'Other networks'}</th><td>{fmt(d.stations)}</td><td>{fmt(d.l1)}</td><td>{fmt(d.l2)}</td><td>{fmt(d.dc)}</td><td>{fmt(d.ports)}</td></tr>}))}
+  </tbody></table></div>
+  <details class="ph__details"><summary>Major networks: national and three-state comparison</summary>
+   <div class="ph__table-wrap" tabindex="0" role="region" aria-label="Network comparison"><table><caption>Largest eight AFDC network categories by public ports</caption><thead><tr><th>Network / category</th><th>USA ports</th><th>USA DC fast</th><th>California</th><th>New York</th><th>Florida</th></tr></thead><tbody>{networks.networks.slice(0,8).map(n=><tr><th scope="row">{n.name}</th><td>{fmt(n.ports)}</td><td>{fmt(n.dc)}</td><td>{fmt(n.CA)}</td><td>{fmt(n.NY)}</td><td>{fmt(n.FL)}</td></tr>)}</tbody></table></div>
+   <p class="ph__note">Network labels are AFDC categories, not necessarily equipment owners. Non-networked is a category, not a company. Tesla combines its two network labels. All networks contribute to access; brand alone does not establish reliability, compatibility or civic value.</p>
+  </details>
+  <p class="ph__warning"><b>National reading:</b> port counts show provision, not service quality. A Powerhouse case needs evidence of charging dependence, useful dwell time and community need. This snapshot cannot show whether charger growth is keeping pace with vehicle growth: that requires a comparable historical port series.</p>
+  <details class="ph__details"><summary>What the counts and energy figures mean</summary><div class="ph__definitions">
+   <p><b>A station is a location; a port serves one vehicle at a time.</b> Several connectors can share one port. “Public” describes access, not government ownership. “Private” covers reported restricted-access facilities; it does not count the full stock of residential chargers.</p>
+   <p><b>Port counts do not measure electricity use.</b> AFDC does not report national metered kWh or a national utilization rate. EIA estimates electricity used by vehicles across all charging locations. It cannot be divided by public ports to obtain public-port consumption. kW measures power; kWh measures energy; 1 TWh = 1 billion kWh.</p>
+   <p><b>Map scope:</b> 50 states and DC, operating electric stations. Territories excluded from counts and map. Alaska and Hawaii are insets. Cells aggregate locations and cap dot sizes; use the table for exact totals. Tesla combines Tesla and Tesla Destination; other includes non-networked stations.</p>
+  </div></details>
+  <footer class="ph__sources">Sources: <a href={sources.afdc}>DOE AFDC station inventory</a>, snapshot 18 Oct 2026; <a href={sources.eia}>EIA Electric Power Monthly, Table D.1</a>, 2025 annual consumption. Map boundaries: <a href="https://github.com/topojson/us-atlas">US Census / us-atlas</a>.</footer>
+ </section>
+
+ <section id="states" class="ph__slide" data-slide="1" aria-labelledby="states-title">
+  <div class="ph__heading"><p class="ph__kicker">02 / Top three by public charging ports</p><h1 id="states-title" tabindex="-1">California, New York, Florida</h1><p>Compare market scale, growth and charging provision—then ask what each implies for Powerhouse.</p></div>
+  <div class="ph__state-grid">{states.map((s,i)=><div class="ph__state-card">
+   <div class="ph__state-title"><span>0{i+1}</span><h2>{s.name}</h2></div>
+   <svg class="ph__svg ph__state-map" viewBox="0 0 420 240" role="img" aria-label={`${s.name} public charging ports, mapped by network`}>
+    <path class="ph__land" d={s.map.outline}/><g class="ph__county">{s.map.counties.map(c=><path d={c.d}/>)}</g>
+    {s.map.dots.filter(d=>d.access==='public').map(d=><circle cx={d.x} cy={d.y} r={Math.min(3,0.4+Math.sqrt(d.l1+d.l2+d.dc)*0.16)} class={d.network==='tesla'?'is-tesla':'is-other'}/>)}
+   </svg>
+   <div class="ph__state-number">{fmt(s.groups.public.all.ports)}<span>public ports</span></div>
+   <div class="ph__bar" role="img" aria-label={`${s.name}: ${fmt(s.groups.public.all.dc)} DC fast and ${fmt(s.groups.public.all.l2)} Level 2 ports`}><span class="ph__fill" style={`width:${s.groups.public.all.dc/s.groups.public.all.ports*100}%`}></span></div>
+   <p class="ph__note">{pct(s.groups.public.all.dc,s.groups.public.all.ports)} DC fast · {((s.now.bev+s.now.phev)/s.groups.public.all.ports).toFixed(1)} plug-in vehicles per public port</p>
+  </div>)}</div>
+  <p class="ph__legend"><span class="ph__key ph__key--tesla">Tesla networks</span><span class="ph__key ph__key--other">Other networks</span><span>Map dots show public ports; maps fit each state independently.</span></p>
+  <div class="ph__table-wrap" tabindex="0" role="region" aria-label="Data table; scroll horizontally for more columns"><table><caption>Infrastructure, vehicles and electricity</caption><thead><tr><th scope="col">Measure</th>{states.map(s=><th scope="col">{s.name}</th>)}</tr></thead><tbody>
+   <tr><th scope="row">Public stations / private stations</th>{states.map(s=><td>{fmt(s.groups.public.all.stations)} / {fmt(s.groups.private.all.stations)}</td>)}</tr>
+   <tr><th scope="row">Public ports: Level 1 / Level 2 / DC fast</th>{states.map(s=><td>{fmt(s.groups.public.all.l1)} / {fmt(s.groups.public.all.l2)} / {fmt(s.groups.public.all.dc)}</td>)}</tr>
+   <tr><th scope="row">Reported private ports</th>{states.map(s=><td>{fmt(s.groups.private.all.ports)}</td>)}</tr>
+   <tr><th scope="row">Tesla public ports / other public ports</th>{states.map(s=><td>{fmt(s.groups.public.tesla.ports)} / {fmt(s.groups.public.other.ports)}</td>)}</tr>
+   <tr><th scope="row">Battery EVs / plug-in hybrids · 2025</th>{states.map(s=><td>{fmt(s.now.bev)} / {fmt(s.now.phev)}</td>)}</tr>
+   <tr><th scope="row">Plug-in vehicles per public port¹</th>{states.map(s=><td>{((s.now.bev+s.now.phev)/s.groups.public.all.ports).toFixed(1)}</td>)}</tr>
+   <tr><th scope="row">BEV share of light-duty fleet · 2025</th>{states.map(s=><td>{pct(s.now.bev,s.now.total)}</td>)}</tr>
+   <tr><th scope="row">BEV increase · 2024–25</th>{states.map(s=>{const prior=data.registrations['2024'][s.name as keyof typeof data.registrations['2024']].bev;return <td>+{fmt(s.now.bev-prior)} / +{pct(s.now.bev-prior,prior)}</td>})}</tr>
+   <tr><th scope="row">EV electricity · 2024 · GWh²</th>{states.map(s=><td>{fmt(s.energy.total)}</td>)}</tr>
+  </tbody></table></div>
+  <p class="ph__note">¹ 2025 registered battery EVs + plug-in hybrids divided by October 2026 public ports: a cross-year indicator, not a queue or capacity measure. ² EIA modeled vehicle electricity across all locations, including home charging; not public-port-only consumption. 1 GWh = 1 million kWh.</p>
+  <div class="ph__growth-grid">
+   <div><h2>California / scale</h2><p>Largest existing plug-in fleet of the three, and the largest absolute BEV gain from 2024 to 2025. Its roughly 33.7 plug-in vehicles per public port warrants closer investigation, but does not prove a charging shortage.</p><p class="ph__note">Powerhouse question: which neighborhoods remain underserved within a large market? The <a href="https://www.energy.ca.gov/publications/2025/2024-zero-emission-vehicle-infrastructure-plan-deployment-strategy-2025-2030">CEC infrastructure plan</a> explicitly considers funded future supply; existing ports alone overstate the opportunity.</p></div>
+   <div><h2>New York / public access</h2><p>About 16.6 plug-in vehicles per public port: the lowest of these three. A statewide shortage claim is therefore weak on this measure. A neighborhood access argument is more defensible.</p><p class="ph__note"><a href="https://www.nyc.gov/html/dot/html/pr2026/expansion-of-curbside-electric-vehicle-charging.shtml">NYC DOT, August 2026</a>, reports that half of city car owners rely on street parking. This supports investigating shared charging for residents without home access; it does not describe all New York State.</p></div>
+   <div><h2>Florida / growth</h2><p>About 35.0 plug-in vehicles per public port, the highest of the three, with the fastest 2016–25 BEV percentage growth. This makes Florida a serious alternative, especially for a travel-oriented hub.</p><p class="ph__note"><a href="https://www.fdot.gov/emergingtechnology/home/evprogram/ev-plan">FDOT’s master plan</a> includes evacuation routes. A resilience proposal must demonstrate power continuity and safe access; ordinary chargers alone do not provide backup power.</p></div>
+  </div>
+  <details class="ph__details" id="ny-detail"><summary>New York close-up: boroughs, charging locations and use</summary>
+   <div class="ph__ny-grid"><div>
+    <div class="ph__filters"><label>Borough<select id="ph-borough"><option value="all">All five boroughs</option>{data.city.boroughs.map(b=><option value={b.name}>{b.name}</option>)}</select></label><label>Charger type<select id="ph-city-type"><option value="all">All public stations</option><option value="dc">Has DC fast</option><option value="ac">AC only</option></select></label></div>
+    <svg class="ph__svg ph__city" viewBox="0 0 640 640" role="img" aria-label="New York City public charging station locations by borough">
+     <g class="ph__land">{data.city.boroughs.map(b=><path d={b.d} data-borough-shape={b.name}><title>{b.name}</title></path>)}</g>
+     {data.city.dots.filter(d=>d.access==='public').map(d=><circle cx={d.x} cy={d.y} r={Math.min(7,1+Math.sqrt(d.l1+d.l2+d.dc)*0.6)} class={d.dc>0?'is-tesla':'is-other'} data-borough={d.borough} data-dc={d.dc}><title>{d.name} · {d.borough} · {d.network || 'Non-networked'} · {d.l1} L1 / {d.l2} L2 / {d.dc} DC ports</title></circle>)}
+    </svg>
+    <p class="ph__legend"><span class="ph__key ph__key--tesla">Has DC fast</span><span class="ph__key ph__key--other">AC only</span></p>
+    <p id="ph-city-result" class="ph__selection" aria-live="polite">{fmt(data.city.groups.public.all.stations)} public stations · {fmt(data.city.groups.public.all.ports)} ports</p>
+   </div><div class="ph__ny-copy">
+    <h2>New York City holds {pct(data.city.groups.public.all.ports,states[1].groups.public.all.ports)} of the state’s public ports</h2>
+    <div class="ph__table-wrap" tabindex="0" role="region" aria-label="Data table; scroll horizontally for more columns"><table><caption>Public charging by borough</caption><thead><tr><th>Borough</th><th>Stations</th><th>AC ports</th><th>DC fast</th></tr></thead><tbody>{data.city.boroughs.map(b=><tr data-borough-row={b.name}><th scope="row">{b.name}</th><td>{fmt(b.groups.public.all.stations)}</td><td>{fmt(b.groups.public.all.l1+b.groups.public.all.l2)}</td><td>{fmt(b.groups.public.all.dc)}</td></tr>)}</tbody></table></div>
+    <div class="ph__energy"><span>Observed use · NYC curbside pilot</span><strong>70%</strong><p>Average plugged-in occupancy reported by NYC in August 2024 across 100 chargers at 35 sites. Plugged-in time includes periods when little or no power may flow. This is a local pilot result, not the utilization of every NYC charger.</p></div>
+    <p class="ph__note">Boroughs are assigned from station coordinates using NYC’s detailed boundaries. Public access can still involve parking fees or opening-hour restrictions. The map is a dated inventory, not live availability.</p>
+   </div></div>
+  </details>
+  <footer class="ph__sources">Sources: <a href={sources.afdc}>DOE AFDC inventory</a>; <a href={sources.regs+'?year=2025'}>AFDC 2025 registrations</a>; <a href={sources.stateEnergy}>EIA SEDS Table F56, 2024</a>; <a href={sources.use}>NYC official utilization report, 28 Aug 2024</a>; <a href="https://data.cityofnewyork.us/City-Government/Borough-Boundaries/gthc-hcne">NYC borough boundaries</a>.</footer>
+ </section>
+
+ <section id="vehicles" class="ph__slide" data-slide="2" aria-labelledby="vehicles-title">
+  <div class="ph__heading"><p class="ph__kicker">03 / Registered vehicles and growth</p><h1 id="vehicles-title" tabindex="-1">2015, the latest count, and 2040</h1><p>Historical totals, the current fuel mix, and an explicitly modeled future.</p></div>
+  <div class="ph__timeline"><span><b>2015</b>All registered motor vehicles · FHWA</span><span><b>2025</b>Light-duty registrations · AFDC</span><span><b>2040</b>Illustrative light-duty scenario · EIA-based</span></div>
+  <p class="ph__warning">The 2015 and 2025 totals cover different vehicle classes. Growth rates below use the consistent AFDC 2016–2025 series. The 2040 state figures are calculations, not official state forecasts.</p>
+  <div class="ph__table-wrap" tabindex="0" role="region" aria-label="Data table; scroll horizontally for more columns"><table class="ph__growth"><caption>Vehicles in use: three-state comparison</caption><thead><tr><th scope="col">State</th><th scope="col">2015 · total only</th><th scope="col">2025 · latest fuel split</th><th scope="col">2040 · comparison scenario</th></tr></thead><tbody>{states.map(s=><tr>
+   <th scope="row">{s.name}</th>
+   <td><strong>{million(s.historic)}</strong><span>{fmt(s.historic)} total vehicles</span><small>Fuel / EV split unavailable in this series.</small></td>
+   <td><strong>{million(s.now.total)}</strong><span>{million(s.now.fuel)} fuel-powered</span><span>{fmt(s.now.bev)} battery EVs</span><span>{fmt(s.now.phev)} plug-in hybrids</span><small>{fmt(s.now.hydrogen+s.now.unknown)} hydrogen / unknown</small>
+    <div class="ph__mix" role="img" aria-label={`${s.name} 2025: ${pct(s.now.bev,s.now.total)} battery electric, ${pct(s.now.phev,s.now.total)} plug-in hybrid`}><i style={`width:${s.now.fuel/s.now.total*100}%`}></i><i class="is-tesla" style={`width:${s.now.bev/s.now.total*100}%`}></i><i class="is-phev" style={`width:${s.now.phev/s.now.total*100}%`}></i></div>
+   </td>
+   <td class="ph__projection"><strong>~{million(s.scenario.total)}</strong><span>~{million(s.scenario.fuel)} fuel-powered</span><span>~{million(s.scenario.bev)} battery EVs</span><span>~{million(s.scenario.phev)} plug-in hybrids</span><small>National growth + national technology mix</small>
+    <div class="ph__mix" role="img" aria-label={`2040 scenario: ${pct(future.bev,future.total)} battery electric, ${pct(future.phev,future.total)} plug-in hybrid`}><i style={`width:${s.scenario.fuel/s.scenario.total*100}%`}></i><i class="is-tesla" style={`width:${s.scenario.bev/s.scenario.total*100}%`}></i><i class="is-phev" style={`width:${s.scenario.phev/s.scenario.total*100}%`}></i></div>
+   </td>
+  </tr>)}</tbody></table></div>
+  <p class="ph__legend"><span class="ph__key ph__key--fuel">Fuel-powered, including conventional hybrids</span><span class="ph__key ph__key--tesla">Battery EV</span><span class="ph__key ph__key--phev">Plug-in hybrid: electricity + fuel</span></p>
+  <div class="ph__growth-grid">{states.map(s=><div><h2>{s.name}</h2><p class="ph__growth-rate">{s.cagr.toFixed(1)}% <span>annual battery-EV growth, 2016–25</span></p><div class="ph__history">{([2016,2020,2024,2025] as const).map(y=>{const n=data.registrations[String(y) as keyof typeof data.registrations][s.name as keyof typeof data.registrations['2025']].bev;return <div><span>{y}</span><div class="ph__track"><i style={`width:${n/s.now.bev*100}%`}></i></div><b>{fmt(n)}</b></div>})}</div><p class="ph__note">Total light-duty fleet: {(((s.now.total/s.first.total)**(1/9)-1)*100).toFixed(1)}% per year over the same period. Historical rates are not extrapolated to 2040.</p></div>)}</div>
+  <div class="ph__warning"><h2>Where should Powerhouse be tested?</h2><p><b>Provisional recommendation: New York City, within the New York case.</b> For the thesis’s civic/community purpose, the strongest current rationale is dependence on shared charging combined with neighborhood use. This is a research judgment, not an official ranking or a final site decision.</p><p><b>The alternatives matter.</b> California leads on current market size and absolute vehicle growth. Florida leads on relative historical growth and the vehicle-to-public-port indicator. If commercial charging throughput is the primary objective, the present evidence does not justify choosing New York over them.</p><p><b>The strongest counterargument:</b> NYC is already expanding curbside and municipal charging. Powerhouse must demonstrate additional community benefit compared with simply adding chargers to existing parking. High charging occupancy does not prove people will stay, use shared facilities or meet one another.</p><p><b>Decision test:</b> compare matched neighborhoods in all three states for home-charging access, actual sessions and kWh, dwell time, planned competitors, grid capacity, land/operating cost, and community services requested by residents. Measure space accessible without purchase and access by walking, cycling and transit. Without those observations, a numerical “best state” score would imply certainty the data do not support.</p><p class="ph__note">Basis: official AFDC comparisons above; <a href="https://www.nyc.gov/html/dot/html/pr2026/expansion-of-curbside-electric-vehicle-charging.shtml">NYC DOT access and expansion evidence</a>; Powerhouse’s stated civic hypothesis. The uniform 2040 scenario cannot select a winner because every state is assigned the same national trajectory.</p></div>
+  <details class="ph__details"><summary>2040 scenario, scope and calculation</summary><div class="ph__definitions">
+   <p><b>Official national outlook.</b> EIA’s AEO2026 Counterfactual Baseline, Table 39, models {million(future.total)} US light-duty vehicles in 2040: {million(future.bev)} battery EVs and {million(future.phev)} plug-in hybrids. It is a policy-dependent scenario, not a prediction.</p>
+   <p><b>State calculation.</b> Multiply each state’s 2025 AFDC light-duty total by EIA’s national 2040 / 2025 stock ratio ({growth.toFixed(3)}). Apply the national 2040 shares: {pct(future.bev,future.total)} battery EV, {pct(future.phev,future.total)} plug-in hybrid, and the remaining fuel / hydrogen mix. This assumes the same national trajectory for every state; actual state policy, population and adoption can differ substantially.</p>
+   <p><b>Historical scope.</b> FHWA 2015 includes automobiles, buses, trucks and motorcycles. AFDC covers light-duty vehicles and offers comparable fuel categories from 2016; it rounds counts to 100. Fuel-powered includes gasoline, diesel, conventional hybrids, flex-fuel and gaseous fuels. PHEVs are kept separate because they use both electricity and fuel. CAGR = (2025 / 2016)^(1/9) − 1.</p>
+  </div></details>
+  <footer class="ph__sources">Sources: <a href={sources.fhwa}>FHWA MV-1, 2015</a>; <a href={sources.regs+'?year=2016'}>AFDC 2016</a>, <a href={sources.regs+'?year=2020'}>2020</a>, <a href={sources.regs+'?year=2024'}>2024</a>, <a href={sources.regs+'?year=2025'}>2025</a>; <a href={sources.outlook}>EIA AEO2026 Table 39 (Excel)</a>; <a href="https://www.eia.gov/outlooks/aeo/narrative/">EIA scenario assumptions</a>. Official-source values accessed 18 Oct 2026; state scenario calculated for this comparison.</footer>
+ </section>
+ <div class="ph__pager" hidden><button type="button" id="ph-prev">Previous</button><span id="ph-progress" aria-live="polite">01 / 03</span><button type="button" id="ph-next">Next</button></div>
+</article>
+<script id="ph-data" type="application/json" set:html={JSON.stringify({groups:data.usa.groups,city:data.city.dots.filter(d=>d.access==='public').map(d=>({borough:d.borough,dc:d.dc,ports:d.l1+d.l2+d.dc}))}).replace(/</g,'\\u003c')} />
+</PageLayout>
+
+<style>
+ .ph { --ph-accent: #bd4b2e; --ph-phev: #b48d32; padding: 80px 0 calc(var(--_tokens---space--medium) + 48px); scroll-margin-top: 80px; color:var(--_tokens---color--fg); }
+ .ph__header {display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap;padding-bottom:var(--_tokens---space--micro);border-bottom:1px solid var(--_tokens---color--line);font-size:var(--_tokens---type--micro);}
+ .ph__brand {font-weight:600;text-decoration:none;} .ph__brand span,.ph__stamp {color:var(--_tokens---color--muted);font-weight:400;}
+ .ph__nav {display:flex;gap:8px;flex-wrap:wrap;margin:var(--_tokens---space--micro) 0 var(--_tokens---space--small);}
+ .ph__nav a,.ph__pager button {display:inline-flex;align-items:center;gap:12px;min-height:44px;padding:8px 16px;border:1px solid var(--_tokens---color--line);border-radius:var(--_tokens---radius--pill);font:inherit;font-size:var(--_tokens---type--micro);text-decoration:none;color:inherit;background:transparent;cursor:pointer;}
+ .ph__nav a[aria-current] {background:var(--_tokens---color--fg);color:var(--_tokens---color--bg);}
+ .ph__nav a span {font-variant-numeric:tabular-nums;opacity:.65;}
+ .ph__slide {margin-bottom:var(--_tokens---space--medium);scroll-margin-top:80px;}
+ .ph__slide[hidden],.ph__pager[hidden] {display:none;}
+ .ph__heading {margin-bottom:var(--_tokens---space--small);} .ph__kicker {font-size:var(--_tokens---type--micro);letter-spacing:.08em;text-transform:uppercase;color:var(--_tokens---color--muted);margin:0 0 12px;}
+ .ph h1 {font-size:clamp(2rem,1.2rem + 3.2vw,4.5rem);line-height:1.05;letter-spacing:-.045em;font-weight:var(--_tokens---weight--base);margin:0 0 16px;} .ph__heading>p:last-child {font-size:var(--_tokens---type--small);margin:0;line-height:1.45;}
+ .ph h2 {font-size:var(--_tokens---type--small);font-weight:500;line-height:1.35;margin:0;}
+ .ph__split {display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:var(--_tokens---space--small);align-items:start;}
+ .ph__filters {display:flex;gap:12px;flex-wrap:wrap;} .ph__filters label {display:grid;gap:4px;font-size:var(--_tokens---type--micro);min-width:0;max-width:100%;}
+ .ph select {font:inherit;color:inherit;background:var(--_tokens---color--bg);border:1px solid var(--_tokens---color--line);border-radius:var(--_tokens---radius--small);min-height:44px;padding:8px 32px 8px 12px;max-width:100%;}
+ .ph__map {margin:8px 0 0;} .ph__svg {display:block;width:100%;height:auto;}
+ .ph__land,.ph__land path {fill:color-mix(in srgb,var(--_tokens---color--fg) 5%,var(--_tokens---color--bg));stroke:var(--_tokens---color--line);stroke-width:.6;}
+ .ph__county path {fill:none;stroke:var(--_tokens---color--line);stroke-width:.3;}
+ .ph .is-tesla {fill:var(--ph-accent);background:var(--ph-accent);} .ph .is-other {fill:var(--_tokens---color--fg);opacity:.48;} .ph .is-phev {background:var(--ph-phev);}
+ .ph__dots circle {pointer-events:none;} .ph .is-filtered {display:none;} .ph .is-muted {opacity:.12;}
+ .ph__map figcaption,.ph__legend {display:flex;gap:8px 16px;flex-wrap:wrap;font-size:var(--_tokens---type--micro);color:var(--_tokens---color--muted);line-height:1.5;}
+ .ph__key::before {content:'';display:inline-block;width:8px;height:8px;margin-right:6px;border-radius:50%;background:var(--_tokens---color--fg);}
+ .ph__key--tesla::before {background:var(--ph-accent);} .ph__key--other::before {opacity:.48;} .ph__key--fuel::before {opacity:.25;} .ph__key--phev::before {background:var(--ph-phev);}
+ .ph__selection {display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-between;border-top:1px solid var(--_tokens---color--line);padding-top:12px;margin-top:16px;font-size:var(--_tokens---type--micro);}
+ .ph__summary {display:grid;gap:16px;} .ph__metric {display:grid;gap:4px;padding-bottom:12px;border-bottom:1px solid var(--_tokens---color--line);}
+ .ph__metric>span,.ph__metric small,.ph__energy>span {font-size:var(--_tokens---type--micro);color:var(--_tokens---color--muted);}
+ .ph__metric strong {font-size:clamp(2rem,1rem + 3vw,4rem);font-weight:400;letter-spacing:-.04em;line-height:1.1;font-variant-numeric:tabular-nums;}
+ .ph__bar-label {display:flex;align-items:baseline;justify-content:space-between;gap:16px;font-size:var(--_tokens---type--micro);} .ph__bar-label b {font-weight:400;} .ph__bar-label strong {font-size:var(--_tokens---type--small);font-weight:500;}
+ .ph__bar {height:8px;overflow:hidden;background:color-mix(in srgb,var(--_tokens---color--fg) 12%,transparent);} .ph__fill {display:block;height:100%;background:var(--_tokens---color--fg);} .ph__fill--tesla {background:var(--ph-accent);}
+ .ph__note {font-size:var(--_tokens---type--micro);color:var(--_tokens---color--muted);line-height:1.55;margin:8px 0;}
+ .ph__energy {display:grid;gap:6px;border-left:2px solid var(--ph-accent);padding:0 0 0 16px;} .ph__energy strong {font-size:var(--_tokens---type--medium);font-weight:400;letter-spacing:-.03em;}
+ .ph__energy p {font-size:var(--_tokens---type--micro);line-height:1.55;margin:0;}
+ .ph__table-wrap {overflow-x:auto;max-width:100%;margin-top:24px;} .ph table {border-collapse:collapse;width:100%;font-size:var(--_tokens---type--micro);font-variant-numeric:tabular-nums;}
+ .ph caption {text-align:left;font-weight:500;padding-bottom:10px;} .ph th,.ph td {text-align:right;padding:10px 12px;border-bottom:1px solid var(--_tokens---color--line);white-space:nowrap;vertical-align:top;}
+ .ph th {font-weight:500;} .ph thead th {color:var(--_tokens---color--muted);font-weight:400;} .ph tr>:first-child {text-align:left;padding-left:0;}
+ .ph__details {margin:20px 0;border-top:1px solid var(--_tokens---color--line);border-bottom:1px solid var(--_tokens---color--line);}
+ .ph__details summary {padding:16px 0;min-height:44px;font-size:var(--_tokens---type--micro);cursor:pointer;} .ph__details[open] {padding-bottom:20px;}
+ .ph__definitions {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;}
+ .ph__definitions p {font-size:var(--_tokens---type--micro);line-height:1.6;margin:0;}
+ .ph__sources {font-size:var(--_tokens---type--micro);line-height:1.7;color:var(--_tokens---color--muted);margin-top:20px;} .ph__sources a {text-decoration:underline;text-underline-offset:3px;}
+ .ph__state-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;} .ph__state-title {display:flex;align-items:baseline;gap:12px;} .ph__state-title>span {font-size:var(--_tokens---type--micro);color:var(--_tokens---color--muted);}
+ .ph__state-card {border-top:1px solid var(--_tokens---color--line);padding-top:12px;min-width:0;} .ph__state-map {margin:12px 0;}
+ .ph__state-number {font-size:var(--_tokens---type--medium);letter-spacing:-.03em;font-variant-numeric:tabular-nums;margin-bottom:12px;}
+ .ph__state-number span {font-size:var(--_tokens---type--micro);letter-spacing:0;margin-left:8px;color:var(--_tokens---color--muted);}
+ .ph__ny-grid {display:grid;grid-template-columns:1fr 1fr;gap:24px;} .ph__ny-copy {display:grid;align-content:start;gap:20px;} .ph__ny-copy .ph__table-wrap {margin:0;} .ph__city {max-height:560px;} .ph__city circle {stroke:var(--_tokens---color--bg);stroke-width:.4;}
+ .ph__timeline {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;border-top:1px solid var(--_tokens---color--line);padding-top:16px;} .ph__timeline span {display:grid;gap:6px;font-size:var(--_tokens---type--micro);color:var(--_tokens---color--muted);} .ph__timeline b {font-size:var(--_tokens---type--medium);font-weight:400;color:var(--_tokens---color--fg);}
+ .ph__warning {font-size:var(--_tokens---type--micro);line-height:1.6;border-left:2px solid var(--ph-accent);padding-left:12px;margin:20px 0 0;max-width:70rem;}
+ .ph__growth td {text-align:left;min-width:190px;} .ph__growth td>strong {display:block;font-size:var(--_tokens---type--medium);font-weight:400;letter-spacing:-.03em;margin-bottom:8px;} .ph__growth td>span,.ph__growth td>small {display:block;margin:4px 0;} .ph__growth td>small {max-width:20rem;white-space:normal;line-height:1.5;color:var(--_tokens---color--muted);font-size:var(--_tokens---type--micro);}
+ .ph__projection {background:color-mix(in srgb,var(--_tokens---color--fg) 3%,transparent);}
+ .ph__mix {display:flex;height:8px;margin-top:12px;background:color-mix(in srgb,var(--_tokens---color--fg) 6%,transparent);} .ph__mix i {height:100%;background:color-mix(in srgb,var(--_tokens---color--fg) 25%,transparent);}
+ .ph__growth-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;margin:24px 0;} .ph__growth-rate {font-size:var(--_tokens---type--medium);margin:12px 0;} .ph__growth-rate span {display:block;font-size:var(--_tokens---type--micro);color:var(--_tokens---color--muted);margin-top:4px;}
+ .ph__history>div {display:grid;grid-template-columns:34px 1fr 70px;align-items:center;gap:8px;margin:10px 0;font-size:var(--_tokens---type--micro);font-variant-numeric:tabular-nums;} .ph__history b {font-weight:400;text-align:right;} .ph__track {height:6px;background:color-mix(in srgb,var(--_tokens---color--fg) 8%,transparent);} .ph__track i {display:block;height:100%;background:var(--ph-accent);}
+ .ph__pager {display:flex;justify-content:space-between;align-items:center;gap:16px;border-top:1px solid var(--_tokens---color--line);padding-top:20px;font-size:var(--_tokens---type--micro);} .ph__pager button:disabled {opacity:.35;cursor:default;}
+ .ph :is(a,button,select,summary):focus-visible {outline:2px solid currentColor;outline-offset:4px;}
+ @media (max-width: 1023.98px){.ph {padding-top:24px;}.ph__split,.ph__ny-grid {grid-template-columns:1fr;}.ph__summary {grid-template-columns:1fr 1fr;}.ph__summary>.ph__bar-label,.ph__summary>.ph__bar,.ph__summary>.ph__note,.ph__summary>.ph__energy {grid-column:1 / -1;}.ph__definitions {grid-template-columns:1fr;}}
+ @media (max-width: 699.98px){.ph__state-grid,.ph__growth-grid {grid-template-columns:1fr;}.ph__state-map {max-height:220px;}.ph__timeline {gap:10px;}.ph__timeline span {font-size:12px;}.ph__header {gap:8px;}.ph__brand span {display:block;}.ph__nav {gap:6px;}.ph__nav a {padding:8px 10px;gap:6px;}.ph__summary {gap:12px;}.ph th,.ph td {padding:10px 8px;}.ph__growth td {min-width:180px;}}
+ @media print {.ph__nav,.ph__pager,.ph__filters,.ph__header {display:none!important;}.ph__slide[hidden] {display:block;}.ph__slide {break-after:page;margin:0;}.ph {padding:0;}.ph__heading {margin-bottom:16px;}.ph__heading h1 {font-size:30px;}.ph__split {grid-template-columns:1.5fr 1fr;}.ph__state-grid,.ph__growth-grid {grid-template-columns:repeat(3,1fr);}.ph__details {display:none;}.ph__slide:last-of-type {break-after:auto;}}
+</style>
+<script>
+ const root=document.querySelector<HTMLElement>('[data-analysis]');
+ if(root){
+  const slides=[...root.querySelectorAll<HTMLElement>('[data-slide]')];
+  const links=[...root.querySelectorAll<HTMLAnchorElement>('[data-slide-link]')];
+  const prev=root.querySelector<HTMLButtonElement>('#ph-prev')!,next=root.querySelector<HTMLButtonElement>('#ph-next')!;
+  const ids=['usa','states','vehicles'];let index=0;
+  const show=(n:number,focus=false)=>{index=Math.max(0,Math.min(2,n));slides.forEach((s,i)=>s.hidden=i!==index);links.forEach((a,i)=>{if(i===index)a.setAttribute('aria-current','step');else a.removeAttribute('aria-current');});prev.disabled=index===0;next.disabled=index===2;root.querySelector('#ph-progress')!.textContent=`0${index+1} / 03`;if(focus){history.replaceState(null,'','#'+ids[index]);root.querySelector<HTMLElement>(`#${ids[index]}-title`)?.focus({preventScroll:true});root.scrollIntoView({block:'start'});}};
+  links.forEach((a,i)=>a.addEventListener('click',e=>{e.preventDefault();show(i,true);}));prev.addEventListener('click',()=>show(index-1,true));next.addEventListener('click',()=>show(index+1,true));window.addEventListener('hashchange',()=>show(Math.max(0,ids.indexOf(location.hash.slice(1)))));show(Math.max(0,ids.indexOf(location.hash.slice(1))));root.querySelector<HTMLElement>('.ph__pager')!.hidden=false;
+  const d=JSON.parse(document.querySelector('#ph-data')!.textContent!);
+  const access=root.querySelector<HTMLSelectElement>('#ph-access')!,network=root.querySelector<HTMLSelectElement>('#ph-network')!;
+  const number=(n:number)=>n.toLocaleString('en-US');
+  const filter=()=>{const a=access.value,n=network.value;root.querySelectorAll<SVGCircleElement>('.ph__dots circle').forEach(c=>c.classList.toggle('is-filtered',(a!=='all'&&c.dataset.access!==a)||(n!=='all'&&c.dataset.network!==n)));const count=d.groups[a][n];root.querySelector('#ph-map-ports')!.textContent=`${number(count.ports)} ports`;root.querySelector('#ph-map-stations')!.textContent=`${number(count.stations)} stations · ${a==='all'?'public + private':a} access`;root.querySelector('#us-map-label')!.textContent=`US charging ports: ${a} access, ${n==='all'?'all networks':n==='tesla'?'Tesla networks':'other networks'}, ${number(count.ports)} ports`;};access.addEventListener('change',filter);network.addEventListener('change',filter);
+  const borough=root.querySelector<HTMLSelectElement>('#ph-borough')!,kind=root.querySelector<HTMLSelectElement>('#ph-city-type')!;
+  const cityFilter=()=>{let count=0,ports=0;d.city.forEach((s:{borough:string;dc:number;ports:number})=>{if((borough.value==='all'||s.borough===borough.value)&&(kind.value==='all'||(kind.value==='dc'?s.dc>0:s.dc===0))){count++;ports+=s.ports;}});root.querySelectorAll<SVGCircleElement>('.ph__city circle').forEach(c=>c.classList.toggle('is-filtered',(borough.value!=='all'&&c.dataset.borough!==borough.value)||(kind.value==='dc'&&Number(c.dataset.dc)===0)||(kind.value==='ac'&&Number(c.dataset.dc)>0)));root.querySelectorAll<HTMLElement>('[data-borough-row]').forEach(r=>r.classList.toggle('is-muted',borough.value!=='all'&&r.dataset.boroughRow!==borough.value));root.querySelectorAll<SVGPathElement>('[data-borough-shape]').forEach(r=>r.classList.toggle('is-muted',borough.value!=='all'&&r.dataset.boroughShape!==borough.value));root.querySelector('#ph-city-result')!.textContent=`${borough.value==='all'?'NYC':borough.value} · ${number(count)} public stations · ${number(ports)} ports at these stations`;};borough.addEventListener('change',cityFilter);kind.addEventListener('change',cityFilter);
+ }
+</script>

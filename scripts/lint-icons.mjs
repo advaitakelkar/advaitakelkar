@@ -38,6 +38,7 @@ const EXEMPT_CLASSES = [
   'vgw__svg',            // Virtual Gods wheel — geometry derived from YAML
   'ad__spark',           // admin sparkline
   'rr__ring',            // renders-template dwell countdown, same as the others
+  'ph__svg',             // /powerhouse EV charging map — geometry generated from data
 ];
 
 /** Icon classes whose size is owned by a parent box, so width:100% is right. */
@@ -48,7 +49,7 @@ const FILLS_PARENT = ['sn-lock__icon'];
  * their own stroke. Exempt wholesale — a per-shape class check is fragile
  * when the geometry is generated.
  */
-const GRAPHIC_FILES = ['VGWheel.astro', 'admin.astro'];
+const GRAPHIC_FILES = ['VGWheel.astro', 'admin.astro', 'powerhouse.astro'];
 
 /**
  * Every class handed to an <Icon> anywhere in src. Built first, because rule 3
