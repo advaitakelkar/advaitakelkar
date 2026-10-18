@@ -327,9 +327,9 @@ Eleven supplied room views edited with the built-in image tool for a cohesive ph
 - All three added to the public-project list: 31 public / 29 locked out of 60. Featured flags were left as configured; the previous five professional galleries remain featured.
 
 
-## 2026-10-18 — Powerhouse infrastructure research slides
+## 2026-10-18 — Powerhouse infrastructure research slides & vector visualizers
 
-- Replaced the site proposal narrative with three research slides: USA charging access/networks; top three states CA/NY/FL with expandable NYC detail; vehicle stock and growth. Added filters, maps and official-source links.
-- Separated ports from stations, public access from ownership, and vehicle electricity from public-port consumption. 2015 is clearly a different-scope FHWA total with unavailable fuel split; 2040 is an illustrative EIA-based state scenario.
-- Added source extracts, reproducible aggregation script and docs/powerhouse-infrastructure-sources-2026-10-18.md. Existing unrelated work retained.
-- Validation: production build, style lints and responsive browser interaction checks pass.
+- Structured `/powerhouse` into five slides: `01 USA`, `02 California`, `03 New York` (including the 5-borough NYC close-up), `04 Florida`, and `05 Comparison` (combining three-state infrastructure, 2015/2025/2040 vehicle stock, 2016–2025 growth trajectories, and the Powerhouse decision test).
+- Added vector highway and arterial road networks (`scripts/build-powerhouse-roads.mjs`, `src/data/powerhouse-roads.json`) from Natural Earth 10m Roads (USA, CA, NY, FL) and US Census TIGER/Line Primary & Secondary Roads (NYC).
+- Added D3-computed SVG data visualizers across all slides (port anatomy bars, network speed splits, 51-state rank distribution, per-state network rankings, 6-metric comparison dashboard, absolute and indexed 2016–2025 BEV trajectory curves, and 2025 vs. 2040 drivetrain shift bars) using strictly the two-color token system (`--_tokens---color--fg` and `--_tokens---color--bg` alpha steps).
+- Validation: production build and all style/breakpoint/glyph/icon lints pass.
