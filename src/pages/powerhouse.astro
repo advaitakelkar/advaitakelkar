@@ -6,10 +6,12 @@ import data from '../data/powerhouse-analysis.json';
 import networks from '../data/powerhouse-networks.json';
 import roads from '../data/powerhouse-roads.json';
 import bookTextData from '../data/powerhouse-book.json';
+import official from '../data/powerhouse-official.json';
 
 const fmt = (n: number) => Math.round(n).toLocaleString('en-US');
 const kfmt = (n: number) => (n >= 1e6 ? (n / 1e6).toFixed(2) + 'm' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'k' : String(Math.round(n)));
 const million = (n: number) => (n / 1e6).toFixed(2) + 'm';
+const mil = (n: number) => (n / 1e6).toFixed(1) + 'm';
 const pct = (n: number, d: number) => ((n / d) * 100).toFixed(1) + '%';
 
 const pub = data.usa.groups.public.all;
@@ -25,7 +27,7 @@ const growth = future.total / base.total;
 const stateMeta: Record<string, { slug: string; slideIdx: number; kicker: string; headline: string; summary: string; contextTitle: string; contextBody: string; planUrl: string; planLabel: string }> = {
   CA: {
     slug: 'california',
-    slideIdx: 1,
+    slideIdx: 2,
     kicker: '02 / California · Market scale & corridor saturation',
     headline: 'California: the national scale benchmark',
     summary: 'California holds 23.6% of all US public charging ports and over 2.08 million plug-in vehicles—the largest EV market and electricity footprint in the country.',
@@ -36,7 +38,7 @@ const stateMeta: Record<string, { slug: string; slideIdx: number; kicker: string
   },
   NY: {
     slug: 'new-york',
-    slideIdx: 2,
+    slideIdx: 3,
     kicker: '03 / New York State & NYC · Public access & street-parking dependence',
     headline: 'New York: statewide corridors vs. urban curbside reality',
     summary: 'New York ranks #2 nationally in public ports with 16.6 plug-in vehicles per port—yet in New York City, 50% of car-owning households rely on street parking without home chargers.',
@@ -47,7 +49,7 @@ const stateMeta: Record<string, { slug: string; slideIdx: number; kicker: string
   },
   FL: {
     slug: 'florida',
-    slideIdx: 3,
+    slideIdx: 4,
     kicker: '04 / Florida · Rapid fleet acceleration & DC fast corridors',
     headline: 'Florida: fastest relative growth & highest port pressure',
     summary: 'Florida has grown its battery-EV fleet 14.0× since 2016 (34.1% annual CAGR) and carries the highest ratio of plug-in vehicles per public port (35.0) among the top three states.',
@@ -113,6 +115,62 @@ const states = data.states.map((s) => {
     cagr: ((now.bev / first.bev) ** (1 / 9) - 1) * 100,
   };
 });
+
+// What each state is in this section for. Each answers one sentence of the 1.1 text, and
+// every number is computed from the same snapshot the maps draw.
+const nycShare = (data.city.groups.public.all.ports / states.find((s) => s.code === 'NY')!.pubPorts) * 100;
+const roleOf: Record<string, { claim: string; quote: string; why: string[] }> = Object.fromEntries(
+  states.map((s) => [
+    s.code,
+    s.code === 'CA'
+      ? {
+          claim: 'Scale, and a cleaner grid',
+          quote: '“An electric car is only as clean as the grid behind it.”',
+          why: [
+            `<b>The biggest market.</b> ${fmt(s.plugins)} plug-in vehicles and ${fmt(s.pubPorts)} public ports, ${s.usPortShare.toFixed(1)}% of every public port in the country.`,
+            `<b>Where driving electric clearly pays off.</b> The study cited in the text found a clear environmental benefit in California, because its electricity is comparatively clean.`,
+            `<b>Still under pressure.</b> Even here there are ${s.evsPerPort.toFixed(1)} plug-in vehicles for every public port, so drivers who cannot charge at home still compete for a plug.`,
+          ],
+        }
+      : s.code === 'NY'
+        ? {
+            claim: 'Where home charging is not an option',
+            quote: '“Home charging … is not an option for people who live in apartments or park on the street.”',
+            why: [
+              `<b>Half of New York City’s car owners park on the street.</b> With no driveway or garage, they cannot charge at home, so public charging has to carry their load.`,
+              `<b>The city is the test, not the state.</b> Statewide there are only ${s.evsPerPort.toFixed(1)} plug-in vehicles per public port, the lowest of the three, but just ${nycShare.toFixed(1)}% of New York’s public ports are in the five boroughs.`,
+              `<b>The plugs that exist are busy.</b> The city’s curbside pilot chargers were occupied 70% of the time.`,
+            ],
+          }
+        : {
+            claim: 'The fastest shift',
+            quote: '“The shift is happening fast.”',
+            why: [
+              `<b>Fastest growth of the three.</b> Battery-electric cars in Florida grew ${s.mult2025.toFixed(1)}× between 2016 and 2025, about ${s.cagr.toFixed(0)}% a year.`,
+              `<b>The most pressure on each plug.</b> ${s.evsPerPort.toFixed(1)} plug-in vehicles for every public port, the highest of the three states.`,
+              `<b>Built for the highway.</b> ${s.dcShare.toFixed(1)}% of its public ports are fast chargers, strung along I-95, I-75 and I-4: the corridors where freight and long trips, “next” in the text, will need to stop.`,
+            ],
+          },
+  ])
+);
+
+// National light-duty vehicles, 2025–2040: EIA AEO2026 Table 39, Counterfactual Baseline.
+const fleet = Object.entries(official.outlookSeries as Record<string, { total: number; bev: number; phev: number }>).map(([y, v]) => ({
+  year: +y, total: v.total, bev: v.bev, phev: v.phev, ev: v.bev + v.phev, share: ((v.bev + v.phev) / v.total) * 100,
+}));
+const fleetNow = fleet[0];
+const fleetEnd = fleet[fleet.length - 1];
+const evPerPortUS = fleetNow.ev / pub.ports;
+const portsAtSameRatio2040 = fleetEnd.ev / evPerPortUS;
+// Three small panels share an x axis (2025–2040); each has its own y.
+const P = { w: 300, h: 190, l: 44, r: 14, t: 16, b: 26 };
+const px = (year: number) => P.l + ((year - 2025) / 15) * (P.w - P.l - P.r);
+const py = (v: number, max: number) => P.t + (1 - v / max) * (P.h - P.t - P.b);
+const linePath = (pick: (f: (typeof fleet)[number]) => number, max: number) =>
+  fleet.map((f, i) => `${i ? 'L' : 'M'}${px(f.year).toFixed(1)},${py(pick(f), max).toFixed(1)}`).join('');
+const panelMax = { total: 350e6, ev: 125e6, share: 40 };
+const panelTicks = { total: [0, 100e6, 200e6, 300e6], ev: [0, 40e6, 80e6, 120e6], share: [0, 10, 20, 30, 40] };
+const rankedMax = data.ranked[0].ports;
 
 const size = (n: number) => Math.min(4.5, 0.5 + Math.sqrt(n) * 0.3);
 const topNetworks = networks.networks.slice(0, 8);
@@ -254,13 +312,32 @@ const book: { id: string; num: string; short: string; title: string; sections: B
       { id: '4-6', num: '4.6', title: 'Open to All', planned: true },
     ],
   },
+  {
+    id: 'ch5', num: '5', short: 'Notes', title: 'Notes and Bibliography',
+    sections: [
+      { id: '5-1', num: '5.1', title: 'Notes to Chapter 1' },
+      { id: '5-2', num: '5.2', title: 'Notes to Chapter 2' },
+      { id: '5-3', num: '5.3', title: 'Bibliography' },
+    ],
+  },
 ];
 // The section that holds the five data slides below.
 const dataSection = '1-1';
 
 // Text transferred from the book, per section (src/data/powerhouse-book.json). `body` is HTML
 // paragraphs with the book's note numbers as <sup>; `notes` keep the book's numbering from `notesStart`.
-const bookText: Record<string, { body: string[]; notesStart: number; notes: string[] }> = bookTextData;
+const { bibliography, ...textBlocks } = bookTextData;
+const bookText: Record<string, { body: string[]; notesStart: number; notes: string[] }> = textBlocks;
+// The notes leave the reading text and gather in their own chapter, numbered as in the book.
+// Each <sup> in the text links to its note; each note links back to where it is cited.
+const notesFor = (ch: string) =>
+  Object.entries(bookText)
+    .filter(([id]) => id === `ch${ch}` || id.startsWith(`${ch}-`))
+    .flatMap(([id, t]) => t.notes.map((html, k) => ({ n: t.notesStart + k, html, from: id })));
+const notesSection: Record<string, { ch: string; notes: ReturnType<typeof notesFor> }> = {
+  '5-1': { ch: '1', notes: notesFor('1') },
+  '5-2': { ch: '2', notes: notesFor('2') },
+};
 ---
 
 <PageLayout
@@ -340,32 +417,147 @@ const bookText: Record<string, { body: string[]; notesStart: number; notes: stri
     <header class="ph__chapter-head" id="ch1" data-chapter-head="ch1">
       <p class="ph__kicker">Chapter {book[0].num}</p>
       <h2>{book[0].title}</h2>
-      {bookText.ch1 && <BookText text={bookText.ch1} />}
+      {bookText.ch1 && <BookText text={bookText.ch1} chapter="1" />}
     </header>
 
     <section class="ph__section" id={`s-${dataSection}`} data-section-panel={dataSection}>
       <p class="ph__kicker">{book[0].sections[0].num} · Book page {book[0].sections[0].page}</p>
       <h2>{book[0].sections[0].title}</h2>
-      {bookText[dataSection] && <BookText text={bookText[dataSection]} />}
+      {bookText[dataSection] && <BookText text={bookText[dataSection]} chapter="1" />}
     </section>
 
+    <!-- How the five slides below answer the text above -->
+    <div class="ph__evidence-intro">
+      <p class="ph__kicker">The evidence for 1.1</p>
+      <p>The text makes three claims: the shift to electric is happening fast, its benefit depends on the grid, and home charging cannot serve everyone, so public charging will carry more of the load. The maps test them. They start with the whole country, where every public charger is today, then look closely at the three states that hold {pct(states.reduce((n, s) => n + s.groups.public.all.ports, 0), pub.ports)} of them. Each state answers one claim: <b>California</b> the grid, <b>New York</b> charging away from home, <b>Florida</b> speed. The comparison sets the three side by side.</p>
+    </div>
+
     <nav class="ph__nav" aria-label="Analysis slides">
-      <span class="ph__row-label" aria-hidden="true">1.1 Maps</span>
-      <a href="#usa" data-slide-link="0" aria-current="step"><span>01</span> USA</a>
-      <a href="#california" data-slide-link="1"><span>02</span> California</a>
-      <a href="#new-york" data-slide-link="2"><span>03</span> New York</a>
-      <a href="#florida" data-slide-link="3"><span>04</span> Florida</a>
-      <a href="#comparison" data-slide-link="4"><span>05</span> Comparison</a>
+      <span class="ph__row-label" aria-hidden="true">Evidence</span>
+      <a href="#vehicles" data-slide-link="0" aria-current="step"><span>01</span> Vehicles</a>
+      <a href="#usa" data-slide-link="1"><span>02</span> Charging today</a>
+      <a href="#california" data-slide-link="2"><span>03</span> California</a>
+      <a href="#new-york" data-slide-link="3"><span>04</span> New York</a>
+      <a href="#florida" data-slide-link="4"><span>05</span> Florida</a>
+      <a href="#comparison" data-slide-link="5"><span>06</span> Comparison</a>
     </nav>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- SLIDE 01: VEHICLES ON THE ROAD, HOW MANY ARE ELECTRIC, AND 2040      -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <section id="vehicles" class="ph__slide" data-slide="0" aria-labelledby="vehicles-title">
+      <div class="ph__heading">
+        <p class="ph__kicker">01 · Vehicles</p>
+        <h1 id="vehicles-title" tabindex="-1">How many vehicles, and how many plug in</h1>
+        <p>Start with what is on the road. In 2025 the United States had {mil(fleetNow.total)} cars and light trucks. Fewer than 3 in every 100 of them plug in. By 2040, in the federal government’s baseline outlook, almost 4 in 10 will, and the number of plug-in vehicles grows {(fleetEnd.ev / fleetNow.ev).toFixed(0)}-fold.</p>
+      </div>
+
+      <div class="ph__steps">
+        <div class="ph__step">
+          <span>1 · On the road, 2025</span>
+          <strong>{mil(fleetNow.total)}</strong>
+          <small>cars and light trucks in use across the US</small>
+        </div>
+        <div class="ph__step">
+          <span>2 · Of those, plug-in, 2025</span>
+          <strong>{mil(fleetNow.ev)}</strong>
+          <small>{mil(fleetNow.bev)} battery-electric + {mil(fleetNow.phev)} plug-in hybrid · <b>{fleetNow.share.toFixed(1)}%</b> of all vehicles</small>
+        </div>
+        <div class="ph__step">
+          <span>3 · Plug-in, 2040 outlook</span>
+          <strong>{mil(fleetEnd.ev)}</strong>
+          <small>of {mil(fleetEnd.total)} vehicles · <b>{fleetEnd.share.toFixed(1)}%</b> of all vehicles</small>
+        </div>
+      </div>
+
+      <figure class="ph__panels" aria-label="US light-duty vehicles, 2025 to 2040: all vehicles, plug-in vehicles, and plug-in share">
+        <div class="ph__panel">
+          <h2>All vehicles on the road</h2>
+          <svg class="ph__svg" viewBox={`0 0 ${P.w} ${P.h}`} role="img" aria-label={`All light-duty vehicles grow from ${mil(fleetNow.total)} in 2025 to ${mil(fleetEnd.total)} in 2040`}>
+            {panelTicks.total.map((v) => (
+              <g><line x1={P.l} x2={P.w - P.r} y1={py(v, panelMax.total)} y2={py(v, panelMax.total)} class="ph__grid" /><text x={P.l - 6} y={py(v, panelMax.total) + 3} text-anchor="end" class="ph__svg-label">{v ? `${v / 1e6}m` : '0'}</text></g>
+            ))}
+            <path d={`${linePath((f) => f.total, panelMax.total)}L${px(2040)},${py(0, panelMax.total)}L${px(2025)},${py(0, panelMax.total)}Z`} class="ph__area" />
+            <path d={linePath((f) => f.total, panelMax.total)} class="ph__line" />
+            {fleet.map((f) => <circle cx={px(f.year)} cy={py(f.total, panelMax.total)} r="2" class="ph__pt"><title>{f.year}: {fmt(f.total)} vehicles</title></circle>)}
+            <text x={px(2025)} y={py(fleetNow.total, panelMax.total) - 8} class="ph__svg-val">{mil(fleetNow.total)}</text>
+            <text x={px(2040)} y={py(fleetEnd.total, panelMax.total) - 8} text-anchor="end" class="ph__svg-val">{mil(fleetEnd.total)}</text>
+            {[2025, 2030, 2035, 2040].map((y) => <text x={px(y)} y={P.h - 8} text-anchor="middle" class="ph__svg-label">{y}</text>)}
+          </svg>
+          <p>Slow, steady growth: +{mil(fleetEnd.total - fleetNow.total)} vehicles in 15 years.</p>
+        </div>
+
+        <div class="ph__panel">
+          <h2>Plug-in vehicles</h2>
+          <svg class="ph__svg" viewBox={`0 0 ${P.w} ${P.h}`} role="img" aria-label={`Plug-in vehicles grow from ${mil(fleetNow.ev)} in 2025 to ${mil(fleetEnd.ev)} in 2040`}>
+            {panelTicks.ev.map((v) => (
+              <g><line x1={P.l} x2={P.w - P.r} y1={py(v, panelMax.ev)} y2={py(v, panelMax.ev)} class="ph__grid" /><text x={P.l - 6} y={py(v, panelMax.ev) + 3} text-anchor="end" class="ph__svg-label">{v ? `${v / 1e6}m` : '0'}</text></g>
+            ))}
+            {fleet.map((f) => {
+              const bw = ((P.w - P.l - P.r) / 16) * 0.72;
+              const x = px(f.year) - bw / 2;
+              return (
+                <g>
+                  <rect x={x} y={py(f.bev, panelMax.ev)} width={bw} height={py(0, panelMax.ev) - py(f.bev, panelMax.ev)} class="is-tesla"><title>{f.year}: {fmt(f.bev)} battery-electric</title></rect>
+                  <rect x={x} y={py(f.ev, panelMax.ev)} width={bw} height={py(f.bev, panelMax.ev) - py(f.ev, panelMax.ev)} class="is-phev"><title>{f.year}: {fmt(f.phev)} plug-in hybrid</title></rect>
+                </g>
+              );
+            })}
+            <text x={px(2025)} y={py(fleetNow.ev, panelMax.ev) - 6} class="ph__svg-val">{mil(fleetNow.ev)}</text>
+            <text x={px(2040)} y={py(fleetEnd.ev, panelMax.ev) - 6} text-anchor="end" class="ph__svg-val">{mil(fleetEnd.ev)}</text>
+            {[2025, 2030, 2035, 2040].map((y) => <text x={px(y)} y={P.h - 8} text-anchor="middle" class="ph__svg-label">{y}</text>)}
+          </svg>
+          <p><span class="ph__key ph__key--tesla">Battery-electric</span> <span class="ph__key ph__key--phev">Plug-in hybrid</span></p>
+        </div>
+
+        <div class="ph__panel">
+          <h2>Plug-in share of all vehicles</h2>
+          <svg class="ph__svg" viewBox={`0 0 ${P.w} ${P.h}`} role="img" aria-label={`Plug-in share rises from ${fleetNow.share.toFixed(1)}% in 2025 to ${fleetEnd.share.toFixed(1)}% in 2040`}>
+            {panelTicks.share.map((v) => (
+              <g><line x1={P.l} x2={P.w - P.r} y1={py(v, panelMax.share)} y2={py(v, panelMax.share)} class="ph__grid" /><text x={P.l - 6} y={py(v, panelMax.share) + 3} text-anchor="end" class="ph__svg-label">{v}%</text></g>
+            ))}
+            <path d={linePath((f) => f.share, panelMax.share)} class="ph__line" />
+            {fleet.map((f) => <circle cx={px(f.year)} cy={py(f.share, panelMax.share)} r="2" class="ph__pt"><title>{f.year}: {f.share.toFixed(1)}% plug-in</title></circle>)}
+            <text x={px(2025) + 4} y={py(fleetNow.share, panelMax.share) - 8} class="ph__svg-val">{fleetNow.share.toFixed(1)}%</text>
+            <text x={px(2040)} y={py(fleetEnd.share, panelMax.share) - 8} text-anchor="end" class="ph__svg-val">{fleetEnd.share.toFixed(1)}%</text>
+            {[2025, 2030, 2035, 2040].map((y) => <text x={px(y)} y={P.h - 8} text-anchor="middle" class="ph__svg-label">{y}</text>)}
+          </svg>
+          <p>From fewer than 3 in 100 to almost 4 in 10.</p>
+        </div>
+        <figcaption>US cars and light trucks in use (personal and fleet). 2025 is EIA’s modelled base year; 2026–2040 is EIA’s Annual Energy Outlook 2026 Counterfactual Baseline, a policy-dependent scenario, not a forecast. Heavy trucks and buses are not included.</figcaption>
+      </figure>
+
+      <p class="ph__next">So where do these {mil(fleetNow.ev)} plug-in vehicles charge today? <a href="#usa" data-jump-slide="1" class="ph__state-jump">02 · Charging today</a></p>
+
+      <footer class="ph__sources">Source: <a href={sources.outlook}>EIA, Annual Energy Outlook 2026, Supplemental Table 39: Light-Duty Vehicle Stock by Technology Type</a> (released April 2026), accessed 18 Oct 2026.</footer>
+    </section>
 
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <!-- SLIDE 01: USA NATIONAL INFRASTRUCTURE                               -->
     <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <section id="usa" class="ph__slide" data-slide="0" aria-labelledby="usa-title">
+    <section id="usa" class="ph__slide" data-slide="1" aria-labelledby="usa-title" hidden>
       <div class="ph__heading">
-        <p class="ph__kicker">01 / USA · National infrastructure &amp; highway corridors</p>
-        <h1 id="usa-title" tabindex="-1">Where charging meets demand</h1>
-        <p>A national baseline mapping {fmt(allUsa.ports)} charging ports across the US Interstate &amp; primary highway system to compare vehicle demand, network control, and the case for Powerhouse.</p>
+        <p class="ph__kicker">02 · Charging today</p>
+        <h1 id="usa-title" tabindex="-1">Where public charging is today</h1>
+        <p>Four of every five charges happen at home. The rest happen here: {fmt(pub.stations)} public stations with {fmt(pub.ports)} plugs between them, one plug for every {evPerPortUS.toFixed(0)} plug-in vehicles. They cluster along the interstates and in the big metros. Zoom in to see single stations; click one for its plugs.</p>
+      </div>
+
+      <div class="ph__steps">
+        <div class="ph__step">
+          <span>Public charging, Oct 2026</span>
+          <strong>{fmt(pub.ports)}</strong>
+          <small>plugs at {fmt(pub.stations)} stations · {fmt(pub.dc)} of them fast chargers</small>
+        </div>
+        <div class="ph__step">
+          <span>Plug-in vehicles per public plug</span>
+          <strong>{evPerPortUS.toFixed(0)}</strong>
+          <small>{mil(fleetNow.ev)} plug-in vehicles ÷ {fmt(pub.ports)} public plugs</small>
+        </div>
+        <div class="ph__step">
+          <span>Public plugs for 2040 at today’s ratio</span>
+          <strong>{mil(portsAtSameRatio2040)}</strong>
+          <small>{(portsAtSameRatio2040 / pub.ports).toFixed(0)}× today, if every {evPerPortUS.toFixed(0)} plug-in vehicles still share one plug · arithmetic, not a forecast</small>
+        </div>
       </div>
 
       <div class="ph__split">
@@ -387,47 +579,14 @@ const bookText: Record<string, { body: string[]; notesStart: number; notes: stri
                 <option value="other">Other / non-networked</option>
               </select>
             </label>
-            <label>
-              Vector road layer
-              <select id="ph-roads-toggle">
-                <option value="all">Interstates + Major US Highways</option>
-                <option value="interstates">Interstates only</option>
-                <option value="none">Hide roads</option>
-              </select>
-            </label>
           </div>
 
           <figure class="ph__map">
-            <svg class="ph__svg ph__usa" viewBox="0 0 975 610" role="img" aria-labelledby="us-map-label">
-              <title id="us-map-label">US charging ports and Interstate highway corridors: public stations, all networks</title>
-              <g class="ph__land">
-                {data.usa.states.map((s) => (
-                  <path d={s.d}><title>{s.name}</title></path>
-                ))}
-              </g>
-              <g class="ph__roads" data-road-layer>
-                <path class="ph__road-hwy" data-road-hwy d={roads.usa.highways} />
-                <path class="ph__road-int" data-road-int d={roads.usa.interstates} />
-              </g>
-              <g class="ph__dots">
-                {data.usa.dots.map((d) => (
-                  <circle
-                    cx={d.x}
-                    cy={d.y}
-                    r={size(d.l1 + d.l2 + d.dc)}
-                    data-access={d.access}
-                    data-network={d.network}
-                    class:list={[d.network === 'tesla' ? 'is-tesla' : 'is-other', { 'is-filtered': d.access !== 'public' }]}
-                  />
-                ))}
-              </g>
-            </svg>
+            <div class="ph__mapbox" data-map="usa" role="region" aria-label="Zoomable map of US charging stations"></div>
             <figcaption>
               <span class="ph__key ph__key--tesla">Tesla networks</span>
               <span class="ph__key ph__key--other">Other networks</span>
-              <span class="ph__key ph__key--int">Interstate corridor</span>
-              <span class="ph__key ph__key--hwy">US Major Highway</span>
-              <span>Dot area scales with ports; dense cells capped.</span>
+              <span>Dot size grows with the number of plugs · ⌘/Ctrl + scroll or +/− to zoom, drag to move · click a dot for its station</span>
             </figcaption>
           </figure>
           <div class="ph__selection" aria-live="polite" aria-atomic="true">
@@ -529,43 +688,19 @@ const bookText: Record<string, { body: string[]; notesStart: number; notes: stri
 
         <div class="ph__viz-card">
           <div class="ph__viz-head">
-            <h2>Concentration across all 50 states &amp; DC ({pct(states.reduce((n, s) => n + s.groups.public.all.ports, 0), pub.ports)} in top 3)</h2>
-            <span>Every state ranked by public ports · CA (#1), NY (#2) and FL (#3) highlighted</span>
+            <h2>State by state: public plugs in all 50 states &amp; DC ({pct(states.reduce((n, s) => n + s.groups.public.all.ports, 0), pub.ports)} in top 3)</h2>
+            <span>Public plugs per state, largest first · the three in ink are the states this section looks at</span>
           </div>
-          <svg class="ph__svg ph__rank-svg" viewBox="0 0 540 220" role="img" aria-label="Distribution of public charging ports across all 50 US states and DC">
-            <line x1="0" y1="190" x2="540" y2="190" stroke="var(--_tokens---color--line)" stroke-width="1" />
-            {data.ranked.map((r, idx) => {
-              const bw = 540 / data.ranked.length;
-              const x = idx * bw + 1;
-              const h = Math.max(2, (r.ports / maxRankPorts) * 165);
-              const y = 190 - h;
-              const isTop3 = idx < 3;
-              return (
-                <g>
-                  <rect
-                    x={x.toFixed(1)}
-                    y={y.toFixed(1)}
-                    width={Math.max(2, bw - 2).toFixed(1)}
-                    height={h.toFixed(1)}
-                    class={isTop3 ? 'is-tesla' : 'is-other'}
-                  >
-                    <title>#{idx + 1} {r.code}: {fmt(r.ports)} public ports ({fmt(r.stations)} stations, {fmt(r.dc)} DC fast)</title>
-                  </rect>
-                  {(idx < 10 || idx % 5 === 0) && (
-                    <text x={(x + (bw - 2) / 2).toFixed(1)} y="206" text-anchor="middle" class="ph__svg-label">
-                      {r.code}
-                    </text>
-                  )}
-                  {idx < 3 && (
-                    <text x={(x + (bw - 2) / 2).toFixed(1)} y={(y - 5).toFixed(1)} text-anchor="middle" class="ph__svg-val">
-                      {kfmt(r.ports)}
-                    </text>
-                  )}
-                </g>
-              );
-            })}
-          </svg>
-          <p class="ph__note">California ({fmt(data.ranked[0].ports)}), New York ({fmt(data.ranked[1].ports)}), and Florida ({fmt(data.ranked[2].ports)}) together hold <b>{fmt(states.reduce((n, s) => n + s.groups.public.all.ports, 0))} public ports</b> ({pct(states.reduce((n, s) => n + s.groups.public.all.ports, 0), pub.ports)} of the US total). Use tabs 02, 03, and 04 to inspect each state in detail.</p>
+          <ol class="ph__rank">
+            {data.ranked.map((r, idx) => (
+              <li class:list={[{ 'is-top': idx < 3 }]}>
+                <span class="ph__rank-code">{idx + 1}. {r.code}</span>
+                <span class="ph__rank-track"><i style={`width:${(r.ports / rankedMax) * 100}%`}></i></span>
+                <b>{fmt(r.ports)}</b>
+              </li>
+            ))}
+          </ol>
+          <p class="ph__note">California ({fmt(data.ranked[0].ports)}), New York ({fmt(data.ranked[1].ports)}), and Florida ({fmt(data.ranked[2].ports)}) together hold <b>{fmt(states.reduce((n, s) => n + s.groups.public.all.ports, 0))} public ports</b> ({pct(states.reduce((n, s) => n + s.groups.public.all.ports, 0), pub.ports)} of the US total). Tabs 03, 04 and 05 look at each one.</p>
         </div>
       </div>
 
@@ -619,10 +754,14 @@ const bookText: Record<string, { body: string[]; notesStart: number; notes: stri
       return (
         <section id={s.meta.slug} class="ph__slide" data-slide={s.meta.slideIdx} aria-labelledby={`${s.meta.slug}-title`} hidden>
           <div class="ph__heading">
-            <p class="ph__kicker">{s.meta.kicker}</p>
-            <h1 id={`${s.meta.slug}-title`} tabindex="-1">{s.meta.headline}</h1>
-            <p>{s.meta.summary}</p>
+            <p class="ph__kicker">0{s.meta.slideIdx + 1} · {s.name}</p>
+            <h1 id={`${s.meta.slug}-title`} tabindex="-1">{s.name}: {roleOf[s.code].claim.toLowerCase()}</h1>
+            <p class="ph__quote">{roleOf[s.code].quote} <span>— 1.1, above</span></p>
           </div>
+
+          <ol class="ph__why" aria-label={`Why ${s.name}`}>
+            {roleOf[s.code].why.map((w) => <li set:html={w} />)}
+          </ol>
 
           <div class="ph__split">
             <div>
@@ -643,52 +782,14 @@ const bookText: Record<string, { body: string[]; notesStart: number; notes: stri
                     <option value="other">Other / non-networked ({fmt(s.groups.public.other.ports)} pub)</option>
                   </select>
                 </label>
-                <label>
-                  Vector road layer
-                  <select data-st-roads={s.code}>
-                    <option value="all">Interstates + State/US Highways</option>
-                    <option value="interstates">Interstates only</option>
-                    <option value="none">Hide roads</option>
-                  </select>
-                </label>
               </div>
 
               <figure class="ph__map">
-                <svg class="ph__svg ph__state-hero" viewBox="0 0 420 240" role="img" aria-label={`${s.name} charging stations, counties, and highway corridors`} data-state-svg={s.code}>
-                  <defs>
-                    <clipPath id={`clip-hero-${s.code}`}>
-                      <path d={s.map.outline} />
-                    </clipPath>
-                  </defs>
-                  <path class="ph__land" d={s.map.outline} />
-                  <g class="ph__county" clip-path={`url(#clip-hero-${s.code})`}>
-                    {s.map.counties.map((c) => (
-                      <path d={c.d} />
-                    ))}
-                  </g>
-                  <g class="ph__roads" clip-path={`url(#clip-hero-${s.code})`}>
-                    <path class="ph__road-hwy" data-st-hwy={s.code} d={s.roads.highways} />
-                    <path class="ph__road-int" data-st-int={s.code} d={s.roads.interstates} />
-                  </g>
-                  <g class="ph__state-dots" data-st-dots={s.code}>
-                    {s.map.dots.map((d) => (
-                      <circle
-                        cx={d.x}
-                        cy={d.y}
-                        r={Math.min(3.4, 0.45 + Math.sqrt(d.l1 + d.l2 + d.dc) * 0.18)}
-                        data-access={d.access}
-                        data-network={d.network}
-                        class:list={[d.network === 'tesla' ? 'is-tesla' : 'is-other', { 'is-filtered': d.access !== 'public' }]}
-                      />
-                    ))}
-                  </g>
-                </svg>
+                <div class="ph__mapbox" data-map={s.code} role="region" aria-label={`Zoomable map of charging stations in ${s.name}`}></div>
                 <figcaption>
                   <span class="ph__key ph__key--tesla">Tesla networks</span>
                   <span class="ph__key ph__key--other">Other networks</span>
-                  <span class="ph__key ph__key--int">Interstate corridor</span>
-                  <span class="ph__key ph__key--hwy">State / US Highway</span>
-                  <span>{s.map.counties.length} counties mapped · 4×4 unit cell aggregation</span>
+                  <span>Outlined: {s.name} · neighbouring states for context · ⌘/Ctrl + scroll or +/− to zoom</span>
                 </figcaption>
               </figure>
               <div class="ph__selection" aria-live="polite">
@@ -780,7 +881,7 @@ const bookText: Record<string, { body: string[]; notesStart: number; notes: stri
 
             <div class="ph__viz-card">
               <div class="ph__viz-head">
-                <h2>{s.name} vehicle growth (2016–2025) &amp; 2040 scenario</h2>
+                <h2>How fast {s.name} is switching (2016–2025)</h2>
                 <span>{s.cagr.toFixed(1)}% annual BEV CAGR · {s.mult2025.toFixed(1)}× expansion since 2016 · +{fmt(s.yoyGain)} BEVs in 2024–25 (+{s.yoyPct.toFixed(1)}%)</span>
               </div>
               <div class="ph__history" style="margin-bottom: 16px;">
@@ -795,12 +896,6 @@ const bookText: Record<string, { body: string[]; notesStart: number; notes: stri
                 ))}
               </div>
 
-              <div class="ph__shift-row" style="margin-top: 12px;">
-                <div class="ph__stack-meta">
-                  <span><b>2015 FHWA (all motor vehicles)</b></span>
-                  <span><b>{million(s.historic)}</b> ({fmt(s.historic)})</span>
-                </div>
-              </div>
               <div class="ph__shift-row" style="margin-top: 8px;">
                 <div class="ph__stack-meta">
                   <span><b>2025 Light-duty ({million(s.now.total)})</b></span>
@@ -810,17 +905,6 @@ const bookText: Record<string, { body: string[]; notesStart: number; notes: stri
                   <i class="is-tesla" style={`width:${(s.now.bev / s.now.total) * 100}%`}></i>
                   <i class="is-phev" style={`width:${(s.now.phev / s.now.total) * 100}%`}></i>
                   <i class="is-fuel" style={`width:${(s.now.fuel / s.now.total) * 100}%`}></i>
-                </div>
-              </div>
-              <div class="ph__shift-row" style="margin-top: 8px;">
-                <div class="ph__stack-meta">
-                  <span><b>2040 EIA Scenario (~{million(s.scenario.total)})</b></span>
-                  <span><b>~{million(s.scenario.bev)}</b> BEV ({pct(s.scenario.bev, s.scenario.total)}) · <b>~{kfmt(s.scenario.phev)}</b> PHEV</span>
-                </div>
-                <div class="ph__stack-bar">
-                  <i class="is-tesla" style={`width:${(s.scenario.bev / s.scenario.total) * 100}%`}></i>
-                  <i class="is-phev" style={`width:${(s.scenario.phev / s.scenario.total) * 100}%`}></i>
-                  <i class="is-fuel" style={`width:${(s.scenario.fuel / s.scenario.total) * 100}%`}></i>
                 </div>
               </div>
               <p class="ph__legend" style="margin-top:10px;">
@@ -834,7 +918,7 @@ const bookText: Record<string, { body: string[]; notesStart: number; notes: stri
           {s.code === 'NY' && (
             <div class="ph__viz-card" style="margin-top: 24px;" id="ny-detail">
               <div class="ph__viz-head">
-                <h2>New York City 5-borough close-up: street network, station locations &amp; utilization</h2>
+                <h2>Inside New York City: where the street-parked half can charge</h2>
                 <span>NYC holds {pct(data.city.groups.public.all.ports, s.pubPorts)} of New York State’s public ports ({fmt(data.city.groups.public.all.ports)} of {fmt(s.pubPorts)})</span>
               </div>
               <div class="ph__ny-grid">
@@ -858,43 +942,11 @@ const bookText: Record<string, { body: string[]; notesStart: number; notes: stri
                       </select>
                     </label>
                   </div>
-                  <svg class="ph__svg ph__city" viewBox="0 0 640 640" role="img" aria-label="New York City public charging stations and highway/arterial road network by borough">
-                    <defs>
-                      <clipPath id="clip-nyc">
-                        {data.city.boroughs.map((b) => (
-                          <path d={b.d} />
-                        ))}
-                      </clipPath>
-                    </defs>
-                    <g class="ph__land">
-                      {data.city.boroughs.map((b) => (
-                        <path d={b.d} data-borough-shape={b.name}><title>{b.name}</title></path>
-                      ))}
-                    </g>
-                    <g class="ph__roads" clip-path="url(#clip-nyc)" data-road-layer>
-                      <path class="ph__road-hwy" d={roads.city.secondary} />
-                      <path class="ph__road-int" d={roads.city.primary} />
-                    </g>
-                    {data.city.dots
-                      .filter((d) => d.access === 'public')
-                      .map((d) => (
-                        <circle
-                          cx={d.x}
-                          cy={d.y}
-                          r={Math.min(7, 1 + Math.sqrt(d.l1 + d.l2 + d.dc) * 0.6)}
-                          class={d.dc > 0 ? 'is-tesla' : 'is-other'}
-                          data-borough={d.borough}
-                          data-dc={d.dc}
-                        >
-                          <title>{d.name} · {d.borough} · {d.network || 'Non-networked'} · {d.l1} L1 / {d.l2} L2 / {d.dc} DC ports</title>
-                        </circle>
-                      ))}
-                  </svg>
+                  <div class="ph__mapbox ph__mapbox--city" data-map="NYC" role="region" aria-label="Zoomable map of New York City public charging stations"></div>
                   <p class="ph__legend">
-                    <span class="ph__key ph__key--tesla">Has DC fast</span>
-                    <span class="ph__key ph__key--other">AC only</span>
-                    <span class="ph__key ph__key--int">Interstate / Expressway (TIGER)</span>
-                    <span class="ph__key ph__key--hwy">Major NYC Arterial</span>
+                    <span class="ph__key ph__key--tesla">Tesla networks</span>
+                    <span class="ph__key ph__key--other">Other networks</span>
+                    <span>Choose a borough to zoom to it · charger type filters the dots</span>
                   </p>
                   <p id="ph-city-result" class="ph__selection" aria-live="polite">
                     NYC · {fmt(data.city.groups.public.all.stations)} public stations · {fmt(data.city.groups.public.all.ports)} ports ({fmt(data.city.groups.public.all.dc)} DC fast)
@@ -971,13 +1023,13 @@ const bookText: Record<string, { body: string[]; notesStart: number; notes: stri
     })}
 
     <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <!-- SLIDE 05: COMPARISON (STATES + VEHICLES + 2040 + DECISION TEST)     -->
+    <!-- SLIDE 05: COMPARISON OF THE THREE STATES                           -->
     <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <section id="comparison" class="ph__slide" data-slide="4" aria-labelledby="comparison-title" hidden>
+    <section id="comparison" class="ph__slide" data-slide="5" aria-labelledby="comparison-title" hidden>
       <div class="ph__heading">
-        <p class="ph__kicker">05 / Comparison · Infrastructure, vehicles, 2015–2040 trajectories &amp; synthesis</p>
-        <h1 id="comparison-title" tabindex="-1">California, New York &amp; Florida compared</h1>
-        <p>Side-by-side synthesis of charging networks, historical vehicle registrations (2015–2025), 2040 drivetrain projections, and the decision test for Powerhouse.</p>
+        <p class="ph__kicker">06 · The three states side by side</p>
+        <h1 id="comparison-title" tabindex="-1">Three states, three tests</h1>
+        <p>California has the most of everything, New York the fewest cars per plug but a city that cannot charge at home, Florida the fastest growth and the most cars per plug. Read across each row to see which state each claim in the text rests on.</p>
       </div>
 
       <!-- 3-State Side-by-Side Maps -->
@@ -988,33 +1040,7 @@ const bookText: Record<string, { body: string[]; notesStart: number; notes: stri
               <span>0{i + 1}</span>
               <h2><a href={`#${s.meta.slug}`} data-jump-slide={s.meta.slideIdx} class="ph__state-jump">{s.name}</a></h2>
             </div>
-            <svg class="ph__svg ph__state-map" viewBox="0 0 420 240" role="img" aria-label={`${s.name} public charging ports and highway network`}>
-              <defs>
-                <clipPath id={`clip-cmp-${s.code}`}>
-                  <path d={s.map.outline} />
-                </clipPath>
-              </defs>
-              <path class="ph__land" d={s.map.outline} />
-              <g class="ph__county" clip-path={`url(#clip-cmp-${s.code})`}>
-                {s.map.counties.map((c) => (
-                  <path d={c.d} />
-                ))}
-              </g>
-              <g class="ph__roads" clip-path={`url(#clip-cmp-${s.code})`}>
-                <path class="ph__road-hwy" d={s.roads.highways} />
-                <path class="ph__road-int" d={s.roads.interstates} />
-              </g>
-              {s.map.dots
-                .filter((d) => d.access === 'public')
-                .map((d) => (
-                  <circle
-                    cx={d.x}
-                    cy={d.y}
-                    r={Math.min(3, 0.4 + Math.sqrt(d.l1 + d.l2 + d.dc) * 0.16)}
-                    class={d.network === 'tesla' ? 'is-tesla' : 'is-other'}
-                  />
-                ))}
-            </svg>
+            <p class="ph__state-role">{roleOf[s.code].claim}</p>
             <div class="ph__state-number">
               {fmt(s.pubPorts)}<span>public ports ({fmt(s.groups.public.all.stations)} stations)</span>
             </div>
@@ -1061,14 +1087,7 @@ const bookText: Record<string, { body: string[]; notesStart: number; notes: stri
         </p>
       </div>
 
-      <!-- Vehicles Timeline & Multi-Line D3 Growth Charts -->
-      <div class="ph__timeline" style="margin-top: 28px;">
-        <span><b>2015</b>All registered motor vehicles · FHWA</span>
-        <span><b>2025</b>Light-duty registrations · AFDC ({million(base.total)} US)</span>
-        <span><b>2040</b>Illustrative light-duty scenario · EIA ({million(future.total)} US)</span>
-      </div>
-      <p class="ph__warning">The 2015 and 2025 totals cover different vehicle classes. Growth curves below use the consistent AFDC 2016–2025 series. The 2040 state figures apply EIA’s national growth ratio ({growth.toFixed(3)}×) and national 2040 drivetrain shares ({pct(future.bev, future.total)} BEV, {pct(future.phev, future.total)} PHEV).</p>
-
+      <!-- How fast each state is switching -->
       <div class="ph__viz-grid" style="margin-top:20px;">
         <div class="ph__viz-card">
           <div class="ph__viz-head">
@@ -1150,104 +1169,6 @@ const bookText: Record<string, { body: string[]; notesStart: number; notes: stri
         </div>
       </div>
 
-      <!-- 2025 vs 2040 Fleet Mix Shift Bars -->
-      <div class="ph__viz-card" style="margin-top:20px;">
-        <div class="ph__viz-head">
-          <h2>4. Drivetrain transformation: 2025 actual vs. 2040 EIA baseline scenario</h2>
-          <span>Proportional fleet bars · In 2040, plug-in vehicles reach {pct(future.bev + future.phev, future.total)} of light-duty stock ({pct(future.bev, future.total)} BEV + {pct(future.phev, future.total)} PHEV)</span>
-        </div>
-        <div class="ph__shift-grid">
-          {states.map((s) => {
-            const maxStateVeh = states[0].scenario.total;
-            const w2025 = (s.now.total / maxStateVeh) * 100;
-            const w2040 = (s.scenario.total / maxStateVeh) * 100;
-            return (
-              <div class="ph__shift-card">
-                <div class="ph__shift-head">
-                  <h3>{s.name}</h3>
-                  <span>{s.cagr.toFixed(1)}% historical BEV CAGR (2016–25)</span>
-                </div>
-                <div class="ph__shift-row">
-                  <div class="ph__stack-meta">
-                    <span><b>2025</b> ({million(s.now.total)})</span>
-                    <span><b>{kfmt(s.now.bev)}</b> BEV ({pct(s.now.bev, s.now.total)}) · <b>{kfmt(s.now.phev)}</b> PHEV</span>
-                  </div>
-                  <div class="ph__shift-track">
-                    <div class="ph__shift-bar" style={`width:${w2025}%`}>
-                      <i class="is-tesla" style={`width:${(s.now.bev / s.now.total) * 100}%`} title={`2025 BEV: ${fmt(s.now.bev)}`}></i>
-                      <i class="is-phev" style={`width:${(s.now.phev / s.now.total) * 100}%`} title={`2025 PHEV: ${fmt(s.now.phev)}`}></i>
-                      <i class="is-fuel" style={`width:${(s.now.fuel / s.now.total) * 100}%`} title={`2025 Fuel: ${fmt(s.now.fuel)}`}></i>
-                    </div>
-                  </div>
-                </div>
-                <div class="ph__shift-row">
-                  <div class="ph__stack-meta">
-                    <span><b>2040</b> (~{million(s.scenario.total)})</span>
-                    <span><b>~{million(s.scenario.bev)}</b> BEV ({pct(s.scenario.bev, s.scenario.total)}) · <b>~{kfmt(s.scenario.phev)}</b> PHEV</span>
-                  </div>
-                  <div class="ph__shift-track">
-                    <div class="ph__shift-bar" style={`width:${w2040}%`}>
-                      <i class="is-tesla" style={`width:${(s.scenario.bev / s.scenario.total) * 100}%`} title={`2040 BEV: ~${fmt(s.scenario.bev)}`}></i>
-                      <i class="is-phev" style={`width:${(s.scenario.phev / s.scenario.total) * 100}%`} title={`2040 PHEV: ~${fmt(s.scenario.phev)}`}></i>
-                      <i class="is-fuel" style={`width:${(s.scenario.fuel / s.scenario.total) * 100}%`} title={`2040 Fuel: ~${fmt(s.scenario.fuel)}`}></i>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        <p class="ph__legend" style="margin-top:12px;">
-          <span class="ph__key ph__key--tesla">Battery EV (BEV)</span>
-          <span class="ph__key ph__key--phev">Plug-in hybrid (PHEV)</span>
-          <span class="ph__key ph__key--fuel">Fuel-powered (ICE + conventional hybrid)</span>
-        </p>
-      </div>
-
-      <!-- Vehicles in Use 3-State Table -->
-      <div class="ph__table-wrap" tabindex="0" role="region" aria-label="Vehicles in use: three-state comparison">
-        <table class="ph__growth">
-          <caption>Vehicles in use: three-state comparison (2015, 2025 &amp; 2040)</caption>
-          <thead><tr><th scope="col">State</th><th scope="col">2015 · total only</th><th scope="col">2025 · latest fuel split</th><th scope="col">2040 · comparison scenario</th></tr></thead>
-          <tbody>
-            {states.map((s) => (
-              <tr>
-                <th scope="row">{s.name}</th>
-                <td>
-                  <strong>{million(s.historic)}</strong>
-                  <span>{fmt(s.historic)} total vehicles</span>
-                  <small>Fuel / EV split unavailable in this series.</small>
-                </td>
-                <td>
-                  <strong>{million(s.now.total)}</strong>
-                  <span>{million(s.now.fuel)} fuel-powered</span>
-                  <span>{fmt(s.now.bev)} battery EVs</span>
-                  <span>{fmt(s.now.phev)} plug-in hybrids</span>
-                  <small>{fmt(s.now.hydrogen + s.now.unknown)} hydrogen / unknown</small>
-                  <div class="ph__mix" role="img" aria-label={`${s.name} 2025: ${pct(s.now.bev, s.now.total)} battery electric, ${pct(s.now.phev, s.now.total)} plug-in hybrid`}>
-                    <i style={`width:${(s.now.fuel / s.now.total) * 100}%`}></i>
-                    <i class="is-tesla" style={`width:${(s.now.bev / s.now.total) * 100}%`}></i>
-                    <i class="is-phev" style={`width:${(s.now.phev / s.now.total) * 100}%`}></i>
-                  </div>
-                </td>
-                <td class="ph__projection">
-                  <strong>~{million(s.scenario.total)}</strong>
-                  <span>~{million(s.scenario.fuel)} fuel-powered</span>
-                  <span>~{million(s.scenario.bev)} battery EVs</span>
-                  <span>~{million(s.scenario.phev)} plug-in hybrids</span>
-                  <small>National growth + national technology mix</small>
-                  <div class="ph__mix" role="img" aria-label={`2040 scenario: ${pct(future.bev, future.total)} battery electric, ${pct(future.phev, future.total)} plug-in hybrid`}>
-                    <i style={`width:${(s.scenario.fuel / s.scenario.total) * 100}%`}></i>
-                    <i class="is-tesla" style={`width:${(s.scenario.bev / s.scenario.total) * 100}%`}></i>
-                    <i class="is-phev" style={`width:${(s.scenario.phev / s.scenario.total) * 100}%`}></i>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
       <!-- Full 9-Measure Infrastructure & Electricity Comparison Table -->
       <div class="ph__table-wrap" tabindex="0" role="region" aria-label="Infrastructure, vehicles and electricity table">
         <table>
@@ -1267,30 +1188,21 @@ const bookText: Record<string, { body: string[]; notesStart: number; notes: stri
         </table>
       </div>
 
-      <div class="ph__warning">
-        <h2>Where should Powerhouse be tested?</h2>
-        <p><b>Provisional recommendation: New York City, within the New York case.</b> For the thesis’s civic/community purpose, the strongest current rationale is dependence on shared charging combined with neighborhood use. This is a research judgment, not an official ranking or a final site decision.</p>
-        <p><b>The alternatives matter.</b> California leads on current market size and absolute vehicle growth. Florida leads on relative historical growth and the vehicle-to-public-port indicator. If commercial charging throughput is the primary objective, the present evidence does not justify choosing New York over them.</p>
-        <p><b>The strongest counterargument:</b> NYC is already expanding curbside and municipal charging. Powerhouse must demonstrate additional community benefit compared with simply adding chargers to existing parking. High charging occupancy does not prove people will stay, use shared facilities or meet one another.</p>
-        <p><b>Decision test:</b> compare matched neighborhoods in all three states for home-charging access, actual sessions and kWh, dwell time, planned competitors, grid capacity, land/operating cost, and community services requested by residents. Measure space accessible without purchase and access by walking, cycling and transit. Without those observations, a numerical “best state” score would imply certainty the data do not support.</p>
-        <p class="ph__note">Basis: official AFDC comparisons above; <a href="https://www.nyc.gov/html/dot/html/pr2026/expansion-of-curbside-electric-vehicle-charging.shtml">NYC DOT access and expansion evidence</a>; Powerhouse’s stated civic hypothesis. The uniform 2040 scenario cannot select a winner because every state is assigned the same national trajectory.</p>
+      <div class="ph__conclusion">
+        <h2>What the three states show together</h2>
+        <ol>
+          <li><b>The shift is real and uneven.</b> Battery-electric cars grew {states.map((s) => `${s.mult2025.toFixed(1)}× in ${s.name}`).join(', ').replace(/, ([^,]*)$/, ' and $1')} since 2016.</li>
+          <li><b>Plugs are not keeping pace everywhere.</b> Between {Math.min(...states.map((s) => s.evsPerPort)).toFixed(1)} and {Math.max(...states.map((s) => s.evsPerPort)).toFixed(1)} plug-in vehicles share each public port. The pressure is highest in Florida, which is also growing fastest.</li>
+          <li><b>Counting plugs is not enough.</b> New York has the most plugs per car and still cannot serve the half of its city that parks on the street. Where the chargers are, and what surrounds them, matters as much as how many there are. That is the question the next section, The Architecture of the Stop, takes up.</li>
+        </ol>
       </div>
 
-      <details class="ph__details">
-        <summary>2040 scenario, scope and calculation</summary>
-        <div class="ph__definitions">
-          <p><b>Official national outlook.</b> EIA’s AEO2026 Counterfactual Baseline, Table 39, models {million(future.total)} US light-duty vehicles in 2040: {million(future.bev)} battery EVs and {million(future.phev)} plug-in hybrids. It is a policy-dependent scenario, not a prediction.</p>
-          <p><b>State calculation.</b> Multiply each state’s 2025 AFDC light-duty total by EIA’s national 2040 / 2025 stock ratio ({growth.toFixed(3)}). Apply the national 2040 shares: {pct(future.bev, future.total)} battery EV, {pct(future.phev, future.total)} plug-in hybrid, and the remaining fuel / hydrogen mix. This assumes the same national trajectory for every state; actual state policy, population and adoption can differ substantially.</p>
-          <p><b>Historical scope.</b> FHWA 2015 includes automobiles, buses, trucks and motorcycles. AFDC covers light-duty vehicles and offers comparable fuel categories from 2016; it rounds counts to 100. Fuel-powered includes gasoline, diesel, conventional hybrids, flex-fuel and gaseous fuels. PHEVs are kept separate because they use both electricity and fuel. CAGR = (2025 / 2016)^(1/9) − 1.</p>
-        </div>
-      </details>
-
-      <footer class="ph__sources">Sources: <a href={sources.fhwa}>FHWA MV-1, 2015</a>; <a href={sources.regs + '?year=2016'}>AFDC 2016</a>, <a href={sources.regs + '?year=2020'}>2020</a>, <a href={sources.regs + '?year=2024'}>2024</a>, <a href={sources.regs + '?year=2025'}>2025</a>; <a href={sources.outlook}>EIA AEO2026 Table 39 (Excel)</a>; <a href="https://www.eia.gov/outlooks/aeo/narrative/">EIA scenario assumptions</a>. Official-source values accessed 18 Oct 2026; state scenario calculated for this comparison.</footer>
+      <footer class="ph__sources">Sources: <a href={sources.afdc}>DOE AFDC station inventory</a>, snapshot 18 Oct 2026; <a href={sources.regs + '?year=2016'}>AFDC registrations 2016</a>, <a href={sources.regs + '?year=2020'}>2020</a>, <a href={sources.regs + '?year=2024'}>2024</a>, <a href={sources.regs + '?year=2025'}>2025</a>; <a href={sources.stateEnergy}>EIA SEDS Table F56 (2024)</a>.</footer>
     </section>
 
     <div class="ph__pager" hidden>
       <button type="button" id="ph-prev">Previous</button>
-      <span id="ph-progress" aria-live="polite">01 / 05</span>
+      <span id="ph-progress" aria-live="polite">01 / 06</span>
       <button type="button" id="ph-next">Next</button>
     </div>
 
@@ -1300,13 +1212,27 @@ const bookText: Record<string, { body: string[]; notesStart: number; notes: stri
           <header class="ph__chapter-head" id={c.id} data-chapter-head={c.id}>
             <p class="ph__kicker">Chapter {c.num}</p>
             <h2>{c.title}</h2>
-            {bookText[c.id] && <BookText text={bookText[c.id]} />}
+            {bookText[c.id] && <BookText text={bookText[c.id]} chapter={c.num} />}
           </header>
         )}
         <section class="ph__section" id={`s-${sec.id}`} data-section-panel={sec.id}>
-          <p class="ph__kicker">{sec.num} · {sec.planned ? 'In the framework, not yet written' : `Book page ${sec.page}`}</p>
+          <p class="ph__kicker">{sec.num} · {sec.planned ? 'In the framework, not yet written' : sec.page ? `Book page ${sec.page}` : 'From the thesis book'}</p>
           <h2>{sec.title}</h2>
-          {bookText[sec.id] ? <BookText text={bookText[sec.id]} /> : <p class="ph__stub-note">To be transferred from the thesis book.</p>}
+          {notesSection[sec.id] ? (
+            <ol class="ph__notes-list">
+              {notesSection[sec.id].notes.map((note) => (
+                <li id={`note-${notesSection[sec.id].ch}-${note.n}`} value={note.n}>
+                  <span set:html={note.html} /> <a class="ph__note-back" href={`#ref-${notesSection[sec.id].ch}-${note.n}`} aria-label={`Back to the text of note ${note.n}`}>Back</a>
+                </li>
+              ))}
+            </ol>
+          ) : sec.id === '5-3' ? (
+            <ul class="ph__bib-list">{bibliography.map((b) => <li set:html={b} />)}</ul>
+          ) : bookText[sec.id] ? (
+            <BookText text={bookText[sec.id]} chapter={c.num} />
+          ) : (
+            <p class="ph__stub-note">To be transferred from the thesis book.</p>
+          )}
         </section>
       </Fragment>
     ))}
@@ -1427,7 +1353,18 @@ const bookText: Record<string, { body: string[]; notesStart: number; notes: stri
     .ph :global(.ph__book-body) { columns: 2; column-gap: var(--_tokens---space--small); }
     .ph :global(.ph__book-body p) { max-width: none; }
     .ph :global(.ph__book-body .ph__book-table), .ph :global(.ph__book-body .ph__book-h) { column-span: all; }
-    .ph :global(.ph__book-notes) { columns: 2; column-gap: var(--_tokens---space--small); display: block; }
+    .ph__notes-list, .ph__bib-list { margin: 0; padding: 0 0 0 1.8em; font-size: var(--_tokens---type--micro); line-height: 1.55; columns: 2; column-gap: var(--_tokens---space--small); }
+  .ph__bib-list { list-style: none; padding: 0; }
+  .ph__notes-list li, .ph__bib-list li { break-inside: avoid; margin-bottom: 10px; }
+  .ph__bib-list li { padding-left: 1.6em; text-indent: -1.6em; }
+  .ph__notes-list li:target { background: color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent); outline: 6px solid color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent); }
+  .ph__notes-list :global(a), .ph__bib-list :global(a) { color: inherit; overflow-wrap: anywhere; }
+  .ph__note-back { color: var(--_tokens---color--muted) !important; font-size: .9em; }
+  @media (max-width: 1023.98px) { .ph__notes-list, .ph__bib-list { columns: 1; } }
+  .ph :global(.ph__book sup a) { color: inherit; text-decoration: none; padding: 0 1px; }
+  @media (hover: hover) { .ph :global(.ph__book sup a:hover) { color: var(--_tokens---color--fg); text-decoration: underline; } }
+  .ph :global(.ph__book sup[id]), .ph__notes-list li { scroll-margin-top: calc(var(--ph-toc-h, 140px) + 160px); }
+  .ph :global(.ph__book-notes) { columns: 2; column-gap: var(--_tokens---space--small); display: block; }
     .ph :global(.ph__book-notes li) { break-inside: avoid; margin-bottom: 8px; }
   }
   .ph :global(.ph__book-notes) { margin: 0; padding: 12px 0 0 1.6em; border-top: 1px solid var(--_tokens---color--line); font-size: var(--_tokens---type--micro); line-height: 1.5; color: var(--_tokens---color--muted); display: grid; gap: 8px; }
@@ -1448,6 +1385,61 @@ const bookText: Record<string, { body: string[]; notesStart: number; notes: stri
   .ph__filters label { display: grid; gap: 4px; font-size: var(--_tokens---type--micro); min-width: 0; max-width: 100%; }
   .ph select { font: inherit; color: inherit; background: var(--_tokens---color--bg); border: 1px solid var(--_tokens---color--line); border-radius: var(--_tokens---radius--small); min-height: 44px; padding: 8px 32px 8px 12px; max-width: 100%; }
   .ph__map { margin: 8px 0 0; }
+  /* Zoomable maps (src/lib/powerhouse-map.ts): one canvas each, drawn in the page's own
+     ink. The canvas, tip, hint and buttons are made in script, so their rules are global. */
+  .ph__mapbox { position: relative; width: 100%; aspect-ratio: 16 / 10; min-height: 320px; border: 1px solid var(--_tokens---color--line); border-radius: var(--_tokens---radius--small); overflow: hidden; background: var(--_tokens---color--bg); touch-action: pan-y; }
+  .ph__mapbox--city { aspect-ratio: 1 / 1; }
+  .ph__mapbox :global(canvas) { display: block; cursor: grab; }
+  .ph__mapbox :global(canvas:active) { cursor: grabbing; }
+  .ph__mapbox :global(.ph-map__controls) { position: absolute; top: 10px; right: 10px; display: flex; gap: 4px; }
+  .ph__mapbox :global(.ph-map__controls button) { min-width: 32px; height: 32px; padding: 0 10px; border: var(--_tokens---pill-border); border-radius: var(--_tokens---radius--pill); background: color-mix(in srgb, var(--_tokens---color--bg) 88%, transparent); color: var(--_tokens---color--fg); font: inherit; font-size: var(--_tokens---type--micro); cursor: pointer; }
+  @media (hover: hover) { .ph__mapbox :global(.ph-map__controls button:hover) { background: color-mix(in srgb, var(--_tokens---color--fg) 12%, var(--_tokens---color--bg)); } }
+  .ph__mapbox :global(.ph-map__tip) { position: absolute; z-index: 2; max-width: 220px; padding: 8px 10px; border: 1px solid var(--_tokens---color--line); border-radius: var(--_tokens---radius--small); background: var(--_tokens---color--bg); font-size: var(--_tokens---type--micro); line-height: 1.5; pointer-events: none; }
+  .ph__mapbox :global(.ph-map__tip span) { color: var(--_tokens---color--muted); }
+  .ph__mapbox :global(.ph-map__hint) { position: absolute; inset: 0; display: grid; place-items: center; background: color-mix(in srgb, var(--_tokens---color--bg) 72%, transparent); font-size: var(--_tokens---type--small); opacity: 0; pointer-events: none; transition: opacity var(--_tokens---motion--base); }
+  .ph__mapbox :global(.ph-map__hint.is-on) { opacity: 1; }
+
+  /* Absolute numbers first: three steps read left to right */
+  .ph__steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: var(--_tokens---space--micro); margin: 0 0 var(--_tokens---space--small); }
+  .ph__step { display: grid; gap: 4px; align-content: start; padding-top: 10px; border-top: 1px solid var(--_tokens---color--fg); }
+  .ph__step span, .ph__step small { font-size: var(--_tokens---type--micro); color: var(--_tokens---color--muted); line-height: 1.45; }
+  .ph__step small b { color: var(--_tokens---color--fg); font-weight: 600; }
+  .ph__step strong { font-size: clamp(1.8rem, 1rem + 2.6vw, 3.4rem); font-weight: 400; letter-spacing: -.04em; line-height: 1.05; font-variant-numeric: tabular-nums; }
+
+  /* The 2025–2040 chart: three panels, one shared time axis */
+  .ph__panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: var(--_tokens---space--micro); margin: 0 0 var(--_tokens---space--micro); }
+  .ph__panel { min-width: 0; padding: 14px; border: 1px solid var(--_tokens---color--line); }
+  .ph__panel h2 { margin-bottom: 8px !important; }
+  .ph__panel p { font-size: var(--_tokens---type--micro); color: var(--_tokens---color--muted); margin: 6px 0 0; display: flex; gap: 12px; flex-wrap: wrap; }
+  .ph__panels figcaption { grid-column: 1 / -1; font-size: var(--_tokens---type--micro); color: var(--_tokens---color--muted); line-height: 1.5; }
+  .ph__grid { stroke: var(--_tokens---color--line); stroke-width: .6; stroke-dasharray: 2 3; }
+  .ph__area { fill: color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent); }
+  .ph__line { fill: none; stroke: var(--_tokens---color--fg); stroke-width: 1.8; }
+  .ph__pt { fill: var(--_tokens---color--fg); }
+  .ph__next { font-size: var(--_tokens---type--small); margin: var(--_tokens---space--micro) 0; }
+
+  /* Every state, largest first, absolute numbers */
+  .ph__rank { list-style: none; margin: 0; padding: 0; columns: 2; column-gap: 20px; font-size: 11px; font-variant-numeric: tabular-nums; }
+  .ph__rank li { display: grid; grid-template-columns: 4.2em 1fr 4.4em; white-space: nowrap; align-items: center; gap: 6px; padding: 1px 0; break-inside: avoid; color: var(--_tokens---color--muted); }
+  .ph__rank li b { font-weight: 400; text-align: right; }
+  .ph__rank-track { height: 6px; background: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent); }
+  .ph__rank-track i { display: block; height: 100%; min-width: 1px; background: var(--ph-other); }
+  .ph__rank li.is-top { color: var(--_tokens---color--fg); }
+  .ph__rank li.is-top b { font-weight: 600; }
+  .ph__rank li.is-top .ph__rank-track i { background: var(--_tokens---color--fg); }
+
+  /* The bridge from the text to the evidence, and each state's role in the argument */
+  .ph__evidence-intro { margin: var(--_tokens---space--small) 0; padding: var(--_tokens---space--micro) 0; border-top: 1px solid var(--_tokens---color--line); }
+  .ph__evidence-intro p:not(.ph__kicker) { font-size: var(--_tokens---type--small); line-height: 1.6; margin: 0; max-width: 72ch; }
+  .ph .ph__quote { font-size: var(--_tokens---type--small); font-style: italic; color: var(--_tokens---color--muted); margin: 0; }
+  .ph .ph__quote span { font-style: normal; font-size: var(--_tokens---type--micro); }
+  .ph__why { list-style: none; counter-reset: why; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: var(--_tokens---space--micro); margin: 0 0 var(--_tokens---space--small); padding: 0; }
+  .ph__why li { counter-increment: why; padding-top: 10px; border-top: 1px solid var(--_tokens---color--fg); font-size: var(--_tokens---type--micro); line-height: 1.55; }
+  .ph__why li::before { content: counter(why, decimal-leading-zero); display: block; font-variant-numeric: tabular-nums; color: var(--_tokens---color--muted); margin-bottom: 4px; }
+  .ph__why :global(b) { display: block; font-size: var(--_tokens---type--small); font-weight: 500; margin-bottom: 4px; }
+  .ph__state-role { font-size: var(--_tokens---type--small); margin: 8px 0 12px; }
+  .ph__conclusion { margin-top: var(--_tokens---space--small); padding-top: var(--_tokens---space--micro); border-top: 1px solid var(--_tokens---color--fg); }
+  .ph__conclusion ol { margin: 12px 0 0; padding-left: 1.4em; display: grid; gap: 10px; font-size: var(--_tokens---type--small); line-height: 1.55; max-width: 80ch; }
   .ph__svg { display: block; width: 100%; height: auto; }
   .ph__land, .ph__land path { fill: color-mix(in srgb, var(--_tokens---color--fg) 5%, var(--_tokens---color--bg)); stroke: var(--_tokens---color--line); stroke-width: .6; }
   .ph__county path { fill: none; stroke: var(--_tokens---color--line); stroke-width: .28; }
@@ -1625,6 +1617,8 @@ const bookText: Record<string, { body: string[]; notesStart: number; notes: stri
 </style>
 
 <script>
+  import { createMap, type PowerhouseMap } from '../lib/powerhouse-map';
+
   // Chapters (main tabs) and sections (the flow). Picking a chapter opens its first section.
   const book = document.querySelector<HTMLElement>('[data-analysis]');
   if (book) {
@@ -1677,11 +1671,32 @@ const bookText: Record<string, { body: string[]; notesStart: number; notes: stri
     };
 
     // Jump: the document is continuous, so a tab scrolls to its section rather than swapping it in.
+    // While a jump is travelling the tab rows must hold still: a row that changes height
+    // under a smooth scroll cancels it halfway. Following resumes when the scroll ends.
+    let jumping = false;
+    let jumpTimer = 0;
+    const jump = (target: Element | null) => {
+      if (!target) return;
+      jumping = true;
+      const done = () => { jumping = false; clearTimeout(jumpTimer); spy(); };
+      addEventListener('scrollend', done, { once: true });
+      jumpTimer = window.setTimeout(done, 2500);
+      target.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    };
     const goTo = (target: HTMLElement | null, id: string) => {
       index?.removeAttribute('open');
       setCurrent(id);
-      target?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      jump(target);
     };
+    // Note numbers and "Back" links jump the same way, keeping the address in step.
+    book.addEventListener('click', (e) => {
+      const a = (e.target as Element).closest<HTMLAnchorElement>('a[href^="#note-"], a[href^="#ref-"]');
+      if (!a) return;
+      e.preventDefault();
+      const hash = a.getAttribute('href')!;
+      history.replaceState(null, '', hash);
+      jump(book.querySelector(hash));
+    });
     chapterBtns.forEach((b) =>
       b.addEventListener('click', () => {
         const ch = b.dataset.chapter!;
@@ -1709,7 +1724,7 @@ const bookText: Record<string, { body: string[]; notesStart: number; notes: stri
       }
       setCurrent(id);
     };
-    addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(spy); } }, { passive: true });
+    addEventListener('scroll', () => { if (!jumping && !ticking) { ticking = true; requestAnimationFrame(spy); } }, { passive: true });
     spy();
   }
 
@@ -1719,7 +1734,7 @@ const bookText: Record<string, { body: string[]; notesStart: number; notes: stri
     const links = [...root.querySelectorAll<HTMLAnchorElement>('[data-slide-link]')];
     const prev = root.querySelector<HTMLButtonElement>('#ph-prev')!;
     const next = root.querySelector<HTMLButtonElement>('#ph-next')!;
-    const ids = ['usa', 'california', 'new-york', 'florida', 'comparison'];
+    const ids = ['vehicles', 'usa', 'california', 'new-york', 'florida', 'comparison'];
     const maxIdx = ids.length - 1;
     let index = 0;
 
@@ -1742,8 +1757,7 @@ const bookText: Record<string, { body: string[]; notesStart: number; notes: stri
 
     const resolveHash = (hash: string) => {
       const h = hash.replace(/^#/, '');
-      if (h === 'states') return 1;
-      if (h === 'vehicles') return 4;
+      if (h === 'states') return 2;
       const idx = ids.indexOf(h);
       return idx >= 0 ? idx : 0;
     };
@@ -1762,75 +1776,84 @@ const bookText: Record<string, { body: string[]; notesStart: number; notes: stri
     );
     prev.addEventListener('click', () => show(index - 1, true));
     next.addEventListener('click', () => show(index + 1, true));
-    window.addEventListener('hashchange', () => show(resolveHash(location.hash)));
+    // Note links and section anchors also change the hash; only a slide id moves the slides.
+    const isSlideHash = (h: string) => ['states', ...ids].includes(h.replace(/^#/, ''));
+    window.addEventListener('hashchange', () => { if (isSlideHash(location.hash)) show(resolveHash(location.hash)); });
     show(resolveHash(location.hash));
     root.querySelector<HTMLElement>('.ph__pager')!.hidden = false;
 
     const d = JSON.parse(document.querySelector('#ph-data')!.textContent!);
+    const number = (n: number) => n.toLocaleString('en-US');
+    const netLabel = (n: string) => (n === 'all' ? 'all networks' : n === 'tesla' ? 'Tesla networks' : 'other networks');
+
+    // Zoomable maps. Each is built the first time its slide is on screen (a hidden map has no
+    // size to draw into) and resized whenever its slide comes back.
+    const maps = new Map<string, PowerhouseMap>();
+    const mapOptions: Record<string, Parameters<typeof createMap>[1]> = {
+      usa: { fit: 'usa' },
+      CA: { fit: 'CA', outline: 'state', focusState: 'CA' },
+      NY: { fit: 'NY', outline: 'state', focusState: 'NY' },
+      FL: { fit: 'FL', outline: 'state', focusState: 'FL' },
+      NYC: { fit: 'NYC', outline: 'boroughs' },
+    };
+    const mapFor = (key: string) => maps.get(key);
+    const wake = (slide: Element) =>
+      slide.querySelectorAll<HTMLElement>('[data-map]').forEach((el) => {
+        const key = el.dataset.map!;
+        const existing = maps.get(key);
+        if (existing) return existing.resize();
+        const m = createMap(el, mapOptions[key]);
+        maps.set(key, m);
+        m.ready.then(() => key === 'usa' ? usaFilter() : key === 'NYC' ? cityFilter() : stateFilters.get(key)?.());
+      });
+    const io = new IntersectionObserver((entries) => entries.forEach((e) => e.isIntersecting && !(e.target as HTMLElement).hidden && wake(e.target)), { rootMargin: '400px 0px' });
+    slides.forEach((sl) => io.observe(sl));
+    // A slide being shown wakes its maps. Watch the slides themselves only: things inside a
+    // map (its tooltip) also toggle hidden, and reacting to those would loop.
+    const slideWatch = new MutationObserver((records) => {
+      for (const r of records) {
+        const sl = r.target as HTMLElement;
+        if (!sl.hidden && sl.getBoundingClientRect().top < innerHeight + 400) wake(sl);
+      }
+    });
+    slides.forEach((sl) => slideWatch.observe(sl, { attributes: true, attributeFilter: ['hidden'] }));
+
+    // USA filters
     const access = root.querySelector<HTMLSelectElement>('#ph-access')!;
     const network = root.querySelector<HTMLSelectElement>('#ph-network')!;
-    const roadsToggle = root.querySelector<HTMLSelectElement>('#ph-roads-toggle')!;
-    const number = (n: number) => n.toLocaleString('en-US');
-
-    // USA map filters
-    const filter = () => {
-      const a = access.value;
-      const n = network.value;
-      root.querySelectorAll<SVGCircleElement>('.ph__dots circle').forEach((c) =>
-        c.classList.toggle('is-filtered', (a !== 'all' && c.dataset.access !== a) || (n !== 'all' && c.dataset.network !== n))
-      );
+    const usaFilter = () => {
+      const a = access.value as 'public' | 'private' | 'all';
+      const n = network.value as 'tesla' | 'other' | 'all';
+      mapFor('usa')?.setFilter({ access: a, network: n });
       const count = d.groups[a][n];
       root.querySelector('#ph-map-ports')!.textContent = `${number(count.ports)} ports`;
-      root.querySelector('#ph-map-stations')!.textContent = `${number(count.stations)} stations · ${a === 'all' ? 'public + private' : a} access`;
-      root.querySelector('#us-map-label')!.textContent = `US charging ports: ${a} access, ${n === 'all' ? 'all networks' : n === 'tesla' ? 'Tesla networks' : 'other networks'}, ${number(count.ports)} ports`;
+      root.querySelector('#ph-map-stations')!.textContent = `${number(count.stations)} stations · ${a === 'all' ? 'public + private' : a} access · ${netLabel(n)}`;
     };
-    access.addEventListener('change', filter);
-    network.addEventListener('change', filter);
+    access.addEventListener('change', usaFilter);
+    network.addEventListener('change', usaFilter);
 
-    roadsToggle.addEventListener('change', () => {
-      const mode = roadsToggle.value;
-      const intEl = root.querySelector<SVGPathElement>('[data-road-int]');
-      const hwyEl = root.querySelector<SVGPathElement>('[data-road-hwy]');
-      if (intEl) intEl.classList.toggle('is-filtered', mode === 'none');
-      if (hwyEl) hwyEl.classList.toggle('is-filtered', mode !== 'all');
-    });
-
-    // Individual State Map filters (CA, NY, FL)
+    // State filters (CA, NY, FL)
+    const stateFilters = new Map<string, () => void>();
     (['CA', 'NY', 'FL'] as const).forEach((code) => {
       const stAccess = root.querySelector<HTMLSelectElement>(`[data-st-access="${code}"]`);
       const stNet = root.querySelector<HTMLSelectElement>(`[data-st-network="${code}"]`);
-      const stRoads = root.querySelector<HTMLSelectElement>(`[data-st-roads="${code}"]`);
-      const dotsGroup = root.querySelector<SVGGElement>(`[data-st-dots="${code}"]`);
       const portsOut = root.querySelector<HTMLElement>(`[data-st-ports="${code}"]`);
       const stOut = root.querySelector<HTMLElement>(`[data-st-stations="${code}"]`);
-      const intPath = root.querySelector<SVGPathElement>(`[data-st-int="${code}"]`);
-      const hwyPath = root.querySelector<SVGPathElement>(`[data-st-hwy="${code}"]`);
-
-      if (stAccess && stNet && dotsGroup && portsOut && stOut) {
-        const updateState = () => {
-          const a = stAccess.value;
-          const n = stNet.value;
-          dotsGroup.querySelectorAll<SVGCircleElement>('circle').forEach((c) =>
-            c.classList.toggle('is-filtered', (a !== 'all' && c.dataset.access !== a) || (n !== 'all' && c.dataset.network !== n))
-          );
-          const count = d.stateGroups[code][a][n];
-          portsOut.textContent = `${number(count.ports)} ports`;
-          stOut.textContent = `${number(count.stations)} stations · ${a === 'all' ? 'public + private' : a} access · ${n === 'all' ? 'all networks' : n === 'tesla' ? 'Tesla networks' : 'other networks'}`;
-        };
-        stAccess.addEventListener('change', updateState);
-        stNet.addEventListener('change', updateState);
-      }
-
-      if (stRoads) {
-        stRoads.addEventListener('change', () => {
-          const mode = stRoads.value;
-          if (intPath) intPath.classList.toggle('is-filtered', mode === 'none');
-          if (hwyPath) hwyPath.classList.toggle('is-filtered', mode !== 'all');
-        });
-      }
+      if (!stAccess || !stNet || !portsOut || !stOut) return;
+      const update = () => {
+        const a = stAccess.value as 'public' | 'private' | 'all';
+        const n = stNet.value as 'tesla' | 'other' | 'all';
+        mapFor(code)?.setFilter({ access: a, network: n });
+        const count = d.stateGroups[code][a][n];
+        portsOut.textContent = `${number(count.ports)} ports`;
+        stOut.textContent = `${number(count.stations)} stations · ${a === 'all' ? 'public + private' : a} access · ${netLabel(n)}`;
+      };
+      stateFilters.set(code, update);
+      stAccess.addEventListener('change', update);
+      stNet.addEventListener('change', update);
     });
 
-    // NYC 5-Borough filter
+    // New York City: a borough zooms the map to it; charger type filters the dots
     const borough = root.querySelector<HTMLSelectElement>('#ph-borough')!;
     const kind = root.querySelector<HTMLSelectElement>('#ph-city-type')!;
     const cityFilter = () => {
@@ -1842,23 +1865,15 @@ const bookText: Record<string, { body: string[]; notesStart: number; notes: stri
           ports += s.ports;
         }
       });
-      root.querySelectorAll<SVGCircleElement>('.ph__city circle').forEach((c) =>
-        c.classList.toggle(
-          'is-filtered',
-          (borough.value !== 'all' && c.dataset.borough !== borough.value) ||
-            (kind.value === 'dc' && Number(c.dataset.dc) === 0) ||
-            (kind.value === 'ac' && Number(c.dataset.dc) > 0)
-        )
-      );
+      const city = mapFor('NYC');
+      city?.setFilter({ access: 'public', speed: kind.value as 'dc' | 'ac' | 'all' });
       root.querySelectorAll<HTMLElement>('[data-borough-row]').forEach((r) =>
         r.classList.toggle('is-muted', borough.value !== 'all' && r.dataset.boroughRow !== borough.value)
       );
-      root.querySelectorAll<SVGPathElement>('[data-borough-shape]').forEach((r) =>
-        r.classList.toggle('is-muted', borough.value !== 'all' && r.dataset.boroughShape !== borough.value)
-      );
       root.querySelector('#ph-city-result')!.textContent = `${borough.value === 'all' ? 'NYC' : borough.value} · ${number(count)} public stations · ${number(ports)} ports at these stations`;
     };
-    borough.addEventListener('change', cityFilter);
+    borough.addEventListener('change', () => { mapFor('NYC')?.fit(borough.value === 'all' ? 'NYC' : borough.value); cityFilter(); });
     kind.addEventListener('change', cityFilter);
+    slides.forEach((sl) => !sl.hidden && wake(sl));
   }
 </script>

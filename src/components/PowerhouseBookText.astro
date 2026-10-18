@@ -1,18 +1,17 @@
 ---
-// One block of text transferred from the Powerhouse thesis book: paragraphs (some already
-// block HTML — a lead, a heading, a table) followed by that block's notes in book numbering.
+// One block of text transferred from the Powerhouse thesis book: paragraphs, some already
+// block HTML (a lead, a heading, a table). The notes are not printed here; they sit in the
+// Notes and Bibliography chapter, and each <sup> number links to its note there and back.
 interface Props {
   text: { body: string[]; notesStart: number; notes: string[] };
+  chapter: string;
 }
-const { text } = Astro.props;
+const { text, chapter } = Astro.props;
 const isBlock = (p: string) => p.startsWith('<p') || p.startsWith('<h3') || p.startsWith('<figure');
+const linkNotes = (html: string) =>
+  html.replace(/<sup>(\d+)<\/sup>/g, (_, n) => `<sup id="ref-${chapter}-${n}"><a href="#note-${chapter}-${n}" aria-label="Note ${n}">${n}</a></sup>`);
 ---
 
 <div class="ph__book">
-  <div class="ph__book-body">{text.body.map((p) => (isBlock(p) ? <Fragment set:html={p} /> : <p set:html={p} />))}</div>
-  {text.notes.length > 0 && (
-    <ol class="ph__book-notes" start={text.notesStart} aria-label="Notes">
-      {text.notes.map((n) => <li set:html={n} />)}
-    </ol>
-  )}
+  <div class="ph__book-body">{text.body.map((p) => (isBlock(p) ? <Fragment set:html={linkNotes(p)} /> : <p set:html={linkNotes(p)} />))}</div>
 </div>
