@@ -269,13 +269,13 @@ const ring = (bar: StackBar) => {
 // The closing comparison: one row per measure, the three states as columns, the highest in
 // each row marked. `hi` says whether the larger value is the notable one.
 const compareRows = [
-  { label: 'Vehicles on the road', note: 'FHWA; New York 2015, the others 2024', v: states.map((st) => roadOf[st.name].total), show: (n: number) => mil(n) },
-  { label: 'Plug-in vehicles, 2025', note: 'battery-electric + plug-in hybrid', v: states.map((st) => st.plugins), show: (n: number) => fmt(n) },
-  { label: 'Plug-in share of cars and light trucks, 2025', v: states.map((st) => (st.plugins / st.now.total) * 100), show: (n: number) => n.toFixed(1) + '%' },
+  { label: 'All vehicles', note: 'FHWA; New York 2015, the others 2024', v: states.map((st) => roadOf[st.name].total), show: (n: number) => mil(n) },
+  { label: 'Electric vehicles, 2025', note: 'battery-electric + plug-in hybrid', v: states.map((st) => st.plugins), show: (n: number) => fmt(n) },
+  { label: 'Electric share of cars and light trucks, 2025', v: states.map((st) => (st.plugins / st.now.total) * 100), show: (n: number) => n.toFixed(1) + '%' },
   { label: 'Battery-electric growth, 2016–2025', v: states.map((st) => st.mult2025), show: (n: number) => n.toFixed(0) + '×' },
-  { label: 'Public plugs, Oct 2026', note: 'share of all US public plugs', v: states.map((st) => st.pubPorts), show: (n: number) => fmt(n), extra: states.map((st) => st.usPortShare.toFixed(1) + '% of US') },
-  { label: 'Fast chargers among public plugs', v: states.map((st) => st.dcShare), show: (n: number) => n.toFixed(0) + '%' },
-  { label: 'Plug-in vehicles per public plug', note: `US average ${evPerPortUS.toFixed(0)}; higher means more drivers share each plug`, v: states.map((st) => st.evsPerPort), show: (n: number) => n.toFixed(0) },
+  { label: 'Public charging points, Oct 2026', note: 'share of all US public charging points', v: states.map((st) => st.pubPorts), show: (n: number) => fmt(n), extra: states.map((st) => st.usPortShare.toFixed(1) + '% of US') },
+  { label: 'Fast chargers among public charging points', v: states.map((st) => st.dcShare), show: (n: number) => n.toFixed(0) + '%' },
+  { label: 'EVs per public charging point', note: `US average ${evPerPortUS.toFixed(0)}; higher means more drivers share each one`, v: states.map((st) => st.evsPerPort), show: (n: number) => n.toFixed(0) },
 ].map((r) => ({ ...r, top: r.v.indexOf(Math.max(...r.v)) }));
 
 // The same five bars under every state in the three-state comparison: vehicles on the road,
@@ -290,9 +290,9 @@ const stateBars: Record<string, StateBarRow[]> = Object.fromEntries(states.map((
     { label: 'Private', value: st.privPorts, c: 'blue' },
   ] };
   const rows: StateBarRow[] = [
-    { label: `Vehicles on the road · ${roadOf[st.name].year}`, big: mil(g.road.bar.total), bar: g.road.bar, key: g.road.bar.segs },
-    ...g.time.bars.map((b) => ({ label: b.illustrative ? `${b.title} · outlook` : `${b.title} · plug in`, big: share(b.segs[0].value + b.segs[1].value, b.total), bar: b, key: b.segs.slice(0, 2), dashed: b.illustrative })),
-    { label: 'Plugs today · Oct 2026', big: fmt(infra.total), bar: infra, key: infra.segs },
+    { label: `All vehicles · ${roadOf[st.name].year}`, big: mil(g.road.bar.total), bar: g.road.bar, key: g.road.bar.segs },
+    ...g.time.bars.map((b) => ({ label: b.illustrative ? `${b.title} · outlook` : `${b.title} · electric`, big: share(b.segs[0].value + b.segs[1].value, b.total), bar: b, key: b.segs.slice(0, 2), dashed: b.illustrative })),
+    { label: 'Charging infrastructure · Oct 2026', big: fmt(infra.total), bar: infra, key: infra.segs },
   ];
   for (const r of rows) r.key = r.key.filter((x) => x.value / r.bar.total >= 0.002);
   return [st.name, rows];
@@ -704,9 +704,9 @@ const mindmapBibs = rawBibs.map((b) => ({
 
 
           <div class="ph__map-bar">
-            <p class="ph__solo-title">Where the US’s <b id="ph-map-ports" aria-live="polite">{fmt(allUsa.ports)}</b> plugs are · <span><span id="ph-map-stations">at {fmt(allUsa.stations)} stations · public and private</span></span></p>
+            <p class="ph__solo-title">Where the US’s <b id="ph-map-ports" aria-live="polite">{fmt(allUsa.ports)}</b> charging points are · <span><span id="ph-map-stations">at {fmt(allUsa.stations)} stations · public and private</span></span></p>
             <select id="ph-access" class="ph__map-select" aria-label="Show public, private or all charging">
-              <option value="all" selected>All plugs</option>
+              <option value="all" selected>All charging points</option>
               <option value="public">Public</option>
               <option value="private">Private</option>
             </select>
@@ -722,7 +722,7 @@ const mindmapBibs = rawBibs.map((b) => ({
           </figure>
           <ol class="ph__top5" aria-label="Top five states by public charging plugs">
             {data.ranked.slice(0, 5).map((r, i) => (
-              <li class:list={[{ 'is-focus': i < 3 }]}><span>{i + 1}</span><b>{stateName[r.code] ?? r.code}</b><i style={`width:${(r.ports / data.ranked[0].ports) * 100}%`}></i><em>{fmt(r.ports)} public plugs</em></li>
+              <li class:list={[{ 'is-focus': i < 3 }]}><span>{i + 1}</span><b>{stateName[r.code] ?? r.code}</b><i style={`width:${(r.ports / data.ranked[0].ports) * 100}%`}></i><em>{fmt(r.ports)} public charging points</em></li>
             ))}
           </ol>
       </div></div>
@@ -732,7 +732,7 @@ const mindmapBibs = rawBibs.map((b) => ({
           <h3 class="ph__chain-sub">National outlook · 2025–2040</h3>
       <figure class="ph__panels" aria-label="US light-duty vehicles, 2025 to 2040: all vehicles, plug-in vehicles, and plug-in share">
         <div class="ph__panel">
-          <h2>All vehicles on the road</h2>
+          <h2>All vehicles</h2>
           <svg class="ph__svg" viewBox={`0 0 ${P.w} ${P.h}`} role="img" aria-label={`All light-duty vehicles grow from ${mil(fleetNow.total)} in 2025 to ${mil(fleetEnd.total)} in 2040`}>
             {panelTicks.total.map((v) => (
               <g><line x1={P.l} x2={P.w - P.r} y1={py(v, panelMax.total)} y2={py(v, panelMax.total)} class="ph__grid" /><text x={P.l - 6} y={py(v, panelMax.total) + 3} text-anchor="end" class="ph__svg-label">{v ? `${v / 1e6}m` : '0'}</text></g>
@@ -748,7 +748,7 @@ const mindmapBibs = rawBibs.map((b) => ({
         </div>
 
         <div class="ph__panel">
-          <h2>Plug-in vehicles</h2>
+          <h2>Electric vehicles</h2>
           <svg class="ph__svg" viewBox={`0 0 ${P.w} ${P.h}`} role="img" aria-label={`Plug-in vehicles grow from ${mil(fleetNow.ev)} in 2025 to ${mil(fleetEnd.ev)} in 2040`}>
             {panelTicks.ev.map((v) => (
               <g><line x1={P.l} x2={P.w - P.r} y1={py(v, panelMax.ev)} y2={py(v, panelMax.ev)} class="ph__grid" /><text x={P.l - 6} y={py(v, panelMax.ev) + 3} text-anchor="end" class="ph__svg-label">{v ? `${v / 1e6}m` : '0'}</text></g>
@@ -771,13 +771,13 @@ const mindmapBibs = rawBibs.map((b) => ({
         </div>
 
         <div class="ph__panel">
-          <h2>Plug-in share of all vehicles</h2>
+          <h2>Electric share of all vehicles</h2>
           <svg class="ph__svg" viewBox={`0 0 ${P.w} ${P.h}`} role="img" aria-label={`Plug-in share rises from ${fleetNow.share.toFixed(1)}% in 2025 to ${fleetEnd.share.toFixed(1)}% in 2040`}>
             {panelTicks.share.map((v) => (
               <g><line x1={P.l} x2={P.w - P.r} y1={py(v, panelMax.share)} y2={py(v, panelMax.share)} class="ph__grid" /><text x={P.l - 6} y={py(v, panelMax.share) + 3} text-anchor="end" class="ph__svg-label">{v}%</text></g>
             ))}
             <path d={linePath((f) => f.share, panelMax.share)} class="ph__line" />
-            {fleet.map((f) => <circle cx={px(f.year)} cy={py(f.share, panelMax.share)} r="2" class="ph__pt"><title>{f.year}: {f.share.toFixed(1)}% plug-in</title></circle>)}
+            {fleet.map((f) => <circle cx={px(f.year)} cy={py(f.share, panelMax.share)} r="2" class="ph__pt"><title>{f.year}: {f.share.toFixed(1)}% electric</title></circle>)}
             <text x={px(2025) + 4} y={py(fleetNow.share, panelMax.share) - 8} class="ph__svg-val">{fleetNow.share.toFixed(1)}%</text>
             <text x={px(2040)} y={py(fleetEnd.share, panelMax.share) - 8} text-anchor="end" class="ph__svg-val">{fleetEnd.share.toFixed(1)}%</text>
             {[2025, 2030, 2035, 2040].map((y) => <text x={px(y)} y={P.h - 8} text-anchor="middle" class="ph__svg-label">{y}</text>)}
@@ -786,8 +786,8 @@ const mindmapBibs = rawBibs.map((b) => ({
         </div>
         <figcaption>US cars and light trucks in use (personal and fleet). 2025 is EIA’s modelled base year; 2026–2040 is EIA’s Annual Energy Outlook 2026 Counterfactual Baseline, a policy-dependent scenario, not a forecast. Heavy trucks and buses are not included.</figcaption>
       </figure>
-      <p class="ph__why-line"><b>Why it matters for the Powerhouse.</b> Every plug-in vehicle has to stop to charge somewhere. Today that is {mil(fleetNow.ev)} vehicles; by 2040 it could be {mil(fleetEnd.ev)}. Most charge at home, but the more there are, the more stops away from home there will be, and the Powerhouse is a design for those stops.</p>
-      <p class="ph__why-line"><b>Constant-ratio illustration.</b> Today {evPerPortUS.toFixed(0)} plug-in vehicles share every public plug. If that holds, holding that cross-year ratio constant would imply about {(portsAtSameRatio2040 / pub.ports).toFixed(0)} times as many public plugs by 2040. This is not a charger-demand forecast; each plug is a stop that can be a car park with a row of posts or a place worth staying in. The map shows where those stops are today.</p>
+      <p class="ph__why-line"><b>Why it matters for the Powerhouse.</b> Every electric vehicle has to stop to charge somewhere. Today that is {mil(fleetNow.ev)} vehicles; by 2040 it could be {mil(fleetEnd.ev)}. Most charge at home, but the more there are, the more stops away from home there will be, and the Powerhouse is a design for those stops.</p>
+      <p class="ph__why-line"><b>Constant-ratio illustration.</b> Today {evPerPortUS.toFixed(0)} electric vehicles share every public charging point. If that holds, holding that cross-year ratio constant would imply about {(portsAtSameRatio2040 / pub.ports).toFixed(0)} times as many public charging points by 2040. This is not a charger-demand forecast; each charging point is a stop that can be a car park with a row of posts or a place worth staying in. The map shows where those stops are today.</p>
         </div>
     </section>
 
@@ -802,19 +802,14 @@ const mindmapBibs = rawBibs.map((b) => ({
             <Fragment>
               <div class="ph__dash-card ph__dash-card--vbars">
                 <div class="ph__dash-vhead"><span class="ph__dash-label">{road.label}</span><b>{road.big}</b></div>
-                <div class="ph__dash-vbars" role="img" aria-label={`${road.label}: ${road.bar.segs.map((x) => `${x.label} ${share(x.value, road.bar.total)}`).join(', ')}`}>
-                  {road.bar.segs.map((x) => (
-                    <div class="ph__dash-hbar">
-                      <span>{x.label.replace(', incl. SUVs and pickups', '')}</span>
-                      <div class="ph__dash-htrack"><i class={`c-${x.c}`} style={`width:${Math.max(1, (x.value / road.bar.total) * 100)}%`}></i></div>
-                      <b>{share(x.value, road.bar.total)}</b>
-                    </div>
-                  ))}
+                <div class="ph__stack100 ph__dash-stack" role="img" aria-label={`${road.label}: ${road.bar.segs.map((x) => `${x.label} ${share(x.value, road.bar.total)}`).join(', ')}`}>
+                  {road.bar.segs.map((x) => <i class={`c-${x.c}`} style={`flex-grow:${x.value}`} title={`${x.label}: ${share(x.value, road.bar.total)}`}></i>)}
                 </div>
+                <ul class="ph__stack100-key">{road.key.map((x) => <li><i class={`c-${x.c}`}></i>{x.label.replace(', incl. SUVs and pickups', ' (incl. SUVs, pickups)')} <b>{share(x.value, road.bar.total)}</b></li>)}</ul>
               </div>
 
               <div class="ph__dash-card ph__dash-card--years">
-                <span class="ph__dash-label">Share that plugs in</span>
+                <span class="ph__dash-label">Share of vehicles that are electric</span>
                 <div class="ph__dash-years">
                   {[y16, y25, y40].map((r) => (
                     <div class:list={['ph__dash-year', { 'is-outlook': r.dashed }]}>
@@ -831,21 +826,16 @@ const mindmapBibs = rawBibs.map((b) => ({
 
               <div class="ph__dash-card ph__dash-card--vbars">
                 <div class="ph__dash-vhead"><span class="ph__dash-label">{plugs.label}</span><b>{plugs.big}</b></div>
-                <div class="ph__dash-vbars" role="img" aria-label={`${plugs.label}: ${plugs.bar.segs.map((x) => `${x.label} ${share(x.value, plugs.bar.total)}`).join(', ')}`}>
-                  {plugs.bar.segs.map((x) => (
-                    <div class="ph__dash-hbar">
-                      <span>{x.label.replace(', incl. SUVs and pickups', '')}</span>
-                      <div class="ph__dash-htrack"><i class={`c-${x.c}`} style={`width:${Math.max(1, (x.value / plugs.bar.total) * 100)}%`}></i></div>
-                      <b>{share(x.value, plugs.bar.total)}</b>
-                    </div>
-                  ))}
+                <div class="ph__stack100 ph__dash-stack" role="img" aria-label={`${plugs.label}: ${plugs.bar.segs.map((x) => `${x.label} ${share(x.value, plugs.bar.total)}`).join(', ')}`}>
+                  {plugs.bar.segs.map((x) => <i class={`c-${x.c}`} style={`flex-grow:${x.value}`} title={`${x.label}: ${share(x.value, plugs.bar.total)}`}></i>)}
                 </div>
+                <ul class="ph__stack100-key">{plugs.key.map((x) => <li><i class={`c-${x.c}`}></i>{x.label.replace(', incl. SUVs and pickups', ' (incl. SUVs, pickups)')} <b>{share(x.value, plugs.bar.total)}</b></li>)}</ul>
               </div>
 
               <div class="ph__dash-tiles">
-                <div><span>Plug-in vehicles · 2025</span><b>{fmt(s.plugins)}</b></div>
-                <div><span>Public plugs · Oct 2026</span><b>{fmt(s.pubPorts)}</b></div>
-                <div><span>Plug-in vehicles per public plug</span><b>{s.evsPerPort.toFixed(0)}</b><small>US average {evPerPortUS.toFixed(0)}</small></div>
+                <div><span>Electric vehicles · 2025</span><b>{fmt(s.plugins)}</b></div>
+                <div><span>Public charging points · Oct 2026</span><b>{fmt(s.pubPorts)}</b></div>
+                <div><span>Electric vehicles per public charging point</span><b>{s.evsPerPort.toFixed(0)}</b><small>US average {evPerPortUS.toFixed(0)}</small></div>
                 <div><span>Battery-electric growth · 2024–25</span><b>+{s.yoyPct.toFixed(1)}%</b></div>
               </div>
             </Fragment>
@@ -853,7 +843,7 @@ const mindmapBibs = rawBibs.map((b) => ({
         </div>
         <p>{s.code==='CA'?'The largest existing market of the three. Investigate gaps within a substantial charging network.':s.code==='NY'?'A smaller EV market, with a city where access to home charging is a particular challenge.': 'The fastest recent percentage growth of the three. Test where new demand requires shared charging.'}</p>
       </article>)}</div>
-      <p class="ph__note">Plug-in vehicles include battery EVs and plug-in hybrids. Growth measures battery EV registrations, not charger use. Vehicle and charger counts refer to different years.</p>
+      <p class="ph__note">Electric vehicles (EVs) here means battery-electric cars plus plug-in hybrids; ordinary hybrids that never plug in are counted as fuel vehicles. Growth measures battery EV registrations, not charger use. Vehicle and charger counts refer to different years.</p>
       <footer class="ph__sources">Sources: <a href={sources.regs}>AFDC registrations, 2016–25</a> · <a href={sources.afdc}>AFDC charging inventory, October 2026</a> · <a href={sources.outlook}>EIA AEO2026 national outlook, Table 39</a>.</footer>
     </section>
 
@@ -883,7 +873,7 @@ const mindmapBibs = rawBibs.map((b) => ({
           </tbody>
         </table>
       </div>
-      <p class="ph__note">Highest in each row in bold. Vehicle and charger counts come from different years; vehicles per plug is a ratio across them, not a measure of how busy the plugs are. Sources: FHWA Highway Statistics, Table MV-1; AFDC vehicle registrations 2016–2025; AFDC station inventory, 18 Oct 2026.</p>
+      <p class="ph__note">Highest in each row in bold. Vehicle and charger counts come from different years; EVs per charging point is a ratio across them, not a measure of how busy the chargers are. Sources: FHWA Highway Statistics, Table MV-1; AFDC vehicle registrations 2016–2025; AFDC station inventory, 18 Oct 2026.</p>
     </section>
 
     <!-- The conclusion closes 1.1, set apart in an inverted box -->
@@ -1526,7 +1516,9 @@ const mindmapBibs = rawBibs.map((b) => ({
   .ph__dash { display: grid; gap: 14px; margin: 16px 0 12px; }
   .ph__dash-card { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 14px; align-items: center; padding: 12px; border-radius: 14px; background: color-mix(in srgb, var(--_tokens---color--fg) 4%, var(--_tokens---color--bg)); min-height: 136px; }
   .ph__dash-card--years { grid-template-columns: minmax(0, 1fr); gap: 8px; }
-  /* Vehicles and plugs as horizontal bars: each row's length is that category's share of the total */
+  /* All vehicles and charging infrastructure: one multi-segment bar each, the storage-bar way */
+  .ph .ph__dash-stack { display: flex; height: 22px; border-radius: 6px; overflow: hidden; gap: 2px; }
+  .ph .ph__dash-stack i { display: block; min-width: 3px; flex-basis: 0; }
   .ph__dash-card--vbars { grid-template-columns: minmax(0, 1fr); gap: 8px; align-items: stretch; }
   .ph__dash-vhead { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
   .ph__dash-vhead .ph__dash-label { margin: 0; }
