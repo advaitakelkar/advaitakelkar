@@ -631,15 +631,11 @@ const scopeRows = [
   { k: 'Programme', v: 'Forty architectural programmes, free and paid, chosen for what the area lacks', cls: 'c-orange' },
 ];
 // 1.7: three lenses, each on one part of the argument.
-const lenses = [
-  { lens: 'Sustainability', part: 'The Powerhouse and its charging (1.1, 1.3)', who: 'Brundtland 1987 · McHarg 1969 · Van der Ryn and Cowan 1996', cls: 'c-green' },
-  { lens: 'Phenomenology', part: 'The stop (1.2, 1.3)', who: 'Heidegger 1971 · Norberg-Schulz 1980', cls: 'c-yellow' },
-  { lens: 'Social theory', part: 'The community and its public space (1.4, 1.5)', who: 'Lefebvre 1991, 1996 · Foucault 1977 · Jacobs 1961', cls: 'c-blue' },
-];
-const sustainParts = [
-  { part: 'Environmental', how: 'Builds on ground parking already covers; makes and stores its own energy', cls: 'c-green' },
-  { part: 'Social', how: 'Serves people who cannot charge at home, and people who do not charge at all', cls: 'c-teal' },
-  { part: 'Economic', how: 'Paid programmes keep the place running and the free ones free', cls: 'c-orange' },
+// 1.7 as one flow: three lenses, each answering one question, leading to the Powerhouse.
+const lensFlow = [
+  { n: 1, lens: 'Sustainability', q: 'Should it exist?', a: 'Yes: it builds on land parking already covers, makes its own energy and serves people who cannot charge at home.', cls: 'c-green', reads: '1.1, 1.3' },
+  { n: 2, lens: 'Phenomenology', q: 'Can the stop become a place?', a: 'Yes: the site gathers a pause in a journey into a place people know and belong to.', cls: 'c-yellow', reads: '1.2, 1.3' },
+  { n: 3, lens: 'Social theory', q: 'Who is it for?', a: 'Everyone: lived by its users rather than planned for vehicles, and safe because people are there.', cls: 'c-blue', reads: '1.4, 1.5' },
 ];
 const programmeGrid = [['free', 'Free', 'c-teal'], ['paid', 'Paid', 'c-orange']].map(([k, kind, cls]) => ({
   kind, cls, items: programmeJudged.filter((p) => p.k === k),
@@ -1329,30 +1325,28 @@ const mindmapBibs = rawBibs.map((b) => ({
           ) : sec.id === '1-7' && bookText[sec.id] ? (
             <div class="ph__intro-grid">
               <div class="ph__chapter-lead"><BookText text={bookText[sec.id]} chapter="1" /></div>
-              <div class="ph__figs" aria-label="1.7 in numbers">
+              <div class="ph__figs" aria-label="1.7 theoretical framework">
               <figure class="ph__fig ph__fig--wide">
-                <figcaption><b class="ph__fig-num">3 lenses</b><span>each reads one part of the argument</span></figcaption>
-                <div class="ph__tests">{lenses.map((l) => <div><i class={l.cls}>{l.lens}</i><span><b>{l.part}</b> · {l.who}</span></div>)}</div>
-                <p class="ph__fig-src">Sources: notes 27–34 · <a class="ph__fig-note" href="#note-1-27">Note 27</a></p>
-              </figure>
-              <figure class="ph__fig">
-                <figcaption><b class="ph__fig-num">3 parts</b><span>of sustainability, and how the Powerhouse meets each</span></figcaption>
-                <div class="ph__tests ph__tests--tight">{sustainParts.map((p) => <div><i class={p.cls}>{p.part}</i><span>{p.how}</span></div>)}</div>
-                <p class="ph__fig-src">Sources: Brundtland (1987) · <a class="ph__fig-note" href="#note-1-27">Note 27</a>; McHarg (1969), Van der Ryn and Cowan (1996) · <a class="ph__fig-note" href="#note-1-28">Note 28</a></p>
-              </figure>
-              <figure class="ph__fig">
-                <figcaption><b class="ph__fig-num">Pause → place</b><span>the charger, like Heidegger’s bridge, gathers a place around it</span></figcaption>
-                <div class="ph__fig-bar ph__fig-strip"><i class="c-light" style="width:33%">Journey</i><i class="c-yellow" style="width:34%">Pause</i><i class="c-red" style="width:33%">Place</i></div>
-                <p class="ph__fig-key">Knowing where you are, and feeling you belong</p>
-                <p class="ph__fig-src">Sources: Heidegger, “Building Dwelling Thinking” · <a class="ph__fig-note" href="#note-1-29">Note 29</a>; Norberg-Schulz, Genius Loci (1980) · <a class="ph__fig-note" href="#note-1-30">Note 30</a></p>
-              </figure>
-              <figure class="ph__fig ph__fig--wide">
-                <figcaption><b class="ph__fig-num">Lived, not planned</b><span>charging sites today are planned for the vehicle; the Powerhouse is made for people to use and shape</span></figcaption>
-                <div class="ph__fig-compare">
-                  <div class="c-light"><b>Today</b><span>Planned by standards and operators, for the vehicle</span><span>Safety by watching people and moving them on</span></div>
-                  <div class="c-blue"><b>The Powerhouse</b><span>Lived by the people who use it: a right to the city</span><span>Safety from people being present</span></div>
+                <figcaption><b class="ph__fig-num">3 lenses</b><span>three questions, answered in turn, lead to the Powerhouse</span></figcaption>
+                <div class="ph__flow">
+                  {lensFlow.map((l) => (
+                    <>
+                      <div class="ph__flow-step"><i class={l.cls}>{l.n} {l.lens}</i><b>{l.q}</b><span>{l.a}</span></div>
+                      <span class="ph__flow-arrow" aria-hidden="true">↓</span>
+                    </>
+                  ))}
+                  <div class="ph__flow-step ph__flow-end"><i class="c-red">The Powerhouse</i><b>A civic place on idle parking</b><span>Open to all, sustained by its own energy and programme.</span></div>
                 </div>
-                <p class="ph__fig-src">Sources: Lefebvre · <a class="ph__fig-note" href="#note-1-31">Note 31</a>, <a class="ph__fig-note" href="#note-1-32">Note 32</a>; Foucault · <a class="ph__fig-note" href="#note-1-33">Note 33</a>; Jacobs · <a class="ph__fig-note" href="#note-1-34">Note 34</a></p>
+                <p class="ph__fig-src">Source: the thesis, section 1.7</p>
+              </figure>
+              <figure class="ph__fig ph__fig--wide">
+                <figcaption><b class="ph__fig-num">Each part</b><span>what the thinkers say, and what it means for the Powerhouse</span></figcaption>
+                <div class="ph__explain">
+                  <div><i class="c-green">1 Sustainability</i><p>Brundtland defines sustainable development as meeting today’s needs without taking from future generations.<sup><a class="ph__fig-note" href="#note-1-27">27</a></sup> The Powerhouse meets it three ways: environmental (land parking already covers, its own energy), social (people who cannot charge at home) and economic (paid programmes keep it running). McHarg’s layered reading of a site decides where a Powerhouse goes; Van der Ryn and Cowan ask that its energy be visible, not hidden.<sup><a class="ph__fig-note" href="#note-1-28">28</a></sup> <em>Backs 1.1 and 1.3.</em></p></div>
+                  <div><i class="c-yellow">2 Phenomenology</i><p>Heidegger’s bridge does not just cross a river; it gathers two banks into a place.<sup><a class="ph__fig-note" href="#note-1-29">29</a></sup> The site can do the same for a pause in a journey. Norberg-Schulz adds that people need to know where they are and feel they belong,<sup><a class="ph__fig-note" href="#note-1-30">30</a></sup> which today’s identical charging stops, Augé’s non-places, do not allow. <em>Backs 1.2 and 1.3.</em></p></div>
+                  <div><i class="c-blue">3 Social theory</i><p>Lefebvre separates space as planned from space as lived; charging sites today are planned by standards and operators for the vehicle.<sup><a class="ph__fig-note" href="#note-1-31">31</a></sup> His right to the city grounds the open ground and free programmes.<sup><a class="ph__fig-note" href="#note-1-32">32</a></sup> Foucault warns that such places can watch and move people on;<sup><a class="ph__fig-note" href="#note-1-33">33</a></sup> Jacobs answers that safety comes from people being present.<sup><a class="ph__fig-note" href="#note-1-34">34</a></sup> <em>Backs 1.4 and 1.5.</em></p></div>
+                </div>
+                <p class="ph__fig-src">Sources: notes 27–34</p>
               </figure>
             </div>
             </div>
@@ -2024,6 +2018,19 @@ const mindmapBibs = rawBibs.map((b) => ({
   .ph__tests b { font-weight: 600; }
   .ph__fig-loop--row { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .ph__fig-loop--row li { line-height: 1.3; }
+  .ph__flow { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .ph__flow-step { display: grid; grid-template-columns: 130px 1fr; grid-template-rows: auto auto; column-gap: 12px; row-gap: 2px; align-items: start; padding: 10px; border: 1px solid var(--_tokens---color--line); border-radius: 8px; font-size: var(--_tokens---type--ultrathin); line-height: 1.4; }
+  .ph__flow-step i { grid-row: 1 / 3; font-style: normal; padding: 4px 8px; border-radius: 4px; font-size: 11px; color: #111; justify-self: start; }
+  .ph__flow-step b { font-weight: 600; font-size: var(--_tokens---type--micro); }
+  .ph__flow-step span { color: var(--_tokens---color--muted); }
+  .ph__flow-end { border-color: var(--_tokens---color--fg); }
+  .ph__flow-arrow { justify-self: center; color: var(--_tokens---color--muted); line-height: 1; }
+  .ph__explain { display: grid; gap: 12px; }
+  .ph__explain > div { display: grid; grid-template-columns: 130px 1fr; gap: 12px; align-items: start; }
+  .ph__explain i { font-style: normal; padding: 4px 8px; border-radius: 4px; font-size: 11px; color: #111; }
+  .ph__explain p { margin: 0; font-size: var(--_tokens---type--ultrathin); line-height: 1.55; }
+  .ph__explain em { color: var(--_tokens---color--muted); }
+  .ph__explain sup a { color: inherit; }
   .ph__fig-chips { display: flex; flex-wrap: wrap; gap: 4px; }
   .ph__fig-chips i { font-style: normal; padding: 4px 10px; border-radius: 999px; font-size: 11px; color: #111; }
   .ph__fig-units { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
