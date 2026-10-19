@@ -452,7 +452,6 @@ const book: { id: string; num: string; short: string; title: string; sections: B
       { id: '1-5', num: '1.5', title: 'The Anchor', page: 10 },
       { id: '1-6', num: '1.6', title: 'Argument, Objectives, and Scope', page: 11 },
       { id: '1-7', num: '1.7', title: 'Theoretical Framework', page: 11 },
-      { id: '1-8', num: '1.8', title: 'Thesis Framework', page: 11 },
     ],
   },
   {
@@ -510,6 +509,56 @@ const homeKwh = 10791; // EIA, average US household, 2022
 const evKwhLow = Math.round((evYearKwh[0] / homeKwh) * 100);
 const evKwhSpan = Math.round(((evYearKwh[1] - evYearKwh[0]) / homeKwh) * 100);
 const salesMax = 22;
+// 1.2 in numbers. The typical pause at each kind of stop (Table 1.1), on a log scale from
+// one minute to a day, so five minutes and overnight both read.
+const pauseX = (m: number) => (Math.log(m) / Math.log(1440)) * 100;
+const pauses = [
+  { name: 'Caravanserai', label: 'Overnight', from: 480, to: 720, cls: 'c-grey' },
+  { name: 'Coaching inn', label: 'Hours to overnight', from: 120, to: 720, cls: 'c-grey' },
+  { name: 'Railway station', label: '30–60 min', from: 30, to: 60, cls: 'c-grey' },
+  { name: 'Airport', label: '1–2 h', from: 60, to: 120, cls: 'c-grey' },
+  { name: 'Gas station', label: '5 min', from: 4.5, to: 5.5, cls: 'c-orange' },
+  { name: 'The Powerhouse', label: '20–60 min, daily', from: 20, to: 60, cls: 'c-red' },
+].map((p) => ({ ...p, left: pauseX(p.from), width: pauseX(p.to) - pauseX(p.from) }));
+const pauseTicks = [[5, '5 min'], [30, '30 min'], [240, '4 h'], [1440, '24 h']].map(([m, l]) => ({ l, x: pauseX(m as number) }));
+const pennLeft = ((1910 - 1900) / 125) * 100;
+const pennWidth = ((1963 - 1910) / 125) * 100;
+// 1.3 in numbers, in reading order: every vehicle, then home, then the roadside stop, then
+// the US truck driver's legal day. Charge times on a log scale from ten minutes to two days.
+const logT = (m: number) => ((Math.log(m) - Math.log(10)) / (Math.log(3000) - Math.log(10))) * 100;
+const span = (from: number, to: number) => ({ left: logT(from), width: Math.max(logT(to) - logT(from), 1.2) });
+// Each vehicle from its fastest charger to its slowest, smallest vehicle first.
+const vehicleCharge = [
+  { name: 'E-bike', label: '2–6 h', ...span(120, 360), cls: 'c-teal' }, // fast charger to 80% · standard charger to full
+  { name: 'Motorcycle', label: '1–4 h', ...span(60, 240), cls: 'c-yellow' }, // Zero: upgraded charging · standard
+  { name: 'Car', label: '20 min–50 h', ...span(20, 3000), cls: 'c-blue' }, // DC fast to 80% · Level 1 wall socket to full
+  { name: 'Bus', label: '30 min–12 h', ...span(30, 720), cls: 'c-green' }, // pantograph / high-power DC · low-power depot
+  { name: 'Truck', label: '30 min*–2.5 h', ...span(30, 150), cls: 'c-red' }, // Tesla Semi claim · eCascadia to 80%
+];
+const vehicleTicks = [[10, '10 min'], [60, '1 h'], [240, '4 h'], [1440, '24 h']].map(([m, l]) => ({ l, x: logT(m as number) }));
+const homeMax = 50;
+const roadMax = 80;
+const roadside = [
+  { name: 'Tesla Supercharger', label: 'under 30 min', min: 27, cls: 'c-red' },
+  { name: 'Paid DC fast', label: '42 min', min: 42, cls: 'c-orange' },
+  { name: 'Free DC fast', label: '78 min', min: 78, cls: 'c-yellow' },
+];
+// 49 C.F.R. § 395.3: 8 h driving, a 30-minute break, 3 more hours (11 in all) inside a
+// 14-hour window, then 10 hours off duty. Laid out on one 24-hour bar.
+const truckDay = [
+  { label: '8 h driving', h: 8, cls: 'c-grey' },
+  { label: '', h: 0.5, cls: 'c-orange' },
+  { label: '3 h', h: 3, cls: 'c-grey' },
+  { label: '', h: 2.5, cls: 'c-light' },
+  { label: '10 h off duty', h: 10, cls: 'c-teal' },
+].map((t) => ({ ...t, w: (t.h / 24) * 100 }));
+const studyRows = [
+  { name: 'Tesla Supercharger', label: '≈27 min', from: 0, to: 27, cls: 'c-grey' },
+  { name: 'US truck break', label: '30 min', from: 0, to: 30, cls: 'c-orange' },
+  { name: 'Paid DC fast', label: '42 min', from: 0, to: 42, cls: 'c-grey' },
+  { name: 'This study', label: '45–60 min', from: 45, to: 60, cls: 'c-red' },
+].map((r) => ({ ...r, left: (r.from / 90) * 100, width: ((r.to - r.from) / 90) * 100 }));
+const michi = [['Free 24-hour parking', 'c-teal'], ['Toilets', 'c-teal'], ['Rest', 'c-teal'], ['Local produce market', 'c-orange'], ['Restaurants', 'c-orange'], ['Crafts', 'c-orange'], ['Events', 'c-orange'], ['Disaster relief', 'c-orange']];
 
 // Text transferred from the book, per section (src/data/powerhouse-book.json). `body` is HTML
 // paragraphs with the book's note numbers as <sup>; `notes` keep the book's numbering from `notesStart`.
@@ -990,7 +1039,100 @@ const mindmapBibs = rawBibs.map((b) => ({
           </span>
         </summary>
         <div class="ph__fold-body">
-          {bookText[sec.id] ? (
+          {sec.id === '1-2' && bookText[sec.id] ? (
+            <div class="ph__intro-grid">
+              <div class="ph__chapter-lead"><BookText text={bookText[sec.id]} chapter="1" /></div>
+              <div class="ph__figs" aria-label="1.2 in numbers">
+              <figure class="ph__fig ph__fig--wide">
+                <figcaption><b class="ph__fig-num">5 min</b><span>the gas station’s stop: too short for a civic form</span></figcaption>
+                <div class="ph__pause" aria-label="Typical pause at each kind of stop">
+                  {pauses.map((p) => (
+                    <div class="ph__pause-row"><span>{p.name}</span><div class="ph__pause-track"><i class={p.cls} style={`left:${p.left}%;width:${p.width}%`}></i></div><span>{p.label}</span></div>
+                  ))}
+                  <div class="ph__pause-row ph__pause-axis" aria-hidden="true"><span></span><div class="ph__pause-track">{pauseTicks.map((t) => <em style={`left:${t.x}%`}>{t.l}</em>)}</div><span></span></div>
+                </div>
+                <p class="ph__fig-key"><span class="ph__swatch c-grey"></span>Earlier stops <span class="ph__swatch c-orange"></span>Gas station <span class="ph__swatch c-red"></span>The Powerhouse · typical pause, log scale</p>
+                <p class="ph__fig-src">Source: Table 1.1; Meeks, The Railroad Station (1956) · <a class="ph__fig-note" href="#note-1-11">Note 11</a>; Jakle and Sculle, The Gas Station in America (1994) · <a class="ph__fig-note" href="#note-1-12">Note 12</a></p>
+              </figure>
+              <figure class="ph__fig">
+                <figcaption><b class="ph__fig-num">1963</b><span>Penn Station demolished, 53 years after it opened</span></figcaption>
+                <div class="ph__fig-bars"><div><span>1900 · · · 2025</span><div class="ph__fig-bar"><i style={`width:${pennLeft}%`}></i><i class="c-grey" style={`width:${pennWidth}%`}>1910–1963</i></div></div></div>
+                <p class="ph__fig-key"><span class="ph__swatch c-grey"></span>New York’s civic room for the train</p>
+                <p class="ph__fig-src">Source: Meeks, The Railroad Station (1956) · <a class="ph__fig-note" href="#note-1-11">Note 11</a></p>
+              </figure>
+              <figure class="ph__fig">
+                <figcaption><b class="ph__fig-num">None</b><span>of NEVI’s federal standards cover the place around the charger</span></figcaption>
+                <div class="ph__fig-bars">
+                  <div><span>Power</span><div class="ph__fig-bar"><i class="c-green" style="width:100%">Set</i></div></div>
+                  <div><span>Equipment</span><div class="ph__fig-bar"><i class="c-green" style="width:100%">Set</i></div></div>
+                  <div><span>The place around it</span><div class="ph__fig-bar"></div></div>
+                </div>
+                <p class="ph__fig-key"><span class="ph__swatch c-green"></span>Standard set</p>
+                <p class="ph__fig-src">Source: FHWA, NEVI Standards and Requirements, 23 C.F.R. pt. 680 (2023) · <a class="ph__fig-note" href="#note-1-13">Note 13</a></p>
+              </figure>
+              <figure class="ph__fig">
+                <figcaption><b class="ph__fig-num">#2</b><span>truck parking, among US trucking’s most pressing problems</span></figcaption>
+                <div class="ph__fig-rank"><i class="c-grey">1 · The economy</i><i class="c-red">2 · Truck parking</i></div>
+                <p class="ph__fig-key"><span class="ph__swatch c-red"></span>Where drivers stop</p>
+                <p class="ph__fig-src">Source: Duah et al., Transportation Research Interdisciplinary Perspectives 34 (2025) · <a class="ph__fig-note" href="#note-1-14">Note 14</a></p>
+              </figure>
+              <figure class="ph__fig">
+                <figcaption><b class="ph__fig-num">1,200+</b><span>Michi-no-eki road stations in Japan since 1993, run with the town</span></figcaption>
+                <div class="ph__fig-chips">{michi.map(([t, c]) => <i class={c}>{t}</i>)}</div>
+                <p class="ph__fig-key"><span class="ph__swatch c-teal"></span>For travellers <span class="ph__swatch c-orange"></span>For the town</p>
+                <p class="ph__fig-src">Source: MLIT Japan, “Michi-no-Eki (Roadside Stations)” · <a class="ph__fig-note" href="#note-1-19">Note 19</a></p>
+              </figure>
+            </div>
+            </div>
+          ) : sec.id === '1-3' && bookText[sec.id] ? (
+            <div class="ph__intro-grid">
+              <div class="ph__chapter-lead"><BookText text={bookText[sec.id]} chapter="1" /></div>
+              <div class="ph__figs" aria-label="1.3 in numbers">
+              <figure class="ph__fig ph__fig--wide">
+                <figcaption><b class="ph__fig-num">20 min–50 h</b><span>to charge, from the fastest charger to the slowest, by vehicle size</span></figcaption>
+                <div class="ph__pause">
+                  {vehicleCharge.map((p) => (
+                    <div class="ph__pause-row"><span>{p.name}</span><div class="ph__pause-track"><i class={p.cls} style={`left:${p.left}%;width:${p.width}%`}></i></div><span>{p.label}</span></div>
+                  ))}
+                  <div class="ph__pause-row ph__pause-axis" aria-hidden="true"><span></span><div class="ph__pause-track">{vehicleTicks.map((t) => <em style={`left:${t.x}%`}>{t.l}</em>)}</div><span></span></div>
+                </div>
+                <p class="ph__fig-key">Left end: fast charge, to 70–80% · right end: home or depot, to full · log scale · * Tesla Semi claim, unverified</p>
+                <p class="ph__fig-src">Sources: Upway, “How Long Does It Take to Charge an Electric Bike?”; Zero Motorcycles, “Charging and Range”; US DOT, “Charger Types and Speeds”; Monta, “Electric Buses”; Tesla, Semi (2025); Freightliner, eCascadia spec sheet (2025); Volvo Trucks, VNR Electric</p>
+              </figure>
+              <figure class="ph__fig">
+                <figcaption><b class="ph__fig-num">4–10 h</b><span>to fill a car at home on a Level 2 charger, overnight</span></figcaption>
+                <div class="ph__fig-bars">
+                  <div><span>Level 2 · 240 V</span><div class="ph__fig-bar"><i class="c-blue" style={`width:${(4 / homeMax) * 100}%`}></i><i class="c-blue ph__fig-range" style={`width:${(6 / homeMax) * 100}%`}></i></div></div>
+                  <div><span>Level 1 · wall socket</span><div class="ph__fig-bar"><i class="c-light" style={`width:${(40 / homeMax) * 100}%`}>40–50+ h</i></div></div>
+                </div>
+                <p class="ph__fig-key"><span class="ph__swatch c-blue"></span>Empty to full, battery-electric car</p>
+                <p class="ph__fig-src">Source: US DOT, “Charger Types and Speeds”</p>
+              </figure>
+              <figure class="ph__fig">
+                <figcaption><b class="ph__fig-num">27 min</b><span>an average Tesla Supercharger stop, the kind sited by malls and restaurants</span></figcaption>
+                <div class="ph__fig-bars">
+                  {roadside.map((r) => <div><span>{r.name} · {r.label}</span><div class="ph__fig-bar"><i class={r.cls} style={`width:${(r.min / roadMax) * 100}%`}></i></div></div>)}
+                </div>
+                <p class="ph__fig-key"><span class="ph__swatch c-red"></span>Average session at a public fast charger</p>
+                <p class="ph__fig-src">Sources: Tesla Charging, average Supercharging time 2017–2025 (Feb 2025); US DOE, Fact of the Week #1319 (Dec 2023), 2.4 million sessions</p>
+              </figure>
+              <figure class="ph__fig">
+                <figcaption><b class="ph__fig-num">30 min</b><span>break a US truck driver must take after 8 hours at the wheel</span></figcaption>
+                <div class="ph__fig-bar ph__fig-day">{truckDay.map((t) => <i class={t.cls} style={`width:${t.w}%`}>{t.label}</i>)}</div>
+                <p class="ph__fig-key"><span class="ph__swatch c-grey"></span>Driving, 11 h max <span class="ph__swatch c-orange"></span>Break <span class="ph__swatch c-teal"></span>Off duty · one 24-hour day</p>
+                <p class="ph__fig-src">Source: 49 C.F.R. § 395.3 · <a class="ph__fig-note" href="#note-1-21">Note 21</a></p>
+              </figure>
+              <figure class="ph__fig">
+                <figcaption><b class="ph__fig-num">45–60 min</b><span>the roadside charge this study plans for</span></figcaption>
+                <div class="ph__fig-bars">
+                  {studyRows.map((r) => <div><span>{r.name} · {r.label}</span><div class="ph__fig-bar"><i style={`width:${r.left}%`}></i><i class={r.cls} style={`width:${r.width}%`}></i></div></div>)}
+                </div>
+                <p class="ph__fig-key"><span class="ph__swatch c-red"></span>This study, on a 0–90 minute line</p>
+                <p class="ph__fig-src">Sources: as the two cards above; the thesis</p>
+              </figure>
+            </div>
+            </div>
+          ) : bookText[sec.id] ? (
             <BookText text={bookText[sec.id]} chapter="1" />
           ) : (
             <p class="ph__stub-note">To be transferred from the thesis book.</p>
@@ -1624,8 +1766,23 @@ const mindmapBibs = rawBibs.map((b) => ({
   .ph__fig-bar { display: flex; height: 22px; border-radius: 4px; overflow: hidden; background: color-mix(in srgb, var(--ph-light) 35%, transparent); }
   .ph__fig-bar i { display: flex; align-items: center; padding: 0 6px; font-style: normal; white-space: nowrap; overflow: hidden; color: #111; font-size: 11px; }
   .ph__fig-bar i.ph__fig-range { opacity: .45; padding: 0; }
+  .ph__fig--wide { grid-column: 1 / -1; }
+  .ph__pause { display: grid; gap: 6px; }
+  .ph__pause-row { display: grid; grid-template-columns: 96px 1fr 104px; gap: 8px; align-items: center; font-size: var(--_tokens---type--ultrathin); }
+  .ph__pause-row > span:last-child { color: var(--_tokens---color--muted); }
+  .ph__pause-track { position: relative; height: 14px; border-radius: 4px; background: color-mix(in srgb, var(--ph-light) 35%, transparent); }
+  .ph__pause-track i { position: absolute; top: 0; bottom: 0; border-radius: 4px; min-width: 4px; }
+  .ph__pause-axis .ph__pause-track { background: none; border-top: 1px solid var(--_tokens---color--line); height: 16px; }
+  .ph__pause-axis em { position: absolute; top: 3px; transform: translateX(-50%); font-style: normal; color: var(--_tokens---color--muted); white-space: nowrap; }
+  .ph__pause-axis em:last-child { transform: translateX(-100%); }
+  .ph__fig-rank { display: grid; gap: 4px; }
+  .ph__fig-rank i { font-style: normal; padding: 6px 8px; border-radius: 4px; font-size: 11px; color: #111; }
+  .ph__fig-day { height: 26px; }
+  .ph__fig-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .ph__fig-chips i { font-style: normal; padding: 4px 10px; border-radius: 999px; font-size: 11px; color: #111; }
   .ph__fig-units { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
   .ph__fig-units i { height: 22px; border-radius: 4px; }
+  .ph .ph__chapter-lead :global(.ph__book-table table) { min-width: 0; }
   .ph__map-note { margin: 0 0 12px; font-size: var(--_tokens---type--micro); line-height: 1.6; color: var(--_tokens---color--muted); max-width: 70ch; }
   .ph__more { font-size: var(--_tokens---type--micro); margin-top: 8px; }
   .ph__more > summary { list-style: none; display: inline-flex; align-items: center; padding: var(--_tokens---pill-pad--xs); border: var(--_tokens---pill-border); border-radius: var(--_tokens---radius--pill); color: var(--_tokens---color--muted); cursor: pointer; }
