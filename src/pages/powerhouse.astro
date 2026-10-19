@@ -253,6 +253,31 @@ function glanceOf(name: string) {
 }
 const glances: Record<string, ReturnType<typeof glanceOf>> = Object.fromEntries(['United States', 'California', 'New York', 'Florida'].map((n) => [n, glanceOf(n)]));
 
+// The three states this section looks at, shaded on the US map and numbered by their rank in
+// public plugs. Labels sit at each outline's box centre, nudged for Florida so the number
+// lands on the peninsula rather than in the Gulf.
+const stateName: Record<string, string> = Object.fromEntries(data.usa.states.map((st) => [
+  ({ California: 'CA', Texas: 'TX', Florida: 'FL', 'New York': 'NY', Massachusetts: 'MA', Washington: 'WA', Colorado: 'CO', Georgia: 'GA', 'New Jersey': 'NJ', Illinois: 'IL' } as Record<string, string>)[st.name] ?? st.name,
+  st.name,
+]));
+const boxOf = (d: string) => {
+  const n = (d.match(/-?\d+(?:\.\d+)?/g) ?? []).map(Number);
+  const xs = n.filter((_, i) => i % 2 === 0), ys = n.filter((_, i) => i % 2 === 1);
+  return { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
+};
+const focusStates = ['CA', 'NY', 'FL'].map((code) => {
+  const name = { CA: 'California', NY: 'New York', FL: 'Florida' }[code]!;
+  const d = data.usa.states.find((st) => st.name === name)!.d;
+  const b = boxOf(d);
+  const w = b.x1 - b.x0, h = b.y1 - b.y0;
+  // `to` is a point on the state's coast; `at` is the label, out in the water beside it:
+  // California in the Pacific, New York in the Atlantic off Long Island, Florida off its east coast.
+  const to = code === 'CA' ? { x: b.x0 + w * 0.18, y: b.y0 + h * 0.55 } : code === 'NY' ? { x: b.x1 - w * 0.06, y: b.y1 - h * 0.08 } : { x: b.x0 + w * 0.88, y: b.y0 + h * 0.55 };
+  const at = code === 'CA' ? { x: b.x0 - 34, y: to.y + 6 } : code === 'NY' ? { x: b.x1 + 26, y: b.y1 + 22 } : { x: b.x1 + 36, y: to.y };
+  const r1 = (n: number) => +n.toFixed(1);
+  return { code, name, d, rank: data.ranked.findIndex((r) => r.code === code) + 1, x: r1(at.x), y: r1(at.y), tx: r1(to.x), ty: r1(to.y) };
+});
+
 const size = (n: number) => Math.min(4.5, 0.5 + Math.sqrt(n) * 0.3);
 const topNetworks = networks.networks.slice(0, 8);
 const maxNetPorts = Math.max(...topNetworks.map((n) => n.ports));
@@ -633,27 +658,28 @@ const mindmapBibs = rawBibs.map((b) => ({
       </div><div class="ph__national-visual">
 
 
-          <p class="ph__solo-title">Where the US’s <b id="ph-map-ports" aria-live="polite">{fmt(pub.ports)}</b> public plugs are · <span><span id="ph-map-stations">at {fmt(pub.stations)} stations</span></span></p>
-          <details class="ph__map-options"><summary>Filter map by access</summary><div class="ph__filters ph__filters--row">
-            <label>
-              Access
-              <select id="ph-access">
-                <option value="public">Public ({fmt(pub.ports)} plugs)</option>
-                <option value="private">Private / restricted ({fmt(priv.ports)} plugs)</option>
-                <option value="all">Both ({fmt(allUsa.ports)} plugs)</option>
-              </select>
-            </label>
+          <div class="ph__map-bar">
+            <p class="ph__solo-title">Where the US’s <b id="ph-map-ports" aria-live="polite">{fmt(allUsa.ports)}</b> plugs are · <span><span id="ph-map-stations">at {fmt(allUsa.stations)} stations · public and private</span></span></p>
+            <select id="ph-access" class="ph__map-select" aria-label="Show public, private or all charging">
+              <option value="all" selected>All plugs</option>
+              <option value="public">Public</option>
+              <option value="private">Private</option>
+            </select>
           </div>
-          </details><figure class="ph__map ph__national-map">
+          <figure class="ph__map ph__national-map">
             <svg class="ph__svg ph__national-svg" viewBox="0 0 975 610" role="img" aria-labelledby="ph-us-svg-title ph-us-svg-desc">
               <title id="ph-us-svg-title">US charging infrastructure</title><desc id="ph-us-svg-desc">Operating charging ports across the fifty states and DC. Alaska and Hawaii are insets. Dots aggregate nearby locations; exact counts appear above and in the tables.</desc>
               <g class="ph__land">{data.usa.states.map(st=><path d={st.d}><title>{st.name}</title></path>)}</g>
-              <g>{data.usa.dots.map(d=><circle cx={d.x} cy={d.y} r={size(d.l1+d.l2+d.dc)} data-us-access={d.access} class:list={['ph__charging-dot',{'is-filtered':d.access!=='public'}]}><title>{d.access} charging · {fmt(d.l1+d.l2+d.dc)} ports in this map cell</title></circle>)}</g>
+              <g class="ph__focus-states">{focusStates.map((f)=><path d={f.d}><title>{f.rank}. {f.name}</title></path>)}</g>
+              <g>{data.usa.dots.map(d=><circle cx={d.x} cy={d.y} r={size(d.l1+d.l2+d.dc)} data-us-access={d.access} class="ph__charging-dot"><title>{d.access} charging · {fmt(d.l1+d.l2+d.dc)} ports in this map cell</title></circle>)}</g>
+              <g class="ph__focus-labels" aria-hidden="true">{focusStates.map((f)=><g><line x1={f.tx} y1={f.ty} x2={f.x} y2={f.y}/><g transform={`translate(${f.x} ${f.y})`}><circle r="19"/><text dy="7">{f.rank}</text></g></g>)}</g>
             </svg>
-            <figcaption>
-              <span>Dots aggregate nearby locations; size increases with ports and is capped in dense areas. Alaska and Hawaii are insets.</span>
-            </figcaption>
           </figure>
+          <ol class="ph__top5" aria-label="Top five states by public charging plugs">
+            {data.ranked.slice(0, 5).map((r, i) => (
+              <li class:list={[{ 'is-focus': i < 3 }]}><span>{i + 1}</span><b>{stateName[r.code] ?? r.code}</b><i style={`width:${(r.ports / data.ranked[0].ports) * 100}%`}></i><em>{fmt(r.ports)} public plugs</em></li>
+            ))}
+          </ol>
       </div></div>
     </section>
 
@@ -1589,6 +1615,21 @@ const mindmapBibs = rawBibs.map((b) => ({
   .ph__city-focus { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 28px; align-items: start; }
   .ph__city-svg { max-height: 65vh; }
   .ph__city-svg circle { stroke: var(--_tokens---color--bg); stroke-width: .4; }
+  .ph__map-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .ph__map-bar .ph__solo-title { text-align: left; }
+  .ph .ph__map-select { margin-left: auto; min-height: 30px; padding: 4px 28px 4px 10px; font-size: .75rem; border-radius: var(--_tokens---radius--pill); width: auto; }
+  .ph__focus-states path { fill: color-mix(in srgb, var(--_tokens---color--fg) 14%, transparent); stroke: var(--_tokens---color--fg); stroke-width: 1; pointer-events: none; }
+  .ph .ph__national-svg .ph__focus-labels circle { opacity: 1; fill: var(--_tokens---color--bg); stroke: var(--_tokens---color--fg); stroke-width: 2.5; }
+  .ph .ph__national-svg .ph__focus-labels line { stroke: var(--_tokens---color--fg); stroke-width: 1.5; }
+  .ph .ph__national-svg .ph__focus-labels text { fill: var(--_tokens---color--fg); font-size: 21px; font-weight: 600; text-anchor: middle; }
+  .ph__top5 { list-style: none; margin: 0 0 24px; padding: 0; display: grid; gap: 6px; font-size: var(--_tokens---type--micro); font-variant-numeric: tabular-nums; }
+  .ph__top5 li { display: grid; grid-template-columns: 1.6em 8.5em minmax(0, 1fr) auto; align-items: center; gap: 10px; color: var(--_tokens---color--muted); }
+  .ph__top5 li > span { display: inline-grid; place-items: center; width: 1.6em; height: 1.6em; border-radius: 50%; border: 1px solid var(--_tokens---color--line); font-size: .85em; }
+  .ph__top5 li i { display: block; height: 8px; border-radius: 4px; background: color-mix(in srgb, var(--_tokens---color--fg) 18%, transparent); }
+  .ph__top5 li em { font-style: normal; }
+  .ph__top5 li.is-focus { color: var(--_tokens---color--fg); }
+  .ph__top5 li.is-focus > span { background: var(--_tokens---color--fg); border-color: var(--_tokens---color--fg); color: var(--_tokens---color--bg); }
+  .ph__top5 li.is-focus i { background: var(--_tokens---color--fg); }
   .ph__map-options { font-size: .75rem; width: fit-content; max-width: 100%; margin: 8px 0 0 auto; }
   .ph__map-options > summary { cursor: pointer; min-height: 32px; text-align: right; }
   .ph .ph__map-options .ph__filters--row { grid-template-columns: minmax(0, 1fr); width: min(240px, 100%); }
@@ -1600,7 +1641,7 @@ const mindmapBibs = rawBibs.map((b) => ({
   @media (max-width: 1023.98px) { .ph__city-focus { grid-template-columns: 1fr; } }
   @media (max-width: 699.98px) { .ph__short-comparison { grid-template-columns: 1fr; gap: 16px; } }
   .ph__national-map { margin: 16px 0 24px; }
-  .ph__national-svg { max-height: 52vh; width: 100%; }
+  .ph__national-svg { max-height: 52vh; width: 100%; overflow: visible; }
   .ph__national-data :global(.ph__chain-grid--map) { grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); grid-template-areas: none; }
   .ph__national-data :global(.ph__chain-row) { grid-area: auto; }
   .ph__national-data :global(.is-m) { display: none; }
