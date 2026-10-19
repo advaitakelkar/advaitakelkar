@@ -252,6 +252,27 @@ function glanceOf(name: string) {
   };
 }
 const glances: Record<string, ReturnType<typeof glanceOf>> = Object.fromEntries(['United States', 'California', 'New York', 'Florida'].map((n) => [n, glanceOf(n)]));
+// The US dashboard (left of the national map): every vehicle by type (FHWA 2024), electric
+// vehicles from 2025 to 2040, and the electric share as rings (EIA AEO2026 baseline).
+const usRoad = roadOf['United States'];
+const usRoadBar: StackBar = { title: 'US', total: usRoad.total, segs: [
+  { label: 'Trucks (incl. SUVs, pickups)', value: usRoad.trucks, c: 'red' },
+  { label: 'Cars', value: usRoad.automobiles, c: 'orange' },
+  { label: 'Motorcycles', value: usRoad.motorcycles, c: 'yellow' },
+  { label: 'Buses', value: usRoad.buses, c: 'blue' },
+] };
+const usEvYears = [2025, 2030, 2035, 2040].map((y) => { const v = nat(String(y)); return { year: y, bev: v.bev, phev: v.phev, ev: v.bev + v.phev, total: v.total }; });
+const usEvMax = Math.max(...usEvYears.map((y) => y.ev));
+const usShareRings = [2025, 2030, 2040].map((y) => {
+  const v = nat(String(y));
+  const bar: StackBar = { title: String(y), total: v.total, segs: [
+    { label: 'Battery-electric', value: v.bev, c: 'green' },
+    { label: 'Plug-in hybrid', value: v.phev, c: 'teal' },
+    { label: 'Fuel', value: v.total - v.bev - v.phev, c: 'light' },
+  ] };
+  return { year: y, bar, pct: share(v.bev + v.phev, v.total), outlook: y > 2025 };
+});
+
 // Rings for the state dashboards: each segment is an arc on a circle of pathLength 100, so
 // its dash length is its percentage and its offset where the previous ones ended (from 12
 // o'clock, clockwise). A 1-unit gap separates segments; tiny ones keep a visible sliver.
@@ -700,6 +721,49 @@ const mindmapBibs = rawBibs.map((b) => ({
         <h2 id="usa-title" tabindex="-1">Where public charging is today</h2>
         <p>Each dot groups nearby charging locations. Public means open to drivers, even when the equipment is privately owned.</p>
       </div>
+      
+        <div class="ph__dash ph__dash--us">
+          <div class="ph__dash-card ph__dash-card--vbars">
+            <div class="ph__dash-vhead"><span class="ph__dash-label">All vehicles · US · {usRoad.year}</span><b>{mil(usRoad.total)}</b></div>
+            <div class="ph__stack100 ph__dash-stack" role="img" aria-label={`All US vehicles ${usRoad.year}: ${usRoadBar.segs.map((x) => `${x.label} ${share(x.value, usRoadBar.total)}`).join(', ')}`}>
+              {usRoadBar.segs.map((x) => <i class={`c-${x.c}`} style={`flex-grow:${x.value}`} title={`${x.label}: ${share(x.value, usRoadBar.total)}`}></i>)}
+            </div>
+            <ul class="ph__stack100-key">{usRoadBar.segs.map((x) => <li><i class={`c-${x.c}`}></i>{x.label} <b>{share(x.value, usRoadBar.total)}</b></li>)}</ul>
+          </div>
+
+          <div class="ph__dash-card ph__dash-card--vbars">
+            <div class="ph__dash-vhead"><span class="ph__dash-label">Electric vehicles · US · 2025–2040</span><b>{mil(usEvYears[0].ev)} → {mil(usEvYears[3].ev)}</b></div>
+            <div class="ph__dash-vbars" role="img" aria-label={`US electric vehicles: ${usEvYears.map((y) => `${y.year} ${mil(y.ev)}`).join(', ')}`}>
+              {usEvYears.map((y) => (
+                <div class="ph__dash-hbar">
+                  <span>{y.year}{y.year > 2025 ? ' outlook' : ''}</span>
+                  <div class="ph__dash-htrack ph__dash-htrack--split">
+                    <i class="c-green" style={`width:${(y.bev / usEvMax) * 100}%`}></i><i class="c-teal" style={`width:${(y.phev / usEvMax) * 100}%`}></i>
+                  </div>
+                  <b>{mil(y.ev)}</b>
+                </div>
+              ))}
+            </div>
+            <ul class="ph__stack100-key"><li><i class="c-green"></i>Battery-electric</li><li><i class="c-teal"></i>Plug-in hybrid</li></ul>
+          </div>
+
+          <div class="ph__dash-card ph__dash-card--years">
+            <span class="ph__dash-label">Share of US vehicles that are electric</span>
+            <div class="ph__dash-years">
+              {usShareRings.map((r) => (
+                <div class:list={['ph__dash-year', { 'is-outlook': r.outlook }]}>
+                  <div class="ph__dash-ring ph__dash-ring--small" role="img" aria-label={`${r.year}: ${r.pct} electric`}>
+                    <svg viewBox="0 0 120 120"><circle class="ph__ring-track" cx="60" cy="60" r="48" pathLength="100" />{ring(r.bar).slice(0, 2).map((g) => <circle class={`ph__ring-seg r-${g.c}`} cx="60" cy="60" r="48" pathLength="100" stroke-dasharray={`${g.len} ${100 - g.len}`} stroke-dashoffset={g.off} />)}</svg>
+                    <div class="ph__dash-center"><b>{r.pct}</b></div>
+                  </div>
+                  <span>{r.year}{r.outlook ? ' outlook' : ''}</span>
+                </div>
+              ))}
+            </div>
+            <ul class="ph__stack100-key"><li><i class="c-green"></i>Battery-electric</li><li><i class="c-teal"></i>Plug-in hybrid</li></ul>
+          </div>
+          <p class="ph__note">All vehicles: FHWA Highway Statistics 2024, Table MV-1. Electric vehicles and share: US cars and light trucks, EIA Annual Energy Outlook 2026; 2025 is EIA’s base year, later years are its baseline outlook, not a forecast.</p>
+        </div>
       </div><div class="ph__national-visual">
 
 
@@ -727,68 +791,7 @@ const mindmapBibs = rawBibs.map((b) => ({
           </ol>
       </div></div>
     
-      <!-- National outlook, moved up from the graphs: the country-wide context for the three states below -->
-      <div class="ph__chain-time">
-          <h3 class="ph__chain-sub">National outlook · 2025–2040</h3>
-      <figure class="ph__panels" aria-label="US light-duty vehicles, 2025 to 2040: all vehicles, plug-in vehicles, and plug-in share">
-        <div class="ph__panel">
-          <h2>All vehicles</h2>
-          <svg class="ph__svg" viewBox={`0 0 ${P.w} ${P.h}`} role="img" aria-label={`All light-duty vehicles grow from ${mil(fleetNow.total)} in 2025 to ${mil(fleetEnd.total)} in 2040`}>
-            {panelTicks.total.map((v) => (
-              <g><line x1={P.l} x2={P.w - P.r} y1={py(v, panelMax.total)} y2={py(v, panelMax.total)} class="ph__grid" /><text x={P.l - 6} y={py(v, panelMax.total) + 3} text-anchor="end" class="ph__svg-label">{v ? `${v / 1e6}m` : '0'}</text></g>
-            ))}
-            <path d={`${linePath((f) => f.total, panelMax.total)}L${px(2040)},${py(0, panelMax.total)}L${px(2025)},${py(0, panelMax.total)}Z`} class="ph__area" />
-            <path d={linePath((f) => f.total, panelMax.total)} class="ph__line" />
-            {fleet.map((f) => <circle cx={px(f.year)} cy={py(f.total, panelMax.total)} r="2" class="ph__pt"><title>{f.year}: {fmt(f.total)} vehicles</title></circle>)}
-            <text x={px(2025)} y={py(fleetNow.total, panelMax.total) - 8} class="ph__svg-val">{mil(fleetNow.total)}</text>
-            <text x={px(2040)} y={py(fleetEnd.total, panelMax.total) - 8} text-anchor="end" class="ph__svg-val">{mil(fleetEnd.total)}</text>
-            {[2025, 2030, 2035, 2040].map((y) => <text x={px(y)} y={P.h - 8} text-anchor="middle" class="ph__svg-label">{y}</text>)}
-          </svg>
-          <p>Slow, steady growth: +{mil(fleetEnd.total - fleetNow.total)} vehicles in 15 years.</p>
-        </div>
 
-        <div class="ph__panel">
-          <h2>Electric vehicles</h2>
-          <svg class="ph__svg" viewBox={`0 0 ${P.w} ${P.h}`} role="img" aria-label={`Plug-in vehicles grow from ${mil(fleetNow.ev)} in 2025 to ${mil(fleetEnd.ev)} in 2040`}>
-            {panelTicks.ev.map((v) => (
-              <g><line x1={P.l} x2={P.w - P.r} y1={py(v, panelMax.ev)} y2={py(v, panelMax.ev)} class="ph__grid" /><text x={P.l - 6} y={py(v, panelMax.ev) + 3} text-anchor="end" class="ph__svg-label">{v ? `${v / 1e6}m` : '0'}</text></g>
-            ))}
-            {fleet.map((f) => {
-              const bw = ((P.w - P.l - P.r) / 16) * 0.72;
-              const x = px(f.year) - bw / 2;
-              return (
-                <g>
-                  <rect x={x} y={py(f.bev, panelMax.ev)} width={bw} height={py(0, panelMax.ev) - py(f.bev, panelMax.ev)} class="c-green-fill"><title>{f.year}: {fmt(f.bev)} battery-electric</title></rect>
-                  <rect x={x} y={py(f.ev, panelMax.ev)} width={bw} height={py(f.bev, panelMax.ev) - py(f.ev, panelMax.ev)} class="c-teal-fill"><title>{f.year}: {fmt(f.phev)} plug-in hybrid</title></rect>
-                </g>
-              );
-            })}
-            <text x={px(2025)} y={py(fleetNow.ev, panelMax.ev) - 6} class="ph__svg-val">{mil(fleetNow.ev)}</text>
-            <text x={px(2040)} y={py(fleetEnd.ev, panelMax.ev) - 6} text-anchor="end" class="ph__svg-val">{mil(fleetEnd.ev)}</text>
-            {[2025, 2030, 2035, 2040].map((y) => <text x={px(y)} y={P.h - 8} text-anchor="middle" class="ph__svg-label">{y}</text>)}
-          </svg>
-          <p><span class="ph__key ph__key--green">Battery-electric</span> <span class="ph__key ph__key--teal">Plug-in hybrid</span></p>
-        </div>
-
-        <div class="ph__panel">
-          <h2>Electric share of all vehicles</h2>
-          <svg class="ph__svg" viewBox={`0 0 ${P.w} ${P.h}`} role="img" aria-label={`Plug-in share rises from ${fleetNow.share.toFixed(1)}% in 2025 to ${fleetEnd.share.toFixed(1)}% in 2040`}>
-            {panelTicks.share.map((v) => (
-              <g><line x1={P.l} x2={P.w - P.r} y1={py(v, panelMax.share)} y2={py(v, panelMax.share)} class="ph__grid" /><text x={P.l - 6} y={py(v, panelMax.share) + 3} text-anchor="end" class="ph__svg-label">{v}%</text></g>
-            ))}
-            <path d={linePath((f) => f.share, panelMax.share)} class="ph__line" />
-            {fleet.map((f) => <circle cx={px(f.year)} cy={py(f.share, panelMax.share)} r="2" class="ph__pt"><title>{f.year}: {f.share.toFixed(1)}% electric</title></circle>)}
-            <text x={px(2025) + 4} y={py(fleetNow.share, panelMax.share) - 8} class="ph__svg-val">{fleetNow.share.toFixed(1)}%</text>
-            <text x={px(2040)} y={py(fleetEnd.share, panelMax.share) - 8} text-anchor="end" class="ph__svg-val">{fleetEnd.share.toFixed(1)}%</text>
-            {[2025, 2030, 2035, 2040].map((y) => <text x={px(y)} y={P.h - 8} text-anchor="middle" class="ph__svg-label">{y}</text>)}
-          </svg>
-          <p>From fewer than 3 in 100 to almost 4 in 10.</p>
-        </div>
-        <figcaption>US cars and light trucks in use (personal and fleet). 2025 is EIA’s modelled base year; 2026–2040 is EIA’s Annual Energy Outlook 2026 Counterfactual Baseline, a policy-dependent scenario, not a forecast. Heavy trucks and buses are not included.</figcaption>
-      </figure>
-      <p class="ph__why-line"><b>Why it matters for the Powerhouse.</b> Every electric vehicle has to stop to charge somewhere. Today that is {mil(fleetNow.ev)} vehicles; by 2040 it could be {mil(fleetEnd.ev)}. Most charge at home, but the more there are, the more stops away from home there will be, and the Powerhouse is a design for those stops.</p>
-      <p class="ph__why-line"><b>Constant-ratio illustration.</b> Today {evPerPortUS.toFixed(0)} electric vehicles share every public charging point. If that holds, holding that cross-year ratio constant would imply about {(portsAtSameRatio2040 / pub.ports).toFixed(0)} times as many public charging points by 2040. This is not a charger-demand forecast; each charging point is a stop that can be a car park with a row of posts or a place worth staying in. The map shows where those stops are today.</p>
-        </div>
     </section>
 
     <section id="comparison" class="ph__essential" aria-labelledby="comparison-title">
@@ -1528,6 +1531,10 @@ const mindmapBibs = rawBibs.map((b) => ({
   .ph__dash-hbar b { color: var(--_tokens---color--fg); font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
   .ph__dash-htrack { height: 10px; border-radius: 5px; background: color-mix(in srgb, var(--_tokens---color--fg) 7%, transparent); overflow: hidden; }
   .ph__dash-htrack i { display: block; height: 100%; border-radius: 5px; }
+  .ph__dash-htrack--split { display: flex; gap: 2px; }
+  .ph__dash-htrack--split i { flex: 0 0 auto; border-radius: 0; }
+  .ph__dash--us { margin-top: 20px; }
+  .ph__dash--us .ph__dash-hbar { grid-template-columns: 6.6em minmax(0, 1fr) 3.6em; }
   .ph__dash-label { display: block; font-size: 11px; color: var(--_tokens---color--muted); margin-bottom: 6px; }
   .ph__dash-ring { position: relative; width: 112px; aspect-ratio: 1; }
   .ph__dash-ring svg { display: block; width: 100%; height: 100%; }
