@@ -322,10 +322,14 @@ const stateBars: Record<string, StateBarRow[]> = Object.fromEntries(states.map((
 // The three states this section looks at, shaded on the US map and numbered by their rank in
 // public plugs. Labels sit at each outline's box centre, nudged for Florida so the number
 // lands on the peninsula rather than in the Gulf.
-const stateName: Record<string, string> = Object.fromEntries(data.usa.states.map((st) => [
-  ({ California: 'CA', Texas: 'TX', Florida: 'FL', 'New York': 'NY', Massachusetts: 'MA', Washington: 'WA', Colorado: 'CO', Georgia: 'GA', 'New Jersey': 'NJ', Illinois: 'IL' } as Record<string, string>)[st.name] ?? st.name,
-  st.name,
-]));
+const stateName: Record<string, string> = {
+  AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas', CA: 'California', CO: 'Colorado', CT: 'Connecticut', DE: 'Delaware', DC: 'District of Columbia',
+  FL: 'Florida', GA: 'Georgia', HI: 'Hawaii', ID: 'Idaho', IL: 'Illinois', IN: 'Indiana', IA: 'Iowa', KS: 'Kansas', KY: 'Kentucky', LA: 'Louisiana',
+  ME: 'Maine', MD: 'Maryland', MA: 'Massachusetts', MI: 'Michigan', MN: 'Minnesota', MS: 'Mississippi', MO: 'Missouri', MT: 'Montana', NE: 'Nebraska',
+  NV: 'Nevada', NH: 'New Hampshire', NJ: 'New Jersey', NM: 'New Mexico', NY: 'New York', NC: 'North Carolina', ND: 'North Dakota', OH: 'Ohio',
+  OK: 'Oklahoma', OR: 'Oregon', PA: 'Pennsylvania', RI: 'Rhode Island', SC: 'South Carolina', SD: 'South Dakota', TN: 'Tennessee', TX: 'Texas',
+  UT: 'Utah', VT: 'Vermont', VA: 'Virginia', WA: 'Washington', WV: 'West Virginia', WI: 'Wisconsin', WY: 'Wyoming',
+};
 const boxOf = (d: string) => {
   const n = (d.match(/-?\d+(?:\.\d+)?/g) ?? []).map(Number);
   const xs = n.filter((_, i) => i % 2 === 0), ys = n.filter((_, i) => i % 2 === 1);
@@ -784,11 +788,14 @@ const mindmapBibs = rawBibs.map((b) => ({
               <g class="ph__focus-labels" aria-hidden="true">{focusStates.map((f)=><g><line x1={f.tx} y1={f.ty} x2={f.x} y2={f.y}/><g transform={`translate(${f.x} ${f.y})`}><circle r="19"/><text dy="7">{f.rank}</text></g></g>)}</g>
             </svg>
           </figure>
-          <ol class="ph__top5" aria-label="Top five states by public charging plugs">
-            {data.ranked.slice(0, 5).map((r, i) => (
-              <li class:list={[{ 'is-focus': i < 3 }]}><span>{i + 1}</span><b>{stateName[r.code] ?? r.code}</b><i style={`width:${(r.ports / data.ranked[0].ports) * 100}%`}></i><em>{fmt(r.ports)} public charging points</em></li>
-            ))}
-          </ol>
+          <div class="ph__ranklist">
+            <div class="ph__ranklist-head"><span>All 50 states and DC</span><b>{fmt(pub.ports)} public charging points</b></div>
+            <ol class="ph__top5" aria-label="States by public charging points, largest first" tabindex="0">
+              {data.ranked.map((r, i) => (
+                <li class:list={[{ 'is-focus': i < 3 }]}><span>{i + 1}</span><b>{stateName[r.code] ?? r.code}</b><i style={`width:${(r.ports / data.ranked[0].ports) * 100}%`}></i><em>{fmt(r.ports)}</em></li>
+              ))}
+            </ol>
+          </div>
       </div></div>
     
 
@@ -1475,7 +1482,14 @@ const mindmapBibs = rawBibs.map((b) => ({
   .ph__interpretation td { white-space: normal; min-width: 180px; line-height: 1.6; }
   .ph__interpretation th:first-child { white-space: normal; min-width: 160px; }
   .ph__state-detail > section { padding-top: 16px; }
-  .ph__national-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 32px; align-items: start; }
+  .ph__national-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 32px; align-items: stretch; }
+  .ph__national-visual { display: flex; flex-direction: column; }
+  /* All states, ten or so in view: the list fills the column down to the end of the left one */
+  .ph__ranklist { display: flex; flex-direction: column; flex: 1 1 0; min-height: 16rem; margin-top: 28px; padding-top: 12px; border-top: 1px solid var(--_tokens---color--line); }
+  .ph__ranklist-head { display: flex; justify-content: space-between; gap: 12px; font-size: var(--_tokens---type--micro); margin-bottom: 10px; }
+  .ph__ranklist-head span { color: var(--_tokens---color--muted); }
+  .ph__ranklist-head b { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .ph__ranklist .ph__top5 { flex: 1 1 0; min-height: 0; overflow-y: auto; margin: 0; padding-right: 6px; }
   .ph__national-copy, .ph__national-visual { min-width: 0; }
   .ph__national-copy .ph__heading > p:last-child { font-size: var(--_tokens---type--micro); line-height: 1.65; }
   .ph__national-visual .ph__solo-title { font-size: var(--_tokens---type--micro); text-align: left; }
@@ -1586,10 +1600,10 @@ const mindmapBibs = rawBibs.map((b) => ({
   .ph .ph__national-svg .ph__focus-labels line { stroke: var(--_tokens---color--fg); stroke-width: 1.5; }
   .ph .ph__national-svg .ph__focus-labels text { fill: var(--_tokens---color--fg); font-size: 21px; font-weight: 600; text-anchor: middle; }
   .ph__top5 { list-style: none; margin: 0 0 24px; padding: 0; display: grid; gap: 6px; font-size: var(--_tokens---type--micro); font-variant-numeric: tabular-nums; }
-  .ph__top5 li { display: grid; grid-template-columns: 1.6em 8.5em minmax(0, 1fr) auto; align-items: center; gap: 10px; color: var(--_tokens---color--muted); }
+  .ph__top5 li { display: grid; grid-template-columns: 1.9em 9.5em minmax(0, 1fr) 4.4em; align-items: center; gap: 10px; color: var(--_tokens---color--muted); }
   .ph__top5 li > span { display: inline-grid; place-items: center; width: 1.6em; height: 1.6em; border-radius: 50%; border: 1px solid var(--_tokens---color--line); font-size: .85em; }
   .ph__top5 li i { display: block; height: 8px; border-radius: 4px; background: color-mix(in srgb, var(--_tokens---color--fg) 18%, transparent); }
-  .ph__top5 li em { font-style: normal; }
+  .ph__top5 li em { font-style: normal; text-align: right; }
   .ph__top5 li.is-focus { color: var(--_tokens---color--fg); }
   .ph__top5 li.is-focus > span { background: var(--_tokens---color--fg); border-color: var(--_tokens---color--fg); color: var(--_tokens---color--bg); }
   .ph__top5 li.is-focus i { background: var(--_tokens---color--fg); }
