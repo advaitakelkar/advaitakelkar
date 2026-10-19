@@ -304,7 +304,7 @@ const compareRows = [
   { label: 'Public charging points, Oct 2026', note: 'share of all US public charging points', v: states.map((st) => st.pubPorts), show: (n: number) => fmt(n), extra: states.map((st) => st.usPortShare.toFixed(1) + '% of US') },
   { label: 'Fast chargers among public charging points', note: 'a charge in 20–60 minutes', v: states.map((st) => st.dcShare), show: (n: number) => n.toFixed(0) + '%' },
   { label: 'Slow chargers among public charging points', note: 'a charge of several hours: the long stop', v: states.map((st) => ((st.groups.public.all.l1 + st.groups.public.all.l2) / st.pubPorts) * 100), show: (n: number) => n.toFixed(0) + '%' },
-  { label: 'EVs per public charging point', note: `US average ${evPerPortUS.toFixed(0)}; higher means more drivers share each one`, v: states.map((st) => st.evsPerPort), show: (n: number) => n.toFixed(0) },
+  { label: 'EVs per public charging point', note: `US average ${evPerPortUS.toFixed(0)}; higher means more drivers share each one`, v: states.map((st) => st.evsPerPort), show: (n: number) => n.toFixed(0), flag: 'NY', flagNote: 'Read with care: these drivers rely on public points for every charge' },
 ].map((r) => ({ ...r, top: r.v.indexOf(Math.max(...r.v)) }));
 
 // The same five bars under every state in the three-state comparison: vehicles on the road,
@@ -884,7 +884,11 @@ const mindmapBibs = rawBibs.map((b) => ({
               <tr>
                 <th scope="row">{r.label}{r.note && <small>{r.note}</small>}</th>
                 {r.v.map((n, k) => (
-                  <td class:list={[{ 'is-top': k === r.top }]}>{r.show(n)}{r.extra && <small>{r.extra[k]}</small>}</td>
+                  <td class:list={[{ 'is-top': k === r.top, 'is-flag': r.flag === states[k].code }]}>
+                    {r.flag === states[k].code ? <span class="ph__flag">{r.show(n)}</span> : r.show(n)}
+                    {r.extra && <small>{r.extra[k]}</small>}
+                    {r.flag === states[k].code && <small class="ph__flag-note">{r.flagNote}</small>}
+                  </td>
                 ))}
               </tr>
             ))}
@@ -1611,6 +1615,10 @@ const mindmapBibs = rawBibs.map((b) => ({
   .ph__compare td.is-top { font-weight: 600; }
   .ph__compare small { display: block; font-size: 11px; color: var(--_tokens---color--muted); font-weight: 400; margin-top: 2px; }
   .ph__compare-role td { font-size: var(--_tokens---type--micro); }
+  /* The one figure called out: New York's EVs per public charging point */
+  .ph__compare td.is-flag { background: color-mix(in srgb, var(--ph-red) 14%, transparent); }
+  .ph__flag { display: inline-block; min-width: 2.2em; padding: 2px 10px; border-radius: 999px; background: var(--ph-red); color: #fff; font-weight: 700; text-align: center; }
+  .ph__compare small.ph__flag-note { color: var(--_tokens---color--fg); font-weight: 500; max-width: 16em; margin-left: auto; }
   .ph__state-bars { display: grid; gap: 18px; margin: 16px 0 8px; }
   .ph__state-bar { display: grid; gap: 6px; padding-top: 8px; border-top: 1px solid var(--_tokens---color--line); min-height: 92px; align-content: start; }
   .ph__state-bar.is-dashed { border-top-style: dashed; }
