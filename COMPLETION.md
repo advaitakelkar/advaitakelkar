@@ -335,3 +335,28 @@ Eleven supplied room views edited with the built-in image tool for a cohesive ph
 - Built zoomable vector SVG state maps (`public/maps/{california,new-york,florida}.svg` via `scripts/build-powerhouse-svg-maps.mjs`) and `src/lib/powerhouse-map.ts` (Canvas + SVG `d3-zoom` with hub-centered zoom and scale-adaptive station radii).
 - Validation: 99-page production build and all style/breakpoint/glyph/icon lints pass.
 
+
+
+### 2026-10-18 — Consolidate Powerhouse 1.1
+
+- Combined the evidence into one continuous section: existing chapter text, USA map, three CA/NY/FL comparison tables (vehicles/growth, charging/networks, energy/access), then a concise conclusion. Replaced the five-slide navigation with expandable supporting evidence.
+- Retained all state/NYC maps, filters, national ranking, national outlook and comparison charts behind disclosures; source datasets and thesis book text are unchanged. Smaller two-column book typography from the preceding edit is retained.
+- Corrected the unsupported infrastructure-growth claim and labeled the different FHWA inventory years; state ratios are indicators rather than utilization. No InDesign sync or publication performed.
+
+- Validation: 99-page production build and style lints pass. Browser checks confirmed three main tables at 1440px and 390px without page overflow, all five map containers, national access/network filtering, state disclosures/deep links, and the Bronx DC-filter result (9 stations, 64 plugs), with no JavaScript errors. Refreshed the local server to clear stale Vite map dependencies.
+
+- Follow-up: USA now opens as a standalone, server-rendered SVG map with access/network filters. National storage bars and outlook remain in an expandable disclosure; the three comparison tables remain below. SVG/filter checks pass on desktop and phone with no browser errors.
+
+
+### 2026-10-18 — Reader-focused 1.1 cleanup
+
+- Reduced the default reading path to a short explanation, USA SVG, a consistent three-column CA/NY/FL comparison (plug-in fleet, public ports, recent BEV growth), a visible NYC SVG with borough/type filters, and a short Powerhouse takeaway.
+- Moved all full tables, projections, network breakdowns, full original chapter text with notes, rankings, state maps and extra figures under one supporting-data disclosure. No source data or original book text deleted or synced to InDesign.
+- NYC is visible without opening the New York state detail. Distinguishes the city access case from statewide metrics and keeps recommendation provisional. Desktop/phone layout and retained data controls checked; local only.
+
+- Layout refinement: introduction text left and USA SVG right; California, New York and Florida each have a monochrome SVG in the three-column comparison. User confirmed these three areas. Map dots are monochrome throughout, overriding the earlier map palette; chart colours retained. NYC close-up and its filters remain in supporting data, keeping the primary reading path to USA + three states.
+
+- Map simplification: removed Tesla/other legends, network selectors and network labels from map tooltips. Every map point represents charging infrastructure with the same monochrome appearance; public/private access controls remain. Source datasets and detailed supporting network tables are retained. Browser checks pass with no errors.
+
+- Enlarged the three comparison maps into square SVG viewports that open as close-ups filling the frame. Added drag pan, +/−, Full state and keyboard controls; retained monochrome charging dots. Moved proportional comparison charts, indexed growth and all three national outlook charts into one visible graphs section below the maps.
+- Validation: style lints and 99-page production build pass; browser verified zoom in/out, full-state framing, keyboard zoom, graph placement and phone overflow, with no JavaScript errors.

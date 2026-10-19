@@ -622,48 +622,19 @@ const mindmapBibs = rawBibs.map((b) => ({
         </span>
       </summary>
       <div class="ph__fold-body">
-        {bookText[dataSection] && <BookText text={bookText[dataSection]} chapter="1" />}
-
-    <!-- How the five slides below answer the text above -->
-    <div class="ph__evidence-intro">
-      <p class="ph__kicker">The evidence for 1.1</p>
-      <p>The text makes three claims: the shift to electric is happening fast, its benefit depends on the grid, and home charging cannot serve everyone, so public charging will carry more of the load. The maps test them. They start with the whole country, where every public charger is today, then look closely at the three states that hold {pct(states.reduce((n, s) => n + s.groups.public.all.ports, 0), pub.ports)} of them. Each state answers one claim: <b>California</b> the grid, <b>New York</b> charging away from home, <b>Florida</b> speed. The comparison sets the three side by side.</p>
-    </div>
-
-    <dl class="ph__glossary" aria-label="Terms used in the evidence">
-      <div><dt>Plug</dt><dd>One charging point. It charges one vehicle at a time. (Official data calls it a “port”.)</dd></div>
-      <div><dt>Station</dt><dd>One charging site, with one or many plugs.</dd></div>
-      <div><dt>Fast charger</dt><dd>Fills a car in about 20–60 minutes. (“DC fast” in official data.)</dd></div>
-      <div><dt>Slow charger</dt><dd>Takes several hours. (“Level 2”; “Level 1” is a household socket.)</dd></div>
-      <div><dt>Battery-electric</dt><dd>Runs on its battery only.</dd></div>
-      <div><dt>Plug-in hybrid</dt><dd>A battery for short trips plus a petrol engine.</dd></div>
-      <div><dt>Plug-in vehicles</dt><dd>Both of the above: every vehicle that needs a plug.</dd></div>
-      <div><dt>Public / private</dt><dd>Public plugs are open to anyone. Private ones belong to workplaces, fleets or apartment blocks. Home chargers are not counted anywhere.</dd></div>
-    </dl>
-
-    <nav class="ph__nav" aria-label="Analysis slides">
-      <span class="ph__row-label" aria-hidden="true">Evidence</span>
-      <a href="#usa" data-slide-link="0" aria-current="step"><span>01</span> United States</a>
-      <a href="#california" data-slide-link="1"><span>02</span> California</a>
-      <a href="#new-york" data-slide-link="2"><span>03</span> New York</a>
-      <a href="#florida" data-slide-link="3"><span>04</span> Florida</a>
-      <a href="#comparison" data-slide-link="4"><span>05</span> Comparison</a>
-    </nav>
-
-    <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <!-- SLIDE 01: THE UNITED STATES — vehicles, how many plug in, where they charge -->
-    <!-- ═══════════════════════════════════════════════════════════════════ -->
     <section id="usa" class="ph__slide" data-slide="0" aria-labelledby="usa-title">
+      <div class="ph__national-layout"><div class="ph__national-copy">
+        <div class="ph__chapter-lead"><p>Electric vehicles change where and how people stop for energy. Drivers with a driveway can charge at home; people who park on the street depend on shared places to charge. That difference is the starting point for Powerhouse.</p><p>This section moves from the US network to California, New York and Florida. The question is simple: <b>where could charging also support everyday community life?</b></p></div>
       <div class="ph__heading">
-        <p class="ph__kicker">01 · The United States</p>
-        <h1 id="usa-title" tabindex="-1">Vehicles and charging across the US</h1>
-        <p>What is on the road, how much of it plugs in, and where it charges today. Then how that changes by 2040.</p>
+        <p class="ph__kicker">USA / the national picture</p>
+        <h2 id="usa-title" tabindex="-1">Where public charging is today</h2>
+        <p>Each dot groups nearby charging locations. Public means open to drivers, even when the equipment is privately owned.</p>
       </div>
+      </div><div class="ph__national-visual">
 
-      <Glance {...glances['United States']}>
-        <Fragment slot="map">
-          <p class="ph__solo-title">Where the US’s <b id="ph-map-ports" aria-live="polite">{fmt(pub.ports)}</b> public plugs are · <b>{evPerPortUS.toFixed(0)}</b> plug-in vehicles share each one <span>· <span id="ph-map-stations">at {fmt(pub.stations)} stations</span></span></p>
-          <div class="ph__filters ph__filters--row">
+
+          <p class="ph__solo-title">Where the US’s <b id="ph-map-ports" aria-live="polite">{fmt(pub.ports)}</b> public plugs are · <span><span id="ph-map-stations">at {fmt(pub.stations)} stations</span></span></p>
+          <details class="ph__map-options"><summary>Filter map by access</summary><div class="ph__filters ph__filters--row">
             <label>
               Access
               <select id="ph-access">
@@ -672,26 +643,115 @@ const mindmapBibs = rawBibs.map((b) => ({
                 <option value="all">Both ({fmt(allUsa.ports)} plugs)</option>
               </select>
             </label>
-            <label>
-              Network
-              <select id="ph-network">
-                <option value="all">All networks</option>
-                <option value="tesla">Tesla + Tesla Destination</option>
-                <option value="other">Other / non-networked</option>
-              </select>
-            </label>
           </div>
-          <figure class="ph__map ph__solo-map">
-            <div class="ph__mapbox" data-map="usa" role="region" aria-label="Zoomable map of US charging stations"></div>
+          </details><figure class="ph__map ph__national-map">
+            <svg class="ph__svg ph__national-svg" viewBox="0 0 975 610" role="img" aria-labelledby="ph-us-svg-title ph-us-svg-desc">
+              <title id="ph-us-svg-title">US charging infrastructure</title><desc id="ph-us-svg-desc">Operating charging ports across the fifty states and DC. Alaska and Hawaii are insets. Dots aggregate nearby locations; exact counts appear above and in the tables.</desc>
+              <g class="ph__land">{data.usa.states.map(st=><path d={st.d}><title>{st.name}</title></path>)}</g>
+              <g>{data.usa.dots.map(d=><circle cx={d.x} cy={d.y} r={size(d.l1+d.l2+d.dc)} data-us-access={d.access} class:list={['ph__charging-dot',{'is-filtered':d.access!=='public'}]}><title>{d.access} charging · {fmt(d.l1+d.l2+d.dc)} ports in this map cell</title></circle>)}</g>
+            </svg>
             <figcaption>
-              <span class="ph__key ph__key--tesla">Tesla networks</span>
-              <span class="ph__key ph__key--other">Other networks</span>
-              <span>Dot size grows with the number of plugs · ⌘/Ctrl + scroll or +/− to zoom, drag to move · click a dot for its station</span>
+              <span>Dots aggregate nearby locations; size increases with ports and is capped in dense areas. Alaska and Hawaii are insets.</span>
             </figcaption>
           </figure>
-        </Fragment>
-        <div slot="time" class="ph__chain-time">
-          <h3 class="ph__chain-sub">Now to 2040</h3>
+      </div></div>
+    </section>
+
+    <section id="comparison" class="ph__essential" aria-labelledby="comparison-title">
+      <h2 id="comparison-title" tabindex="-1">Three states, three different conditions</h2>
+      <p>California, New York and Florida hold {pct(states.reduce((n,s)=>n+s.pubPorts,0),pub.ports)} of US public charging ports. Comparing these leading states shows three different conditions; it does not identify the country’s greatest unmet need.</p>
+      <div class="ph__short-comparison">{states.map(s=><article class="ph__short-state">
+        <h3>{s.name}</h3>
+        <figure class="ph__state-overview-map"><div class="ph__overview-viewport" data-overview-map><svg class="ph__svg ph__state-overview-svg" viewBox="0 0 420 420" role="img" tabindex="0" aria-label={`${s.name}: zoomable public charging map. Use plus or minus to zoom and arrow keys to pan.`}><g data-overview-layer><path class="ph__land" d={s.map.outline}/><g class="ph__county">{s.map.counties.map(c=><path d={c.d}/>)}</g><g>{s.map.dots.filter(d=>d.access==='public').map(d=><circle cx={d.x} cy={d.y} r={Math.min(3, .5+Math.sqrt(d.l1+d.l2+d.dc)*.16)}><title>{fmt(d.l1+d.l2+d.dc)} public ports in this map cell</title></circle>)}</g></g></svg><div class="ph__overview-controls" role="group" aria-label={`${s.name} map controls`}><button type="button" data-overview-zoom="in" aria-label={`Zoom in on ${s.name}`}>+</button><button type="button" data-overview-zoom="out" aria-label={`Zoom out of ${s.name}`}>−</button><button type="button" data-overview-zoom="full">Full state</button></div></div><figcaption>Public charging locations · drag to pan · +/− to zoom</figcaption></figure>
+        <dl><div><dt>Plug-in vehicles · 2025</dt><dd>{fmt(s.plugins)}</dd></div><div><dt>Public charging ports · Oct 2026</dt><dd>{fmt(s.pubPorts)}</dd></div><div><dt>Battery-EV growth · 2024–25</dt><dd>+{s.yoyPct.toFixed(1)}%</dd></div></dl>
+        <p>{s.code==='CA'?'The largest existing market of the three. Investigate gaps within a substantial charging network.':s.code==='NY'?'A smaller EV market, with a city where access to home charging is a particular challenge.': 'The fastest recent percentage growth of the three. Test where new demand requires shared charging.'}</p>
+      </article>)}</div>
+      <p class="ph__note">Plug-in vehicles include battery EVs and plug-in hybrids. Growth measures battery EV registrations, not charger use. Vehicle and charger counts refer to different years.</p>
+      <footer class="ph__sources"><a href={sources.regs+'?year=2025'}>AFDC vehicle registrations</a> · <a href={sources.afdc}>AFDC charging inventory</a>. Full counts, fuel splits, network breakdowns and historical series are in supporting data.</footer>
+    </section>
+
+
+    <section class="ph__essential ph__graphs" id="evidence-graphs" aria-labelledby="graphs-title"><h2 id="graphs-title">Vehicle growth and charging provision</h2>
+
+      <!-- 6-Metric Visual Comparison Dashboard -->
+      <div class="ph__viz-card" style="margin-top:24px;">
+        <div class="ph__viz-head">
+          <h2>Infrastructure and demand: proportional comparisons</h2>
+          <span>Proportional bar scales normalized to the leading state in each category</span>
+        </div>
+        <div class="ph__metric-grid">
+          {metricComparisons.map((m) => {
+            const maxVal = Math.max(...m.values.map((v) => v.val));
+            return (
+              <div class="ph__mcard">
+                <div class="ph__mcard-title">{m.label}</div>
+                {m.values.map((v) => (
+                  <div class="ph__mrow">
+                    <span class="ph__mcode">{v.code}</span>
+                    <div class="ph__mtrack">
+                      <i
+                        class={v.code === 'CA' ? 'is-tesla' : v.code === 'FL' ? 'is-phev' : 'is-other'}
+                        style={`width:${(v.val / maxVal) * 100}%`}
+                      />
+                    </div>
+                    <b class="ph__mval">{v.text}</b>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+        <p class="ph__note">
+          ¹ 2025 registered battery-electric cars + plug-in hybrids divided by October 2026 public plugs: a cross-year indicator, not a queue or capacity measure. ² EIA modeled vehicle electricity across all locations, including home charging; 1 GWh = 1 million kWh.
+        </p>
+      </div>
+
+      <!-- How fast each state is switching -->
+      <div class="ph__viz-grid ph__viz-grid--one" style="margin-top:20px;">
+
+        <div class="ph__viz-card">
+          <div class="ph__viz-head">
+            <h2>Indexed BEV growth (2016 = 1.0× baseline)</h2>
+            <span>Relative growth multiplier: FL ({trajectories[2].mult2025.toFixed(1)}×) &amp; NY ({trajectories[1].mult2025.toFixed(1)}×) outpace CA ({trajectories[0].mult2025.toFixed(1)}×)</span>
+          </div>
+          <svg class="ph__svg ph__line-chart" viewBox={`0 0 ${chartW} ${chartH}`} role="img" aria-label="Indexed battery electric vehicle growth multiplier from 2016 baseline to 2025">
+            {[1, 5, 10, 14].map((m) => {
+              const y = yForMult(m);
+              return (
+                <g>
+                  <line x1={padL} y1={y.toFixed(1)} x2={chartW - padR} y2={y.toFixed(1)} stroke="var(--_tokens---color--line)" stroke-dasharray={m === 1 ? undefined : '2,3'} />
+                  <text x={padL - 6} y={(y + 3).toFixed(1)} text-anchor="end" class="ph__svg-label">{m}×</text>
+                </g>
+              );
+            })}
+            {years.map((yr) => (
+              <text x={xForYear(yr).toFixed(1)} y={chartH - 6} text-anchor="middle" class="ph__svg-label">{yr}</text>
+            ))}
+            {trajectories.map((tr) => (
+              <g>
+                <path d={tr.idxPath} fill="none" stroke={tr.color} stroke-width="2.2" stroke-dasharray={tr.dash} />
+                {tr.pts.map((p) => (
+                  <circle cx={p.x.toFixed(1)} cy={p.yIdx.toFixed(1)} r="3.2" fill={tr.color}>
+                    <title>{tr.name} ({p.y}): {p.mult.toFixed(1)}× 2016 baseline ({fmt(p.bev)} battery-electric cars)</title>
+                  </circle>
+                ))}
+                <text
+                  x={(tr.pts[3].x + 6).toFixed(1)}
+                  y={(tr.pts[3].yIdx + (tr.code === 'NY' ? 8 : tr.code === 'FL' ? -3 : 3)).toFixed(1)}
+                  class="ph__svg-val"
+                  fill={tr.color}
+                >
+                  {tr.code} {tr.mult2025.toFixed(1)}×
+                </text>
+              </g>
+            ))}
+          </svg>
+        </div>
+      </div>
+
+
+<div class="ph__chain-time">
+          <h3 class="ph__chain-sub">National outlook · 2025–2040</h3>
       <figure class="ph__panels" aria-label="US light-duty vehicles, 2025 to 2040: all vehicles, plug-in vehicles, and plug-in share">
         <div class="ph__panel">
           <h2>All vehicles on the road</h2>
@@ -749,11 +809,40 @@ const mindmapBibs = rawBibs.map((b) => ({
         <figcaption>US cars and light trucks in use (personal and fleet). 2025 is EIA’s modelled base year; 2026–2040 is EIA’s Annual Energy Outlook 2026 Counterfactual Baseline, a policy-dependent scenario, not a forecast. Heavy trucks and buses are not included.</figcaption>
       </figure>
       <p class="ph__why-line"><b>Why it matters for the Powerhouse.</b> Every plug-in vehicle has to stop to charge somewhere. Today that is {mil(fleetNow.ev)} vehicles; by 2040 it could be {mil(fleetEnd.ev)}. Most charge at home, but the more there are, the more stops away from home there will be, and the Powerhouse is a design for those stops.</p>
-      <p class="ph__why-line"><b>Why it matters for the Powerhouse.</b> Today {evPerPortUS.toFixed(0)} plug-in vehicles share every public plug. If that holds, the country needs about {(portsAtSameRatio2040 / pub.ports).toFixed(0)} times as many public plugs by 2040, and each one is a stop that can be a car park with a row of posts or a place worth staying in. The map shows where those stops are today.</p>
-        </div>
-      </Glance>
+      <p class="ph__why-line"><b>Constant-ratio illustration.</b> Today {evPerPortUS.toFixed(0)} plug-in vehicles share every public plug. If that holds, holding that cross-year ratio constant would imply about {(portsAtSameRatio2040 / pub.ports).toFixed(0)} times as many public plugs by 2040. This is not a charger-demand forecast; each plug is a stop that can be a car park with a row of posts or a place worth staying in. The map shows where those stops are today.</p>
+        </div><footer class="ph__sources"><a href={sources.regs}>AFDC registrations, 2016–25</a> · <a href={sources.afdc}>AFDC charging inventory, October 2026</a> · <a href={sources.outlook}>EIA AEO2026 national outlook, Table 39</a>.</footer></section>
+    <div class="ph__takeaway"><h2>What this means for Powerhouse</h2><p><b>New York City is a useful place to test the civic idea.</b> Its shared-charging need gives the project a starting point. California offers a larger market; Florida offers faster recent growth. Neither state counts nor a map establish the best site.</p><p>The next step is to compare local charging demand, planned chargers and community needs. Powerhouse must show what it adds to the simpler option of installing chargers in an existing parking area.</p></div>
 
-      <div class="ph__viz-grid ph__viz-grid--one">
+    <details class="ph__details ph__supporting" id="supporting-1-1"><summary>Supporting data, full chapter text and sources</summary>
+    <section id="ny-detail" class="ph__essential" aria-labelledby="nyc-title">
+      <h2 id="nyc-title">New York City / the shared-charging question</h2>
+      <div class="ph__city-focus"><figure class="ph__map">
+        <div class="ph__filters"><label>Borough<select id="ph-borough"><option value="all">All five boroughs</option>{data.city.boroughs.map(b=><option value={b.name}>{b.name}</option>)}</select></label><label>Charger type<select id="ph-city-type"><option value="all">All public stations</option><option value="dc">Has DC fast</option><option value="ac">AC only</option></select></label></div>
+        <svg class="ph__svg ph__city-svg" viewBox="0 0 640 640" role="img" aria-labelledby="ph-city-svg-title"><title id="ph-city-svg-title">NYC public charging stations across the five boroughs</title><g class="ph__land">{data.city.boroughs.map(b=><path d={b.d} data-city-borough={b.name}><title>{b.name}</title></path>)}</g><g>{data.city.dots.filter(d=>d.access==='public').map(d=><circle cx={d.x} cy={d.y} r={Math.min(6,1+Math.sqrt(d.l1+d.l2+d.dc)*.4)} class="ph__charging-dot" data-city-station data-borough={d.borough} data-dc={d.dc}><title>{d.name} · {d.borough} · {d.l1+d.l2+d.dc} ports</title></circle>)}</g></svg>
+        <figcaption>Public charging locations; dot size increases with ports.</figcaption>
+        <p id="ph-city-result" class="ph__note" aria-live="polite">NYC · {fmt(data.city.groups.public.all.stations)} public stations · {fmt(data.city.groups.public.all.ports)} ports</p>
+      </figure><div class="ph__city-argument"><p><strong>Half of NYC’s car owners rely on street parking.</strong> Charging at home is difficult for these drivers. A shared charging place can therefore serve an everyday need, rather than only a long-distance journey.</p><p>The city’s curbside pilot reported <b>70% plugged-in occupancy</b> in August 2024. That is evidence of use in a specific pilot; it does not show that drivers want to remain on site or take part in community activities.</p><p><b>The design question:</b> could a shared charging location also offer something the surrounding neighborhood needs, including people who arrive without a car?</p><footer class="ph__sources"><a href="https://www.nyc.gov/html/dot/html/pr2026/expansion-of-curbside-electric-vehicle-charging.shtml">NYC DOT: street parking and planned expansion, 2026</a> · <a href={sources.use}>NYC pilot report, 2024</a> · <a href={sources.afdc}>AFDC station inventory</a>.</footer></div></div>
+    </section>
+      <details class="ph__details"><summary>Full chapter text and note references</summary>{bookText[dataSection] && <BookText text={bookText[dataSection]} chapter="1" />}</details>
+    <details class="ph__details"><summary>Terms and counting definitions</summary>
+    <dl class="ph__glossary" aria-label="Terms used in the evidence">
+      <div><dt>Plug</dt><dd>One charging point. It charges one vehicle at a time. (Official data calls it a “port”.)</dd></div>
+      <div><dt>Station</dt><dd>One charging site, with one or many plugs.</dd></div>
+      <div><dt>Fast charger</dt><dd>Fills a car in about 20–60 minutes. (“DC fast” in official data.)</dd></div>
+      <div><dt>Slow charger</dt><dd>Takes several hours. (“Level 2”; “Level 1” is a household socket.)</dd></div>
+      <div><dt>Battery-electric</dt><dd>Runs on its battery only.</dd></div>
+      <div><dt>Plug-in hybrid</dt><dd>A battery for short trips plus a petrol engine.</dd></div>
+      <div><dt>Plug-in vehicles</dt><dd>Both of the above: every vehicle that needs a plug.</dd></div>
+      <div><dt>Public / private</dt><dd>Public plugs are open to anyone. Private ones belong to workplaces, fleets or apartment blocks. Home chargers are not counted anywhere.</dd></div>
+    </dl>
+    </details>      <details class="ph__details ph__national-data"><summary>National vehicle totals, charging shares and outlook</summary>
+      <Glance {...glances['United States']}>
+
+
+      </Glance>
+      </details>
+
+      <details class="ph__details"><summary>All 50 states and DC: complete public-plug ranking</summary><div class="ph__viz-grid ph__viz-grid--one">
         <div class="ph__viz-card">
           <div class="ph__viz-head">
             <h2>State by state: public plugs in all 50 states &amp; DC ({pct(states.reduce((n, s) => n + s.groups.public.all.ports, 0), pub.ports)} in top 3)</h2>
@@ -768,15 +857,51 @@ const mindmapBibs = rawBibs.map((b) => ({
               </li>
             ))}
           </ol>
-          <p class="ph__note">California ({fmt(data.ranked[0].ports)}), New York ({fmt(data.ranked[1].ports)}), and Florida ({fmt(data.ranked[2].ports)}) together hold <b>{fmt(states.reduce((n, s) => n + s.groups.public.all.ports, 0))} public plugs</b> ({pct(states.reduce((n, s) => n + s.groups.public.all.ports, 0), pub.ports)} of the US total). Tabs 03, 04 and 05 look at each one.</p>
+          <p class="ph__note">California ({fmt(data.ranked[0].ports)}), New York ({fmt(data.ranked[1].ports)}), and Florida ({fmt(data.ranked[2].ports)}) together hold <b>{fmt(states.reduce((n, s) => n + s.groups.public.all.ports, 0))} public plugs</b> ({pct(states.reduce((n, s) => n + s.groups.public.all.ports, 0), pub.ports)} of the US total). The comparison below brings these states together; their individual maps remain in the detailed evidence.</p>
         </div>
       
       </div>
 
+      </details>
       <footer class="ph__sources">Source: <a href={sources.outlook}>EIA, Annual Energy Outlook 2026, Supplemental Table 39: Light-Duty Vehicle Stock by Technology Type</a> (released April 2026), accessed 18 Oct 2026.</footer>
       <footer class="ph__sources">Sources: <a href={sources.afdc}>DOE AFDC station inventory</a>, snapshot 18 Oct 2026; <a href={sources.eia}>EIA Electric Power Monthly, Table D.1</a>, 2025 annual consumption. Map boundaries &amp; roads: <a href="https://github.com/topojson/us-atlas">US Census / us-atlas</a> &amp; <a href="https://www.naturalearthdata.com/">Natural Earth 10m Roads</a>.</footer>
-    </section>
+    <section id="comparison-data" class="ph__slide" aria-labelledby="comparison-data-title">
+      <div class="ph__heading"><p class="ph__kicker">Three states, one comparison</p><h2 id="comparison-data-title" tabindex="-1">Scale, access and growth</h2><p>Read each table across the same three states. Vehicle growth indicates a changing market; plug counts indicate provision. Neither alone measures queues, unmet demand or the value of a community facility.</p></div>
+      <div class="ph__table-wrap" tabindex="0" role="region" aria-label="Vehicle comparison"><table><caption>1 / Vehicles and growth</caption><thead><tr><th scope="col">Measure</th>{states.map(s=><th scope="col">{s.name}</th>)}</tr></thead><tbody>
+        <tr><th scope="row">2015: all registered motor vehicles · FHWA</th>{states.map(s=><td>{fmt(s.historic)}</td>)}</tr>
+        <tr><th scope="row">FHWA all-road-vehicle inventory · year shown</th>{states.map(s=><td>{fmt(roadOf[s.name].total)} ({roadOf[s.name].year})</td>)}</tr>
+        <tr><th scope="row">2025 light-duty total · AFDC</th>{states.map(s=><td>{fmt(s.now.total)}</td>)}</tr>
+        <tr><th scope="row">2025 fuel-powered light-duty vehicles</th>{states.map(s=><td>{fmt(s.now.fuel)}</td>)}</tr>
+        <tr><th scope="row">2025 battery-electric / plug-in hybrid</th>{states.map(s=><td>{fmt(s.now.bev)} / {fmt(s.now.phev)}</td>)}</tr>
+        <tr><th scope="row">2025 hydrogen / unknown</th>{states.map(s=><td>{fmt(s.now.hydrogen)} / {fmt(s.now.unknown)}</td>)}</tr>
+        {years.map(y=><tr><th scope="row">{y}: battery-electric vehicles</th>{states.map(s=><td>{fmt(data.registrations[String(y) as keyof typeof data.registrations][s.name as keyof typeof data.registrations['2025']].bev)}</td>)}</tr>)}
+        <tr><th scope="row">BEV increase, 2024–25: number / rate</th>{states.map(s=><td>+{fmt(s.yoyGain)} / {s.yoyPct.toFixed(1)}%</td>)}</tr>
+        <tr><th scope="row">Annual BEV growth, 2016–25 / multiplier</th>{states.map(s=><td>{s.cagr.toFixed(1)}% / {s.mult2025.toFixed(1)}×</td>)}</tr>
+        <tr><th scope="row">2040 illustrative light-duty total</th>{states.map(s=><td>~{fmt(s.scenario.total)}</td>)}</tr>
+        <tr><th scope="row">2040 fuel / battery-electric / plug-in hybrid</th>{states.map(s=><td>~{million(s.scenario.fuel)} / {million(s.scenario.bev)} / {million(s.scenario.phev)}</td>)}</tr>
+      </tbody></table></div>
+      <p class="ph__note">FHWA inventory years differ across states (New York uses the retained 2015 baseline); these are not synchronized current totals. FHWA totals include vehicle classes outside AFDC light-duty registrations; they must not form one growth series. A comparable 2015 fuel split is unavailable here. Historical growth uses AFDC 2016–25. The 2040 figures apply EIA’s national stock growth and technology shares to each state; they are illustrative scenarios, not state forecasts.</p>
+      <div class="ph__table-wrap" tabindex="0" role="region" aria-label="Charging comparison"><table><caption>2 / Charging provision and networks · October 2026</caption><thead><tr><th scope="col">Measure</th>{states.map(s=><th scope="col">{s.name}</th>)}</tr></thead><tbody>
+        <tr><th scope="row">Public / reported private stations</th>{states.map(s=><td>{fmt(s.groups.public.all.stations)} / {fmt(s.groups.private.all.stations)}</td>)}</tr>
+        <tr><th scope="row">Public / reported private plugs</th>{states.map(s=><td>{fmt(s.pubPorts)} / {fmt(s.privPorts)}</td>)}</tr>
+        <tr><th scope="row">Public Level 1 / Level 2 / DC fast</th>{states.map(s=><td>{fmt(s.groups.public.all.l1)} / {fmt(s.groups.public.all.l2)} / {fmt(s.groups.public.all.dc)}</td>)}</tr>
+        <tr><th scope="row">Public plugs that are DC fast</th>{states.map(s=><td>{s.dcShare.toFixed(1)}%</td>)}</tr>
+        <tr><th scope="row">Plug-in vehicles per public plug¹</th>{states.map(s=><td>{s.evsPerPort.toFixed(1)}</td>)}</tr>
+        {networks.networks.slice(0,8).map(n=><tr><th scope="row">{n.name}: public plugs</th>{states.map(s=><td>{fmt(n[s.code as 'CA'|'NY'|'FL'])}</td>)}</tr>)}
+      </tbody></table></div>
+      <p class="ph__note">¹ 2025 registrations divided by October 2026 public plugs: a cross-year indicator, not measured utilization or a capacity target. Public describes access, not ownership. Reported private plugs omit unreported home charging. Network labels do not establish equipment ownership or compatibility.</p>
+      <div class="ph__table-wrap" tabindex="0" role="region" aria-label="Energy and Powerhouse implications"><table class="ph__interpretation"><caption>3 / Energy, access and the Powerhouse question</caption><thead><tr><th scope="col">Evidence / interpretation</th>{states.map(s=><th scope="col">{s.name}</th>)}</tr></thead><tbody>
+        <tr><th scope="row">Vehicle electricity, 2024 · GWh</th>{states.map(s=><td>{fmt(s.energy.total)}</td>)}</tr>
+        <tr><th scope="row">Battery EV / plug-in hybrid electricity · GWh</th>{states.map(s=><td>{fmt(s.energy.bev)} / {fmt(s.energy.phev)}</td>)}</tr>
+        <tr><th scope="row">What distinguishes this case</th><td>Largest existing plug-in fleet and largest absolute recent BEV gain of the three.</td><td>Lowest statewide vehicle-to-plug ratio; NYC’s dependence on street parking creates a different access question.</td><td>Fastest historical relative BEV growth and highest vehicle-to-public-plug ratio of the three.</td></tr>
+        <tr><th scope="row">Powerhouse opportunity to test</th><td>Shared facilities in underserved neighborhoods within a large market; test energy supply and actual demand.</td><td>A community stop serving residents and drivers without home charging, accessible to people arriving without a car.</td><td>A travel and community stop; test corridor demand, useful dwell time and resilience requirements.</td></tr>
+        <tr><th scope="row">Evidence still needed</th><td>Neighborhood access, planned supply, sessions/kWh, grid and land feasibility.</td><td>Comparable neighborhood demand, existing/planned curbside provision, dwell behavior and community needs.</td><td>Sessions/kWh, geographic gaps, planned supply and a demonstrated backup-power strategy.</td></tr>
+      </tbody></table></div>
+      <p class="ph__note">EIA electricity includes home, workplace and public charging, not metered public-port consumption. State energy is 2024; national energy is 2025. Rounded components may not sum exactly. NYC’s 50% street-parking reliance and 70% pilot occupancy describe the city and a specific pilot, not statewide use.</p>
+      <div class="ph__conclusion"><h2>What this supports</h2><p>California offers scale; Florida offers rapid relative growth; New York City offers a documented shared-access problem. For Powerhouse’s civic/community purpose, NYC is a provisional research candidate. The state figures do not establish a best site. That requires measured local demand, useful dwell time, grid feasibility, costs and community input, tested against the simpler alternative of adding chargers to existing parking.</p><p>A single charging-inventory snapshot cannot establish whether infrastructure is keeping pace with vehicle growth. The common 2040 scenario cannot rank the states because it assigns each the same national trajectory.</p></div>
+      <footer class="ph__sources">Sources: <a href={sources.fhwa}>FHWA MV-1, 2015</a>; <a href={sources.regs}>AFDC registrations, 2016–25</a>; <a href={sources.afdc}>AFDC charging inventory, 18 Oct 2026</a>; <a href={sources.stateEnergy}>EIA SEDS F56, 2024</a>; <a href={sources.outlook}>EIA AEO2026 Table 39</a>. {states.map(s=><Fragment><a href={s.meta.planUrl}>{s.meta.planLabel}</a>; </Fragment>)}</footer>
 
+    </section>    <div class="ph__evidence-details"><h2>Detailed state evidence</h2><p class="ph__note">Open a state for its maps, exact counts, vehicle history and sources. These supplement the short comparison in the chapter.</p>
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <!-- SLIDES 02, 03, 04: CALIFORNIA, NEW YORK, FLORIDA DEEP DIVES         -->
     <!-- ═══════════════════════════════════════════════════════════════════ -->
@@ -788,10 +913,10 @@ const mindmapBibs = rawBibs.map((b) => ({
         { y: 2025, bev: s.now.bev, phev: s.now.phev, total: s.now.total },
       ];
       return (
-        <section id={s.meta.slug} class="ph__slide" data-slide={s.meta.slideIdx} aria-labelledby={`${s.meta.slug}-title`} hidden>
+        <details id={s.meta.slug} class="ph__details ph__state-detail" data-slide={s.meta.slideIdx}><summary>{s.name}: map, vehicle history and source details</summary><section aria-labelledby={`${s.meta.slug}-title`}>
           <div class="ph__heading">
             <p class="ph__kicker">0{s.meta.slideIdx + 1} · {s.name}</p>
-            <h1 id={`${s.meta.slug}-title`} tabindex="-1">{s.name}: {roleOf[s.code].claim.toLowerCase()}</h1>
+            <h2 id={`${s.meta.slug}-title`} tabindex="-1">{s.name}: {roleOf[s.code].claim.toLowerCase()}</h2>
             <p class="ph__quote">{roleOf[s.code].quote} <span>— 1.1, above</span></p>
           </div>
 
@@ -811,20 +936,11 @@ const mindmapBibs = rawBibs.map((b) => ({
                     <option value="all">Both ({fmt(s.allPorts)} plugs)</option>
                   </select>
                 </label>
-                <label>
-                  Network
-                  <select data-st-network={s.code}>
-                    <option value="all">All networks</option>
-                    <option value="tesla">Tesla + Tesla Destination ({fmt(s.groups.public.tesla.ports)} pub)</option>
-                    <option value="other">Other / non-networked ({fmt(s.groups.public.other.ports)} pub)</option>
-                  </select>
-                </label>
               </div>
               <figure class="ph__map ph__solo-map">
                 <div class="ph__mapbox" data-map={s.code} role="region" aria-label={`Zoomable map of charging stations in ${s.name}`}></div>
                 <figcaption>
-                  <span class="ph__key ph__key--tesla">Tesla networks</span>
-                  <span class="ph__key ph__key--other">Other networks</span>
+                  <span>Charging locations</span>
                   <span>Roads © OpenStreetMap · counties: US Census · ⌘/Ctrl + scroll or +/− to zoom</span>
                 </figcaption>
               </figure>
@@ -834,222 +950,17 @@ const mindmapBibs = rawBibs.map((b) => ({
           <!-- Florida: the summary above already gives the numbers, so the map stands alone,
                centred and large, with one line saying what it shows -->
 
-          {s.code === 'NY' && (
-            <div class="ph__viz-card" style="margin-top: 24px;" id="ny-detail">
-              <div class="ph__viz-head">
-                <h2>Inside New York City: where the street-parked half can charge</h2>
-                <span>NYC holds {pct(data.city.groups.public.all.ports, s.pubPorts)} of New York State’s public plugs ({fmt(data.city.groups.public.all.ports)} of {fmt(s.pubPorts)})</span>
-              </div>
-              <div class="ph__ny-grid">
-                <div>
-                  <div class="ph__filters">
-                    <label>
-                      Borough
-                      <select id="ph-borough">
-                        <option value="all">All five boroughs</option>
-                        {data.city.boroughs.map((b) => (
-                          <option value={b.name}>{b.name} ({fmt(b.groups.public.all.ports)} plugs)</option>
-                        ))}
-                      </select>
-                    </label>
-                    <label>
-                      Charger type
-                      <select id="ph-city-type">
-                        <option value="all">All public stations</option>
-                        <option value="dc">Has fast</option>
-                        <option value="ac">AC only</option>
-                      </select>
-                    </label>
-                  </div>
-                  <div class="ph__mapbox ph__mapbox--city" data-map="NYC" role="region" aria-label="Zoomable map of New York City public charging stations"></div>
-                  <p class="ph__legend">
-                    <span class="ph__key ph__key--tesla">Tesla networks</span>
-                    <span class="ph__key ph__key--other">Other networks</span>
-                    <span>Choose a borough to zoom to it · charger type filters the dots</span>
-                  </p>
-                  <p id="ph-city-result" class="ph__selection" aria-live="polite">
-                    NYC · {fmt(data.city.groups.public.all.stations)} public stations · {fmt(data.city.groups.public.all.ports)} plugs ({fmt(data.city.groups.public.all.dc)} fast)
-                  </p>
-                </div>
-
-                <div class="ph__ny-copy">
-                  <div class="ph__viz-box">
-                    <div class="ph__viz-head">
-                      <b>5-Borough public plug distribution (AC vs. fast)</b>
-                      <span>Select a borough on the left to isolate stations on the map</span>
-                    </div>
-                    {data.city.boroughs.map((b) => {
-                      const ac = b.groups.public.all.l1 + b.groups.public.all.l2;
-                      const dc = b.groups.public.all.dc;
-                      const tot = b.groups.public.all.ports;
-                      return (
-                        <div class="ph__boro-row" data-borough-row={b.name}>
-                          <div class="ph__boro-meta">
-                            <b>{b.name}</b>
-                            <span>{fmt(tot)} plugs · {fmt(b.groups.public.all.stations)} stations ({fmt(dc)} fast / {fmt(ac)} AC)</span>
-                          </div>
-                          <div class="ph__net-bar-track">
-                            <i class="is-tesla" style={`width:${(dc / maxBoroPorts) * 100}%`} title={`${b.name} fast: ${fmt(dc)}`}></i>
-                            <i class="is-other" style={`width:${(ac / maxBoroPorts) * 100}%`} title={`${b.name} AC: ${fmt(ac)}`}></i>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div class="ph__gauge-grid">
-                    <div class="ph__energy">
-                      <span>Observed use · NYC curbside pilot</span>
-                      <strong>70%</strong>
-                      <div class="ph__stack-bar" style="margin:4px 0;"><i class="is-tesla" style="width:70%"></i></div>
-                      <p>Average plugged-in occupancy reported by NYC DOT (Aug 2024) across 100 curbside chargers at 35 sites.</p>
-                    </div>
-                    <div class="ph__energy">
-                      <span>NYC car-owner parking reliance</span>
-                      <strong>50%</strong>
-                      <div class="ph__stack-bar" style="margin:4px 0;"><i class="is-phev" style="width:50%"></i></div>
-                      <p>Half of NYC car-owning households rely on on-street parking (NYC DOT, Aug 2026), requiring shared neighborhood charging.</p>
-                    </div>
-                  </div>
-
-                </div>
-              </div>
-            </div>
-          )}
-
           <footer class="ph__sources">
             Sources: <a href={sources.afdc}>DOE AFDC inventory</a> (snapshot 18 Oct 2026); <a href={sources.regs + '?year=2025'}>AFDC 2016–2025 vehicle registrations</a>; <a href={sources.stateEnergy}>EIA SEDS Table F56 (2024)</a>; <a href={s.meta.planUrl}>{s.meta.planLabel}</a>.
           </footer>
-        </section>
+        </section></details>
       );
     })}
 
-    <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <!-- SLIDE 05: COMPARISON OF THE THREE STATES                           -->
-    <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <section id="comparison" class="ph__slide" data-slide="4" aria-labelledby="comparison-title" hidden>
-      <div class="ph__heading">
-        <p class="ph__kicker">05 · The three states side by side</p>
-        <h1 id="comparison-title" tabindex="-1">Three states, three tests</h1>
-        <p>California has the most of everything, New York the fewest cars per plug but a city that cannot charge at home, Florida the fastest growth and the most cars per plug. Read across each row to see which state each claim in the text rests on.</p>
-      </div>
-
-      <!-- 3-State Side-by-Side Maps -->
-      <div class="ph__state-grid">
-        {states.map((s, i) => (
-          <div class="ph__state-card">
-            <div class="ph__state-title">
-              <span>0{i + 1}</span>
-              <h2><a href={`#${s.meta.slug}`} data-jump-slide={s.meta.slideIdx} class="ph__state-jump">{s.name}</a></h2>
-            </div>
-            <p class="ph__state-role">{roleOf[s.code].claim}</p>
-            <div class="ph__state-number">
-              {fmt(s.pubPorts)}<span>public plugs ({fmt(s.groups.public.all.stations)} stations)</span>
-            </div>
-            <div class="ph__bar" role="img" aria-label={`${s.name}: ${fmt(s.groups.public.all.dc)} fast and ${fmt(s.groups.public.all.l2)} slow plugs`}>
-              <span class="ph__fill ph__fill--tesla" style={`width:${s.dcShare}%`}></span>
-            </div>
-            <p class="ph__note">
-              <b>{s.dcShare.toFixed(1)}% fast</b> ({fmt(s.groups.public.all.dc)}) · <b>{s.evsPerPort.toFixed(1)}</b> plug-in vehicles per public plug
-            </p>
-          </div>
-        ))}
-      </div>
-
-      <!-- 6-Metric Visual Comparison Dashboard -->
-      <div class="ph__viz-card" style="margin-top:24px;">
-        <div class="ph__viz-head">
-          <h2>1. Six-metric infrastructure &amp; demand comparison (CA vs. NY vs. FL)</h2>
-          <span>Proportional bar scales normalized to the leading state in each category</span>
-        </div>
-        <div class="ph__metric-grid">
-          {metricComparisons.map((m) => {
-            const maxVal = Math.max(...m.values.map((v) => v.val));
-            return (
-              <div class="ph__mcard">
-                <div class="ph__mcard-title">{m.label}</div>
-                {m.values.map((v) => (
-                  <div class="ph__mrow">
-                    <span class="ph__mcode">{v.code}</span>
-                    <div class="ph__mtrack">
-                      <i
-                        class={v.code === 'CA' ? 'is-tesla' : v.code === 'FL' ? 'is-phev' : 'is-other'}
-                        style={`width:${(v.val / maxVal) * 100}%`}
-                      />
-                    </div>
-                    <b class="ph__mval">{v.text}</b>
-                  </div>
-                ))}
-              </div>
-            );
-          })}
-        </div>
-        <p class="ph__note">
-          ¹ 2025 registered battery-electric cars + plug-in hybrids divided by October 2026 public plugs: a cross-year indicator, not a queue or capacity measure. ² EIA modeled vehicle electricity across all locations, including home charging; 1 GWh = 1 million kWh.
-        </p>
-      </div>
-
-      <!-- How fast each state is switching -->
-      <div class="ph__viz-grid ph__viz-grid--one" style="margin-top:20px;">
-
-        <div class="ph__viz-card">
-          <div class="ph__viz-head">
-            <h2>3. Indexed BEV acceleration (2016 = 1.0× baseline)</h2>
-            <span>Relative growth multiplier: FL ({trajectories[2].mult2025.toFixed(1)}×) &amp; NY ({trajectories[1].mult2025.toFixed(1)}×) outpace CA ({trajectories[0].mult2025.toFixed(1)}×)</span>
-          </div>
-          <svg class="ph__svg ph__line-chart" viewBox={`0 0 ${chartW} ${chartH}`} role="img" aria-label="Indexed battery electric vehicle growth multiplier from 2016 baseline to 2025">
-            {[1, 5, 10, 14].map((m) => {
-              const y = yForMult(m);
-              return (
-                <g>
-                  <line x1={padL} y1={y.toFixed(1)} x2={chartW - padR} y2={y.toFixed(1)} stroke="var(--_tokens---color--line)" stroke-dasharray={m === 1 ? undefined : '2,3'} />
-                  <text x={padL - 6} y={(y + 3).toFixed(1)} text-anchor="end" class="ph__svg-label">{m}×</text>
-                </g>
-              );
-            })}
-            {years.map((yr) => (
-              <text x={xForYear(yr).toFixed(1)} y={chartH - 6} text-anchor="middle" class="ph__svg-label">{yr}</text>
-            ))}
-            {trajectories.map((tr) => (
-              <g>
-                <path d={tr.idxPath} fill="none" stroke={tr.color} stroke-width="2.2" stroke-dasharray={tr.dash} />
-                {tr.pts.map((p) => (
-                  <circle cx={p.x.toFixed(1)} cy={p.yIdx.toFixed(1)} r="3.2" fill={tr.color}>
-                    <title>{tr.name} ({p.y}): {p.mult.toFixed(1)}× 2016 baseline ({fmt(p.bev)} battery-electric cars)</title>
-                  </circle>
-                ))}
-                <text
-                  x={(tr.pts[3].x + 6).toFixed(1)}
-                  y={(tr.pts[3].yIdx + (tr.code === 'NY' ? 8 : tr.code === 'FL' ? -3 : 3)).toFixed(1)}
-                  class="ph__svg-val"
-                  fill={tr.color}
-                >
-                  {tr.code} {tr.mult2025.toFixed(1)}×
-                </text>
-              </g>
-            ))}
-          </svg>
-        </div>
-      </div>
-
-
-      <div class="ph__conclusion">
-        <h2>What the three states show together</h2>
-        <ol>
-          <li><b>The shift is real and uneven.</b> Battery-electric cars grew {states.map((s) => `${s.mult2025.toFixed(1)}× in ${s.name}`).join(', ').replace(/, ([^,]*)$/, ' and $1')} since 2016.</li>
-          <li><b>Plugs are not keeping pace everywhere.</b> Between {Math.min(...states.map((s) => s.evsPerPort)).toFixed(1)} and {Math.max(...states.map((s) => s.evsPerPort)).toFixed(1)} plug-in vehicles share each public plug. The pressure is highest in Florida, which is also growing fastest.</li>
-          <li><b>Counting plugs is not enough.</b> New York has the most plugs per car and still cannot serve the half of its city that parks on the street. Where the chargers are, and what surrounds them, matters as much as how many there are. That is the question the next section, The Architecture of the Stop, takes up.</li>
-        </ol>
-      </div>
-
-      <footer class="ph__sources">Sources: <a href={sources.afdc}>DOE AFDC station inventory</a>, snapshot 18 Oct 2026; <a href={sources.regs + '?year=2016'}>AFDC registrations 2016</a>, <a href={sources.regs + '?year=2020'}>2020</a>, <a href={sources.regs + '?year=2024'}>2024</a>, <a href={sources.regs + '?year=2025'}>2025</a>; <a href={sources.stateEnergy}>EIA SEDS Table F56 (2024)</a>.</footer>
-    </section>
-
-    <div class="ph__pager" hidden>
-      <button type="button" id="ph-prev">Previous</button>
-      <span id="ph-progress" aria-live="polite">01 / 05</span>
-      <button type="button" id="ph-next">Next</button>
     </div>
+
+      <details class="ph__details"><summary>NYC borough counts</summary><div class="ph__table-wrap" tabindex="0" role="region" aria-label="NYC borough charging counts"><table><caption>Public station inventory · October 2026</caption><thead><tr><th>Borough</th><th>Stations</th><th>AC ports</th><th>DC fast ports</th></tr></thead><tbody>{data.city.boroughs.map(b=><tr><th scope="row">{b.name}</th><td>{fmt(b.groups.public.all.stations)}</td><td>{fmt(b.groups.public.all.l1+b.groups.public.all.l2)}</td><td>{fmt(b.groups.public.all.dc)}</td></tr>)}</tbody></table></div></details>
+    </details>
       </div>
     </details>
 
@@ -1606,9 +1517,10 @@ const mindmapBibs = rawBibs.map((b) => ({
   }
   .ph__stub-note { color: var(--_tokens---color--muted); }
   .ph :global(.ph__book) { display: grid; gap: var(--_tokens---space--small); }
-  .ph :global(.ph__book-body p) { font-size: var(--_tokens---type--small); line-height: 1.6; margin: 0 0 1em; max-width: 68ch; }
+  .ph :global(.ph__book-body) { min-width: 0; font-size: var(--_tokens---type--micro); overflow-wrap: break-word; }
+  .ph :global(.ph__book-body p) { font-size: inherit; line-height: 1.65; margin: 0 0 1em; max-width: none; orphans: 3; widows: 3; }
   .ph :global(.ph__book sup) { font-size: .65em; line-height: 0; color: var(--_tokens---color--muted); }
-  .ph :global(.ph__book-body .ph__book-lead) { font-size: calc(var(--_tokens---type--small) * 1.25); line-height: 1.45; letter-spacing: -.01em; max-width: 60ch; margin-bottom: 1.5em; }
+  .ph :global(.ph__book-body .ph__book-lead) { font-size: var(--_tokens---type--small); line-height: 1.5; letter-spacing: -.01em; max-width: none; margin-bottom: 1.5em; }
   .ph :global(.ph__book-body .ph__book-h) { font-size: var(--_tokens---type--small); font-weight: 600; margin: 1.5em 0 .75em; }
   .ph :global(.ph__book-body .ph__book-table) { margin: 1.5em 0 2em; }
   .ph :global(.ph__book-body .ph__book-table figcaption) { font-size: var(--_tokens---type--micro); margin-bottom: 8px; }
@@ -1638,6 +1550,64 @@ const mindmapBibs = rawBibs.map((b) => ({
   }
   .ph :global(.ph__book-notes) { margin: 0; padding: 12px 0 0 1.6em; border-top: 1px solid var(--_tokens---color--line); font-size: var(--_tokens---type--micro); line-height: 1.5; color: var(--_tokens---color--muted); display: grid; gap: 8px; }
   .ph :global(.ph__book-notes a) { color: inherit; overflow-wrap: anywhere; }
+  .ph__interpretation td { white-space: normal; min-width: 180px; line-height: 1.6; }
+  .ph__interpretation th:first-child { white-space: normal; min-width: 160px; }
+  .ph__state-detail > section { padding-top: 16px; }
+  .ph__national-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 32px; align-items: start; }
+  .ph__national-copy, .ph__national-visual { min-width: 0; }
+  .ph__national-copy .ph__heading > p:last-child { font-size: var(--_tokens---type--micro); line-height: 1.65; }
+  .ph__national-visual .ph__solo-title { font-size: var(--_tokens---type--micro); text-align: left; }
+  .ph__state-overview-map { margin: 16px 0; }
+  .ph__overview-viewport { position: relative; width: 100%; aspect-ratio: 1; overflow: hidden; background: var(--_tokens---color--bg); }
+  .ph__overview-viewport .ph__state-overview-svg { width: 100%; height: 100%; cursor: grab; touch-action: pan-y; }
+  .ph__overview-viewport .ph__state-overview-svg:active { cursor: grabbing; }
+  .ph__state-overview-svg path { vector-effect: non-scaling-stroke; }
+  .ph__overview-controls { position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; }
+  .ph__overview-controls button { min-width: 28px; min-height: 28px; padding: 2px 8px; border: 1px solid var(--_tokens---color--line); border-radius: var(--_tokens---radius--pill); background: color-mix(in srgb, var(--_tokens---color--bg) 90%, transparent); color: var(--_tokens---color--muted); font: inherit; font-size: 11px; line-height: 1.2; cursor: pointer; transition: color .15s ease, border-color .15s ease, background-color .15s ease; }
+  .ph__overview-controls button:is(:hover, :focus-visible, :active) { color: var(--_tokens---color--fg); border-color: var(--_tokens---color--fg); background: var(--_tokens---color--bg); }
+  .ph__graphs > .ph__chain-time { margin-top: 24px; }
+
+  .ph__state-overview-map figcaption { font-size: var(--_tokens---type--micro); color: var(--_tokens---color--muted); }
+  .ph :is(.ph__national-svg, .ph__city-svg, .ph__state-overview-svg) circle, .ph__mapbox :global(svg circle) { fill: var(--_tokens---color--fg) !important; stroke: none !important; opacity: .7 !important; }
+  .ph__mapbox :global(svg) { filter: grayscale(1); }
+  .ph__map figcaption .ph__key { display: none; }
+  .ph__city-focus > figure { order: 2; }
+  .ph__city-argument { order: 1; }
+  @media (max-width: 1023.98px) { .ph__national-layout { grid-template-columns: 1fr; gap: 16px; } }
+  .ph__chapter-lead, .ph__essential > p, .ph__short-state p, .ph__city-argument p, .ph__takeaway p { font-size: var(--_tokens---type--micro); line-height: 1.65; }
+  .ph__chapter-lead p, .ph__city-argument p, .ph__takeaway p { margin: 0 0 1em; }
+  .ph__chapter-lead { max-width: 76ch; margin-bottom: 28px; }
+  .ph__essential, .ph__takeaway { margin: 32px 0; }
+  .ph__essential > h2, .ph__takeaway > h2 { font-size: var(--_tokens---type--small); margin-bottom: 12px; }
+  .ph__short-comparison { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; margin: 24px 0 12px; }
+  .ph__short-state { border-top: 1px solid var(--_tokens---color--line); padding-top: 12px; min-width: 0; }
+  .ph__short-state h3 { font-size: var(--_tokens---type--small); }
+  .ph__short-state dl { margin: 16px 0; font-size: var(--_tokens---type--micro); }
+  .ph__short-state dl > div { margin-bottom: 12px; }
+  .ph__short-state dt { color: var(--_tokens---color--muted); }
+  .ph__short-state dd { margin: 2px 0 0; font-size: var(--_tokens---type--small); font-variant-numeric: tabular-nums; }
+  .ph__city-focus { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 28px; align-items: start; }
+  .ph__city-svg { max-height: 65vh; }
+  .ph__city-svg circle { stroke: var(--_tokens---color--bg); stroke-width: .4; }
+  .ph__map-options { font-size: .75rem; width: fit-content; max-width: 100%; margin: 8px 0 0 auto; }
+  .ph__map-options > summary { cursor: pointer; min-height: 32px; text-align: right; }
+  .ph .ph__map-options .ph__filters--row { grid-template-columns: minmax(0, 1fr); width: min(240px, 100%); }
+  .ph .ph__map-options label { font-size: .6875rem; }
+  .ph .ph__map-options select { font-size: .75rem; }
+
+  .ph__supporting { margin-top: 32px; }
+  .ph__takeaway { border-top: 1px solid var(--_tokens---color--line); padding-top: 20px; max-width: 80ch; }
+  @media (max-width: 1023.98px) { .ph__city-focus { grid-template-columns: 1fr; } }
+  @media (max-width: 699.98px) { .ph__short-comparison { grid-template-columns: 1fr; gap: 16px; } }
+  .ph__national-map { margin: 16px 0 24px; }
+  .ph__national-svg { max-height: 52vh; width: 100%; }
+  .ph__national-data :global(.ph__chain-grid--map) { grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); grid-template-areas: none; }
+  .ph__national-data :global(.ph__chain-row) { grid-area: auto; }
+  .ph__national-data :global(.is-m) { display: none; }
+  .ph__evidence-details { margin: 24px 0; }
+  .ph__evidence-intro > p:last-child, .ph__conclusion p { font-size: var(--_tokens---type--micro); line-height: 1.65; }
+  .ph__heading > h2 { font-size: var(--_tokens---type--medium); margin-bottom: 12px; }
+  .ph__slide, .ph__state-detail { scroll-margin-top: calc(var(--ph-toc-h, 140px) + 68px); }
   .ph__nav { scroll-margin-top: calc(var(--ph-toc-h, 140px) + 68px); margin: var(--_tokens---space--micro) 0 var(--_tokens---space--small); }
   .ph__pager button { display: inline-flex; align-items: center; gap: 12px; min-height: 44px; padding: 8px 16px; border: 1px solid var(--_tokens---color--line); border-radius: var(--_tokens---radius--pill); font: inherit; font-size: var(--_tokens---type--micro); color: inherit; background: transparent; cursor: pointer; }
   .ph__slide { margin-bottom: var(--_tokens---space--medium); scroll-margin-top: 80px; }
@@ -2351,6 +2321,8 @@ const mindmapBibs = rawBibs.map((b) => ({
 <script>
   import { createMap, createSvgMap, type PowerhouseMap } from '../lib/powerhouse-map';
   import { initPowerhouseMindmap } from '../lib/powerhouse-mindmap';
+  import { select } from 'd3-selection';
+  import { zoom, zoomIdentity } from 'd3-zoom';
 
   // Chapters (main tabs) and sections (the flow). Picking a chapter opens its first section.
   const book = document.querySelector<HTMLElement>('[data-analysis]');
@@ -2447,6 +2419,11 @@ const mindmapBibs = rawBibs.map((b) => ({
       if (fold) {
         onlySection(fold);
         if (fold.dataset.sectionPanel) setCurrent(fold.dataset.sectionPanel);
+      }
+      let ancestor = targetEl?.parentElement;
+      while (ancestor && ancestor !== book) {
+        if (ancestor instanceof HTMLDetailsElement) ancestor.open = true;
+        ancestor = ancestor.parentElement;
       }
       jump(targetEl);
     };
@@ -2576,64 +2553,65 @@ const mindmapBibs = rawBibs.map((b) => ({
     });
   }
 
+  // Each comparison map opens as a close-up; the full outline remains one action away.
+  document.querySelectorAll<HTMLElement>('[data-overview-map]').forEach(frame => {
+    const svg = frame.querySelector<SVGSVGElement>('svg')!;
+    const layer = svg.querySelector<SVGGElement>('[data-overview-layer]')!;
+    let initialized = false;
+    const init = () => {
+      if (initialized || !svg.getBoundingClientRect().width) return;
+      const bounds = layer.getBBox();
+      if (!bounds.width || !bounds.height) return;
+      initialized = true;
+      const width = 420, height = 420;
+      const fit = Math.min(width / bounds.width, height / bounds.height) * .94;
+      const cover = Math.max(width / bounds.width, height / bounds.height) * 1.05;
+      const centered = (scale: number) => zoomIdentity.translate(width / 2, height / 2).scale(scale).translate(-bounds.x - bounds.width / 2, -bounds.y - bounds.height / 2);
+      const behavior = zoom<SVGSVGElement, unknown>().extent([[0, 0], [width, height]]).scaleExtent([fit, Math.max(cover * 8, fit * 12)]).filter((event: Event) => {
+        if (event.type === 'wheel') return (event as WheelEvent).ctrlKey || (event as WheelEvent).metaKey;
+        if (event.type.startsWith('touch')) return (event as TouchEvent).touches.length > 1;
+        return !(event as MouseEvent).button;
+      }).on('zoom', event => { layer.setAttribute('transform', event.transform.toString()); frame.dataset.zoom = event.transform.k.toFixed(3); });
+      const selection = select(svg).call(behavior).on('dblclick.zoom', null);
+      selection.call(behavior.transform, centered(cover));
+      frame.querySelectorAll<HTMLButtonElement>('[data-overview-zoom]').forEach(button => button.addEventListener('click', () => {
+        if (button.dataset.overviewZoom === 'full') selection.call(behavior.transform, centered(fit));
+        else selection.call(behavior.scaleBy, button.dataset.overviewZoom === 'in' ? 1.5 : 1 / 1.5, [width / 2, height / 2]);
+      }));
+      svg.addEventListener('keydown', event => {
+        if (event.key === '+' || event.key === '=') { event.preventDefault(); selection.call(behavior.scaleBy, 1.5); }
+        else if (event.key === '-') { event.preventDefault(); selection.call(behavior.scaleBy, 1 / 1.5); }
+        else if (event.key === '0') { event.preventDefault(); selection.call(behavior.transform, centered(fit)); }
+        else if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+          event.preventDefault(); selection.call(behavior.translateBy, event.key === 'ArrowLeft' ? 20 : event.key === 'ArrowRight' ? -20 : 0, event.key === 'ArrowUp' ? 20 : event.key === 'ArrowDown' ? -20 : 0);
+        }
+      });
+    };
+    new ResizeObserver(init).observe(frame);
+    init();
+  });
+
   const root = document.querySelector<HTMLElement>('[data-analysis]');
   if (root) {
     const slides = [...root.querySelectorAll<HTMLElement>('[data-slide]')];
-    const links = [...root.querySelectorAll<HTMLAnchorElement>('[data-slide-link]')];
-    const prev = root.querySelector<HTMLButtonElement>('#ph-prev')!;
-    const next = root.querySelector<HTMLButtonElement>('#ph-next')!;
-    const ids = ['usa', 'california', 'new-york', 'florida', 'comparison'];
-    const maxIdx = ids.length - 1;
-    let index = 0;
-
-    const show = (n: number, focus = false) => {
-      index = Math.max(0, Math.min(maxIdx, n));
-      slides.forEach((s, i) => (s.hidden = i !== index));
-      links.forEach((a, i) => {
-        if (i === index) a.setAttribute('aria-current', 'step');
-        else a.removeAttribute('aria-current');
-      });
-      prev.disabled = index === 0;
-      next.disabled = index === maxIdx;
-      root.querySelector('#ph-progress')!.textContent = `0${index + 1} / 0${ids.length}`;
-      if (focus) {
-        history.replaceState(null, '', '#' + ids[index]);
-        root.querySelector<HTMLElement>(`#${ids[index]}-title`)?.focus({ preventScroll: true });
-        root.querySelector<HTMLElement>('.ph__nav')?.scrollIntoView({ block: 'start' });
+    const evidenceIds = ['usa', 'comparison', 'ny-detail', 'comparison-data', 'california', 'new-york', 'florida'];
+    const revealEvidence = (hash: string, scroll = true) => {
+      const id = hash.replace(/^#/, '');
+      const resolved = id === 'states' ? 'comparison' : id === 'vehicles' ? 'usa' : id;
+      if (!evidenceIds.includes(resolved)) return;
+      const target = document.getElementById(resolved);
+      let parent: HTMLElement | null = target;
+      while (parent && parent !== root) {
+        if (parent instanceof HTMLDetailsElement) parent.open = true;
+        parent = parent.parentElement;
       }
+      if (scroll) requestAnimationFrame(() => target?.scrollIntoView({ block: 'start' }));
     };
-
-    const resolveHash = (hash: string) => {
-      const h = hash.replace(/^#/, '');
-      if (h === 'states') return 1;
-      if (h === 'vehicles') return 0;
-      const idx = ids.indexOf(h);
-      return idx >= 0 ? idx : 0;
-    };
-
-    links.forEach((a, i) =>
-      a.addEventListener('click', (e) => {
-        e.preventDefault();
-        show(i, true);
-      })
-    );
-    root.querySelectorAll<HTMLAnchorElement>('[data-jump-slide]').forEach((a) =>
-      a.addEventListener('click', (e) => {
-        e.preventDefault();
-        show(Number(a.dataset.jumpSlide), true);
-      })
-    );
-    prev.addEventListener('click', () => show(index - 1, true));
-    next.addEventListener('click', () => show(index + 1, true));
-    // Note links and section anchors also change the hash; only a slide id moves the slides.
-    const isSlideHash = (h: string) => ['states', 'vehicles', ...ids].includes(h.replace(/^#/, ''));
-    window.addEventListener('hashchange', () => { if (isSlideHash(location.hash)) show(resolveHash(location.hash)); });
-    show(resolveHash(location.hash));
-    root.querySelector<HTMLElement>('.ph__pager')!.hidden = false;
+    window.addEventListener('hashchange', () => revealEvidence(location.hash));
+    if (location.hash) revealEvidence(location.hash);
 
     const d = JSON.parse(document.querySelector('#ph-data')!.textContent!);
     const number = (n: number) => n.toLocaleString('en-US');
-    const netLabel = (n: string) => (n === 'all' ? 'all networks' : n === 'tesla' ? 'Tesla networks' : 'other networks');
 
     // Zoomable maps. Each is built the first time its slide is on screen (a hidden map has no
     // size to draw into) and resized whenever its slide comes back.
@@ -2646,7 +2624,8 @@ const mindmapBibs = rawBibs.map((b) => ({
       NYC: { fit: 'NYC', outline: 'boroughs' },
     };
     const mapFor = (key: string) => maps.get(key);
-    const wake = (slide: Element) =>
+    const wake = (slide: Element) => {
+      if (slide instanceof HTMLDetailsElement && !slide.open) return;
       slide.querySelectorAll<HTMLElement>('[data-map]').forEach((el) => {
         const key = el.dataset.map!;
         const existing = maps.get(key);
@@ -2658,8 +2637,9 @@ const mindmapBibs = rawBibs.map((b) => ({
         maps.set(key, m);
         m.ready.then(() => key === 'usa' ? usaFilter() : key === 'NYC' ? cityFilter() : stateFilters.get(key)?.());
       });
+    };
     const io = new IntersectionObserver((entries) => entries.forEach((e) => e.isIntersecting && !(e.target as HTMLElement).hidden && wake(e.target)), { rootMargin: '400px 0px' });
-    slides.forEach((sl) => io.observe(sl));
+    slides.forEach((sl) => { io.observe(sl); if (sl instanceof HTMLDetailsElement) sl.addEventListener('toggle', () => { if (sl.open) requestAnimationFrame(() => wake(sl)); }); });
     // A slide being shown wakes its maps. Watch the slides themselves only: things inside a
     // map (its tooltip) also toggle hidden, and reacting to those would loop.
     const slideWatch = new MutationObserver((records) => {
@@ -2672,38 +2652,35 @@ const mindmapBibs = rawBibs.map((b) => ({
 
     // USA filters
     const access = root.querySelector<HTMLSelectElement>('#ph-access')!;
-    const network = root.querySelector<HTMLSelectElement>('#ph-network')!;
     const usaFilter = () => {
       const a = access.value as 'public' | 'private' | 'all';
-      const n = network.value as 'tesla' | 'other' | 'all';
-      mapFor('usa')?.setFilter({ access: a, network: n });
+      const n = 'all' as const;
+      root.querySelectorAll<SVGCircleElement>('[data-us-access]').forEach(dot => dot.classList.toggle('is-filtered', a !== 'all' && dot.dataset.usAccess !== a));
+      root.querySelector('#ph-us-svg-title')!.textContent = `US charging infrastructure: ${a} access`;
       const count = d.groups[a][n];
       root.querySelector('#ph-map-ports')!.textContent = number(count.ports);
-      root.querySelector('#ph-map-stations')!.textContent = `at ${number(count.stations)} stations · ${a === 'all' ? 'public and private' : a} · ${netLabel(n)}`;
+      root.querySelector('#ph-map-stations')!.textContent = `at ${number(count.stations)} stations · ${a === 'all' ? 'public and private' : a}`;
     };
     access.addEventListener('change', usaFilter);
-    network.addEventListener('change', usaFilter);
 
     // State filters (CA, NY, FL)
     const stateFilters = new Map<string, () => void>();
     (['CA', 'NY', 'FL'] as const).forEach((code) => {
       const stAccess = root.querySelector<HTMLSelectElement>(`[data-st-access="${code}"]`);
-      const stNet = root.querySelector<HTMLSelectElement>(`[data-st-network="${code}"]`);
       const portsOut = root.querySelector<HTMLElement>(`[data-st-ports="${code}"]`);
       const stOut = root.querySelector<HTMLElement>(`[data-st-stations="${code}"]`);
-      if (!stAccess || !stNet || !portsOut || !stOut) return;
+      if (!stAccess || !portsOut || !stOut) return;
       const update = () => {
         const a = stAccess.value as 'public' | 'private' | 'all';
-        const n = stNet.value as 'tesla' | 'other' | 'all';
+        const n = 'all' as const;
         mapFor(code)?.setFilter({ access: a, network: n });
         const count = d.stateGroups[code][a][n];
         // The headline figure follows the filters, so there is one number, not two.
         portsOut.textContent = number(count.ports);
-        stOut.textContent = `at ${number(count.stations)} stations · ${a === 'all' ? 'public and private' : a} · ${netLabel(n)}`;
+        stOut.textContent = `at ${number(count.stations)} stations · ${a === 'all' ? 'public and private' : a}`;
       };
       stateFilters.set(code, update);
       stAccess.addEventListener('change', update);
-      stNet.addEventListener('change', update);
     });
 
     // New York City: a borough zooms the map to it; charger type filters the dots
@@ -2718,8 +2695,8 @@ const mindmapBibs = rawBibs.map((b) => ({
           ports += s.ports;
         }
       });
-      const city = mapFor('NYC');
-      city?.setFilter({ access: 'public', speed: kind.value as 'dc' | 'ac' | 'all' });
+      root.querySelectorAll<SVGCircleElement>('[data-city-station]').forEach(dot => dot.classList.toggle('is-filtered', (borough.value !== 'all' && dot.dataset.borough !== borough.value) || (kind.value === 'dc' && Number(dot.dataset.dc) === 0) || (kind.value === 'ac' && Number(dot.dataset.dc) > 0)));
+      root.querySelectorAll<SVGPathElement>('[data-city-borough]').forEach(path => path.classList.toggle('is-muted', borough.value !== 'all' && path.dataset.cityBorough !== borough.value));
       root.querySelectorAll<HTMLElement>('[data-borough-row]').forEach((r) =>
         r.classList.toggle('is-muted', borough.value !== 'all' && r.dataset.boroughRow !== borough.value)
       );
