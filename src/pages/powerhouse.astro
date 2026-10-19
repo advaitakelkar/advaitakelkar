@@ -252,6 +252,25 @@ function glanceOf(name: string) {
   };
 }
 const glances: Record<string, ReturnType<typeof glanceOf>> = Object.fromEntries(['United States', 'California', 'New York', 'Florida'].map((n) => [n, glanceOf(n)]));
+// The same five bars under every state in the three-state comparison: vehicles on the road,
+// plug-in share in 2016, 2025 and 2040, and today's plugs (public fast, public slow, private).
+type StateBarRow = { label: string; big: string; bar: StackBar; key: StackBar['segs']; dashed?: boolean };
+const stateBars: Record<string, StateBarRow[]> = Object.fromEntries(states.map((st) => {
+  const g = glances[st.name] as unknown as { road: { bar: StackBar }; time: { bars: StackBar[] } };
+  const pubDc = st.groups.public.all.dc, pubSlow = st.groups.public.all.l1 + st.groups.public.all.l2;
+  const infra: StackBar = { title: 'infra', total: pubDc + pubSlow + st.privPorts, segs: [
+    { label: 'Public fast', value: pubDc, c: 'red' },
+    { label: 'Public slow', value: pubSlow, c: 'orange' },
+    { label: 'Private', value: st.privPorts, c: 'blue' },
+  ] };
+  const rows: StateBarRow[] = [
+    { label: `Vehicles on the road · ${roadOf[st.name].year}`, big: mil(g.road.bar.total), bar: g.road.bar, key: g.road.bar.segs },
+    ...g.time.bars.map((b) => ({ label: b.illustrative ? `${b.title} · outlook` : `${b.title} · plug in`, big: share(b.segs[0].value + b.segs[1].value, b.total), bar: b, key: b.segs.slice(0, 2), dashed: b.illustrative })),
+    { label: 'Plugs today · Oct 2026', big: fmt(infra.total), bar: infra, key: infra.segs },
+  ];
+  for (const r of rows) r.key = r.key.filter((x) => x.value / r.bar.total >= 0.002);
+  return [st.name, rows];
+}));
 
 // The three states this section looks at, shaded on the US map and numbered by their rank in
 // public plugs. Labels sit at each outline's box centre, nudged for Florida so the number
@@ -689,6 +708,17 @@ const mindmapBibs = rawBibs.map((b) => ({
       <div class="ph__short-comparison">{states.map(s=><article class="ph__short-state">
         <h3>{s.name}</h3>
         <figure class="ph__state-overview-map"><div class="ph__overview-viewport" data-overview-map><svg class="ph__svg ph__state-overview-svg" viewBox="0 0 420 420" role="img" tabindex="0" aria-label={`${s.name}: zoomable public charging map. Use plus or minus to zoom and arrow keys to pan.`}><g data-overview-layer><path class="ph__land" d={s.map.outline}/><g class="ph__county">{s.map.counties.map(c=><path d={c.d}/>)}</g><g>{s.map.dots.filter(d=>d.access==='public').map(d=><circle cx={d.x} cy={d.y} r={Math.min(3, .5+Math.sqrt(d.l1+d.l2+d.dc)*.16)}><title>{fmt(d.l1+d.l2+d.dc)} public ports in this map cell</title></circle>)}</g></g></svg><div class="ph__overview-controls" role="group" aria-label={`${s.name} map controls`}><button type="button" data-overview-zoom="in" aria-label={`Zoom in on ${s.name}`}>+</button><button type="button" data-overview-zoom="out" aria-label={`Zoom out of ${s.name}`}>−</button><button type="button" data-overview-zoom="full">Full state</button></div></div><figcaption>Public charging locations · drag to pan · +/− to zoom</figcaption></figure>
+        <div class="ph__state-bars">
+          {stateBars[s.name].map((r) => (
+            <div class={r.dashed ? 'ph__state-bar is-dashed' : 'ph__state-bar'}>
+              <div class="ph__state-bar-head"><span>{r.label}</span><b>{r.big}</b></div>
+              <div class="ph__stack100" role="img" aria-label={`${r.label}: ${r.bar.segs.map((x) => `${x.label} ${share(x.value, r.bar.total)}`).join(', ')}`}>
+                {r.bar.segs.map((x) => <i class={`c-${x.c}`} style={`flex-grow:${x.value}`} title={`${x.label}: ${share(x.value, r.bar.total)}`}></i>)}
+              </div>
+              <ul class="ph__stack100-key">{r.key.map((x) => <li><i class={`c-${x.c}`}></i>{x.label} <b>{share(x.value, r.bar.total)}</b></li>)}</ul>
+            </div>
+          ))}
+        </div>
         <dl><div><dt>Plug-in vehicles · 2025</dt><dd>{fmt(s.plugins)}</dd></div><div><dt>Public charging ports · Oct 2026</dt><dd>{fmt(s.pubPorts)}</dd></div><div><dt>Battery-EV growth · 2024–25</dt><dd>+{s.yoyPct.toFixed(1)}%</dd></div></dl>
         <p>{s.code==='CA'?'The largest existing market of the three. Investigate gaps within a substantial charging network.':s.code==='NY'?'A smaller EV market, with a city where access to home charging is a particular challenge.': 'The fastest recent percentage growth of the three. Test where new demand requires shared charging.'}</p>
       </article>)}</div>
@@ -1609,6 +1639,14 @@ const mindmapBibs = rawBibs.map((b) => ({
   .ph__short-state { border-top: 1px solid var(--_tokens---color--line); padding-top: 12px; min-width: 0; }
   .ph__short-state h3 { font-size: var(--_tokens---type--small); }
   .ph__short-state dl { margin: 16px 0; font-size: var(--_tokens---type--micro); }
+  /* The same five bars under every state, in the same order, so the columns read across */
+  .ph__state-bars { display: grid; gap: 18px; margin: 16px 0 8px; }
+  .ph__state-bar { display: grid; gap: 6px; padding-top: 8px; border-top: 1px solid var(--_tokens---color--line); min-height: 92px; align-content: start; }
+  .ph__state-bar.is-dashed { border-top-style: dashed; }
+  .ph__state-bar-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; white-space: nowrap; font-size: var(--_tokens---type--micro); color: var(--_tokens---color--muted); }
+  .ph__state-bar-head b { font-size: var(--_tokens---type--small); color: var(--_tokens---color--fg); font-weight: 500; font-variant-numeric: tabular-nums; }
+  .ph__state-bar .ph__stack100 { height: 18px; border-radius: 4px; }
+  .ph__state-bar .ph__stack100-key { gap: 2px 12px; font-size: 11px; }
   .ph__short-state dl > div { margin-bottom: 12px; }
   .ph__short-state dt { color: var(--_tokens---color--muted); }
   .ph__short-state dd { margin: 2px 0 0; font-size: var(--_tokens---type--small); font-variant-numeric: tabular-nums; }
