@@ -558,6 +558,65 @@ const studyRows = [
   { name: 'Paid DC fast', label: '42 min', from: 0, to: 42, cls: 'c-grey' },
   { name: 'This study', label: '45–60 min', from: 45, to: 60, cls: 'c-red' },
 ].map((r) => ({ ...r, left: (r.from / 90) * 100, width: ((r.to - r.from) / 90) * 100 }));
+// 1.4 and 1.5 in numbers.
+const popsRated = [true, true, false, false, false]; // about two in five rated marginal (note 22)
+// The programme is the hook and charging the outcome: the site decides what is built.
+const siteSteps = [['Where EV adoption is rising', 'c-grey'], ['What the area lacks', 'c-light'], ['The programme it needs: the hook', 'c-red'], ['Charging: the outcome', 'c-teal']];
+const programmeExamples = ['Gym', 'Workspace', 'Childcare', 'Drivers’ hostel', 'Market', 'Clinic', 'Community hall'];
+const mallStrip = [['Department store', 18, 'c-red'], ['Shops', 20, 'c-light'], ['Covered court', 24, 'c-teal'], ['Shops', 20, 'c-light'], ['Department store', 18, 'c-red']];
+const phStrip = [['Charger', 18, 'c-red'], ['Programme', 20, 'c-light'], ['Open ground', 24, 'c-teal'], ['Programme', 20, 'c-light'], ['Energy', 18, 'c-yellow']];
+const anchorLoop = [['Charger', 'c-red'], ['People with an hour', 'c-grey'], ['Paid programmes', 'c-orange'], ['Rent', 'c-yellow'], ['Free programmes, charging, open ground', 'c-teal']];
+// Forty architectural programmes the Powerhouse could hold, rooms and grounds rather than
+// services. Jev (TypeSafe) judged each: free or paid, and whether it stays busy all day without
+// anyone charging (run: p ≥ 0.38). Where Jev was unsure (confidence ≤ 0.5) the programme goes
+// free, since part of every site stays open to anyone; the thesis also sets community hall, dog
+// park, outdoor gym and rooftop park free. common: recurs across charging networks, NEVI
+// guidance, driver surveys and precedents. Regenerate with scripts/jev-programmes.mjs.
+const programmeJudged = [
+  { t: "Public restrooms", k: 'free', run: true, common: true },
+  { t: "Waiting lounge", k: 'free', run: false, common: true },
+  { t: "Covered plaza", k: 'free', run: true, common: true },
+  { t: "Children’s playground", k: 'free', run: true, common: true },
+  { t: "Outdoor gym", k: 'free', run: false, common: false },
+  { t: "Dog park", k: 'free', run: false, common: true },
+  { t: "Community hall", k: 'free', run: false, common: false },
+  { t: "Rooftop park", k: 'free', run: false, common: false },
+  { t: "Community garden", k: 'free', run: false, common: false },
+  { t: "Library reading room", k: 'free', run: false, common: false },
+  { t: "Repair workshop and tool library", k: 'free', run: false, common: false },
+  { t: "Sports court", k: 'free', run: false, common: false },
+  { t: "Amphitheatre and event lawn", k: 'free', run: false, common: false },
+  { t: "Exhibition gallery", k: 'paid', run: false, common: false },
+  { t: "Cooling and emergency shelter", k: 'free', run: true, common: false },
+  { t: "Bike hub", k: 'paid', run: false, common: false },
+  { t: "Prayer and quiet room", k: 'free', run: false, common: false },
+  { t: "Youth centre", k: 'paid', run: false, common: false },
+  { t: "Café", k: 'paid', run: false, common: true },
+  { t: "Food hall", k: 'paid', run: true, common: true },
+  { t: "Convenience store", k: 'paid', run: false, common: true },
+  { t: "Grocery", k: 'paid', run: true, common: false },
+  { t: "Market hall", k: 'paid', run: true, common: false },
+  { t: "Post and parcel room", k: 'free', run: true, common: false },
+  { t: "Laundromat", k: 'paid', run: true, common: true },
+  { t: "Gym", k: 'paid', run: false, common: false },
+  { t: "Barber and salon", k: 'paid', run: false, common: false },
+  { t: "Health clinic", k: 'paid', run: true, common: false },
+  { t: "Pharmacy", k: 'paid', run: true, common: false },
+  { t: "Childcare centre", k: 'paid', run: true, common: false },
+  { t: "Co-working space", k: 'paid', run: false, common: false },
+  { t: "Drivers’ hostel", k: 'paid', run: false, common: true },
+  { t: "Car wash", k: 'paid', run: false, common: false },
+  { t: "Pet grooming salon", k: 'paid', run: false, common: false },
+  { t: "Pet daycare", k: 'paid', run: false, common: false },
+  { t: "Veterinary clinic", k: 'paid', run: false, common: false },
+  { t: "Pet supplies shop", k: 'paid', run: false, common: false },
+  { t: "Artist studios", k: 'paid', run: false, common: false },
+  { t: "Learning centre", k: 'paid', run: false, common: false },
+  { t: "Dance and yoga studio", k: 'paid', run: false, common: false },
+];
+const programmeGrid = [['free', 'Free', 'c-teal'], ['paid', 'Paid', 'c-orange']].map(([k, kind, cls]) => ({
+  kind, cls, items: programmeJudged.filter((p) => p.k === k),
+}));
 const michi = [['Free 24-hour parking', 'c-teal'], ['Toilets', 'c-teal'], ['Rest', 'c-teal'], ['Local produce market', 'c-orange'], ['Restaurants', 'c-orange'], ['Crafts', 'c-orange'], ['Events', 'c-orange'], ['Disaster relief', 'c-orange']];
 
 // Text transferred from the book, per section (src/data/powerhouse-book.json). `body` is HTML
@@ -1129,6 +1188,88 @@ const mindmapBibs = rawBibs.map((b) => ({
                 </div>
                 <p class="ph__fig-key"><span class="ph__swatch c-red"></span>This study, on a 0–90 minute line</p>
                 <p class="ph__fig-src">Sources: as the two cards above; the thesis</p>
+              </figure>
+              <figure class="ph__fig ph__fig--wide">
+                <figcaption><b class="ph__fig-num">11 kW</b><span>wireless: park over a pad and charge with no plug, at about Level 2 speed</span></figcaption>
+                <div class="ph__fig-bars">
+                  <div><span>Wireless pad · 11 kW</span><div class="ph__fig-bar"><i class="c-teal" style="width:57%"></i></div></div>
+                  <div><span>Level 2 cable · up to 19.2 kW</span><div class="ph__fig-bar"><i class="c-blue" style="width:100%"></i></div></div>
+                </div>
+                <p class="ph__fig-key"><span class="ph__swatch c-teal"></span>91–94% efficient, close to a cable · suits the long stay, not the quick one</p>
+                <p class="ph__fig-src">Sources: Electreon, Lite DOT (2026); WiTricity, 11 kW system (2016); WSU Energy Program, charging speeds</p>
+              </figure>
+            </div>
+            </div>
+          ) : sec.id === '1-4' && bookText[sec.id] ? (
+            <div class="ph__intro-grid">
+              <div class="ph__chapter-lead"><BookText text={bookText[sec.id]} chapter="1" /></div>
+              <div class="ph__figs" aria-label="1.4 in numbers">
+              <figure class="ph__fig ph__fig--wide">
+                <figcaption><b class="ph__fig-num">95%</b><span>of its life a car spends parked: idle public infrastructure the Powerhouse turns into a civic amenity</span></figcaption>
+                <div class="ph__fig-bar"><i class="c-grey" style="width:95%">Parked</i><i class="c-red" style="width:5%"></i></div>
+                <p class="ph__fig-key"><span class="ph__swatch c-grey"></span>Parked <span class="ph__swatch c-red"></span>Moving</p>
+                <p class="ph__fig-src">Source: Shoup, The High Cost of Free Parking (2005) · <a class="ph__fig-note" href="#note-1-25">Note 25</a></p>
+              </figure>
+              <figure class="ph__fig">
+                <figcaption><b class="ph__fig-num">2 in 5</b><span>of New York’s 503 plazas traded for bigger buildings rated marginal: space with no reason to be there</span></figcaption>
+                <div class="ph__fig-units ph__fig-units--5" aria-hidden="true">{popsRated.map((m) => <i class={m ? 'c-red' : 'c-grey'} />)}</div>
+                <p class="ph__fig-key"><span class="ph__swatch c-red"></span>Marginal <span class="ph__swatch c-grey"></span>The rest</p>
+                <p class="ph__fig-src">Source: Kayden et al., Privately Owned Public Space (2000) · <a class="ph__fig-note" href="#note-1-22">Note 22</a></p>
+              </figure>
+              <figure class="ph__fig">
+                <figcaption><b class="ph__fig-num">3rd place</b><span>cafés and gathering spaces restore people about as well as green space</span></figcaption>
+                <div class="ph__fig-units ph__fig-units--3" aria-hidden="true"><i class="c-light">Home</i><i class="c-light">Work</i><i class="c-teal">3rd place</i></div>
+                <p class="ph__fig-key"><span class="ph__swatch c-teal"></span>Restorative, mainly through social contact</p>
+                <p class="ph__fig-src">Sources: Whyte, The Social Life of Small Urban Spaces (1980) · <a class="ph__fig-note" href="#note-1-23">Note 23</a>; Xu et al., Frontiers of Architectural Research (2025) · <a class="ph__fig-note" href="#note-1-24">Note 24</a></p>
+              </figure>
+              <figure class="ph__fig ph__fig--wide">
+                <figcaption><b class="ph__fig-num">Site-specific</b><span>the programme the community needs is the hook; charging is the outcome</span></figcaption>
+                <ol class="ph__fig-loop">{siteSteps.map(([t, c]) => <li class={c}>{t}</li>)}</ol>
+                <div class="ph__fig-chips">{programmeExamples.map((t) => <i class="c-light">{t}</i>)}</div>
+                <p class="ph__fig-key"><span class="ph__swatch c-light"></span>For example, whatever the site needs · part of every site stays open to anyone</p>
+                <p class="ph__fig-src">Source: the thesis, section 1.4</p>
+              </figure>
+            </div>
+            </div>
+          ) : sec.id === '1-5' && bookText[sec.id] ? (
+            <div class="ph__intro-grid">
+              <div class="ph__chapter-lead"><BookText text={bookText[sec.id]} chapter="1" /></div>
+              <div class="ph__figs" aria-label="1.5 in numbers">
+              <figure class="ph__fig ph__fig--wide">
+                <figcaption><b class="ph__fig-num">1956</b><span>Southdale: two anchors pull people past the shops, whose rent pays for the court</span></figcaption>
+                <div class="ph__fig-bars">
+                  <div><span>Southdale mall, 1956</span><div class="ph__fig-bar ph__fig-strip">{mallStrip.map(([t, w, c]) => <i class={c} style={`width:${w}%`}>{t}</i>)}</div></div>
+                  <div><span>The Powerhouse</span><div class="ph__fig-bar ph__fig-strip">{phStrip.map(([t, w, c]) => <i class={c} style={`width:${w}%`}>{t}</i>)}</div></div>
+                </div>
+                <p class="ph__fig-key"><span class="ph__swatch c-red"></span>Anchor <span class="ph__swatch c-light"></span>Paying programme <span class="ph__swatch c-teal"></span>Shared space · not to scale</p>
+                <p class="ph__fig-src">Sources: Hardwick, Mall Maker (2004) · <a class="ph__fig-note" href="#note-1-26">Note 26</a>; Gruen and Smith, Shopping Towns USA (1960) · <a class="ph__fig-note" href="#note-1-27">Note 27</a></p>
+              </figure>
+              <figure class="ph__fig ph__fig--wide">
+                <figcaption><b class="ph__fig-num">{programmeJudged.length} programmes</b><span>a stop can hold, free or paid; a site picks what its area lacks</span></figcaption>
+                <div class="ph__prog">
+                                    {programmeGrid.map((r) => (
+                    <>
+                      <span class="ph__prog-kind">{r.kind}</span>
+                      <div class="ph__fig-chips">{r.items.map((p) => <i class={r.cls}>{p.t}</i>)}</div>
+                    </>
+                  ))}
+                </div>
+                <p class="ph__fig-key"><span class="ph__swatch c-teal"></span>Free <span class="ph__swatch c-orange"></span>Paid</p>
+                <p class="ph__fig-src">Sorted with Jev (TypeSafe), judgements not survey data; unsure calls and four thesis choices set free. Recurring: FHWA NEVI guidance (restrooms, food service); Gilbarco Veeder-Root driver poll (2025); Deloitte driver study; Gridserve, Rove, Audi, IONNA, Love’s.</p>
+              </figure>
+              <figure class="ph__fig">
+                <figcaption><b class="ph__fig-num">Free</b><span>charging, paid for by the rent of the programme it anchors</span></figcaption>
+                <ol class="ph__fig-loop">{anchorLoop.map(([t, c]) => <li class={c}>{t}</li>)}</ol>
+                <p class="ph__fig-key">Each step pays for the next</p>
+                <p class="ph__fig-src">Source: the thesis, section 1.5</p>
+              </figure>
+              <figure class="ph__fig">
+                <figcaption><b class="ph__fig-num">Public</b><span>the Powerhouse is anchored by infrastructure, not a store</span></figcaption>
+                <div class="ph__fig-compare">
+                  <div class="c-light"><b>Mall</b><span>Anchor: department store</span><span>Shared space: private property</span></div>
+                  <div class="c-red"><b>Powerhouse</b><span>Anchor: the charger</span><span>Shared space: built for the community</span></div>
+                </div>
+                <p class="ph__fig-src">Source: the thesis, section 1.5</p>
               </figure>
             </div>
             </div>
@@ -1747,7 +1888,7 @@ const mindmapBibs = rawBibs.map((b) => ({
   .ph__chapter-lead { max-width: 76ch; margin-bottom: 28px; }
   .ph__intro-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 48px; align-items: start; margin-bottom: 56px; }
   .ph__intro-grid .ph__chapter-lead { margin-bottom: 0; }
-  .ph__figs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .ph__figs { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
   .ph__fig { margin: 0; padding: 14px; border: 1px solid var(--_tokens---color--line); border-radius: 12px; display: flex; flex-direction: column; gap: 10px; font-size: var(--_tokens---type--micro); }
   .ph__fig figcaption, .ph__fig-cap { margin: 0; display: grid; gap: 4px; }
   .ph__fig > figcaption { margin-bottom: auto; } /* free height splits around the diagram, so number top and source bottom line up across cards */
@@ -1778,6 +1919,21 @@ const mindmapBibs = rawBibs.map((b) => ({
   .ph__fig-rank { display: grid; gap: 4px; }
   .ph__fig-rank i { font-style: normal; padding: 6px 8px; border-radius: 4px; font-size: 11px; color: #111; }
   .ph__fig-day { height: 26px; }
+  .ph__fig-units.ph__fig-units--5 { grid-template-columns: repeat(5, 1fr); }
+  .ph__fig-units--5 i { height: 44px; }
+  .ph__fig-units.ph__fig-units--3 { grid-template-columns: repeat(3, 1fr); }
+  .ph__fig-units--3 i { height: 44px; display: flex; align-items: flex-end; padding: 6px; font-style: normal; font-size: 11px; color: #111; }
+  .ph__fig-strip { height: 30px; }
+  .ph__fig-strip i { justify-content: center; font-size: 10px; }
+  .ph__fig-loop { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; counter-reset: loop; }
+  .ph__fig-loop li { counter-increment: loop; padding: 6px 8px; border-radius: 4px; font-size: 11px; color: #111; }
+  .ph__fig-loop li::before { content: counter(loop) '  '; opacity: .6; }
+  .ph__fig-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+  .ph__fig-compare > div { display: grid; gap: 4px; align-content: start; padding: 8px; border-radius: 4px; font-size: 11px; color: #111; }
+  .ph__fig-compare b { font-weight: 600; }
+  .ph__prog { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; align-items: start; font-size: var(--_tokens---type--ultrathin); }
+  .ph__prog-kind { font-weight: 600; }
+  .ph__prog .ph__fig-chips + .ph__prog-kind { margin-top: 8px; }
   .ph__fig-chips { display: flex; flex-wrap: wrap; gap: 4px; }
   .ph__fig-chips i { font-style: normal; padding: 4px 10px; border-radius: 999px; font-size: 11px; color: #111; }
   .ph__fig-units { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
