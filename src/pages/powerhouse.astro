@@ -287,6 +287,13 @@ const ring = (bar: StackBar) => {
   });
 };
 
+// "Why New York": the figures the closing box cites.
+const nyS = states.find((x) => x.code === 'NY')!;
+const slowOf = (code: string) => { const st = states.find((x) => x.code === code)!; return { l: st.groups.public.all.l1 + st.groups.public.all.l2, p: st.pubPorts }; };
+const [ny_l, ny_p] = [slowOf('NY').l, slowOf('NY').p];
+const [ca_l, ca_p] = [slowOf('CA').l, slowOf('CA').p];
+const [fl_l, fl_p] = [slowOf('FL').l, slowOf('FL').p];
+
 // The closing comparison: one row per measure, the three states as columns, the highest in
 // each row marked. `hi` says whether the larger value is the notable one.
 const compareRows = [
@@ -295,7 +302,8 @@ const compareRows = [
   { label: 'Electric share of cars and light trucks, 2025', v: states.map((st) => (st.plugins / st.now.total) * 100), show: (n: number) => n.toFixed(1) + '%' },
   { label: 'Battery-electric growth, 2016–2025', v: states.map((st) => st.mult2025), show: (n: number) => n.toFixed(0) + '×' },
   { label: 'Public charging points, Oct 2026', note: 'share of all US public charging points', v: states.map((st) => st.pubPorts), show: (n: number) => fmt(n), extra: states.map((st) => st.usPortShare.toFixed(1) + '% of US') },
-  { label: 'Fast chargers among public charging points', v: states.map((st) => st.dcShare), show: (n: number) => n.toFixed(0) + '%' },
+  { label: 'Fast chargers among public charging points', note: 'a charge in 20–60 minutes', v: states.map((st) => st.dcShare), show: (n: number) => n.toFixed(0) + '%' },
+  { label: 'Slow chargers among public charging points', note: 'a charge of several hours: the long stop', v: states.map((st) => ((st.groups.public.all.l1 + st.groups.public.all.l2) / st.pubPorts) * 100), show: (n: number) => n.toFixed(0) + '%' },
   { label: 'EVs per public charging point', note: `US average ${evPerPortUS.toFixed(0)}; higher means more drivers share each one`, v: states.map((st) => st.evsPerPort), show: (n: number) => n.toFixed(0) },
 ].map((r) => ({ ...r, top: r.v.indexOf(Math.max(...r.v)) }));
 
@@ -891,7 +899,17 @@ const mindmapBibs = rawBibs.map((b) => ({
     </section>
 
     <!-- The conclusion closes 1.1, set apart in an inverted box -->
-    <div class="ph__takeaway"><h2>What this means for Powerhouse</h2><p><b>New York City is a useful place to test the civic idea.</b> Its shared-charging need gives the project a starting point. California offers a larger market; Florida offers faster recent growth. Neither state counts nor a map establish the best site.</p><p>The next step is to compare local charging demand, planned chargers and community needs. Powerhouse must show what it adds to the simpler option of installing chargers in an existing parking area.</p></div>
+    <div class="ph__takeaway">
+      <h2>Why New York</h2>
+      <p><b>New York is where the Powerhouse’s argument is sharpest.</b> California has the scale and Florida the fastest growth, but the Powerhouse is not about the biggest market. It is about people who have to stop to charge and could stay, and New York’s conditions make that stop most likely to happen and to last.</p>
+      <ol class="ph__why-ny">
+        <li><b>Charging away from home is not a choice.</b> Half of New York City’s car-owning households park on the street, with no driveway or garage to charge in. For them the one charge in five that most drivers make away from home is every charge.</li>
+        <li><b>Its stops are long.</b> {(((ny_l) / ny_p) * 100).toFixed(0)}% of New York’s public charging points are slow chargers, the highest share of the three (California {(((ca_l) / ca_p) * 100).toFixed(0)}%, Florida {(((fl_l) / fl_p) * 100).toFixed(0)}%). A charge takes hours, not minutes: time the Powerhouse turns into a place.</li>
+        <li><b>The shift is early, and fast.</b> Battery-electric cars grew {nyS.mult2025.toFixed(0)}× since 2016, yet only {((nyS.plugins / nyS.now.total) * 100).toFixed(1)}% of vehicles are electric. Most of the charging the city will need is still to be built, and the city is already planning curbside chargers, so what gets built next can be designed as a place, not only as parking.</li>
+      </ol>
+      <p class="ph__takeaway-next">New York City is the test site for the Powerhouse. Its deep dive follows: where street-parked drivers live, where chargers are planned, and what each neighbourhood lacks.</p>
+      <p class="ph__takeaway-source">Street parking: <a href="https://www.nyc.gov/html/dot/html/pr2026/expansion-of-curbside-electric-vehicle-charging.shtml">NYC DOT, curbside charging expansion, Aug 2026</a>. Chargers: AFDC station inventory, 18 Oct 2026. Vehicles: AFDC registrations 2016–2025.</p>
+    </div>
 
     
       </div>
@@ -1634,6 +1652,11 @@ const mindmapBibs = rawBibs.map((b) => ({
   .ph .ph__takeaway h2 { color: inherit; font-size: var(--_tokens---type--small); font-weight: 600; margin: 0 0 12px; }
   .ph__takeaway p { color: inherit; font-size: var(--_tokens---type--small); line-height: 1.6; margin: 0 0 10px; max-width: 72ch; }
   .ph__takeaway p:last-child { margin-bottom: 0; opacity: .8; }
+  .ph__why-ny { margin: 4px 0 14px; padding-left: 1.3em; display: grid; gap: 10px; font-size: var(--_tokens---type--small); line-height: 1.55; max-width: 72ch; }
+  .ph__why-ny b { font-weight: 600; }
+  .ph .ph__takeaway .ph__takeaway-next { opacity: 1; font-weight: 500; }
+  .ph .ph__takeaway .ph__takeaway-source { font-size: 11px; opacity: .65; margin-top: 12px; }
+  .ph__takeaway a { color: inherit; }
   @media (max-width: 1023.98px) { .ph__city-focus { grid-template-columns: 1fr; } }
   @media (max-width: 699.98px) { .ph__short-comparison { grid-template-columns: 1fr; gap: 16px; } }
   .ph__national-map { margin: 16px 0 24px; }
