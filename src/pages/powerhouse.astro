@@ -785,14 +785,14 @@ const mindmapBibs = rawBibs.map((b) => ({
               <g class="ph__land">{data.usa.states.map(st=><path d={st.d}><title>{st.name}</title></path>)}</g>
               <g class="ph__focus-states">{focusStates.map((f)=><path d={f.d}><title>{f.rank}. {f.name}</title></path>)}</g>
               <g>{data.usa.dots.map(d=><circle cx={d.x} cy={d.y} r={size(d.l1+d.l2+d.dc)} data-us-access={d.access} class="ph__charging-dot"><title>{d.access} charging · {fmt(d.l1+d.l2+d.dc)} ports in this map cell</title></circle>)}</g>
-              <g class="ph__focus-labels" aria-hidden="true">{focusStates.map((f)=><g><line x1={f.tx} y1={f.ty} x2={f.x} y2={f.y}/><g transform={`translate(${f.x} ${f.y})`}><circle r="19"/><text dy="7">{f.rank}</text></g></g>)}</g>
+              <g class="ph__focus-labels" aria-hidden="true">{focusStates.map((f)=><g><line x1={f.tx} y1={f.ty} x2={f.x} y2={f.y}/><g transform={`translate(${f.x} ${f.y})`}><circle class="ph__focus-mark" r="19"/><text dy="7">{f.rank}</text></g></g>)}</g>
             </svg>
           </figure>
           <div class="ph__ranklist">
             <div class="ph__ranklist-head"><span>All 50 states and DC</span><b>{fmt(pub.ports)} public charging points</b></div>
             <ol class="ph__top5" aria-label="States by public charging points, largest first" tabindex="0">
               {data.ranked.map((r, i) => (
-                <li class:list={[{ 'is-focus': i < 3 }]}><span>{i + 1}</span><b>{stateName[r.code] ?? r.code}</b><i style={`width:${(r.ports / data.ranked[0].ports) * 100}%`}></i><em>{fmt(r.ports)}</em></li>
+                <li class:list={[{ 'is-focus': i < 3 }]}><span>{i + 1}</span><b>{stateName[r.code] ?? r.code} <small>{((r.ports / pub.ports) * 100).toFixed(1)}%</small></b><i style={`width:${(r.ports / data.ranked[0].ports) * 100}%`}></i><em>{fmt(r.ports)}</em></li>
               ))}
             </ol>
           </div>
@@ -842,16 +842,20 @@ const mindmapBibs = rawBibs.map((b) => ({
                 <ul class="ph__stack100-key">{plugs.key.map((x) => <li><i class={`c-${x.c}`}></i>{x.label.replace(', incl. SUVs and pickups', ' (incl. SUVs, pickups)')} <b>{share(x.value, plugs.bar.total)}</b></li>)}</ul>
               </div>
 
-              <div class="ph__dash-tiles">
-                <div><span>Electric vehicles · 2025</span><b>{fmt(s.plugins)}</b></div>
-                <div><span>Public charging points · Oct 2026</span><b>{fmt(s.pubPorts)}</b></div>
-                <div><span>Electric vehicles per public charging point</span><b>{s.evsPerPort.toFixed(0)}</b><small>US average {evPerPortUS.toFixed(0)}</small></div>
-                <div><span>Battery-electric growth · 2024–25</span><b>+{s.yoyPct.toFixed(1)}%</b></div>
-              </div>
+              <dl class="ph__dash-card ph__dash-figures">
+                <div><dt>Electric vehicles · 2025</dt><dd>{fmt(s.plugins)}</dd></div>
+                <div><dt>Public charging points · Oct 2026</dt><dd>{fmt(s.pubPorts)}</dd></div>
+                <div class="ph__dash-figure-gauge">
+                  <dt>Electric vehicles per public charging point</dt><dd>{s.evsPerPort.toFixed(0)}</dd>
+                  <span class="ph__dash-gauge" aria-hidden="true"><i style={`width:${Math.min(100, (s.evsPerPort / 40) * 100)}%`}></i><em style={`left:${(evPerPortUS / 40) * 100}%`} title={`US average ${evPerPortUS.toFixed(0)}`}></em></span>
+                  <small>US average {evPerPortUS.toFixed(0)} (marker)</small>
+                </div>
+                <div><dt>Battery-electric growth · 2024–25</dt><dd>+{s.yoyPct.toFixed(1)}%</dd></div>
+              </dl>
             </Fragment>
           ); })()}
         </div>
-        <p>{s.code==='CA'?'The largest existing market of the three. Investigate gaps within a substantial charging network.':s.code==='NY'?'A smaller EV market, with a city where access to home charging is a particular challenge.': 'The fastest recent percentage growth of the three. Test where new demand requires shared charging.'}</p>
+        <p class="ph__state-conclusion">{s.code==='CA'?'The largest existing market of the three. Investigate gaps within a substantial charging network.':s.code==='NY'?'A smaller EV market, with a city where access to home charging is a particular challenge.': 'The fastest recent percentage growth of the three. Test where new demand requires shared charging.'}</p>
       </article>)}</div>
       <p class="ph__note">Electric vehicles (EVs) here means battery-electric cars plus plug-in hybrids; ordinary hybrids that never plug in are counted as fuel vehicles. Growth measures battery EV registrations, not charger use. Vehicle and charger counts refer to different years.</p>
       <footer class="ph__sources">Sources: <a href={sources.regs}>AFDC registrations, 2016–25</a> · <a href={sources.afdc}>AFDC charging inventory, October 2026</a> · <a href={sources.outlook}>EIA AEO2026 national outlook, Table 39</a>.</footer>
@@ -1504,7 +1508,7 @@ const mindmapBibs = rawBibs.map((b) => ({
   .ph__graphs > .ph__chain-time { margin-top: 24px; }
 
   .ph__state-overview-map figcaption { font-size: var(--_tokens---type--micro); color: var(--_tokens---color--muted); }
-  .ph :is(.ph__national-svg, .ph__city-svg, .ph__state-overview-svg) circle, .ph__mapbox :global(svg circle) { fill: var(--_tokens---color--fg) !important; stroke: none !important; opacity: .7 !important; }
+  .ph :is(.ph__national-svg, .ph__city-svg, .ph__state-overview-svg) circle:not(.ph__focus-mark), .ph__mapbox :global(svg circle) { fill: var(--_tokens---color--fg) !important; stroke: none !important; opacity: .7 !important; }
   .ph__mapbox :global(svg) { filter: grayscale(1); }
   .ph__map figcaption .ph__key { display: none; }
   .ph__city-focus > figure { order: 2; }
@@ -1568,6 +1572,16 @@ const mindmapBibs = rawBibs.map((b) => ({
   .ph__dash-tiles > div { display: grid; gap: 2px; align-content: start; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--_tokens---color--fg) 4%, var(--_tokens---color--bg)); }
   .ph__dash-tiles span, .ph__dash-tiles small { font-size: 11px; color: var(--_tokens---color--muted); }
   .ph__dash-tiles b { font-size: var(--_tokens---type--small); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .ph__dash-figures { grid-template-columns: minmax(0, 1fr); gap: 0; padding: 4px 12px; margin: 0; }
+  .ph__dash-figures > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 4px 12px; padding: 9px 0; border-bottom: 1px solid var(--_tokens---color--line); }
+  .ph__dash-figures > div:last-child { border-bottom: 0; }
+  .ph__dash-figures dt { font-size: 11px; color: var(--_tokens---color--muted); }
+  .ph__dash-figures dd { margin: 0; font-size: var(--_tokens---type--small); font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+  .ph__dash-figure-gauge small { grid-column: 1 / -1; font-size: 10px; color: var(--_tokens---color--muted); }
+  .ph__dash-gauge { grid-column: 1 / -1; position: relative; height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--_tokens---color--fg) 8%, transparent); }
+  .ph__dash-gauge i { display: block; height: 100%; border-radius: 3px; background: var(--_tokens---color--fg); }
+  .ph__dash-gauge em { position: absolute; top: -3px; width: 2px; height: 12px; background: var(--ph-red); }
+  .ph .ph__short-state .ph__state-conclusion { margin: 12px 0 0; padding: 14px 16px; border-radius: 12px; background: var(--_tokens---color--fg); color: var(--_tokens---color--bg); font-size: var(--_tokens---type--micro); line-height: 1.55; }
   .ph__compare { margin: var(--_tokens---space--small) 0; }
   .ph .ph__compare h2 { font-size: var(--_tokens---type--small); font-weight: 600; margin: 0 0 12px; }
   .ph__compare table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: var(--_tokens---type--micro); font-variant-numeric: tabular-nums; }
@@ -1596,14 +1610,15 @@ const mindmapBibs = rawBibs.map((b) => ({
   .ph__map-bar .ph__solo-title { text-align: left; }
   .ph .ph__map-select { margin-left: auto; min-height: 30px; padding: 4px 28px 4px 10px; font-size: .75rem; border-radius: var(--_tokens---radius--pill); width: auto; }
   .ph__focus-states path { fill: color-mix(in srgb, var(--_tokens---color--fg) 14%, transparent); stroke: var(--_tokens---color--fg); stroke-width: 1; pointer-events: none; }
-  .ph .ph__national-svg .ph__focus-labels circle { opacity: 1; fill: var(--_tokens---color--bg); stroke: var(--_tokens---color--fg); stroke-width: 2.5; }
+  .ph .ph__national-svg .ph__focus-labels circle { opacity: 1; fill: var(--_tokens---color--fg); stroke: var(--_tokens---color--bg); stroke-width: 3; }
   .ph .ph__national-svg .ph__focus-labels line { stroke: var(--_tokens---color--fg); stroke-width: 1.5; }
-  .ph .ph__national-svg .ph__focus-labels text { fill: var(--_tokens---color--fg); font-size: 21px; font-weight: 600; text-anchor: middle; }
+  .ph .ph__national-svg .ph__focus-labels text { fill: var(--_tokens---color--bg); font-size: 21px; font-weight: 600; text-anchor: middle; }
   .ph__top5 { list-style: none; margin: 0 0 24px; padding: 0; display: grid; gap: 6px; font-size: var(--_tokens---type--micro); font-variant-numeric: tabular-nums; }
-  .ph__top5 li { display: grid; grid-template-columns: 1.9em 9.5em minmax(0, 1fr) 4.4em; align-items: center; gap: 10px; color: var(--_tokens---color--muted); }
+  .ph__top5 li { display: grid; grid-template-columns: 1.9em 12em minmax(0, 1fr) 4.4em; align-items: center; gap: 10px; color: var(--_tokens---color--muted); }
   .ph__top5 li > span { display: inline-grid; place-items: center; width: 1.6em; height: 1.6em; border-radius: 50%; border: 1px solid var(--_tokens---color--line); font-size: .85em; }
   .ph__top5 li i { display: block; height: 8px; border-radius: 4px; background: color-mix(in srgb, var(--_tokens---color--fg) 18%, transparent); }
   .ph__top5 li em { font-style: normal; text-align: right; }
+  .ph__top5 li b small { font-size: inherit; font-weight: inherit; margin-left: 4px; }
   .ph__top5 li.is-focus { color: var(--_tokens---color--fg); }
   .ph__top5 li.is-focus > span { background: var(--_tokens---color--fg); border-color: var(--_tokens---color--fg); color: var(--_tokens---color--bg); }
   .ph__top5 li.is-focus i { background: var(--_tokens---color--fg); }
