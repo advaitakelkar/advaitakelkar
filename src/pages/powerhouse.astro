@@ -227,13 +227,13 @@ function glanceOf(name: string) {
       },
     ] as [Card, Card, Card],
   };
-  if (isUS) return glance;
-  const total2040 = fuel.total * (nat('2040').total / nat('2025').total);
+  const fuel2016: FuelRow = (data.registrations['2016'] as Record<string, FuelRow>)[name];
+  const total2040 = isUS ? nat('2040').total : fuel.total * (nat('2040').total / nat('2025').total);
   return {
     ...glance,
     time: {
       bars: [
-        fuelMix('2016', data.registrations['2016'][name as 'California']),
+        fuelMix('2016', fuel2016),
         fuelMix('2025', fuel),
         {
           title: '2040', total: total2040, illustrative: true,
@@ -244,7 +244,9 @@ function glanceOf(name: string) {
           ],
         } as StackBar,
       ],
-      note: `2016 and 2025 are registered cars and light trucks (AFDC). 2040 is not a ${name} forecast: it applies the national 2040 outlook (EIA, Annual Energy Outlook 2026) to ${name}’s 2025 fleet. If it holds, the stop becomes an everyday event, which is when it is worth building for.`,
+      note: isUS
+        ? '2016 is registered cars and light trucks (AFDC); 2025 and 2040 are EIA’s Annual Energy Outlook 2026 base year and Counterfactual Baseline outlook. As plug-in share rises from 0.2% in 2016 and 2.7% today to 38% by 2040, charging stops become an everyday civic routine.'
+        : `2016 and 2025 are registered cars and light trucks (AFDC). 2040 is not a ${name} forecast: it applies the national 2040 outlook (EIA, Annual Energy Outlook 2026) to ${name}’s 2025 fleet. If it holds, the stop becomes an everyday event, which is when it is worth building for.`,
       sources: 'Sources: FHWA Highway Statistics, Table MV-1; AFDC vehicle registrations 2016 and 2025; US DOE, share of charging at home; AFDC station inventory, 18 Oct 2026; EIA AEO2026 Table 39.',
     },
   };
@@ -364,23 +366,23 @@ const book: { id: string; num: string; short: string; title: string; sections: B
   {
     id: 'ch3', num: '3', short: 'The Public Space', title: 'The Public Space: What Each Neighbourhood Needs',
     sections: [
-      { id: '3-1', num: '3.1', title: 'Human and Cultural Aspects', planned: true },
-      { id: '3-2', num: '3.2', title: 'The Third Place', planned: true },
-      { id: '3-3', num: '3.3', title: 'Dwelling and Spirit of Place', planned: true },
-      { id: '3-4', num: '3.4', title: 'Leisure and Gathering', planned: true },
-      { id: '3-5', num: '3.5', title: 'Open Without Purchase', planned: true },
-      { id: '3-6', num: '3.6', title: 'From Forecourt to Plaza', planned: true },
+      { id: '3-1', num: '3.1', title: 'Human and Cultural Aspects' },
+      { id: '3-2', num: '3.2', title: 'The Third Place' },
+      { id: '3-3', num: '3.3', title: 'Dwelling and Spirit of Place' },
+      { id: '3-4', num: '3.4', title: 'Leisure and Gathering' },
+      { id: '3-5', num: '3.5', title: 'Open Without Purchase' },
+      { id: '3-6', num: '3.6', title: 'From Forecourt to Plaza' },
     ],
   },
   {
     id: 'ch4', num: '4', short: 'The Programme', title: 'The Programme: Anchoring the Community Stop',
     sections: [
-      { id: '4-1', num: '4.1', title: 'What Does It Need?', planned: true },
-      { id: '4-2', num: '4.2', title: 'Right to the City', planned: true },
-      { id: '4-3', num: '4.3', title: 'Who the Space Is For', planned: true },
-      { id: '4-4', num: '4.4', title: 'Rent, Revenue, Running Costs', planned: true },
-      { id: '4-5', num: '4.5', title: 'Programme by Length of Stay', planned: true },
-      { id: '4-6', num: '4.6', title: 'Open to All', planned: true },
+      { id: '4-1', num: '4.1', title: 'What Does It Need?' },
+      { id: '4-2', num: '4.2', title: 'Right to the City' },
+      { id: '4-3', num: '4.3', title: 'Who the Space Is For' },
+      { id: '4-4', num: '4.4', title: 'Rent, Revenue, Running Costs' },
+      { id: '4-5', num: '4.5', title: 'Programme by Length of Stay' },
+      { id: '4-6', num: '4.6', title: 'Open to All' },
     ],
   },
   {
@@ -388,7 +390,9 @@ const book: { id: string; num: string; short: string; title: string; sections: B
     sections: [
       { id: '5-1', num: '5.1', title: 'Notes to Chapter 1' },
       { id: '5-2', num: '5.2', title: 'Notes to Chapter 2' },
-      { id: '5-3', num: '5.3', title: 'Bibliography' },
+      { id: '5-3', num: '5.3', title: 'Notes to Chapter 3' },
+      { id: '5-4', num: '5.4', title: 'Notes to Chapter 4' },
+      { id: '5-5', num: '5.5', title: 'Bibliography' },
     ],
   },
 ];
@@ -408,7 +412,98 @@ const notesFor = (ch: string) =>
 const notesSection: Record<string, { ch: string; notes: ReturnType<typeof notesFor> }> = {
   '5-1': { ch: '1', notes: notesFor('1') },
   '5-2': { ch: '2', notes: notesFor('2') },
+  '5-3': { ch: '3', notes: notesFor('3') },
+  '5-4': { ch: '4', notes: notesFor('4') },
 };
+
+const stripHtml = (html: string) =>
+  html
+    .replace(/<figure[\s\S]*?<\/figure>/gi, '')
+    .replace(/<sup[\s\S]*?<\/sup>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const mindmapSections = book.flatMap((c) =>
+  c.sections.map((s) => {
+    const raw = bookText[s.id]?.body || [];
+    const plain = raw.map(stripHtml).filter(Boolean).join(' ').slice(0, 380);
+    return {
+      id: s.id,
+      num: s.num,
+      title: s.title,
+      chapterId: c.id,
+      chapterNum: c.num,
+      bodyPlain: plain ? (plain.length >= 380 ? plain + '…' : plain) : '',
+      notesCount: bookText[s.id]?.notes.length || 0,
+    };
+  })
+);
+
+const STOP_WORDS = new Set([
+  'press', 'university', 'united', 'states', 'department', 'national', 'washington',
+  'london', 'cambridge', 'oxford', 'journal', 'review', 'report', 'energy', 'electric',
+  'vehicle', 'vehicles', 'charging', 'new', 'york', 'public', 'space', 'spaces', 'urban',
+]);
+
+const rawBibs = bibliography.map((html, i) => {
+  const plain = stripHtml(html);
+  const firstChunk = plain.split(/\.\s/)[0] || plain.slice(0, 32);
+  const surname = plain.split(/[,.]/)[0].trim();
+  const shortAuthor = firstChunk.length > 34 ? firstChunk.slice(0, 32) + '…' : firstChunk;
+  const tokens = plain
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter((w) => w.length >= 5 && !STOP_WORDS.has(w));
+  return {
+    id: `bib-${i + 1}`,
+    idx: i + 1,
+    shortAuthor,
+    surname: surname.toLowerCase(),
+    tokens: tokens.slice(0, 6),
+    plain,
+    chapters: new Set<string>(),
+    sections: new Set<string>(),
+  };
+});
+
+const mindmapNotes = (['1', '2', '3', '4'] as const).flatMap((ch) =>
+  notesFor(ch).map((nt) => {
+    const plain = stripHtml(nt.html);
+    const lower = plain.toLowerCase();
+    const matchedBibs = rawBibs.filter((b) => {
+      if (b.surname.length >= 4 && lower.includes(b.surname)) return true;
+      const hits = b.tokens.filter((t) => lower.includes(t)).length;
+      return hits >= 2;
+    });
+    matchedBibs.forEach((b) => {
+      b.chapters.add(ch);
+      b.sections.add(nt.from);
+    });
+    const firstPart = plain.split(',')[0] || plain.slice(0, 28);
+    const shortLabel = firstPart.length > 28 ? firstPart.slice(0, 26) + '…' : firstPart;
+    return {
+      id: `note-${ch}-${nt.n}`,
+      ch,
+      n: nt.n,
+      fromSection: nt.from,
+      notesSectionId: `5-${ch}`,
+      shortLabel,
+      plain,
+      bibIds: matchedBibs.map((b) => b.id),
+    };
+  })
+);
+
+const mindmapBibs = rawBibs.map((b) => ({
+  id: b.id,
+  idx: b.idx,
+  shortAuthor: b.shortAuthor,
+  plain: b.plain,
+  chapters: [...b.chapters],
+  sections: [...b.sections],
+}));
 ---
 
 <PageLayout
@@ -425,9 +520,12 @@ const notesSection: Record<string, { ch: string; notes: ReturnType<typeof notesF
 
     <!-- Introduction: sits above the slide nav and stays put whichever slide is open -->
     <section class="ph__intro" aria-labelledby="ph-intro-title">
-      <div>
+      <div class="ph__intro-col">
         <p class="ph__kicker" id="ph-intro-title">Abstract</p>
         <p>Road transport is going electric, and every electric vehicle has to stop to charge. Yet most charging sites are still car parks with a row of plugs, used by drivers and by no one else. This thesis proposes the Powerhouse, a new type of stop built on ground that parking already covers: chargers alongside a programme chosen for the neighbourhood, and public space open to everyone.</p>
+        <button type="button" class="ph__mm-trigger" data-mm-open aria-haspopup="dialog" aria-controls="ph-mindmap-lightbox">
+          <span>Mindmap</span> Notes &amp; Bibliography Graph ↗
+        </button>
       </div>
       <div>
         <p class="ph__kicker">Hypothesis</p>
@@ -451,8 +549,13 @@ const notesSection: Record<string, { ch: string; notes: ReturnType<typeof notesF
       <div class="ph__index-panel">
       {book.map((c, i) => (
         <div class="ph__index-ch" data-index-chapter={c.id} data-active={i === 0 ? 'true' : 'false'} data-open={i === 0 ? 'true' : 'false'}>
-          <button type="button" class="ph__index-chtitle" data-index-toggle={c.id} aria-expanded={i === 0 ? 'true' : 'false'}><span>{c.num}</span> {c.title}<i class="ph__index-caret" aria-hidden="true"><Icon name="chevron" dir="e" /></i></button>
+          <button type="button" class="ph__index-chtitle" data-index-toggle={c.id} aria-expanded={i === 0 ? 'true' : 'false'}><span>{c.num}.0</span> {c.title}<i class="ph__index-caret" aria-hidden="true"><Icon name="chevron" dir="e" /></i></button>
           <div class="ph__index-fold"><ol>
+            <li>
+              <button type="button" data-section={`${c.num}-0`} aria-pressed="false">
+                <span>{c.num}.0</span> {c.title}
+              </button>
+            </li>
             {c.sections.map((s, j) => (
               <li>
                 <button type="button" data-section={s.id} aria-pressed={i === 0 && j === 0 ? 'true' : 'false'} data-planned={s.planned ? 'true' : undefined}>
@@ -471,6 +574,9 @@ const notesSection: Record<string, { ch: string; notes: ReturnType<typeof notesF
     {book.map((c, i) => (
       <nav class="ph__subtabs" data-subtabs={c.id} aria-label={`Chapter ${c.num} sections`} hidden={i !== 0}>
         <span class="ph__row-label" aria-hidden="true">Chapter {c.num}</span>
+        <button type="button" data-section={`${c.num}-0`} aria-pressed="false" title={`${c.num}.0 ${c.title}`}>
+          <span>{c.num}.0</span> {c.title}
+        </button>
         {c.sections.map((s, j) => (
           <button type="button" data-section={s.id} aria-pressed={i === 0 && j === 0 ? 'true' : 'false'} data-planned={s.planned ? 'true' : undefined} title={`${s.num} ${s.title}`}>
             <span>{s.num}</span> {s.title}
@@ -483,19 +589,40 @@ const notesSection: Record<string, { ch: string; notes: ReturnType<typeof notesF
     <div class="ph__reader">
     <div class="ph__reader-main">
 
-    <!-- One continuous document: each chapter's opening, then its sections in book order.
-         1.1 carries the five data slides; the tabs above jump to each section. -->
-    <header class="ph__chapter-head" id="ch1" data-chapter-head="ch1">
-      <p class="ph__kicker">Chapter {book[0].num}</p>
-      <h2>{book[0].title}</h2>
-      {bookText.ch1 && <BookText text={bookText.ch1} chapter="1" />}
-    </header>
+    <!-- Two-level collapsible outline: outer level is each Chapter (Chapter 1 · Charging Anchor,
+         Chapter 2 · The Stop, …) and inside each chapter are the card rows for N.0, N.1, N.2, … -->
+    <details class="ph__ch-group" data-chapter-group="ch1" open>
+      <summary class="ph__ch-sum">
+        <span class="ph__ch-title">Chapter {book[0].num} · {book[0].short}</span>
+        <span class="ph__ch-right">
+          <span class="ph__ch-meta">{book[0].num}.0 – {book[0].sections[book[0].sections.length - 1].num}</span>
+          <span class="ph__ch-arrow" aria-hidden="true"><Icon name="arrow" class="ph__ch-chevron" /></span>
+        </span>
+      </summary>
+      <div class="ph__ch-body">
+    <details class="ph__fold ph__fold--chapter" id="ch1" data-chapter-head="ch1" data-section-panel="1-0">
+      <summary class="ph__fold-sum">
+        <span class="ph__fold-title">{book[0].num}.0 {book[0].title}</span>
+        <span class="ph__fold-right">
+          <span class="ph__fold-meta">Chapter {book[0].num}</span>
+          <span class="ph__fold-ring" aria-hidden="true"><Icon name="arrow" class="ph__fold-chevron" /></span>
+        </span>
+      </summary>
+      <div class="ph__fold-body">
+        {bookText.ch1 && <BookText text={bookText.ch1} chapter="1" />}
+      </div>
+    </details>
 
-    <section class="ph__section" id={`s-${dataSection}`} data-section-panel={dataSection}>
-      <p class="ph__kicker">{book[0].sections[0].num} · Book page {book[0].sections[0].page}</p>
-      <h2>{book[0].sections[0].title}</h2>
-      {bookText[dataSection] && <BookText text={bookText[dataSection]} chapter="1" />}
-    </section>
+    <details class="ph__fold ph__fold--section" id={`s-${dataSection}`} data-section-panel={dataSection} open>
+      <summary class="ph__fold-sum">
+        <span class="ph__fold-title">{book[0].sections[0].num} {book[0].sections[0].title}</span>
+        <span class="ph__fold-right">
+          <span class="ph__fold-meta">Book page {book[0].sections[0].page}</span>
+          <span class="ph__fold-ring" aria-hidden="true"><Icon name="arrow" class="ph__fold-chevron" /></span>
+        </span>
+      </summary>
+      <div class="ph__fold-body">
+        {bookText[dataSection] && <BookText text={bookText[dataSection]} chapter="1" />}
 
     <!-- How the five slides below answer the text above -->
     <div class="ph__evidence-intro">
@@ -923,38 +1050,267 @@ const notesSection: Record<string, { ch: string; notes: ReturnType<typeof notesF
       <span id="ph-progress" aria-live="polite">01 / 05</span>
       <button type="button" id="ph-next">Next</button>
     </div>
+      </div>
+    </details>
 
-    {book.flatMap((c) => c.sections.map((sec, j) => ({ c, sec, first: j === 0 }))).filter(({ sec }) => sec.id !== dataSection).map(({ c, sec, first }) => (
-      <Fragment>
-        {first && (
-          <header class="ph__chapter-head" id={c.id} data-chapter-head={c.id}>
-            <p class="ph__kicker">Chapter {c.num}</p>
-            <h2>{c.title}</h2>
-            {bookText[c.id] && <BookText text={bookText[c.id]} chapter={c.num} />}
-          </header>
-        )}
-        <section class="ph__section" id={`s-${sec.id}`} data-section-panel={sec.id}>
-          <p class="ph__kicker">{sec.num} · {sec.planned ? 'In the framework, not yet written' : sec.page ? `Book page ${sec.page}` : 'From the thesis book'}</p>
-          <h2>{sec.title}</h2>
-          {notesSection[sec.id] ? (
-            <ol class="ph__notes-list">
-              {notesSection[sec.id].notes.map((note) => (
-                <li id={`note-${notesSection[sec.id].ch}-${note.n}`} value={note.n}>
-                  <span set:html={note.html} /> <a class="ph__note-back" href={`#ref-${notesSection[sec.id].ch}-${note.n}`} aria-label={`Back to the text of note ${note.n}`}>Back</a>
-                </li>
-              ))}
-            </ol>
-          ) : sec.id === '5-3' ? (
-            <ul class="ph__bib-list">{bibliography.map((b) => <li set:html={b} />)}</ul>
-          ) : bookText[sec.id] ? (
-            <BookText text={bookText[sec.id]} chapter={c.num} />
+    {book[0].sections.slice(1).map((sec) => (
+      <details class="ph__fold ph__fold--section" id={`s-${sec.id}`} data-section-panel={sec.id}>
+        <summary class="ph__fold-sum">
+          <span class="ph__fold-title">{sec.num} {sec.title}</span>
+          <span class="ph__fold-right">
+            <span class="ph__fold-meta">{sec.planned ? 'In the framework, not yet written' : sec.page ? `Book page ${sec.page}` : 'From the thesis book'}</span>
+            <span class="ph__fold-ring" aria-hidden="true"><Icon name="arrow" class="ph__fold-chevron" /></span>
+          </span>
+        </summary>
+        <div class="ph__fold-body">
+          {bookText[sec.id] ? (
+            <BookText text={bookText[sec.id]} chapter="1" />
           ) : (
             <p class="ph__stub-note">To be transferred from the thesis book.</p>
           )}
-        </section>
-      </Fragment>
+        </div>
+      </details>
+    ))}
+      </div>
+    </details>
+
+    {book.slice(1).map((c) => (
+      <details class="ph__ch-group" data-chapter-group={c.id}>
+        <summary class="ph__ch-sum">
+          <span class="ph__ch-title">Chapter {c.num} · {c.short}</span>
+          <span class="ph__ch-right">
+            <span class="ph__ch-meta">{c.num}.0 – {c.sections[c.sections.length - 1].num}</span>
+            <span class="ph__ch-arrow" aria-hidden="true"><Icon name="arrow" class="ph__ch-chevron" /></span>
+          </span>
+        </summary>
+        <div class="ph__ch-body">
+          <details class="ph__fold ph__fold--chapter" id={c.id} data-chapter-head={c.id} data-section-panel={`${c.num}-0`}>
+            <summary class="ph__fold-sum">
+              <span class="ph__fold-title">{c.num}.0 {c.title}</span>
+              <span class="ph__fold-right">
+                <span class="ph__fold-meta">Chapter {c.num}</span>
+                <span class="ph__fold-ring" aria-hidden="true"><Icon name="arrow" class="ph__fold-chevron" /></span>
+              </span>
+            </summary>
+            <div class="ph__fold-body">
+              {bookText[c.id] ? (
+                <BookText text={bookText[c.id]} chapter={c.num} />
+              ) : (
+                <p class="ph__stub-note">Chapter {c.num} · {c.sections.map((s) => `${s.num} ${s.title}`).join(' · ')}</p>
+              )}
+            </div>
+          </details>
+          {c.sections.map((sec) => (
+            <details class="ph__fold ph__fold--section" id={`s-${sec.id}`} data-section-panel={sec.id}>
+              <summary class="ph__fold-sum">
+                <span class="ph__fold-title">{sec.num} {sec.title}</span>
+                <span class="ph__fold-right">
+                  <span class="ph__fold-meta">{sec.planned ? 'In the framework, not yet written' : sec.page ? `Book page ${sec.page}` : 'From the thesis book'}</span>
+                  <span class="ph__fold-ring" aria-hidden="true"><Icon name="arrow" class="ph__fold-chevron" /></span>
+                </span>
+              </summary>
+              <div class="ph__fold-body">
+                {notesSection[sec.id] ? (
+                  <ol class="ph__notes-list">
+                    {notesSection[sec.id].notes.map((note) => (
+                      <li id={`note-${notesSection[sec.id].ch}-${note.n}`} value={note.n}>
+                        <span set:html={note.html} /> <a class="ph__note-back" href={`#ref-${notesSection[sec.id].ch}-${note.n}`} aria-label={`Back to the text of note ${note.n}`}>Back</a>
+                      </li>
+                    ))}
+                  </ol>
+                ) : sec.id === '5-5' ? (
+                  <ul class="ph__bib-list">{bibliography.map((b) => <li set:html={b} />)}</ul>
+                ) : bookText[sec.id] ? (
+                  <BookText text={bookText[sec.id]} chapter={c.num} />
+                ) : (
+                  <p class="ph__stub-note">To be transferred from the thesis book.</p>
+                )}
+              </div>
+            </details>
+          ))}
+        </div>
+      </details>
     ))}
     </div>
+    </div>
+
+    <!-- 90% Screen Lightbox Modal for the Citation, Notes & Bibliography Mindmap -->
+    <div
+      class="ph__mm-lightbox"
+      id="ph-mindmap-lightbox"
+      data-mm-lightbox
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="ph-mm-dialog-title"
+      hidden
+    >
+      <div class="ph__mm-backdrop" data-mm-close aria-hidden="true"></div>
+      <div class="ph__mm-dialog" data-mindmap-root>
+        <header class="ph__mm-head">
+          <div class="ph__mm-head-left">
+            <span class="ph__row-label">Mindmap</span>
+            <strong id="ph-mm-dialog-title">Chapters, Subchapters, Notes &amp; Bibliography Graph</strong>
+            <span class="ph__mm-stats" data-mm-stats>179 nodes · 340 citation links</span>
+          </div>
+          <button type="button" class="ph__mm-close" data-mm-close aria-label="Close Mindmap">
+            Close <span>[Esc]</span> ×
+          </button>
+        </header>
+
+        <div class="ph__mm-toolbar">
+          <div class="ph__mm-search-wrap">
+            <input
+              type="search"
+              class="ph__mm-search"
+              data-mm-search
+              placeholder="Search chapters, subchapters (e.g. 2.6), notes (N1.11), or bibliography authors (Lefebvre, Shoup)…"
+              aria-label="Search mindmap nodes"
+            />
+          </div>
+          <div class="ph__mm-pills" role="group" aria-label="Filter citation graph">
+            <button type="button" data-mm-filter="all" aria-pressed="true">All (Book + Notes + Bib)</button>
+            <button type="button" data-mm-filter="bib" aria-pressed="false">Chapters ↔ Bibliography</button>
+            <button type="button" data-mm-filter="notes" aria-pressed="false">Chapters ↔ Notes</button>
+            <button type="button" data-mm-filter="ch1" aria-pressed="false">Ch 1 Citations</button>
+            <button type="button" data-mm-filter="ch2" aria-pressed="false">Ch 2 Citations</button>
+            <button type="button" data-mm-filter="ch3" aria-pressed="false">Ch 3 Citations</button>
+            <button type="button" data-mm-filter="ch4" aria-pressed="false">Ch 4 Citations</button>
+            <button type="button" data-mm-filter="custom" aria-pressed="false">Custom Added</button>
+          </div>
+          <div class="ph__mm-pills" role="group" aria-label="Graph layout and depth">
+            <button type="button" data-mm-layout="force" aria-pressed="true" title="Obsidian force-directed brain">Force Brain</button>
+            <button type="button" data-mm-layout="radial" aria-pressed="false" title="Concentric rings: Core → Ch → Subch → Notes → Bib">Radial Rings</button>
+            <button type="button" data-mm-layout="columns" aria-pressed="false" title="Tiered columns: Chapters → Subchapters → Notes → Bib">Citation Tiers</button>
+            <button type="button" data-mm-depth="0" aria-pressed="true" title="Show full network">Full</button>
+            <button type="button" data-mm-depth="1" aria-pressed="false" title="Show 1-hop direct citations of selected node">1-Hop</button>
+            <button type="button" data-mm-depth="2" aria-pressed="false" title="Show 2-hop citation chain (Subchapter → Note → Bib)">2-Hop</button>
+            <button type="button" data-mm-link-mode aria-pressed="false" title="Drag from one node to another on canvas to wire a citation">+ Drag-Connect Mode</button>
+          </div>
+        </div>
+
+        <div class="ph__mm-workspace">
+          <div class="ph__mm-stage">
+            <canvas class="ph__mm-canvas" data-mm-canvas aria-label="Interactive thesis citation mindmap"></canvas>
+            <div class="ph__mm-controls">
+              <button type="button" data-mm-zoom="in" aria-label="Zoom in">+</button>
+              <button type="button" data-mm-zoom="out" aria-label="Zoom out">−</button>
+              <button type="button" data-mm-zoom="reset">Reset</button>
+            </div>
+            <div class="ph__mm-legend" aria-hidden="true">
+              <span><i class="ph__mm-dot ph__mm-dot--core"></i>Chapter (1.0–5.0)</span>
+              <span><i class="ph__mm-dot ph__mm-dot--sec"></i>Subchapter (1.1–5.5)</span>
+              <span><i class="ph__mm-dot ph__mm-dot--theory"></i>Endnote (N1.1–N4.12)</span>
+              <span><i class="ph__mm-dot ph__mm-dot--prec"></i>Bibliography Source (5.5)</span>
+              <span><i class="ph__mm-dot ph__mm-dot--custom"></i>Custom</span>
+              <span class="ph__mm-hint">Click node to inspect citations · Double-click to jump to book</span>
+            </div>
+          </div>
+
+          <aside class="ph__mm-side" aria-label="Citation inspector and visual builder">
+            <div class="ph__mm-sidetabs">
+              <button type="button" data-mm-sidetab="inspect" aria-pressed="true">Citation Inspector</button>
+              <button type="button" data-mm-sidetab="build" aria-pressed="false">+ Add Note / Bib Link</button>
+            </div>
+
+            <div class="ph__mm-pane" data-mm-pane="inspect">
+              <p class="ph__kicker" data-mm-insp-kind>Core Thesis Hypothesis</p>
+              <h2 class="ph__mm-title" data-mm-insp-title>The Powerhouse</h2>
+              <p class="ph__mm-summary" data-mm-insp-summary></p>
+
+              <div class="ph__mm-actions">
+                <button type="button" class="ph__mm-btn ph__mm-btn--primary" data-mm-open-book hidden>Open in book ↗</button>
+                <button type="button" class="ph__mm-btn" data-mm-open-ref hidden>Jump to text ref ↗</button>
+                <button type="button" class="ph__mm-btn" data-mm-pin-node>Pin position</button>
+                <button type="button" class="ph__mm-btn" data-mm-delete-node hidden>Delete node</button>
+              </div>
+
+              <div class="ph__mm-block">
+                <p class="ph__kicker">Linked Chapters, Notes &amp; Bibliography</p>
+                <div class="ph__mm-conn-list" data-mm-connections></div>
+              </div>
+
+              <details class="ph__mm-edit-fold">
+                <summary>Edit citation note / annotation</summary>
+                <div class="ph__mm-edit-body">
+                  <textarea rows="4" data-mm-insp-edit aria-label="Edit node summary or citation note"></textarea>
+                  <button type="button" class="ph__mm-btn ph__mm-btn--primary" data-mm-insp-save>Save note / citation</button>
+                </div>
+              </details>
+            </div>
+
+            <div class="ph__mm-pane" data-mm-pane="build" hidden>
+              <form class="ph__mm-form" data-mm-add-node-form>
+                <p class="ph__kicker">Add Bibliography Source or Note Node</p>
+                <div class="ph__mm-form-row">
+                  <label>
+                    <span>Code / Tag</span>
+                    <input type="text" name="code" placeholder="BIB / N1.41" value="BIB" required />
+                  </label>
+                  <label>
+                    <span>Type</span>
+                    <select name="kind">
+                      <option value="bib">Bibliography Source (5.5)</option>
+                      <option value="note">Endnote Citation (5.1–5.4)</option>
+                      <option value="section">Subchapter</option>
+                      <option value="custom">Custom Note</option>
+                    </select>
+                  </label>
+                </div>
+                <label>
+                  <span>Author &amp; Title / Label</span>
+                  <input type="text" name="label" placeholder="e.g. Sennett, Richard (2018) Building and Dwelling" required />
+                </label>
+                <div class="ph__mm-form-row">
+                  <label>
+                    <span>Chapter</span>
+                    <select name="chapter">
+                      <option value="1">Ch 1 · Charging Anchor</option>
+                      <option value="2">Ch 2 · The Stop</option>
+                      <option value="3">Ch 3 · The Public Space</option>
+                      <option value="4">Ch 4 · The Programme</option>
+                      <option value="5">Ch 5 · Notes &amp; Bib</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Relation Label</span>
+                    <input type="text" name="relation" placeholder="cited in / supports" value="cited in" />
+                  </label>
+                </div>
+                <label>
+                  <span>Full Citation / Page Note</span>
+                  <textarea name="summary" rows="3" placeholder="Full bibliography reference or note text…"></textarea>
+                </label>
+                <button type="submit" class="ph__mm-btn ph__mm-btn--primary">+ Add &amp; Wire to Selected Node</button>
+              </form>
+
+              <form class="ph__mm-form ph__mm-form--sep" data-mm-add-edge-form>
+                <p class="ph__kicker">Connect Subchapter ↔ Note / Bibliography</p>
+                <label>
+                  <span>From Node</span>
+                  <select name="source" data-mm-edge-source></select>
+                </label>
+                <label>
+                  <span>To Node</span>
+                  <select name="target" data-mm-edge-target></select>
+                </label>
+                <label>
+                  <span>Citation Relation</span>
+                  <input type="text" name="label" placeholder="cites / references" value="cites" />
+                </label>
+                <button type="submit" class="ph__mm-btn">+ Wire Citation Link</button>
+              </form>
+
+              <div class="ph__mm-form ph__mm-form--sep">
+                <p class="ph__kicker">Graph Persistence</p>
+                <div class="ph__mm-actions">
+                  <button type="button" class="ph__mm-btn" data-mm-export>Export Citations JSON</button>
+                  <button type="button" class="ph__mm-btn" data-mm-reset-custom>Reset Custom Edits</button>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
     </div>
   </article>
 
@@ -967,6 +1323,9 @@ const notesSection: Record<string, { ch: string; notes: ReturnType<typeof notesF
       city: data.city.dots
         .filter((d) => d.access === 'public')
         .map((d) => ({ borough: d.borough, dc: d.dc, ports: d.l1 + d.l2 + d.dc })),
+      mindmapSections,
+      mindmapNotes,
+      mindmapBibs,
     }).replace(/</g, '\\u003c')}
   />
 </PageLayout>
@@ -996,8 +1355,37 @@ const notesSection: Record<string, { ch: string; notes: ReturnType<typeof notesF
   .ph__brand { font-weight: 600; text-decoration: none; }
   .ph__brand span, .ph__stamp { color: var(--_tokens---color--muted); font-weight: 400; }
   .ph__intro { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: var(--_tokens---space--small); padding: var(--_tokens---space--small) 0; border-bottom: 1px solid var(--_tokens---color--line); }
+  .ph__intro-col { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
   .ph__intro p:not(.ph__kicker) { font-size: var(--_tokens---type--small); line-height: 1.5; margin: 0; max-width: 64ch; }
   .ph__intro p.ph__intro-claim { font-size: var(--_tokens---type--medium); line-height: 1.15; letter-spacing: -.03em; }
+  /* Small pill button below Abstract (bottom-left) that opens the 90% screen Mindmap Lightbox */
+  .ph__mm-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 2px;
+    min-height: 30px;
+    padding: 4px 12px;
+    border: var(--_tokens---pill-border);
+    border-radius: var(--_tokens---radius--pill);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    color: var(--_tokens---color--fg);
+    font: inherit;
+    font-size: var(--_tokens---type--micro);
+    line-height: 1.2;
+    cursor: pointer;
+    transition: background-color var(--_tokens---motion--base), color var(--_tokens---motion--base), border-color var(--_tokens---motion--base);
+  }
+  .ph__mm-trigger span {
+    font-weight: 600;
+  }
+  @media (hover: hover) {
+    .ph__mm-trigger:hover {
+      background-color: var(--_tokens---color--fg);
+      border-color: var(--_tokens---color--fg);
+      color: var(--_tokens---color--bg);
+    }
+  }
   /* Main tabs (chapters), then the chapter's sections as a flow */
   /* One pill family for every tab row, after the About page's Skillset cloud: tinted pills at
      their natural width flowing like a paragraph, each row led by a black label pill. Chapters
@@ -1007,8 +1395,7 @@ const notesSection: Record<string, { ch: string; notes: ReturnType<typeof notesF
   .ph__chapters button span, .ph__subtabs button span, .ph__nav a span { font-variant-numeric: tabular-nums; opacity: .6; }
   .ph__row-label { background-color: var(--_tokens---color--fg); border-color: var(--_tokens---color--fg); color: var(--_tokens---color--bg); letter-spacing: -0.03em; cursor: default; }
   @media (hover: hover) { .ph__chapters button:hover, .ph__subtabs button:hover, .ph__nav a:hover { background-color: color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent); color: var(--_tokens---color--fg); } }
-  .ph__chapters button[aria-pressed='true'] { background-color: var(--_tokens---color--fg); border-color: var(--_tokens---color--fg); color: var(--_tokens---color--bg); }
-  .ph__subtabs button[aria-pressed='true'], .ph__nav a[aria-current] { background-color: color-mix(in srgb, var(--_tokens---color--fg) 16%, transparent); border: var(--_tokens---pill-border--strong); color: var(--_tokens---color--fg); }
+  .ph__chapters button[aria-pressed='true'], .ph__subtabs button[aria-pressed='true'], .ph__nav a[aria-current] { background-color: var(--_tokens---color--fg); border-color: var(--_tokens---color--fg); color: var(--_tokens---color--bg); }
   .ph__chapters button[aria-pressed='true'] span, .ph__subtabs button[aria-pressed='true'] span, .ph__nav a[aria-current] span { opacity: .75; }
   .ph__subtabs button[data-planned='true'] { border-style: dashed; }
   @media (pointer: coarse) { .ph__chapters button, .ph__subtabs button, .ph__nav a { min-height: 44px; } }
@@ -1025,12 +1412,165 @@ const notesSection: Record<string, { ch: string; notes: ReturnType<typeof notesF
   @media (max-width: 699.98px) { .ph__toc { position: static; } }
   .ph__toc .ph__tabbar { margin-top: 0; }
   .ph__toc .ph__subtabs { margin-bottom: 0; padding-bottom: 10px; border-bottom: 1px solid var(--_tokens---color--line); }
-  .ph__section, .ph__chapter-head { scroll-margin-top: calc(var(--ph-toc-h, 140px) + 68px); }
-  .ph__section { padding: var(--_tokens---space--small) 0; }
-  .ph .ph__section > h2 { font-size: clamp(1.5rem, 1rem + 1.6vw, 2.5rem); line-height: 1.1; letter-spacing: -.035em; font-weight: var(--_tokens---weight--base); margin: 0 0 24px; }
-  .ph__chapter-head { padding: var(--_tokens---space--medium) 0 var(--_tokens---space--small); border-top: 1px solid var(--_tokens---color--fg); }
-  .ph__chapter-head:first-child { border-top: 0; padding-top: var(--_tokens---space--small); }
-  .ph .ph__chapter-head > h2 { font-size: clamp(2rem, 1.2rem + 2.6vw, 3.75rem); line-height: 1.05; letter-spacing: -.045em; font-weight: var(--_tokens---weight--base); margin: 0 0 var(--_tokens---space--micro); }
+  /* Two-level collapsible outline, styled after the About page:
+     1) Outer level (.ph__ch-group): Chapter 1 · Charging Anchor, Chapter 2 · The Stop, …
+     2) Inner level (.ph__fold): 1.0, 1.1, 1.2, …
+     Only one chapter and one subtab are open at a time; the open one is in full ink and every
+     closed chapter and subtab is muted grey. */
+  .ph__reader-main { display: flex; flex-direction: column; gap: 0; padding-top: 8px; }
+  .ph__ch-group { scroll-margin-top: calc(var(--ph-toc-h, 140px) + 68px); }
+  .ph__ch-group[open] + .ph__ch-group { margin-top: 24px; }
+  .ph__ch-sum {
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 8px 20px 10px;
+    border-bottom: 1px solid var(--_tokens---color--line-soft);
+    cursor: pointer;
+    user-select: none;
+  }
+  .ph__ch-sum::-webkit-details-marker { display: none; }
+  .ph__ch-group[open] > .ph__ch-sum { border-bottom-color: transparent; padding-bottom: 6px; }
+  .ph__ch-title {
+    font-size: var(--_tokens---type--medium);
+    font-weight: var(--_tokens---weight--base);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--_tokens---color--muted);
+    font-variant-numeric: tabular-nums;
+    flex: 1;
+    min-width: 0;
+    transition: color var(--_tokens---motion--base) ease;
+  }
+  .ph__ch-group[open] > .ph__ch-sum .ph__ch-title {
+    color: var(--_tokens---color--fg);
+  }
+  .ph__ch-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+  .ph__ch-meta { font-size: var(--_tokens---type--micro); font-weight: var(--_tokens---weight--light); color: var(--_tokens---color--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ph__ch-arrow {
+    font-size: var(--_tokens---type--medium);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.1em;
+    height: 1.1em;
+    color: var(--_tokens---color--muted);
+  }
+  .ph__ch-group[open] > .ph__ch-sum .ph__ch-arrow { color: var(--_tokens---color--fg); }
+  .ph__ch-arrow :global(.ph__ch-chevron) {
+    --icon-size: 0.75em;
+    color: inherit;
+    transition: transform var(--_tokens---motion--slow) cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .ph__ch-group[open] > .ph__ch-sum .ph__ch-arrow :global(.ph__ch-chevron) {
+    transform: rotate(135deg);
+  }
+  .ph__ch-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 8px;
+    padding-left: clamp(20px, 3vw, 44px);
+  }
+  /* Subchapter rows (N.0, N.1, N.2, …) all share the same in-between subtitle size
+     (between --_tokens---type--medium [40px] and --_tokens---type--small [18px]) and
+     step body copy one size down. */
+  .ph__fold {
+    --row-name: clamp(1.25rem, 1.08rem + 0.65vw, 1.65rem);
+    scroll-margin-top: calc(var(--ph-toc-h, 140px) + 68px);
+    width: 100%;
+    box-sizing: border-box;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 2.5%, var(--_tokens---color--bg));
+    border: none;
+    box-shadow: 0 8px 24px -10px color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
+    padding-inline: 20px;
+  }
+  .ph__fold :global(.ph__book-body p) {
+    font-size: var(--_tokens---type--micro);
+    line-height: 1.6;
+  }
+  .ph__fold :global(.ph__book-body .ph__book-lead) {
+    font-size: var(--_tokens---type--small);
+  }
+  .ph__fold :global(.ph__book-body .ph__book-h) {
+    font-size: var(--_tokens---type--micro);
+  }
+  .ph__fold-sum {
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    width: 100%;
+    padding-block: 6px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .ph__fold[open] > .ph__fold-sum { padding-bottom: 4px; }
+  .ph__fold-sum::-webkit-details-marker { display: none; }
+  .ph__fold-title {
+    font-size: var(--row-name);
+    font-weight: var(--_tokens---weight--base);
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+    color: var(--_tokens---color--muted);
+    font-variant-numeric: tabular-nums;
+    flex: 1;
+    min-width: 0;
+    transition: color var(--_tokens---motion--base) ease;
+  }
+  .ph__fold[open] > .ph__fold-sum .ph__fold-title {
+    color: var(--_tokens---color--fg);
+  }
+  .ph__fold-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+  .ph__fold-meta { font-size: var(--_tokens---type--micro); font-weight: var(--_tokens---weight--light); color: var(--_tokens---color--muted); white-space: nowrap; }
+  .ph__fold-ring {
+    font-size: var(--row-name);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 1.1em;
+    height: 1.1em;
+    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 18%, transparent);
+    border-radius: 50%;
+    color: var(--_tokens---color--muted);
+    transition: background-color var(--_tokens---motion--base) ease, border-color var(--_tokens---motion--base) ease, color var(--_tokens---motion--base) ease;
+  }
+  .ph__fold[open] > .ph__fold-sum .ph__fold-ring {
+    border-color: color-mix(in srgb, var(--_tokens---color--fg) 32%, transparent);
+    color: var(--_tokens---color--fg);
+  }
+  .ph__fold-ring :global(.ph__fold-chevron) {
+    --icon-size: 0.5em;
+    color: inherit;
+    flex-shrink: 0;
+    transition: transform var(--_tokens---motion--slow) cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .ph__fold[open] > .ph__fold-sum .ph__fold-ring :global(.ph__fold-chevron) {
+    transform: rotate(135deg);
+  }
+  @media (hover: hover) {
+    .ph__fold-sum:hover .ph__fold-ring {
+      background-color: var(--_tokens---color--fg);
+      border-color: var(--_tokens---color--fg);
+      color: var(--_tokens---color--bg);
+    }
+  }
+  @media (max-width: 699.98px) {
+    .ph__ch-sum { padding: 12px 0; }
+    .ph__ch-title { font-size: var(--_tokens---type--medium); }
+    .ph__ch-meta { display: none; }
+    .ph__ch-body { padding-left: 14px; }
+    .ph__fold { --row-name: 1.15rem; padding-inline: 14px; }
+    .ph__fold-sum { padding-block: 8px; }
+    .ph__fold[open] > .ph__fold-sum { padding-bottom: 6px; }
+    .ph__fold-title { line-height: 1.2; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .ph__fold-meta { display: none; }
+  }
+  .ph__fold-body { padding: 12px 0 18px; }
 
   /* The index: a dropdown pill at the bar's right end, opening a panel of chapters that fold */
   .ph__index { position: relative; flex: 0 1 auto; min-width: 0; margin-left: auto; font-size: var(--_tokens---type--micro); }
@@ -1380,8 +1920,423 @@ const notesSection: Record<string, { ch: string; notes: ReturnType<typeof notesF
     .ph th, .ph td { padding: 10px 8px; }
     .ph__growth td { min-width: 180px; }
   }
+
+  /* 90% Screen Lightbox Modal for the Obsidian-style Citation, Notes & Bibliography Mindmap */
+  .ph__mm-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 120;
+    display: grid;
+    place-items: center;
+    padding: 4dvh 4vw;
+    box-sizing: border-box;
+  }
+  .ph__mm-lightbox[hidden] {
+    display: none;
+  }
+  .ph__mm-backdrop {
+    position: absolute;
+    inset: 0;
+    background: color-mix(in srgb, var(--_tokens---color--bg) 82%, transparent);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+  .ph__mm-dialog {
+    position: relative;
+    z-index: 1;
+    width: min(90vw, 1620px);
+    height: 90dvh;
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr);
+    gap: 10px;
+    padding: 16px 20px;
+    box-sizing: border-box;
+    background: var(--_tokens---color--bg);
+    border: 1px solid var(--_tokens---color--line);
+    box-shadow: 0 28px 80px -20px color-mix(in srgb, var(--_tokens---color--fg) 28%, transparent);
+    overflow: hidden;
+  }
+  .ph__mm-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--_tokens---color--line);
+    font-size: var(--_tokens---type--micro);
+  }
+  .ph__mm-head-left {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  .ph__mm-head-left strong {
+    font-size: var(--_tokens---type--small);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+  .ph__mm-stats {
+    color: var(--_tokens---color--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .ph__mm-close {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 32px;
+    padding: 4px 12px;
+    border: var(--_tokens---pill-border);
+    border-radius: var(--_tokens---radius--pill);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    color: var(--_tokens---color--fg);
+    font: inherit;
+    font-size: var(--_tokens---type--micro);
+    cursor: pointer;
+  }
+  .ph__mm-close span {
+    color: var(--_tokens---color--muted);
+  }
+  .ph__mm-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    padding: 8px 12px;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 2.5%, var(--_tokens---color--bg));
+    border: 1px solid var(--_tokens---color--line);
+  }
+  .ph__mm-search-wrap {
+    flex: 1 1 16rem;
+    min-width: 0;
+  }
+  .ph__mm-search {
+    width: 100%;
+    min-height: 32px;
+    padding: 5px 12px;
+    border: 1px solid var(--_tokens---color--line);
+    border-radius: var(--_tokens---radius--pill);
+    background: var(--_tokens---color--bg);
+    color: var(--_tokens---color--fg);
+    font: inherit;
+    font-size: var(--_tokens---type--micro);
+  }
+  .ph__mm-search::placeholder {
+    color: var(--_tokens---color--muted);
+  }
+  .ph__mm-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .ph__mm-pills button,
+  .ph__mm-sidetabs button,
+  .ph__mm-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 30px;
+    padding: 4px 11px;
+    border: var(--_tokens---pill-border);
+    border-radius: var(--_tokens---radius--pill);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
+    color: var(--_tokens---color--muted);
+    font: inherit;
+    font-size: var(--_tokens---type--micro);
+    line-height: 1.2;
+    cursor: pointer;
+    transition: background-color var(--_tokens---motion--base), color var(--_tokens---motion--base), border-color var(--_tokens---motion--base);
+  }
+  .ph__mm-pills button[aria-pressed='true'],
+  .ph__mm-sidetabs button[aria-pressed='true'],
+  .ph__mm-btn--primary {
+    background-color: var(--_tokens---color--fg);
+    border-color: var(--_tokens---color--fg);
+    color: var(--_tokens---color--bg);
+  }
+  @media (hover: hover) {
+    .ph__mm-pills button:hover,
+    .ph__mm-sidetabs button:hover,
+    .ph__mm-btn:hover,
+    .ph__mm-close:hover {
+      background-color: color-mix(in srgb, var(--_tokens---color--fg) 14%, transparent);
+      color: var(--_tokens---color--fg);
+    }
+    .ph__mm-pills button[aria-pressed='true']:hover,
+    .ph__mm-sidetabs button[aria-pressed='true']:hover,
+    .ph__mm-btn--primary:hover {
+      background-color: var(--_tokens---color--fg);
+      color: var(--_tokens---color--bg);
+    }
+  }
+  .ph__mm-workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1.95fr) minmax(19rem, 0.9fr);
+    gap: 12px;
+    min-height: 0;
+    height: 100%;
+  }
+  .ph__mm-stage {
+    position: relative;
+    min-height: 0;
+    height: 100%;
+    border: 1px solid var(--_tokens---color--line);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 1.5%, var(--_tokens---color--bg));
+    overflow: hidden;
+  }
+  .ph__mm-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+  }
+  .ph__mm-controls {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    gap: 4px;
+    z-index: 2;
+  }
+  .ph__mm-controls button {
+    min-width: 32px;
+    height: 32px;
+    padding: 0 10px;
+    border: var(--_tokens---pill-border);
+    border-radius: var(--_tokens---radius--pill);
+    background: color-mix(in srgb, var(--_tokens---color--bg) 88%, transparent);
+    color: var(--_tokens---color--fg);
+    font: inherit;
+    font-size: var(--_tokens---type--micro);
+    cursor: pointer;
+  }
+  .ph__mm-legend {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 14px;
+    padding: 6px 10px;
+    background: color-mix(in srgb, var(--_tokens---color--bg) 86%, transparent);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--_tokens---color--line);
+    font-size: 11px;
+    color: var(--_tokens---color--muted);
+    pointer-events: none;
+  }
+  .ph__mm-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .ph__mm-hint {
+    margin-left: auto;
+  }
+  .ph__mm-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+  .ph__mm-dot--core { background: var(--_tokens---color--fg); }
+  .ph__mm-dot--sec { background: var(--_tokens---color--bg); border: 1.5px solid var(--_tokens---color--fg); box-sizing: border-box; }
+  .ph__mm-dot--lens { background: var(--ph-red); }
+  .ph__mm-dot--prec { background: var(--ph-green); }
+  .ph__mm-dot--theory { background: var(--ph-orange); }
+  .ph__mm-dot--data { background: var(--ph-teal); }
+  .ph__mm-dot--custom { background: var(--ph-blue); }
+
+  .ph__mm-side {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 16px;
+    border: 1px solid var(--_tokens---color--line);
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 2.5%, var(--_tokens---color--bg));
+    min-height: 0;
+    height: 100%;
+    box-sizing: border-box;
+    overflow-y: auto;
+  }
+  .ph__mm-sidetabs {
+    display: flex;
+    gap: 6px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--_tokens---color--line);
+  }
+  .ph__mm-sidetabs button {
+    flex: 1;
+  }
+  .ph__mm-pane {
+    display: grid;
+    gap: 12px;
+    align-content: start;
+  }
+  .ph__mm-pane[hidden] {
+    display: none;
+  }
+  .ph__mm-title {
+    font-size: var(--_tokens---type--medium) !important;
+    line-height: 1.15 !important;
+    letter-spacing: -0.02em;
+  }
+  .ph__mm-summary {
+    font-size: var(--_tokens---type--micro);
+    line-height: 1.6;
+    margin: 0;
+    color: var(--_tokens---color--fg);
+  }
+  .ph__mm-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .ph__mm-block {
+    padding-top: 10px;
+    border-top: 1px solid var(--_tokens---color--line);
+  }
+  .ph__mm-conn-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .ph__mm-conn-list :global(.ph__mm-conn-item) {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .ph__mm-conn-list :global(.ph__mm-conn-pill) {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border: var(--_tokens---pill-border);
+    border-radius: var(--_tokens---radius--pill);
+    background: color-mix(in srgb, var(--_tokens---color--fg) 5%, transparent);
+    color: var(--_tokens---color--fg);
+    font: inherit;
+    font-size: 11px;
+    text-align: left;
+    cursor: pointer;
+  }
+  .ph__mm-conn-list :global(.ph__mm-conn-pill span) {
+    color: var(--_tokens---color--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .ph__mm-conn-list :global(.ph__mm-conn-pill em) {
+    font-style: normal;
+    color: var(--_tokens---color--muted);
+  }
+  .ph__mm-conn-list :global(.ph__mm-conn-del) {
+    border: 0;
+    background: none;
+    color: var(--_tokens---color--muted);
+    font: inherit;
+    font-size: 13px;
+    padding: 2px 5px;
+    cursor: pointer;
+  }
+  .ph__mm-edit-fold {
+    padding-top: 10px;
+    border-top: 1px solid var(--_tokens---color--line);
+    font-size: var(--_tokens---type--micro);
+  }
+  .ph__mm-edit-fold summary {
+    cursor: pointer;
+    color: var(--_tokens---color--muted);
+    font-weight: 500;
+  }
+  .ph__mm-edit-body {
+    display: grid;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .ph__mm-form {
+    display: grid;
+    gap: 10px;
+    font-size: var(--_tokens---type--micro);
+  }
+  .ph__mm-form--sep {
+    padding-top: 12px;
+    border-top: 1px solid var(--_tokens---color--line);
+  }
+  .ph__mm-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .ph__mm-form label {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+  }
+  .ph__mm-form label span {
+    color: var(--_tokens---color--muted);
+    font-size: 11px;
+  }
+  .ph__mm-form input,
+  .ph__mm-form textarea,
+  .ph__mm-edit-body textarea,
+  .ph__mm-form select {
+    width: 100%;
+    min-height: 34px;
+    padding: 6px 10px;
+    border: 1px solid var(--_tokens---color--line);
+    border-radius: var(--_tokens---radius--small);
+    background: var(--_tokens---color--bg);
+    color: var(--_tokens---color--fg);
+    font: inherit;
+    font-size: var(--_tokens---type--micro);
+    box-sizing: border-box;
+  }
+  @media (max-width: 1023.98px) {
+    .ph__mm-dialog {
+      width: 94vw;
+      height: 92dvh;
+      overflow-y: auto;
+    }
+    .ph__mm-workspace {
+      grid-template-columns: 1fr;
+      height: auto;
+    }
+    .ph__mm-stage,
+    .ph__mm-canvas {
+      min-height: 440px;
+    }
+    .ph__mm-side {
+      height: auto;
+      max-height: none;
+    }
+  }
+  @media (max-width: 699.98px) {
+    .ph__mm-lightbox {
+      padding: 2dvh 2vw;
+    }
+    .ph__mm-dialog {
+      width: 96vw;
+      height: 94dvh;
+      padding: 12px;
+    }
+    .ph__mm-stage,
+    .ph__mm-canvas {
+      min-height: 340px;
+    }
+    .ph__mm-form-row {
+      grid-template-columns: 1fr;
+    }
+    .ph__mm-hint {
+      display: none;
+    }
+  }
+
   @media print {
-    .ph__nav, .ph__pager, .ph__filters, .ph__header { display: none !important; }
+    .ph__nav, .ph__pager, .ph__filters, .ph__header, .ph__mm-lightbox, .ph__mm-trigger { display: none !important; }
     .ph__slide[hidden] { display: block; }
     .ph__slide { break-after: page; margin: 0; }
     .ph { padding: 0; }
@@ -1395,6 +2350,7 @@ const notesSection: Record<string, { ch: string; notes: ReturnType<typeof notesF
 
 <script>
   import { createMap, createSvgMap, type PowerhouseMap } from '../lib/powerhouse-map';
+  import { initPowerhouseMindmap } from '../lib/powerhouse-mindmap';
 
   // Chapters (main tabs) and sections (the flow). Picking a chapter opens its first section.
   const book = document.querySelector<HTMLElement>('[data-analysis]');
@@ -1460,49 +2416,164 @@ const notesSection: Record<string, { ch: string; notes: ReturnType<typeof notesF
       jumpTimer = window.setTimeout(done, 2500);
       target.scrollIntoView({ block: 'start', behavior: 'smooth' });
     };
+    const chGroups = [...book.querySelectorAll<HTMLDetailsElement>('details.ph__ch-group')];
+    const onlyChapter = (active: HTMLDetailsElement | null | undefined) => {
+      if (!active) return;
+      active.open = true;
+      chGroups.forEach((g) => {
+        if (g !== active && g.open) g.open = false;
+      });
+    };
+    const onlySection = (active: HTMLDetailsElement | null | undefined) => {
+      if (!active) return;
+      active.open = true;
+      sectionPanels.forEach((el) => {
+        const fold = el as HTMLDetailsElement;
+        if (fold !== active && fold.open) fold.open = false;
+      });
+    };
     const goTo = (target: HTMLElement | null, id: string) => {
       index?.removeAttribute('open');
+      onlyChapter(target?.closest<HTMLDetailsElement>('details.ph__ch-group'));
+      if (target instanceof HTMLDetailsElement) onlySection(target);
       setCurrent(id);
       jump(target);
     };
-    // Note numbers and "Back" links jump the same way, keeping the address in step.
+    const jumpToHashInBook = (hash: string) => {
+      history.replaceState(null, '', hash);
+      const targetEl = book.querySelector<HTMLElement>(hash);
+      onlyChapter(targetEl?.closest<HTMLDetailsElement>('details.ph__ch-group'));
+      const fold = targetEl?.closest<HTMLDetailsElement>('details.ph__fold');
+      if (fold) {
+        onlySection(fold);
+        if (fold.dataset.sectionPanel) setCurrent(fold.dataset.sectionPanel);
+      }
+      jump(targetEl);
+    };
+    // Note numbers and "Back" links jump the same way, opening their enclosing chapter and fold first.
     book.addEventListener('click', (e) => {
       const a = (e.target as Element).closest<HTMLAnchorElement>('a[href^="#note-"], a[href^="#ref-"]');
       if (!a) return;
       e.preventDefault();
-      const hash = a.getAttribute('href')!;
-      history.replaceState(null, '', hash);
-      jump(book.querySelector(hash));
+      jumpToHashInBook(a.getAttribute('href')!);
     });
     chapterBtns.forEach((b) =>
       b.addEventListener('click', () => {
         const ch = b.dataset.chapter!;
-        goTo(book.querySelector<HTMLElement>(`[data-chapter-head="${ch}"]`), ch.replace('ch', '') + '-1');
+        onlyChapter(book.querySelector<HTMLDetailsElement>(`[data-chapter-group="${ch}"]`));
+        goTo(book.querySelector<HTMLElement>(`[data-chapter-head="${ch}"]`), ch.replace('ch', '') + '-0');
       })
     );
     sectionBtns.forEach((b) =>
-      b.addEventListener('click', () => goTo(book.querySelector<HTMLElement>(`#s-${b.dataset.section}`), b.dataset.section!))
+      b.addEventListener('click', () => goTo(book.querySelector<HTMLElement>(`[data-section-panel="${b.dataset.section}"]`), b.dataset.section!))
+    );
+    chGroups.forEach((group) =>
+      group.addEventListener('toggle', () => {
+        if (group.open && group.dataset.chapterGroup) {
+          onlyChapter(group);
+          const chNum = group.dataset.chapterGroup.replace('ch', '');
+          const openFoldInGroup = group.querySelector<HTMLDetailsElement>('details.ph__fold[open]');
+          if (!openFoldInGroup) {
+            const firstFold = group.querySelector<HTMLDetailsElement>('details.ph__fold');
+            if (firstFold) onlySection(firstFold);
+          } else {
+            onlySection(openFoldInGroup);
+          }
+          const activeFold = group.querySelector<HTMLDetailsElement>('details.ph__fold[open]');
+          setCurrent(activeFold?.dataset.sectionPanel || `${chNum}-0`);
+          if (!jumping) {
+            const topBarBottom = pinned() ? toc!.getBoundingClientRect().bottom : 0;
+            if (group.getBoundingClientRect().top < topBarBottom) jump(group);
+          }
+        }
+      })
+    );
+    sectionPanels.forEach((el) =>
+      el.addEventListener('toggle', () => {
+        const fold = el as HTMLDetailsElement;
+        if (fold.open && fold.dataset.sectionPanel) {
+          onlySection(fold);
+          setCurrent(fold.dataset.sectionPanel);
+          if (!jumping) {
+            const topBarBottom = pinned() ? toc!.getBoundingClientRect().bottom : 0;
+            if (fold.getBoundingClientRect().top < topBarBottom) jump(fold);
+          }
+        }
+      })
     );
 
-    // Chapter openings count as their chapter's first section, in document order.
-    const markers: [HTMLElement, string][] = [...book.querySelectorAll<HTMLElement>('[data-section-panel], [data-chapter-head]')].map((el) => [
+    // Chapter openings and sections in document order.
+    const markers: [HTMLElement, string][] = sectionPanels.map((el) => [
       el,
-      el.dataset.sectionPanel ?? el.dataset.chapterHead!.replace('ch', '') + '-1',
+      el.dataset.sectionPanel!,
     ]);
-    // Follow the scroll: the current section is the last one whose top has passed under the tabs.
+    // Follow the scroll: the current section is the last open one whose top has passed under the tabs.
     let ticking = false;
     const spy = () => {
       ticking = false;
       const line = (pinned() ? toc!.getBoundingClientRect().bottom : 0) + 120;
-      let id = '1-1';
+      let id = currentId || '1-1';
       for (const [el, sid] of markers) {
-        if (el.getBoundingClientRect().top <= line) id = sid;
-        else break;
+        const group = el.closest<HTMLDetailsElement>('details.ph__ch-group');
+        if ((!group || group.open) && (el as HTMLDetailsElement).open && el.getBoundingClientRect().top <= line) id = sid;
       }
       setCurrent(id);
     };
     addEventListener('scroll', () => { if (!jumping && !ticking) { ticking = true; requestAnimationFrame(spy); } }, { passive: true });
     spy();
+
+    // 90% Screen Mindmap Lightbox wiring
+    const mmLightbox = book.querySelector<HTMLElement>('[data-mm-lightbox]');
+    const mmRoot = book.querySelector<HTMLElement>('[data-mindmap-root]');
+    const mmOpenBtn = book.querySelector<HTMLButtonElement>('[data-mm-open]');
+    const mmCloseEls = [...book.querySelectorAll<HTMLElement>('[data-mm-close]')];
+    let mmInstance: ReturnType<typeof initPowerhouseMindmap> | null = null;
+    const dPayload = JSON.parse(document.querySelector('#ph-data')!.textContent!);
+
+    const openMindmap = () => {
+      if (!mmLightbox || !mmRoot) return;
+      mmLightbox.hidden = false;
+      document.body.style.overflow = 'hidden';
+      if (!mmInstance) {
+        mmInstance = initPowerhouseMindmap({
+          root: mmRoot,
+          payload: {
+            sections: dPayload.mindmapSections || [],
+            notes: dPayload.mindmapNotes || [],
+            bibs: dPayload.mindmapBibs || [],
+          },
+          onJumpToSection: (sectionId: string) => {
+            closeMindmap();
+            const btn = book.querySelector<HTMLButtonElement>(`[data-section="${sectionId}"]`);
+            btn?.click();
+          },
+          onJumpToHash: (hash: string) => {
+            closeMindmap();
+            jumpToHashInBook(hash);
+          },
+        });
+      } else {
+        requestAnimationFrame(() => {
+          mmInstance?.resize();
+          mmInstance?.reheat();
+        });
+      }
+    };
+
+    const closeMindmap = () => {
+      if (!mmLightbox) return;
+      mmLightbox.hidden = true;
+      document.body.style.overflow = '';
+    };
+
+    mmOpenBtn?.addEventListener('click', openMindmap);
+    mmCloseEls.forEach((el) => el.addEventListener('click', closeMindmap));
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && mmLightbox && !mmLightbox.hidden) {
+        closeMindmap();
+        mmOpenBtn?.focus();
+      }
+    });
   }
 
   const root = document.querySelector<HTMLElement>('[data-analysis]');
@@ -1657,5 +2728,12 @@ const notesSection: Record<string, { ch: string; notes: ReturnType<typeof notesF
     borough.addEventListener('change', () => { mapFor('NYC')?.fit(borough.value === 'all' ? 'NYC' : borough.value); cityFilter(); });
     kind.addEventListener('change', cityFilter);
     slides.forEach((sl) => !sl.hidden && wake(sl));
+    const wakeIfOpen = () => {
+      const s11 = root.querySelector<HTMLDetailsElement>('#s-1-1');
+      const ch1Group = root.querySelector<HTMLDetailsElement>('[data-chapter-group="ch1"]');
+      if (s11?.open && (!ch1Group || ch1Group.open)) slides.forEach((sl) => !sl.hidden && wake(sl));
+    };
+    root.querySelector<HTMLDetailsElement>('#s-1-1')?.addEventListener('toggle', wakeIfOpen);
+    root.querySelector<HTMLDetailsElement>('[data-chapter-group="ch1"]')?.addEventListener('toggle', wakeIfOpen);
   }
 </script>

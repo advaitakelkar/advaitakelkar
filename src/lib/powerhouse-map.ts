@@ -259,21 +259,26 @@ export function createMap(
     tip.hidden = false;
   });
 
+  let fitted = false;
   const size = () => {
     const r = el.getBoundingClientRect();
     if (!r.width || !r.height) return;
     dpr = Math.min(2, devicePixelRatio || 1);
-    // Only touch the canvas when its size really changed: resetting width clears it.
-    if (r.width === w && r.height === h && canvas.width === Math.round(w * dpr)) { redraw(); return; }
-    w = r.width; h = r.height;
-    canvas.width = Math.round(w * dpr);
-    canvas.height = Math.round(h * dpr);
-    canvas.style.width = `${w}px`;
-    canvas.style.height = `${h}px`;
+    const sameSize = r.width === w && r.height === h && canvas.width === Math.round(w * dpr);
+    if (!sameSize) {
+      w = r.width; h = r.height;
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
+    }
     if (!data) return;
-    const fitT = fitTransform(opts.fit);
-    behaviour.scaleExtent([fitT.k * 0.7, fitT.k * 120]).translateExtent([[-220, -220], [1195, 830]]);
-    if (!moved) setT(fitT);
+    if (!sameSize || !fitted) {
+      fitted = true;
+      const fitT = fitTransform(opts.fit);
+      behaviour.scaleExtent([fitT.k * 0.7, fitT.k * 120]).translateExtent([[-220, -220], [1195, 830]]);
+      if (!moved) setT(fitT);
+    }
     redraw();
   };
   new ResizeObserver(size).observe(el);
