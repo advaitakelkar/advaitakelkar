@@ -42,7 +42,7 @@ are both scrap. Git remote: `https://github.com/advaitakelkar/advaitakelkar`.
 `COMPLETION.md` (this folder) is the live worklist for getting every project done and unlocked.
 The `website` agent (`~/.claude/agents/website.md`) drives from it. Start there for content work.
 
-## The Powerhouse page (`/powerhouse`)
+## The Powerhouse page (`/projects/the-powerhouse`; `/powerhouse` redirects there)
 
 The M.Arch thesis book, read on the web as one continuous document. Its text lives in
 `src/data/powerhouse-book.json`; `docs/powerhouse-book-bridge.md` is how that file and the

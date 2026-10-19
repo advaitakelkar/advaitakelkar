@@ -4,7 +4,7 @@
  * visible text, as rendered by the dev server, and judges it as a first-time reader would.
  * Read-only: prints a table, changes nothing. Scores sort the worklist; they are not verdicts.
  *
- *   aihub run typesafe -- node scripts/jev-powerhouse.mjs [http://localhost:4322/powerhouse]
+ *   aihub run typesafe -- node scripts/jev-powerhouse.mjs [http://localhost:4322/projects/the-powerhouse]
  *   … --json   for the raw answers
  *
  * Numbers are not checked here — the build scripts check those against their sources.
@@ -15,7 +15,7 @@ if (!KEY) {
   console.error('TYPESAFE_API_KEY not set. Run: aihub run typesafe -- node scripts/jev-powerhouse.mjs');
   process.exit(1);
 }
-const url = process.argv.find((a) => a.startsWith('http')) ?? 'http://localhost:4322/powerhouse';
+const url = process.argv.find((a) => a.startsWith('http')) ?? 'http://localhost:4322/projects/the-powerhouse';
 
 const THESIS =
   'An M.Arch thesis: the Powerhouse, an EV charging complex that turns the time spent charging into civic / community use. ' +
