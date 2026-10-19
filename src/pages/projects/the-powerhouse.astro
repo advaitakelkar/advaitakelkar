@@ -637,6 +637,37 @@ const lensFlow = [
   { n: 2, lens: 'Phenomenology', q: 'Can the stop become a place?', a: 'Yes: the site gathers a pause in a journey into a place people know and belong to.', cls: 'c-yellow', reads: '1.2, 1.3' },
   { n: 3, lens: 'Social theory', q: 'Who is it for?', a: 'Everyone: lived by its users rather than planned for vehicles, and safe because people are there.', cls: 'c-blue', reads: '1.4, 1.5' },
 ];
+// 2.0 opens on the stop in general: every mode's wait, then why cars are different, who
+// charges at home, who cannot, and how New York travels. Minutes on a 0–90 line.
+const modeStops = [
+  { name: 'Gas station', label: '≈5 min', from: 0, to: 5, cls: 'c-grey' },
+  { name: 'Bus stop', label: '≈8.5 min', from: 0, to: 8.5, cls: 'c-blue' },
+  { name: 'Airport', label: '≈80 min', from: 0, to: 80, cls: 'c-yellow' },
+  { name: 'EV charge', label: '20 min to overnight', from: 20, to: 90, cls: 'c-red' },
+].map((r) => ({ ...r, left: (r.from / 90) * 100, width: ((r.to - r.from) / 90) * 100 }));
+const dailyMiles = [
+  { name: 'Household car, one-car home', label: '≈50 mi', mi: 50, cls: 'c-grey' },
+  { name: 'Full-time ride-hail car', label: '180–190 mi', mi: 185, cls: 'c-orange' },
+];
+const fleetsNY = [
+  { k: 'Buses', v: 'MTA: all 5,840 buses zero-emission by 2040; its first electric buses could not last a day of service', cls: 'c-blue' },
+  { k: 'Taxis and ride-hail', v: 'TLC: the vast majority of licensed vehicles electric by 2030; 2 million EV rides by March 2024', cls: 'c-orange' },
+  { k: 'Trucks', v: 'A 30-minute break after 8 hours at the wheel, 10 hours off at night', cls: 'c-teal' },
+];
+const stopUsers = [
+  { k: 'Fleets', v: 'Buses, taxis, ride-hail, delivery and trucks, charging mid-shift', cls: 'c-orange' },
+  { k: 'Drivers without a driveway', v: 'Half of New York City car owners park on the street', cls: 'c-blue' },
+  { k: 'Travellers', v: 'Anyone a long way from home', cls: 'c-yellow' },
+  { k: 'Everyone else', v: 'People nearby who come for the programme, not the charge', cls: 'c-light' },
+];
+// 2.0 and 2.1. The chapter's path, then the ground the stop sits on.
+const ch2Path = [['2.1 The ground', 'c-grey'], ['2.2 The network', 'c-blue'], ['2.3 Stops that became places', 'c-yellow'], ['2.4 The vehicle', 'c-teal'], ['2.5 The law', 'c-orange'], ['2.6 The charger’s speed', 'c-red']];
+const parkingGrounds = ['Curb space', 'Private lot', 'Gas station forecourt', 'Supermarket car park', 'Highway rest area'];
+const garagesReborn = [
+  { what: 'Bakhmetevsky Bus Garage, Moscow', when: '1926–27 → 2012', now: 'Contemporary-art centre, then the Jewish Museum and Tolerance Center', cls: 'c-yellow' },
+  { what: 'Peckham Levels, London', when: '2017', now: 'Studios, workspace, venues, food and community programmes, run as a social enterprise', cls: 'c-orange' },
+  { what: '1111 Lincoln Road, Miami', when: '2010', now: 'A parking garage treated as a public room for events, dining and gathering', cls: 'c-teal' },
+];
 const programmeGrid = [['free', 'Free', 'c-teal'], ['paid', 'Paid', 'c-orange']].map(([k, kind, cls]) => ({
   kind, cls, items: programmeJudged.filter((p) => p.k === k),
 }));
@@ -1380,7 +1411,58 @@ const mindmapBibs = rawBibs.map((b) => ({
               </span>
             </summary>
             <div class="ph__fold-body">
-              {bookText[c.id] ? (
+              {c.id === 'ch2' && bookText[c.id] ? (
+                <div class="ph__intro-grid">
+                  <div class="ph__chapter-lead"><BookText text={bookText[c.id]} chapter={c.num} /></div>
+                  <div class="ph__figs" aria-label="2.0 the stop in general">
+                  <figure class="ph__fig ph__fig--wide">
+                    <figcaption><b class="ph__fig-num">Every trip has a stop</b><span>each way of travelling builds its own place to wait</span></figcaption>
+                    <div class="ph__fig-bars">{modeStops.map((r) => <div><span>{r.name} · {r.label}</span><div class="ph__fig-bar"><i style={`width:${r.left}%`}></i><i class={r.cls} style={`width:${r.width}%`}></i></div></div>)}</div>
+                    <p class="ph__fig-key">Typical wait, on a 0–90 minute line · airport is the median dwell time at large US airports</p>
+                    <p class="ph__fig-src">Sources: Ohio State University, bus wait study (2020); Journal of Air Transport Management, passenger dwell time at US airports (2024); the thesis, Table 1.1</p>
+                  </figure>
+                  <figure class="ph__fig">
+                    <figcaption><b class="ph__fig-num">95%</b><span>of a typical day a household car stands parked; it is driven about 65 minutes</span></figcaption>
+                    <div class="ph__fig-bar"><i class="c-grey" style="width:95%">Parked</i><i class="c-red" style="width:5%"></i></div>
+                    <p class="ph__fig-key"><span class="ph__swatch c-grey"></span>Parked <span class="ph__swatch c-red"></span>Driven · cars, unlike buses or trains, mostly wait</p>
+                    <p class="ph__fig-src">Source: US DOE, Fact of the Week #1356, from the 2022 National Household Travel Survey</p>
+                  </figure>
+                  <figure class="ph__fig">
+                    <figcaption><b class="ph__fig-num">4 in 5</b><span>charges happen at home, mostly overnight while the owner sleeps: the private car’s daily routine</span></figcaption>
+                    <div class="ph__fig-bar"><i class="c-orange" style="width:80%">Home</i><i class="c-teal" style="width:20%">Away</i></div>
+                    <p class="ph__fig-key"><span class="ph__swatch c-orange"></span>Home <span class="ph__swatch c-teal"></span>Public and work · only for those with a driveway</p>
+                    <p class="ph__fig-src">Source: US DOE, “National EV Charging Network” (see 1.1)</p>
+                  </figure>
+                  <figure class="ph__fig ph__fig--wide">
+                    <figcaption><b class="ph__fig-num">Fleets can’t wait for night</b><span>vehicles that work all day drive further and have to charge mid-shift</span></figcaption>
+                    <div class="ph__fig-bars">{dailyMiles.map((r) => <div><span>{r.name} · {r.label}</span><div class="ph__fig-bar"><i class={r.cls} style={`width:${(r.mi / 200) * 100}%`}></i></div></div>)}</div>
+                    <div class="ph__tests ph__tests--tight">{fleetsNY.map((f) => <div><i class={f.cls}>{f.k}</i><span>{f.v}</span></div>)}</div>
+                    <p class="ph__fig-key">Miles driven a day · New York’s public and hired fleets are going electric</p>
+                    <p class="ph__fig-src">Sources: US DOE, Fact of the Week #1332 (2024); ICCT, ride-hailing charging study (2020); Streetsblog NYC on the MTA audit (Aug 2026); NYC TLC, Charged Up! (2022) and Green Rides (2024); 49 C.F.R. § 395.3</p>
+                  </figure>
+                  <figure class="ph__fig">
+                    <figcaption><b class="ph__fig-num">69% vs 49%</b><span>of workers drive to work alone, across the US and in New York, the lowest of any state</span></figcaption>
+                    <div class="ph__fig-bars">
+                      <div><span>United States · 69.2%</span><div class="ph__fig-bar"><i class="c-grey" style="width:69.2%"></i></div></div>
+                      <div><span>New York · 49.1%</span><div class="ph__fig-bar"><i class="c-orange" style="width:49.1%"></i></div></div>
+                    </div>
+                    <p class="ph__fig-key">The rest go by transit, taxi, ride-hail, shared car, bike or on foot: more shared vehicles to charge</p>
+                    <p class="ph__fig-src">Source: US Census Bureau, American Community Survey 2023, via America’s Health Rankings</p>
+                  </figure>
+                  <figure class="ph__fig">
+                    <figcaption><b class="ph__fig-num">Who stops</b><span>the people a public charging stop is for</span></figcaption>
+                    <div class="ph__tests ph__tests--tight">{stopUsers.map((u) => <div><i class={u.cls}>{u.k}</i><span>{u.v}</span></div>)}</div>
+                    <p class="ph__fig-src">Sources: NYC DOT; the cards above</p>
+                  </figure>
+                  <figure class="ph__fig ph__fig--wide">
+                    <figcaption><b class="ph__fig-num">The stop</b><span>so this chapter defines it, measures it, and finds what sets its length</span></figcaption>
+                    <ol class="ph__fig-loop ph__fig-loop--row ph__fig-loop--6">{ch2Path.map(([t, c]) => <li class={c}>{t}</li>)}</ol>
+                    <p class="ph__fig-key">The last three set how long a stop lasts today · read through two lenses: sustainability and phenomenology</p>
+                    <p class="ph__fig-src">Source: the thesis, Chapter 2 · <a class="ph__fig-note" href="#note-2-11">Note 11</a></p>
+                  </figure>
+                </div>
+                </div>
+              ) : bookText[c.id] ? (
                 <BookText text={bookText[c.id]} chapter={c.num} />
               ) : (
                 <p class="ph__stub-note">Chapter {c.num} · {c.sections.map((s) => `${s.num} ${s.title}`).join(' · ')}</p>
@@ -1407,6 +1489,37 @@ const mindmapBibs = rawBibs.map((b) => ({
                   </ol>
                 ) : sec.id === '5-5' ? (
                   <ul class="ph__bib-list">{bibliography.map((b) => <li set:html={b} />)}</ul>
+                ) : sec.id === '2-1' && bookText[sec.id] ? (
+                  <div class="ph__intro-grid">
+                    <div class="ph__chapter-lead"><BookText text={bookText[sec.id]} chapter={c.num} /></div>
+                    <div class="ph__figs" aria-label="2.1 in numbers">
+                  <figure class="ph__fig ph__fig--wide">
+                    <figcaption><b class="ph__fig-num">The stop</b><span>minutes from arriving at a site to leaving it, on a visit to charge or to take a required rest</span></figcaption>
+                    <div class="ph__fig-bar ph__fig-strip"><i class="c-light" style="width:14%">Arrive</i><i class="c-red" style="width:72%">The stop, in minutes</i><i class="c-light" style="width:14%">Leave</i></div>
+                    <p class="ph__fig-key">What the Powerhouse measures, and what its programme fills</p>
+                    <p class="ph__fig-src">Source: the thesis, section 2.1</p>
+                  </figure>
+                  <figure class="ph__fig">
+                    <figcaption><b class="ph__fig-num">5 grounds</b><span>one kind of space: paved, sized to the vehicle, used minutes at a time</span></figcaption>
+                    <div class="ph__fig-chips">{parkingGrounds.map((t) => <i class="c-grey">{t}</i>)}</div>
+                    <p class="ph__fig-key"><span class="ph__swatch c-grey"></span>Ground the Powerhouse reuses instead of paving new land</p>
+                    <p class="ph__fig-src">Sources: Shoup, The High Cost of Free Parking (2005) · <a class="ph__fig-note" href="#note-2-12">Note 12</a>; Van der Ryn and Cowan (1996) · <a class="ph__fig-note" href="#note-2-13">Note 13</a></p>
+                  </figure>
+                  <figure class="ph__fig">
+                    <figcaption><b class="ph__fig-num">A seat</b><span>what a charging site needs that a gas station never did</span></figcaption>
+                    <div class="ph__fig-compare">
+                      <div class="c-light"><b>Gas station</b><span>About 5 minutes</span><span>Nowhere to sit: no one stays</span></div>
+                      <div class="c-red"><b>Charging site</b><span>20 minutes to overnight</span><span>Somewhere to sit, and a reason to stay</span></div>
+                    </div>
+                    <p class="ph__fig-src">Sources: the thesis, sections 1.2, 1.3 and 2.1</p>
+                  </figure>
+                  <figure class="ph__fig ph__fig--wide">
+                    <figcaption><b class="ph__fig-num">3 garages</b><span>multi-storey parking already turned into public places</span></figcaption>
+                    <div class="ph__tests">{garagesReborn.map((g) => <div><i class={g.cls}>{g.when}</i><span><b>{g.what}</b> · {g.now}</span></div>)}</div>
+                    <p class="ph__fig-src">Sources: Melnikov and Shukhov; Turner Works; Herzog &amp; de Meuron · <a class="ph__fig-note" href="#note-2-14">Note 14</a></p>
+                  </figure>
+                </div>
+                  </div>
                 ) : bookText[sec.id] ? (
                   <BookText text={bookText[sec.id]} chapter={c.num} />
                 ) : (
@@ -2031,6 +2144,7 @@ const mindmapBibs = rawBibs.map((b) => ({
   .ph__explain p { margin: 0; font-size: var(--_tokens---type--ultrathin); line-height: 1.55; }
   .ph__explain em { color: var(--_tokens---color--muted); }
   .ph__explain sup a { color: inherit; }
+  .ph__fig-loop--6 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .ph__fig-chips { display: flex; flex-wrap: wrap; gap: 4px; }
   .ph__fig-chips i { font-style: normal; padding: 4px 10px; border-radius: 999px; font-size: 11px; color: #111; }
   .ph__fig-units { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
