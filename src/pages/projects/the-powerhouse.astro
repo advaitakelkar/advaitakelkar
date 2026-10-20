@@ -680,6 +680,17 @@ const nycBoroughs = [...nyc.boroughs].sort((a, b) => b.per10k - a.per10k);
 const nycPerMax = Math.max(...nycBoroughs.map((b) => b.per10k));
 const nycTop = nyc.top10.slice(0, 5);
 // 2.0 and 2.1. The chapter's path, then the ground the stop sits on.
+// 2.1: New York as a city of cars by day. Who comes in, how they park, and where each could charge.
+const dayNight = [
+  { name: 'At night, residents', label: '≈1.6 million', v: 1.6, cls: 'c-grey' },
+  { name: 'By day, with commuters', label: '≈3.1 million', v: 3.1, cls: 'c-orange' },
+];
+const chargeWhileParked = [
+  { k: 'Commuter car', v: 'Parked 8–10 hours in a garage: a slow charge fills it by evening', cls: 'c-blue' },
+  { k: 'Taxi and ride-hail', v: 'Charges between trips, 20–60 minutes on a fast charger', cls: 'c-orange' },
+  { k: 'Bus', v: 'Tops up at a layover or depot inside the city', cls: 'c-teal' },
+  { k: 'Delivery van', v: 'Charges while it loads, or overnight at the curb', cls: 'c-yellow' },
+];
 const parkingGrounds = ['Curb space', 'Private lot', 'Gas station forecourt', 'Supermarket car park', 'Highway rest area'];
 const garagesReborn = [
   { what: 'Bakhmetevsky Bus Garage, Moscow', when: '1926–27 → 2012', now: 'Contemporary-art centre, then the Jewish Museum and Tolerance Center', cls: 'c-yellow' },
@@ -1534,29 +1545,36 @@ const mindmapBibs = rawBibs.map((b) => ({
                     <div class="ph__chapter-lead"><BookText text={bookText[sec.id]} chapter={c.num} /></div>
                     <div class="ph__figs" aria-label="2.1 in numbers">
                   <figure class="ph__fig ph__fig--wide">
-                    <figcaption><b class="ph__fig-num">The stop</b><span>minutes from arriving at a site to leaving it, on a visit to charge or to take a required rest</span></figcaption>
-                    <div class="ph__fig-bar ph__fig-strip"><i class="c-light" style="width:14%">Arrive</i><i class="c-red" style="width:72%">The stop, in minutes</i><i class="c-light" style="width:14%">Leave</i></div>
-                    <p class="ph__fig-key">What the Powerhouse measures, and what its programme fills</p>
-                    <p class="ph__fig-src">Source: the thesis, section 2.1</p>
+                    <figcaption><b class="ph__fig-num">2×</b><span>Manhattan’s population on a weekday, as people come in by car, bus, train, taxi and ride-hail</span></figcaption>
+                    <div class="ph__fig-bars">{dayNight.map((r) => <div><span>{r.name} · {r.label}</span><div class="ph__fig-bar"><i class={r.cls} style={`width:${(r.v / 3.1) * 100}%`}></i></div></div>)}</div>
+                    <p class="ph__fig-src">Source: NYU Rudin Center, The Dynamic Population of Manhattan (Census daytime definition) · <a class="ph__fig-note" href="#note-2-13">Note 13</a></p>
+                  </figure>
+                  <figure class="ph__fig">
+                    <figcaption><b class="ph__fig-num">490,000</b><span>vehicles a day enter Manhattan below 60th Street; about 785,000 people come in by private car</span></figcaption>
+                    <p class="ph__fig-src">Sources: MTA congestion relief zone counts, via ABC7 (Jan 2025) · <a class="ph__fig-note" href="#note-2-14">Note 14</a>; NYMTC, Hub Bound Travel Data 2024 · <a class="ph__fig-note" href="#note-2-15">Note 15</a></p>
+                  </figure>
+                  <figure class="ph__fig">
+                    <figcaption><b class="ph__fig-num">≈1 million</b><span>taxi and ride-hail trips a day across the city, by vehicles that work all day</span></figcaption>
+                    <p class="ph__fig-src">Source: NYC TLC (243 million high-volume ride-hail trips in 2025, plus yellow taxis) · <a class="ph__fig-note" href="#note-2-16">Note 16</a></p>
+                  </figure>
+                  <figure class="ph__fig">
+                    <figcaption><b class="ph__fig-num">103,000</b><span>off-street parking spaces in the Manhattan core, filled by the cars that come in each weekday</span></figcaption>
+                    <p class="ph__fig-src">Sources: NYC Planning, Manhattan Core Public Parking Study (2011) · <a class="ph__fig-note" href="#note-2-17">Note 17</a>; DCWP licenses 1,600+ garages and lots citywide</p>
                   </figure>
                   <figure class="ph__fig">
                     <figcaption><b class="ph__fig-num">5 grounds</b><span>one kind of space: paved, sized to the vehicle, used minutes at a time</span></figcaption>
                     <div class="ph__fig-chips">{parkingGrounds.map((t) => <i class="c-grey">{t}</i>)}</div>
-                    <p class="ph__fig-key"><span class="ph__swatch c-grey"></span>Ground the Powerhouse reuses instead of paving new land</p>
-                    <p class="ph__fig-src">Sources: Shoup, The High Cost of Free Parking (2005) · <a class="ph__fig-note" href="#note-2-12">Note 12</a>; Van der Ryn and Cowan (1996) · <a class="ph__fig-note" href="#note-2-13">Note 13</a></p>
+                    <p class="ph__fig-src">Sources: Shoup, The High Cost of Free Parking (2005) · <a class="ph__fig-note" href="#note-2-12">Note 12</a></p>
                   </figure>
-                  <figure class="ph__fig">
-                    <figcaption><b class="ph__fig-num">A seat</b><span>what a charging site needs that a gas station never did</span></figcaption>
-                    <div class="ph__fig-compare">
-                      <div class="c-light"><b>Gas station</b><span>About 5 minutes</span><span>Nowhere to sit: no one stays</span></div>
-                      <div class="c-red"><b>Charging site</b><span>20 minutes to overnight</span><span>Somewhere to sit, and a reason to stay</span></div>
-                    </div>
-                    <p class="ph__fig-src">Sources: the thesis, sections 1.2, 1.3 and 2.1</p>
+                  <figure class="ph__fig ph__fig--wide">
+                    <figcaption><b class="ph__fig-num">Charge where it parks</b><span>the vehicles that fill the city by day could charge in it, during the stops they already make</span></figcaption>
+                    <div class="ph__tests ph__tests--tight">{chargeWhileParked.map((r) => <div><i class={r.cls}>{r.k}</i><span>{r.v}</span></div>)}</div>
+                    <p class="ph__fig-src">Sources: the cards above; US DOT, “Charger Types and Speeds”</p>
                   </figure>
                   <figure class="ph__fig ph__fig--wide">
                     <figcaption><b class="ph__fig-num">3 garages</b><span>multi-storey parking already turned into public places</span></figcaption>
                     <div class="ph__tests">{garagesReborn.map((g) => <div><i class={g.cls}>{g.when}</i><span><b>{g.what}</b> · {g.now}</span></div>)}</div>
-                    <p class="ph__fig-src">Sources: Melnikov and Shukhov; Turner Works; Herzog &amp; de Meuron · <a class="ph__fig-note" href="#note-2-14">Note 14</a></p>
+                    <p class="ph__fig-src">Sources: Melnikov and Shukhov; Turner Works; Herzog &amp; de Meuron · <a class="ph__fig-note" href="#note-2-19">Note 19</a></p>
                   </figure>
                 </div>
                   </div>
