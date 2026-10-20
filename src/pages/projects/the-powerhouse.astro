@@ -9,6 +9,11 @@ import networks from '../../data/powerhouse-networks.json';
 import roads from '../../data/powerhouse-roads.json';
 import bookTextData from '../../data/powerhouse-book.json';
 import official from '../../data/powerhouse-official.json';
+import nyc from '../../data/powerhouse-nyc.json';
+import nycSvg from '../../../public/maps/nyc-ntas.svg?raw';
+import nyCounties from '../../data/powerhouse-ny-counties.json';
+import nyStateSvg from '../../../public/maps/ny-counties.svg?raw';
+import manhattanSvg from '../../../public/maps/nyc-manhattan.svg?raw';
 
 const fmt = (n: number) => Math.round(n).toLocaleString('en-US');
 const kfmt = (n: number) => (n >= 1e6 ? (n / 1e6).toFixed(2) + 'm' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'k' : String(Math.round(n)));
@@ -660,6 +665,20 @@ const stopUsers = [
   { k: 'Travellers', v: 'Anyone a long way from home', cls: 'c-yellow' },
   { k: 'Everyone else', v: 'People nearby who come for the programme, not the charge', cls: 'c-light' },
 ];
+// 2.0's New York City micro-study: public charging points by neighbourhood (2020 NTAs) and
+// per resident by borough (scripts/build-powerhouse-nyc.mjs). The map is inlined so its
+// classes take the page's palette.
+const stripXml = (svg: string) => svg.replace(/<\?xml[^>]*>\s*/, '');
+const nycMap = stripXml(nycSvg);
+const nyStateMap = stripXml(nyStateSvg);
+const manhattanMap = stripXml(manhattanSvg);
+const stateLegend = ['0–50', '51–150', '151–400', '401–1,000', '1,000+'];
+const stateRates = [{ name: 'New York City', per10k: nyCounties.nyc.per10k, cls: 'c-orange' }, { name: 'Rest of the state', per10k: nyCounties.rest.per10k, cls: 'c-grey' }];
+const mhTop = nyc.manhattan.top;
+const nycLegend = ['None', '1–10', '11–25', '26–50', '51–100', '100+'];
+const nycBoroughs = [...nyc.boroughs].sort((a, b) => b.per10k - a.per10k);
+const nycPerMax = Math.max(...nycBoroughs.map((b) => b.per10k));
+const nycTop = nyc.top10.slice(0, 5);
 // 2.0 and 2.1. The chapter's path, then the ground the stop sits on.
 const parkingGrounds = ['Curb space', 'Private lot', 'Gas station forecourt', 'Supermarket car park', 'Highway rest area'];
 const garagesReborn = [
@@ -1411,6 +1430,7 @@ const mindmapBibs = rawBibs.map((b) => ({
             </summary>
             <div class="ph__fold-body">
               {c.id === 'ch2' && bookText[c.id] ? (
+                <>
                 <div class="ph__intro-grid">
                   <div class="ph__chapter-lead"><BookText text={bookText[c.id]} chapter={c.num} /></div>
                   <div class="ph__figs" aria-label="2.0 the stop in general">
@@ -1455,6 +1475,33 @@ const mindmapBibs = rawBibs.map((b) => ({
                   </figure>
                 </div>
                 </div>
+                <section class="ph__zoom" aria-label="New York, from the state to Manhattan">
+                  <p class="ph__kicker ph__zoom-kicker">New York, closer: the state, the city, Manhattan</p>
+                  <div class="ph__zoom-grid">
+                    <figure class="ph__zoom-map"><div class="ph__nymap" set:html={nyStateMap} /><figcaption>New York State · public charging points by county</figcaption></figure>
+                    <figure class="ph__zoom-map"><div class="ph__nymap" set:html={nycMap} /><figcaption>New York City · by neighbourhood, Manhattan outlined</figcaption></figure>
+                    <figure class="ph__zoom-map"><div class="ph__nymap" set:html={manhattanMap} /><figcaption>Manhattan · by neighbourhood</figcaption></figure>
+                    <figure class="ph__fig">
+                      <figcaption><b class="ph__fig-num">{nyCounties.nyc.share}%</b><span>of the state’s public charging points are in New York City, home to {nyCounties.nyc.popShare}% of its people</span></figcaption>
+                      <div class="ph__fig-bars">{stateRates.map((r) => <div><span>{r.name} · {r.per10k} per 10,000 residents</span><div class="ph__fig-bar"><i class={r.cls} style={`width:${(r.per10k / nyCounties.rest.per10k) * 100}%`}></i></div></div>)}</div>
+                      <p class="ph__fig-key">Points per county · {stateLegend.map((l, i) => <><span class={`ph__swatch ph__nyq${i}`}></span>{l} </>)}</p>
+                      <p class="ph__fig-src">Sources: AFDC (Oct 2026), {nyCounties.totalPublicPorts.toLocaleString('en-US')} public points; US Census Bureau, county estimates (July 2024)</p>
+                    </figure>
+                    <figure class="ph__fig">
+                      <figcaption><b class="ph__fig-num">{nyc.withNone} of {nyc.neighbourhoods}</b><span>city neighbourhoods have no public charging point; ten hold {nyc.top10Share}% of the city’s {nyc.totalPorts.toLocaleString('en-US')}</span></figcaption>
+                      <div class="ph__fig-bars">{nycBoroughs.map((b) => <div><span>{b.name} · {b.per10k} per 10,000</span><div class="ph__fig-bar"><i class="c-orange" style={`width:${(b.per10k / nycPerMax) * 100}%`}></i></div></div>)}</div>
+                      <p class="ph__fig-key">Points per neighbourhood · {nycLegend.map((l, i) => <><span class={`ph__swatch ph__nyq${i}`}></span>{l} </>)}<span class="ph__swatch ph__nyqnp"></span>Park or airport</p>
+                      <p class="ph__fig-src">Sources: AFDC (Oct 2026); NYC Planning, 2020 NTAs; US Census Bureau (July 2024)</p>
+                    </figure>
+                    <figure class="ph__fig">
+                      <figcaption><b class="ph__fig-num">{nyc.manhattan.withNone} of {nyc.manhattan.neighbourhoods}</b><span>Manhattan neighbourhoods have none, all in the north and east; the Upper East Side has the most</span></figcaption>
+                      <div class="ph__fig-bars">{mhTop.map((n) => <div><span>{n.name} · {n.ports}</span><div class="ph__fig-bar"><i class="c-orange" style={`width:${(n.ports / mhTop[0].ports) * 100}%`}></i></div></div>)}</div>
+                      <p class="ph__fig-key">None: {nyc.manhattan.bottom.filter((n) => n.ports === 0).map((n) => n.name).join(', ')}</p>
+                      <p class="ph__fig-src">Source: AFDC station snapshot (Oct 2026), joined to 2020 NTAs</p>
+                    </figure>
+                  </div>
+                </section>
+                </>
               ) : bookText[c.id] ? (
                 <BookText text={bookText[c.id]} chapter={c.num} />
               ) : (
@@ -2072,10 +2119,10 @@ const mindmapBibs = rawBibs.map((b) => ({
   .ph__intro-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 48px; align-items: start; margin-bottom: 56px; }
   .ph__intro-grid .ph__chapter-lead { margin-bottom: 0; }
   .ph__figs { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
-  .ph__fig { margin: 0; padding: 14px; border: 1px solid var(--_tokens---color--line); border-radius: 12px; display: flex; flex-direction: column; gap: 10px; font-size: var(--_tokens---type--micro); }
+  .ph__fig { margin: 0; padding: 12px; border: 1px solid var(--_tokens---color--line); border-radius: 12px; display: flex; flex-direction: column; gap: 8px; font-size: var(--_tokens---type--micro); }
   .ph__fig figcaption, .ph__fig-cap { margin: 0; display: grid; gap: 4px; }
   .ph__fig > figcaption { margin-bottom: auto; } /* free height splits around the diagram, so number top and source bottom line up across cards */
-  .ph__fig-num { font-size: var(--_tokens---type--medium); font-weight: 500; line-height: 1; letter-spacing: -0.01em; }
+  .ph__fig-num { font-size: clamp(1.4rem, 1.1rem + 1vw, 2rem); font-weight: 500; line-height: 1; letter-spacing: -0.01em; }
   .ph__fig figcaption > span, .ph__fig-cap > span { font-size: var(--_tokens---type--ultrathin); line-height: 1.4; color: var(--_tokens---color--muted); }
   .ph__fig-split { padding-top: 10px; border-top: 1px solid var(--_tokens---color--line); }
   .ph__fig-key { margin: 0; font-size: var(--_tokens---type--ultrathin); color: var(--_tokens---color--muted); display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
@@ -2085,10 +2132,10 @@ const mindmapBibs = rawBibs.map((b) => ({
   .ph__waffle { display: grid; grid-template-columns: repeat(20, 1fr); gap: 3px; }
   .ph__waffle i { aspect-ratio: 1; border-radius: 2px; background: var(--ph-light); }
   .ph__waffle i.on { background: var(--ph-red); }
-  .ph__fig-bars { display: grid; gap: 8px; }
-  .ph__fig-bars > div > span { display: block; font-size: var(--_tokens---type--ultrathin); color: var(--_tokens---color--muted); margin-bottom: 3px; }
-  .ph__fig-bar { display: flex; height: 22px; border-radius: 4px; overflow: hidden; background: color-mix(in srgb, var(--ph-light) 35%, transparent); }
-  .ph__fig-bar i { display: flex; align-items: center; padding: 0 6px; font-style: normal; white-space: nowrap; overflow: hidden; color: #111; font-size: 11px; }
+  .ph__fig-bars { display: grid; gap: 5px; }
+  .ph__fig-bars > div > span { display: block; font-size: var(--_tokens---type--ultrathin); color: var(--_tokens---color--muted); margin-bottom: 2px; }
+  .ph__fig-bar { display: flex; height: 14px; border-radius: 4px; overflow: hidden; background: color-mix(in srgb, var(--ph-light) 35%, transparent); }
+  .ph__fig-bar i { display: flex; align-items: center; padding: 0 5px; font-style: normal; white-space: nowrap; overflow: hidden; color: #111; font-size: 10px; }
   .ph__fig-bar i.ph__fig-range { opacity: .45; padding: 0; }
   .ph__fig--wide { grid-column: 1 / -1; }
   .ph__pause { display: grid; gap: 6px; }
@@ -2117,12 +2164,12 @@ const mindmapBibs = rawBibs.map((b) => ({
   .ph__prog { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; align-items: start; font-size: var(--_tokens---type--ultrathin); }
   .ph__prog-kind { font-weight: 600; }
   .ph__prog .ph__fig-chips + .ph__prog-kind { margin-top: 8px; }
-  .ph__tests { display: grid; gap: 8px; }
-  .ph__tests > div { display: grid; grid-template-columns: 150px 1fr; gap: 10px; align-items: center; font-size: var(--_tokens---type--ultrathin); line-height: 1.4; }
+  .ph__tests { display: grid; gap: 5px; }
+  .ph__tests > div { display: grid; grid-template-columns: 150px 1fr; gap: 8px; align-items: center; font-size: var(--_tokens---type--ultrathin); line-height: 1.4; }
   .ph__tests--tight > div { grid-template-columns: 96px 1fr; }
   .ph__tests--stack > div { display: block; }
   .ph__tests--stack i { display: inline-block; margin: 0 6px 2px 0; padding: 3px 7px; }
-  .ph__tests i { font-style: normal; padding: 6px 8px; border-radius: 4px; font-size: 11px; color: #111; }
+  .ph__tests i { font-style: normal; padding: 3px 7px; border-radius: 4px; font-size: 11px; color: #111; }
   .ph__tests b { font-weight: 600; }
   .ph__fig-loop--row { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .ph__fig-loop--row li { line-height: 1.3; }
@@ -2139,6 +2186,24 @@ const mindmapBibs = rawBibs.map((b) => ({
   .ph__explain p { margin: 0; font-size: var(--_tokens---type--ultrathin); line-height: 1.55; }
   .ph__explain em { color: var(--_tokens---color--muted); }
   .ph__explain sup a { color: inherit; }
+  .ph__nymap :global(svg) { width: 100%; height: auto; display: block; }
+  .ph__nymap :global(path) { stroke: var(--_tokens---color--bg); stroke-width: 0.6; }
+  .ph__nymap :global(.q0), .ph__nyq0 { fill: var(--ph-light); background: var(--ph-light); }
+  .ph__nymap :global(.q1), .ph__nyq1 { fill: color-mix(in srgb, var(--ph-orange) 25%, var(--ph-light)); background: color-mix(in srgb, var(--ph-orange) 25%, var(--ph-light)); }
+  .ph__nymap :global(.q2), .ph__nyq2 { fill: color-mix(in srgb, var(--ph-orange) 45%, var(--ph-light)); background: color-mix(in srgb, var(--ph-orange) 45%, var(--ph-light)); }
+  .ph__nymap :global(.q3), .ph__nyq3 { fill: color-mix(in srgb, var(--ph-orange) 65%, var(--ph-light)); background: color-mix(in srgb, var(--ph-orange) 65%, var(--ph-light)); }
+  .ph__nymap :global(.q4), .ph__nyq4 { fill: color-mix(in srgb, var(--ph-orange) 85%, #000); background: color-mix(in srgb, var(--ph-orange) 85%, #000); }
+  .ph__nymap :global(.q5), .ph__nyq5 { fill: color-mix(in srgb, var(--ph-orange) 60%, #000); background: color-mix(in srgb, var(--ph-orange) 60%, #000); }
+  .ph__nymap :global(.np), .ph__nyqnp { fill: color-mix(in srgb, var(--ph-green) 30%, var(--ph-light)); background: color-mix(in srgb, var(--ph-green) 30%, var(--ph-light)); }
+  .ph__nymap :global(path) { stroke-width: 0.4; }
+  .ph__zoom { margin: 40px 0 8px; }
+  .ph__zoom-kicker { margin: 0 0 12px; }
+  .ph__zoom-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: start; }
+  .ph__zoom-map { margin: 0; display: grid; gap: 6px; }
+  .ph__zoom-map .ph__nymap { height: 300px; display: flex; align-items: center; justify-content: center; }
+  .ph__zoom-map .ph__nymap :global(svg) { width: 100%; height: 100%; }
+  .ph__zoom-map figcaption { font-size: var(--_tokens---type--ultrathin); color: var(--_tokens---color--muted); }
+  .ph__nymap :global(.hl) { stroke: var(--_tokens---color--fg); stroke-width: 1; }
   .ph__fig-chips { display: flex; flex-wrap: wrap; gap: 4px; }
   .ph__fig-chips i { font-style: normal; padding: 4px 10px; border-radius: 999px; font-size: 11px; color: #111; }
   .ph__fig-units { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
