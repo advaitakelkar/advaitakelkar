@@ -995,29 +995,39 @@ const mindmapBibs = rawBibs.map((b) => ({
     <div class="ph__reader">
     <div class="ph__reader-main">
 
-    <!-- Monograph Chapter 1 -->
-    <section class="ph__book-chapter" id="ch1" data-chapter-group="ch1">
-      <div class="ph__monograph-running-head" aria-hidden="true">
-        <span>The Powerhouse / Chapter {book[0].num}: {book[0].title}</span>
-        <span>{book[0].subtitle}</span>
+    <!-- Two-level collapsible outline: outer level is each Chapter (Chapter 1 · Charging Anchor,
+         Chapter 2 · The Stop, …) and inside each chapter are the card rows for N.0, N.1, N.2, … -->
+    <details class="ph__ch-group" data-chapter-group="ch1" open>
+      <summary class="ph__ch-sum">
+        <span class="ph__ch-title">Chapter {book[0].num} · {book[0].short}</span>
+        <span class="ph__ch-right">
+          <span class="ph__ch-meta">{book[0].num}.0 – {book[0].sections[book[0].sections.length - 1].num}</span>
+          <span class="ph__ch-arrow" aria-hidden="true"><Icon name="arrow" class="ph__ch-chevron" /></span>
+        </span>
+      </summary>
+      <div class="ph__ch-body">
+    <details class="ph__fold ph__fold--chapter" id="ch1" data-chapter-head="ch1" data-section-panel="1-0">
+      <summary class="ph__fold-sum">
+        <span class="ph__fold-title">{book[0].num}.0 {book[0].title}</span>
+        <span class="ph__fold-right">
+          <span class="ph__fold-meta">Chapter {book[0].num}</span>
+          <span class="ph__fold-ring" aria-hidden="true"><Icon name="arrow" class="ph__fold-chevron" /></span>
+        </span>
+      </summary>
+      <div class="ph__fold-body">
+        {bookText.ch1 && <BookText text={bookText.ch1} chapter="1" />}
       </div>
+    </details>
 
-      <header class="ph__monograph-ch-header">
-        <span class="ph__monograph-ch-kicker">CHAPTER {book[0].num}</span>
-        <h1 class="ph__monograph-ch-title">{book[0].title}</h1>
-        {book[0].subtitle && <p class="ph__monograph-ch-sub">{book[0].subtitle}</p>}
-      </header>
-
-      <div class="ph__monograph-section ph__monograph-section--intro" id="s-1-0" data-section-panel="1-0">
-        {bookText.ch1 && <div class="ph__book-columns"><BookText text={bookText.ch1} chapter="1" /></div>}
-      </div>
-
-      <article class="ph__monograph-section" id={`s-${dataSection}`} data-section-panel={dataSection}>
-        <div class="ph__book-running-head" aria-hidden="true">
-          <span>The Powerhouse / Chapter 1: {book[0].title}</span>
-          <span>{book[0].sections[0].num} {book[0].sections[0].title}</span>
-        </div>
-        <h2 class="ph__monograph-sec-title">{book[0].sections[0].num} {book[0].sections[0].title}</h2>
+    <details class="ph__fold ph__fold--section" id={`s-${dataSection}`} data-section-panel={dataSection} open>
+      <summary class="ph__fold-sum">
+        <span class="ph__fold-title">{book[0].sections[0].num} {book[0].sections[0].title}</span>
+        <span class="ph__fold-right">
+          <span class="ph__fold-meta">Book page {book[0].sections[0].page}</span>
+          <span class="ph__fold-ring" aria-hidden="true"><Icon name="arrow" class="ph__fold-chevron" /></span>
+        </span>
+      </summary>
+      <div class="ph__fold-body">
     <section id="usa" class="ph__slide" data-slide="0" aria-labelledby="usa-title">
       <div class="ph__intro-grid">
         <div class="ph__chapter-lead">{bookText[dataSection] && <BookText text={bookText[dataSection]} chapter="1" />}<p class="ph__lead-bridge">This section moves from the US network to California, New York and Florida. The question is simple: <b>where could charging also support everyday community life?</b></p></div>
@@ -1260,19 +1270,26 @@ const mindmapBibs = rawBibs.map((b) => ({
       <p class="ph__takeaway-source">Street parking: <a href="https://www.nyc.gov/html/dot/html/pr2026/expansion-of-curbside-electric-vehicle-charging.shtml">NYC DOT, curbside charging expansion, Aug 2026</a>. Chargers: AFDC station inventory, 18 Oct 2026. Vehicles: AFDC registrations 2016–2025.</p>
     </div>
 
-        <div class="ph__book-running-foot" aria-hidden="true">
-          <span>THE POWERHOUSE / CHAPTER {book[0].num}</span>
-          <span>{book[0].sections[0].page ? `PAGE ${book[0].sections[0].page}` : `SECTION ${book[0].sections[0].num}`}</span>
-        </div>
-      </article>
+    </div>
 
-      {book[0].sections.slice(1).map((sec) => (
-        <article class="ph__monograph-section" id={`s-${sec.id}`} data-section-panel={sec.id}>
+    
+      </div>
+    </details>
+
+    {book[0].sections.slice(1).map((sec) => (
+      <details class="ph__fold ph__fold--section" id={`s-${sec.id}`} data-section-panel={sec.id}>
+        <summary class="ph__fold-sum">
+          <span class="ph__fold-title">{sec.num} {sec.title}</span>
+          <span class="ph__fold-right">
+            <span class="ph__fold-meta">{sec.planned ? 'In the framework, not yet written' : sec.page ? `Book page ${sec.page}` : 'From the thesis book'}</span>
+            <span class="ph__fold-ring" aria-hidden="true"><Icon name="arrow" class="ph__fold-chevron" /></span>
+          </span>
+        </summary>
+        <div class="ph__fold-body">
           <div class="ph__book-running-head" aria-hidden="true">
             <span>The Powerhouse / Chapter 1: {book[0].title}</span>
             <span>{sec.num} {sec.title}</span>
           </div>
-          <h2 class="ph__monograph-sec-title">{sec.num} {sec.title}</h2>
           {sec.id === '1-2' && bookText[sec.id] ? (
             <div class="ph__intro-grid">
               <div class="ph__chapter-lead"><BookText text={bookText[sec.id]} chapter="1" /></div>
@@ -1511,28 +1528,35 @@ const mindmapBibs = rawBibs.map((b) => ({
             <span>THE POWERHOUSE / CHAPTER 1</span>
             <span>{sec.page ? `PAGE ${sec.page}` : `SECTION ${sec.num}`}</span>
           </div>
-        </article>
-      ))}
-    </section>
+        </div>
+      </details>
+    ))}
+      </div>
+    </details>
 
     {book.slice(1).map((c) => (
-      <section class="ph__book-chapter" id={c.id} data-chapter-group={c.id}>
-        <div class="ph__monograph-running-head" aria-hidden="true">
-          <span>The Powerhouse / Chapter {c.num}: {c.title}</span>
-          <span>{c.subtitle}</span>
-        </div>
-
-        <header class="ph__monograph-ch-header">
-          <span class="ph__monograph-ch-kicker">CHAPTER {c.num}</span>
-          <h1 class="ph__monograph-ch-title">{c.title}</h1>
-          {c.subtitle && <p class="ph__monograph-ch-sub">{c.subtitle}</p>}
-        </header>
-
-        <div class="ph__monograph-section ph__monograph-section--intro" id={`s-${c.num}-0`} data-section-panel={`${c.num}-0`}>
-          <div class="ph__book-running-head" aria-hidden="true">
-            <span>The Powerhouse / Chapter {c.num}: {c.title}</span>
-            <span>{c.num}.0 Introduction</span>
-          </div>
+      <details class="ph__ch-group" data-chapter-group={c.id}>
+        <summary class="ph__ch-sum">
+          <span class="ph__ch-title">Chapter {c.num} · {c.short}</span>
+          <span class="ph__ch-right">
+            <span class="ph__ch-meta">{c.num}.0 – {c.sections[c.sections.length - 1].num}</span>
+            <span class="ph__ch-arrow" aria-hidden="true"><Icon name="arrow" class="ph__ch-chevron" /></span>
+          </span>
+        </summary>
+        <div class="ph__ch-body">
+          <details class="ph__fold ph__fold--chapter" id={c.id} data-chapter-head={c.id} data-section-panel={`${c.num}-0`}>
+            <summary class="ph__fold-sum">
+              <span class="ph__fold-title">{c.num}.0 {c.title}</span>
+              <span class="ph__fold-right">
+                <span class="ph__fold-meta">Chapter {c.num}</span>
+                <span class="ph__fold-ring" aria-hidden="true"><Icon name="arrow" class="ph__fold-chevron" /></span>
+              </span>
+            </summary>
+            <div class="ph__fold-body">
+              <div class="ph__book-running-head" aria-hidden="true">
+                <span>The Powerhouse / Chapter {c.num}: {c.title}</span>
+                <span>{c.num}.0 Introduction</span>
+              </div>
               {c.id === 'ch2' && bookText[c.id] ? (
                 <>
                 <div class="ph__intro-grid">
@@ -1615,15 +1639,22 @@ const mindmapBibs = rawBibs.map((b) => ({
                 <span>THE POWERHOUSE / CHAPTER {c.num}</span>
                 <span>PAGE {c.num === '2' ? '12' : c.num === '3' ? '16' : c.num === '4' ? '18' : '22'}</span>
               </div>
-        </div>
-
-        {c.sections.map((sec) => (
-          <article class="ph__monograph-section" id={`s-${sec.id}`} data-section-panel={sec.id}>
-            <div class="ph__book-running-head" aria-hidden="true">
-              <span>The Powerhouse / Chapter {c.num}: {c.title}</span>
-              <span>{sec.num} {sec.title}</span>
             </div>
-            <h2 class="ph__monograph-sec-title">{sec.num} {sec.title}</h2>
+          </details>
+          {c.sections.map((sec) => (
+            <details class="ph__fold ph__fold--section" id={`s-${sec.id}`} data-section-panel={sec.id}>
+              <summary class="ph__fold-sum">
+                <span class="ph__fold-title">{sec.num} {sec.title}</span>
+                <span class="ph__fold-right">
+                  <span class="ph__fold-meta">{sec.planned ? 'In the framework, not yet written' : sec.page ? `Book page ${sec.page}` : 'From the thesis book'}</span>
+                  <span class="ph__fold-ring" aria-hidden="true"><Icon name="arrow" class="ph__fold-chevron" /></span>
+                </span>
+              </summary>
+              <div class="ph__fold-body">
+                <div class="ph__book-running-head" aria-hidden="true">
+                  <span>The Powerhouse / Chapter {c.num}: {c.title}</span>
+                  <span>{sec.num} {sec.title}</span>
+                </div>
                 {notesSection[sec.id] ? (
                   <ol class="ph__notes-list">
                     {notesSection[sec.id].notes.map((note) => (
@@ -1806,11 +1837,13 @@ const mindmapBibs = rawBibs.map((b) => ({
                   <span>THE POWERHOUSE / CHAPTER {c.num}</span>
                   <span>{sec.page ? `PAGE ${sec.page}` : `SECTION ${sec.num}`}</span>
                 </div>
-              </article>
-            ))}
-          </section>
-        ))}
-      </div>
+              </div>
+            </details>
+          ))}
+        </div>
+      </details>
+    ))}
+    </div>
     </div>
 
     <!-- 90% Screen Lightbox Modal for the Citation, Notes & Bibliography Mindmap -->
@@ -2015,374 +2048,166 @@ const mindmapBibs = rawBibs.map((b) => ({
   @media (max-width: 699.98px) { .ph__toc { position: static; } }
   .ph__toc .ph__tabbar { margin-top: 0; }
   .ph__toc .ph__subtabs { margin-bottom: 0; padding-bottom: 10px; border-bottom: 1px solid var(--_tokens---color--line); }
-  /* =========================================================================
-     The InDesign Editorial Monograph (The Powerhouse / Research Cut 03)
-     Visual, structural and typographic translation of the printed book spreads:
-     - Pure white paper background (#ffffff) with charcoal/black ink (#111111)
-     - Full-width running headers with 1px black hairline rules
-     - Bold 48px chapter titles & 28px section titles
-     - Multi-column editorial text flow
-     - Hairline-ruled figures with 36-40px bold callout numbers
-     - Clean typographic tables with hairline rules
-     - Running footers with chapter names & page numbers
-     - ZERO accordions: all chapters and sections are open and continuous
-     ========================================================================= */
-  .ph__reader {
-    position: relative;
-    background: #ffffff;
-    color: #111111;
-    max-width: 1180px;
-    margin: 40px auto 60px;
-    padding: 56px 64px 80px;
-    border-radius: 4px;
-    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55), 0 2px 10px rgba(0, 0, 0, 0.25);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  /* Two-level collapsible outline, styled after the About page:
+     1) Outer level (.ph__ch-group): Chapter 1 · Charging Anchor, Chapter 2 · The Stop, …
+     2) Inner level (.ph__fold): 1.0, 1.1, 1.2, …
+     Only one chapter and one subtab are open at a time; the open one is in full ink and every
+     closed chapter and subtab is muted grey. */
+  .ph__reader-main { display: flex; flex-direction: column; gap: 0; padding-top: 8px; }
+  .ph__ch-group { scroll-margin-top: calc(var(--ph-toc-h, 140px) + 68px); }
+  .ph__ch-group[open] + .ph__ch-group { margin-top: 24px; }
+  .ph__ch-sum {
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 8px 20px 10px;
+    border-bottom: 1px solid var(--_tokens---color--line-soft);
+    cursor: pointer;
+    user-select: none;
   }
-  @media (max-width: 860px) {
-    .ph__reader {
-      margin: 20px 8px;
-      padding: 32px 20px 56px;
-      border-radius: 2px;
-    }
+  .ph__ch-sum::-webkit-details-marker { display: none; }
+  .ph__ch-group[open] > .ph__ch-sum { border-bottom-color: transparent; padding-bottom: 6px; }
+  .ph__ch-title {
+    font-size: var(--_tokens---type--medium);
+    font-weight: var(--_tokens---weight--base);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--_tokens---color--muted);
+    font-variant-numeric: tabular-nums;
+    flex: 1;
+    min-width: 0;
+    transition: color var(--_tokens---motion--base) ease;
   }
-  .ph__reader-main {
+  .ph__ch-group[open] > .ph__ch-sum .ph__ch-title {
+    color: var(--_tokens---color--fg);
+  }
+  .ph__ch-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+  .ph__ch-meta { font-size: var(--_tokens---type--micro); font-weight: var(--_tokens---weight--light); color: var(--_tokens---color--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ph__ch-arrow {
+    font-size: var(--_tokens---type--medium);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.1em;
+    height: 1.1em;
+    color: var(--_tokens---color--muted);
+  }
+  .ph__ch-group[open] > .ph__ch-sum .ph__ch-arrow { color: var(--_tokens---color--fg); }
+  .ph__ch-arrow :global(.ph__ch-chevron) {
+    --icon-size: 0.75em;
+    color: inherit;
+    transition: transform var(--_tokens---motion--slow) cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .ph__ch-group[open] > .ph__ch-sum .ph__ch-arrow :global(.ph__ch-chevron) {
+    transform: rotate(135deg);
+  }
+  .ph__ch-body {
     display: flex;
     flex-direction: column;
-    gap: 0;
-  }
-  .ph__book-chapter {
-    scroll-margin-top: calc(var(--ph-toc-h, 140px) + 24px);
-    padding-bottom: 64px;
-    margin-bottom: 64px;
-    border-bottom: 2px solid #111111;
-  }
-  .ph__book-chapter:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
-    padding-bottom: 0;
-  }
-  .ph__monograph-running-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    border-bottom: 1.5px solid #111111;
-    padding-bottom: 10px;
-    margin-bottom: 36px;
-    font-size: 17px;
-    font-weight: 700;
-    color: #111111;
-    letter-spacing: -0.015em;
-  }
-  .ph__monograph-running-head span:last-child {
-    font-size: 13px;
-    font-weight: 400;
-    color: #555555;
-  }
-  .ph__monograph-ch-header {
-    margin-bottom: 32px;
-  }
-  .ph__monograph-ch-kicker {
-    display: block;
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: #444444;
-    margin-bottom: 8px;
-  }
-  .ph__monograph-ch-title {
-    font-size: clamp(34px, 4.5vw, 50px);
-    font-weight: 800;
-    line-height: 1.05;
-    letter-spacing: -0.03em;
-    color: #111111;
-    margin: 0 0 10px;
-  }
-  .ph__monograph-ch-sub {
-    font-size: clamp(18px, 2vw, 22px);
-    font-weight: 400;
-    line-height: 1.35;
-    color: #333333;
-    margin: 0;
-  }
-  .ph__monograph-section {
-    scroll-margin-top: calc(var(--ph-toc-h, 140px) + 24px);
-    margin-top: 52px;
+    gap: 8px;
     padding-top: 8px;
+    padding-left: clamp(20px, 3vw, 44px);
   }
-  .ph__monograph-section--intro {
-    margin-top: 16px;
-  }
-  .ph__monograph-sec-title {
-    font-size: clamp(22px, 2.5vw, 28px);
-    font-weight: 700;
-    line-height: 1.15;
-    letter-spacing: -0.02em;
-    color: #111111;
-    margin: 0 0 24px;
-  }
-  .ph__book-running-foot {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-top: 1px solid #111111;
-    padding-top: 12px;
-    margin-top: 48px;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #333333;
-  }
-  .ph__book-columns :global(.ph__book-body) {
-    columns: 2;
-    column-gap: 48px;
-    font-size: 13.5px;
-    line-height: 1.6;
-    color: #1a1a1a;
-  }
-  @media (max-width: 768px) {
-    .ph__book-columns :global(.ph__book-body) {
-      columns: 1;
-    }
-  }
-
-  /* InDesign monograph adjustments for text, figures, and tables inside white paper */
-  .ph__reader .ph__intro-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 40px;
-    align-items: start;
-    margin-bottom: 40px;
-  }
-  @media (max-width: 860px) {
-    .ph__reader .ph__intro-grid {
-      grid-template-columns: 1fr;
-      gap: 24px;
-    }
-  }
-  .ph__reader .ph__chapter-lead :global(.ph__book-body) {
-    columns: 1;
-    font-size: 13.5px;
-    line-height: 1.6;
-    color: #1a1a1a;
-  }
-  .ph__reader .ph__chapter-lead :global(p) {
-    margin: 0 0 1em;
-    color: #1a1a1a;
-  }
-  .ph__reader .ph__chapter-lead :global(b),
-  .ph__reader .ph__chapter-lead :global(strong) {
-    color: #111111;
-    font-weight: 600;
-  }
-  .ph__reader .ph__lead-bridge {
-    font-size: 13.5px;
-    line-height: 1.6;
-    color: #222222;
-    padding-top: 14px;
-    border-top: 1px solid #111111;
-    margin-top: 20px;
-  }
-
-  .ph__reader .ph__fig {
-    margin: 0 0 28px;
-    padding: 14px 0 16px;
-    border: none;
-    border-top: 1.25px solid #111111;
-    border-radius: 0;
-    background: transparent;
-    box-shadow: none;
-    color: #111111;
-  }
-  .ph__reader .ph__fig figcaption,
-  .ph__reader .ph__fig-cap {
-    display: block;
-    margin-bottom: 12px;
-  }
-  .ph__reader .ph__fig-num {
-    display: block;
-    font-size: clamp(30px, 3.2vw, 40px);
-    font-weight: 800;
-    line-height: 1.02;
-    letter-spacing: -0.025em;
-    color: #111111;
-    margin-bottom: 4px;
-  }
-  .ph__reader .ph__fig figcaption > span,
-  .ph__reader .ph__fig-cap > span {
-    font-size: 13px;
-    font-weight: 400;
-    line-height: 1.35;
-    color: #222222;
-    display: block;
-  }
-  .ph__reader .ph__fig-src {
-    font-size: 10.5px;
-    line-height: 1.45;
-    color: #666666;
-    margin-top: 12px;
-    padding-top: 6px;
-    border-top: 1px solid #eaeaea;
-  }
-  .ph__reader .ph__fig-src a {
-    color: #111111;
-    font-weight: 600;
-    text-decoration: underline;
-  }
-  .ph__reader .ph__fig-key {
-    font-size: 11px;
-    color: #555555;
-    margin-top: 8px;
-  }
-  .ph__reader .ph__fig-compare > div {
-    border: 1px solid #111111;
-    background: transparent;
-    color: #111111;
-    border-radius: 2px;
-    padding: 10px 12px;
-  }
-  .ph__reader .ph__tests > div {
-    border-bottom: 1px solid #eaeaea;
-    padding: 6px 0;
-    color: #222222;
-  }
-  .ph__reader .ph__tests i {
-    border: 1px solid #111111;
-    background: transparent;
-    color: #111111;
-    border-radius: 2px;
-  }
-  .ph__reader .ph__fig-loop li {
-    border: 1px solid #111111;
-    border-radius: 2px;
-    background: transparent;
-    color: #111111;
-  }
-  .ph__reader .ph__flow-step {
-    border-color: #111111;
-    background: transparent;
-    color: #111111;
-  }
-  .ph__reader .ph__flow-step i {
-    border: 1px solid #111111;
-    background: transparent;
-    color: #111111;
-    border-radius: 2px;
-  }
-
-  /* Monograph Table Styling (Table 1.1, Table 2.3, Comparison Table) */
-  .ph__reader :global(.ph__book-table),
-  .ph__reader .ph__compare table {
+  /* Subchapter rows (N.0, N.1, N.2, …) all share the same in-between subtitle size
+     (between --_tokens---type--medium [40px] and --_tokens---type--small [18px]) and
+     step body copy one size down. */
+  .ph__fold {
+    --row-name: clamp(1.25rem, 1.08rem + 0.65vw, 1.65rem);
+    scroll-margin-top: calc(var(--ph-toc-h, 140px) + 68px);
     width: 100%;
-    border-collapse: collapse;
-    border-top: 1.5px solid #111111;
-    margin: 24px 0;
-    font-size: 12.5px;
-    color: #111111;
+    box-sizing: border-box;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 2.5%, var(--_tokens---color--bg));
+    border: none;
+    box-shadow: 0 8px 24px -10px color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
+    padding-inline: 20px;
   }
-  .ph__reader :global(.ph__book-table th),
-  .ph__reader :global(.ph__book-table td),
-  .ph__reader .ph__compare th,
-  .ph__reader .ph__compare td {
-    padding: 10px 12px;
-    border-bottom: 1px solid #e0e0e0;
-    text-align: left;
-    vertical-align: top;
-  }
-  .ph__reader :global(.ph__book-table thead th),
-  .ph__reader .ph__compare thead th {
-    background-color: #f5f5f5;
-    font-weight: 600;
-    border-bottom: 1.5px solid #111111;
-    color: #111111;
-  }
-  .ph__reader :global(.ph__book-table tbody th) {
-    font-weight: 500;
-  }
-  .ph__reader :global(.ph__book-table figcaption),
-  .ph__reader .ph__compare h2 {
-    font-size: 15px;
-    font-weight: 700;
-    color: #111111;
-    margin-bottom: 8px;
-    letter-spacing: -0.01em;
-  }
-
-  /* Takeaway box inside monograph */
-  .ph__reader .ph__takeaway {
-    background: #111111;
-    color: #ffffff;
-    padding: 32px 36px;
-    border-radius: 4px;
-    margin: 40px 0;
-  }
-  .ph__reader .ph__takeaway h2 {
-    font-size: 26px;
-    font-weight: 700;
-    color: #ffffff;
-    margin: 0 0 14px;
-  }
-  .ph__reader .ph__takeaway p,
-  .ph__reader .ph__takeaway li {
-    font-size: 13.5px;
+  .ph__fold :global(.ph__book-body p) {
+    font-size: var(--_tokens---type--micro);
     line-height: 1.6;
-    color: #e5e5e5;
   }
-  .ph__reader .ph__takeaway b,
-  .ph__reader .ph__takeaway strong {
-    color: #ffffff;
+  .ph__fold :global(.ph__book-body .ph__book-lead) {
+    font-size: var(--_tokens---type--small);
   }
-  .ph__reader .ph__takeaway a {
-    color: #ffffff;
-    text-decoration: underline;
+  .ph__fold :global(.ph__book-body .ph__book-h) {
+    font-size: var(--_tokens---type--micro);
   }
-
-  /* Notes & Master Bibliography in Chapter 5 */
-  .ph__reader .ph__notes-list {
-    columns: 2;
-    column-gap: 40px;
-    font-size: 12px;
-    line-height: 1.6;
-    color: #333333;
-    padding-left: 20px;
-    margin: 20px 0;
-  }
-  .ph__reader .ph__notes-list li {
-    margin-bottom: 10px;
-    break-inside: avoid;
-  }
-  .ph__reader .ph__note-back {
-    font-weight: 600;
-    color: #111111;
-    margin-left: 4px;
-    text-decoration: none;
-  }
-  .ph__reader .ph__note-back:hover {
-    text-decoration: underline;
-  }
-  .ph__reader .ph__bib-list {
-    columns: 2;
-    column-gap: 40px;
+  .ph__fold-sum {
     list-style: none;
-    padding: 0;
-    margin: 20px 0;
-    font-size: 12px;
-    line-height: 1.6;
-    color: #222222;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    width: 100%;
+    padding-block: 6px;
+    cursor: pointer;
+    user-select: none;
   }
-  .ph__reader .ph__bib-list li {
-    margin-bottom: 14px;
-    break-inside: avoid;
-    padding-left: 24px;
-    text-indent: -24px;
+  .ph__fold[open] > .ph__fold-sum { padding-bottom: 4px; }
+  .ph__fold-sum::-webkit-details-marker { display: none; }
+  .ph__fold-title {
+    font-size: var(--row-name);
+    font-weight: var(--_tokens---weight--base);
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+    color: var(--_tokens---color--muted);
+    font-variant-numeric: tabular-nums;
+    flex: 1;
+    min-width: 0;
+    transition: color var(--_tokens---motion--base) ease;
   }
-  @media (max-width: 768px) {
-    .ph__reader .ph__notes-list,
-    .ph__reader .ph__bib-list {
-      columns: 1;
+  .ph__fold[open] > .ph__fold-sum .ph__fold-title {
+    color: var(--_tokens---color--fg);
+  }
+  .ph__fold-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+  .ph__fold-meta { font-size: var(--_tokens---type--micro); font-weight: var(--_tokens---weight--light); color: var(--_tokens---color--muted); white-space: nowrap; }
+  .ph__fold-ring {
+    font-size: var(--row-name);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 1.1em;
+    height: 1.1em;
+    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 18%, transparent);
+    border-radius: 50%;
+    color: var(--_tokens---color--muted);
+    transition: background-color var(--_tokens---motion--base) ease, border-color var(--_tokens---motion--base) ease, color var(--_tokens---motion--base) ease;
+  }
+  .ph__fold[open] > .ph__fold-sum .ph__fold-ring {
+    border-color: color-mix(in srgb, var(--_tokens---color--fg) 32%, transparent);
+    color: var(--_tokens---color--fg);
+  }
+  .ph__fold-ring :global(.ph__fold-chevron) {
+    --icon-size: 0.5em;
+    color: inherit;
+    flex-shrink: 0;
+    transition: transform var(--_tokens---motion--slow) cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .ph__fold[open] > .ph__fold-sum .ph__fold-ring :global(.ph__fold-chevron) {
+    transform: rotate(135deg);
+  }
+  @media (hover: hover) {
+    .ph__fold-sum:hover .ph__fold-ring {
+      background-color: var(--_tokens---color--fg);
+      border-color: var(--_tokens---color--fg);
+      color: var(--_tokens---color--bg);
     }
   }
+  @media (max-width: 699.98px) {
+    .ph__ch-sum { padding: 12px 0; }
+    .ph__ch-title { font-size: var(--_tokens---type--medium); }
+    .ph__ch-meta { display: none; }
+    .ph__ch-body { padding-left: 14px; }
+    .ph__fold { --row-name: 1.15rem; padding-inline: 14px; }
+    .ph__fold-sum { padding-block: 8px; }
+    .ph__fold[open] > .ph__fold-sum { padding-bottom: 6px; }
+    .ph__fold-title { line-height: 1.2; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .ph__fold-meta { display: none; }
+  }
+  .ph__fold-body { padding: 12px 0 18px; }
+
 
   /* The index: a dropdown pill at the bar's right end, opening a panel of chapters that fold */
   .ph__index { position: relative; flex: 0 1 auto; min-width: 0; margin-left: auto; font-size: var(--_tokens---type--micro); }
@@ -3557,16 +3382,43 @@ const mindmapBibs = rawBibs.map((b) => ({
       jumpTimer = window.setTimeout(done, 2500);
       target.scrollIntoView({ block: 'start', behavior: 'smooth' });
     };
+    const chGroups = [...book.querySelectorAll<HTMLDetailsElement>('details.ph__ch-group')];
+    const onlyChapter = (active: HTMLDetailsElement | null | undefined) => {
+      if (!active) return;
+      active.open = true;
+      chGroups.forEach((g) => {
+        if (g !== active && g.open) g.open = false;
+      });
+    };
+    const onlySection = (active: HTMLDetailsElement | null | undefined) => {
+      if (!active) return;
+      active.open = true;
+      sectionPanels.forEach((el) => {
+        const fold = el as HTMLDetailsElement;
+        if (fold !== active && fold.open) fold.open = false;
+      });
+    };
     const goTo = (target: HTMLElement | null, id: string) => {
       index?.removeAttribute('open');
+      onlyChapter(target?.closest<HTMLDetailsElement>('details.ph__ch-group'));
+      if (target instanceof HTMLDetailsElement) onlySection(target);
       setCurrent(id);
       jump(target);
     };
     const jumpToHashInBook = (hash: string) => {
       history.replaceState(null, '', hash);
       const targetEl = book.querySelector<HTMLElement>(hash);
-      const panel = targetEl?.closest<HTMLElement>('[data-section-panel]');
-      if (panel?.dataset.sectionPanel) setCurrent(panel.dataset.sectionPanel);
+      onlyChapter(targetEl?.closest<HTMLDetailsElement>('details.ph__ch-group'));
+      const fold = targetEl?.closest<HTMLDetailsElement>('details.ph__fold');
+      if (fold) {
+        onlySection(fold);
+        if (fold.dataset.sectionPanel) setCurrent(fold.dataset.sectionPanel);
+      }
+      let ancestor = targetEl?.parentElement;
+      while (ancestor && ancestor !== book) {
+        if (ancestor instanceof HTMLDetailsElement) ancestor.open = true;
+        ancestor = ancestor.parentElement;
+      }
       jump(targetEl);
     };
     // Note numbers, "Back" links, and section anchor links jump smoothly.
@@ -3581,8 +3433,8 @@ const mindmapBibs = rawBibs.map((b) => ({
     chapterBtns.forEach((b) =>
       b.addEventListener('click', () => {
         const ch = b.dataset.chapter!;
-        const target = book.querySelector<HTMLElement>(`[data-chapter-group="${ch}"]`);
-        goTo(target, ch.replace('ch', '') + '-0');
+        onlyChapter(book.querySelector<HTMLDetailsElement>(`[data-chapter-group="${ch}"]`));
+        goTo(book.querySelector<HTMLElement>(`[data-chapter-head="${ch}"]`), ch.replace('ch', '') + '-0');
       })
     );
     sectionBtns.forEach((b) =>
@@ -3592,20 +3444,55 @@ const mindmapBibs = rawBibs.map((b) => ({
         goTo(target, sid);
       })
     );
+    chGroups.forEach((group) =>
+      group.addEventListener('toggle', () => {
+        if (group.open && group.dataset.chapterGroup) {
+          onlyChapter(group);
+          const chNum = group.dataset.chapterGroup.replace('ch', '');
+          const openFoldInGroup = group.querySelector<HTMLDetailsElement>('details.ph__fold[open]');
+          if (!openFoldInGroup) {
+            const firstFold = group.querySelector<HTMLDetailsElement>('details.ph__fold');
+            if (firstFold) onlySection(firstFold);
+          } else {
+            onlySection(openFoldInGroup);
+          }
+          const activeFold = group.querySelector<HTMLDetailsElement>('details.ph__fold[open]');
+          setCurrent(activeFold?.dataset.sectionPanel || `${chNum}-0`);
+          if (!jumping) {
+            const topBarBottom = pinned() ? toc!.getBoundingClientRect().bottom : 0;
+            if (group.getBoundingClientRect().top < topBarBottom) jump(group);
+          }
+        }
+      })
+    );
+    sectionPanels.forEach((el) =>
+      el.addEventListener('toggle', () => {
+        const fold = el as HTMLDetailsElement;
+        if (fold.open && fold.dataset.sectionPanel) {
+          onlySection(fold);
+          setCurrent(fold.dataset.sectionPanel);
+          if (!jumping) {
+            const topBarBottom = pinned() ? toc!.getBoundingClientRect().bottom : 0;
+            if (fold.getBoundingClientRect().top < topBarBottom) jump(fold);
+          }
+        }
+      })
+    );
 
     // Chapter openings and sections in document order.
     const markers: [HTMLElement, string][] = sectionPanels.map((el) => [
       el,
       el.dataset.sectionPanel!,
     ]);
-    // Follow the scroll: the current section is the last one whose top has passed under the tabs.
+    // Follow the scroll: the current section is the last open one whose top has passed under the tabs.
     let ticking = false;
     const spy = () => {
       ticking = false;
       const line = (pinned() ? toc!.getBoundingClientRect().bottom : 0) + 120;
-      let id = currentId || '1-0';
+      let id = currentId || '1-1';
       for (const [el, sid] of markers) {
-        if (el.getBoundingClientRect().top <= line) id = sid;
+        const group = el.closest<HTMLDetailsElement>('details.ph__ch-group');
+        if ((!group || group.open) && (el as HTMLDetailsElement).open && el.getBoundingClientRect().top <= line) id = sid;
       }
       setCurrent(id);
     };
