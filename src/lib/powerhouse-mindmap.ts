@@ -1,4 +1,4 @@
-export type NodeKind = 'core' | 'chapter' | 'section' | 'note' | 'bib' | 'lens' | 'custom';
+export type NodeKind = 'core' | 'chapter' | 'lens' | 'bib' | 'section' | 'note' | 'custom';
 
 export interface MindNode {
   id: string;
@@ -6,6 +6,8 @@ export interface MindNode {
   code?: string;
   kind: NodeKind;
   chapter?: string;
+  category?: string;
+  categoryLabel?: string;
   sectionId?: string;
   noteHash?: string;
   refHash?: string;
@@ -53,7 +55,11 @@ export interface MindmapBibItem {
   id: string;
   idx: number;
   shortAuthor: string;
+  category?: string;
+  categoryLabel?: string;
+  lens?: string;
   plain: string;
+  html?: string;
   chapters: string[];
   sections: string[];
 }
@@ -71,17 +77,18 @@ interface StoredState {
   pinnedPositions: Record<string, { x: number; y: number }>;
 }
 
-const STORAGE_KEY = 'ph-mindmap-citations-v2';
+const STORAGE_KEY = 'ph-mindmap-citations-v3';
+
+const BASE_CORE: Omit<MindNode, 'x' | 'y' | 'vx' | 'vy'> = {
+  id: 'powerhouse',
+  code: 'THESIS',
+  label: 'The Powerhouse',
+  kind: 'core',
+  summary:
+    'Core Thesis Hypothesis: An Electric Vehicle Powerhouse complex turns charging activities into an opportunity for enhanced civic / community engagements. Sited in New York, it establishes an architectural marvel—a new civic station typology for fast charging, succeeding the 19th-century railway terminus.',
+};
 
 const BASE_CHAPTERS: Omit<MindNode, 'x' | 'y' | 'vx' | 'vy'>[] = [
-  {
-    id: 'powerhouse',
-    code: 'THESIS',
-    label: 'The Powerhouse',
-    kind: 'core',
-    summary:
-      'Central Thesis: An Electric Vehicle Powerhouse complex turns charging activities into an opportunity for enhanced civic / community engagements. Every chapter, subchapter, endnote, and bibliography source is wired to this core.',
-  },
   {
     id: 'ch1',
     code: '1.0',
@@ -90,7 +97,7 @@ const BASE_CHAPTERS: Omit<MindNode, 'x' | 'y' | 'vx' | 'vy'>[] = [
     chapter: '1',
     sectionId: '1-0',
     summary:
-      'Chapter 1: A Sustainable Charging Anchor (1.1–1.8) · 40 endnotes (5.1) covering electrification, stop architecture, charge time, public space, and theoretical framework.',
+      'Chapter 1: A Sustainable Charging Anchor (1.1–1.7) · Foundational argument, electrification velocity, dwell time physics, public space trade-offs, and theoretical framework.',
   },
   {
     id: 'ch2',
@@ -100,7 +107,7 @@ const BASE_CHAPTERS: Omit<MindNode, 'x' | 'y' | 'vx' | 'vy'>[] = [
     chapter: '2',
     sectionId: '2-0',
     summary:
-      'Chapter 2: The Stop: Parking, Travel and the Time to Charge (2.1–2.6) · 23 endnotes (5.2) covering parking land use, corridors, stations, battery physics, regulation, and adaptive 5-floor frames.',
+      'Chapter 2: The Stop: Parking, Travel and the Time to Charge (2.1–2.6) · New York vehicle flows, fast-charging network anatomy, station histories, battery physics, and the Calatrava Civic Station Marvel typology.',
   },
   {
     id: 'ch3',
@@ -110,7 +117,7 @@ const BASE_CHAPTERS: Omit<MindNode, 'x' | 'y' | 'vx' | 'vy'>[] = [
     chapter: '3',
     sectionId: '3-0',
     summary:
-      'Chapter 3: The Public Space: What Each Neighbourhood Needs (3.1–3.6) · 12 endnotes (5.3) covering cultural landscape, Third Place, dwelling, gathering, and plaza thresholds.',
+      'Chapter 3: The Public Space: What Each Neighbourhood Needs · Cultural landscape, Third Place sociology, dwelling, and civic threshold design.',
   },
   {
     id: 'ch4',
@@ -120,17 +127,55 @@ const BASE_CHAPTERS: Omit<MindNode, 'x' | 'y' | 'vx' | 'vy'>[] = [
     chapter: '4',
     sectionId: '4-0',
     summary:
-      'Chapter 4: The Programme: Anchoring the Community Stop (4.1–4.6) · 12 endnotes (5.4) covering 6-mode hubs, Right to the City, energy commons, cross-subsidy, and 24-hour rhythms.',
+      'Chapter 4: The Programme: Anchoring the Community Stop · Cross-subsidy financial modeling, right to the city, multi-modal interchange, and 24-hour diurnal rhythms.',
+  },
+];
+
+const BASE_LENSES: Omit<MindNode, 'x' | 'y' | 'vx' | 'vy'>[] = [
+  {
+    id: 'lens-typology',
+    code: 'LENS 1',
+    label: 'Civic Station Marvel Typology',
+    kind: 'lens',
+    category: 'typology',
+    summary:
+      'Typological Marvel: Fast charging as the 21st-century successor to the railway cathedral. Inspired by Santiago Calatrava (Gare do Oriente, Liège-Guillemins, Stadelhofen, WTC Oculus), Carroll Meeks, and Stan Allen. A monumental civic portal with kinetic photovoltaic canopy, ground concourse, and subterranean energy vault.',
   },
   {
-    id: 'ch5',
-    code: '5.0',
-    label: 'Ch 5 · Notes & Bibliography',
-    kind: 'chapter',
-    chapter: '5',
-    sectionId: '5-0',
+    id: 'lens-sustainability',
+    code: 'LENS 2',
+    label: 'Sustainability & Grid Infrastructure',
+    kind: 'lens',
+    category: 'sustainability',
     summary:
-      'Chapter 5: Notes and Bibliography (5.1–5.5) · Gathers all chapter endnotes and the master alphabetical bibliography.',
+      'Sustainability & Energy: Meeting present needs without compromising the future (Brundtland). Ian McHarg ecological layering, Van der Ryn & Cowan visible energy, Lyle regenerative systems, and multi-megawatt BESS grid-storage optimization (Zhang, Sun, Nehrir).',
+  },
+  {
+    id: 'lens-phenomenology',
+    code: 'LENS 3',
+    label: 'Phenomenology of Place & Dwell',
+    kind: 'lens',
+    category: 'phenomenology',
+    summary:
+      'Phenomenology of Dwell: Heideggerian gathering (the charger as bridge), Norberg-Schulz genius loci, Marc Augé non-place critique, Cooley transportation breaks, and Whyte/Gehl public life observation.',
+  },
+  {
+    id: 'lens-social',
+    code: 'LENS 4',
+    label: 'Social Theory & Right to the City',
+    kind: 'lens',
+    category: 'social',
+    summary:
+      'Social Theory: Henri Lefebvre spatial production, rhythmanalysis, and the Right to the City. Countering Foucauldian surveillance with Jane Jacobs natural eyes-on-the-street, Sennett civic craftsmanship, and Klinenberg social infrastructure.',
+  },
+  {
+    id: 'lens-fleets',
+    code: 'LENS 5',
+    label: 'Fleets, Transport & Regulations',
+    kind: 'lens',
+    category: 'fleets',
+    summary:
+      'Transport & Regulatory Framework: Full-time ride-hail, transit buses, and freight trucking mid-shift charging. Federal FMCSA 49 CFR § 395.3 hours of service, EU 561/2006, FHWA NEVI 150 kW standards, and Con Edison commercial EV tariffs.',
   },
 ];
 
@@ -148,48 +193,19 @@ export function initPowerhouseMindmap(opts: MindmapOptions) {
 
   // UI elements
   const searchInput = root.querySelector<HTMLInputElement>('[data-mm-search]')!;
-  const filterBtns = [...root.querySelectorAll<HTMLButtonElement>('[data-mm-filter]')];
+  const bibFilterBtns = [...root.querySelectorAll<HTMLButtonElement>('[data-mm-bib-filter]')];
   const layoutBtns = [...root.querySelectorAll<HTMLButtonElement>('[data-mm-layout]')];
-  const depthBtns = [...root.querySelectorAll<HTMLButtonElement>('[data-mm-depth]')];
-  const linkModeBtn = root.querySelector<HTMLButtonElement>('[data-mm-link-mode]')!;
   const zoomInBtn = root.querySelector<HTMLButtonElement>('[data-mm-zoom="in"]')!;
   const zoomOutBtn = root.querySelector<HTMLButtonElement>('[data-mm-zoom="out"]')!;
   const zoomResetBtn = root.querySelector<HTMLButtonElement>('[data-mm-zoom="reset"]')!;
   const statsEl = root.querySelector<HTMLElement>('[data-mm-stats]')!;
-
-  // Inspector & Builder tabs
-  const sideTabBtns = [...root.querySelectorAll<HTMLButtonElement>('[data-mm-sidetab]')];
-  const sidePanes = [...root.querySelectorAll<HTMLElement>('[data-mm-pane]')];
-
-  // Inspector DOM
-  const inspKind = root.querySelector<HTMLElement>('[data-mm-insp-kind]')!;
-  const inspTitle = root.querySelector<HTMLElement>('[data-mm-insp-title]')!;
-  const inspSummary = root.querySelector<HTMLElement>('[data-mm-insp-summary]')!;
-  const inspEditArea = root.querySelector<HTMLTextAreaElement>('[data-mm-insp-edit]')!;
-  const inspSaveBtn = root.querySelector<HTMLButtonElement>('[data-mm-insp-save]')!;
-  const inspOpenBookBtn = root.querySelector<HTMLButtonElement>('[data-mm-open-book]')!;
-  const inspOpenRefBtn = root.querySelector<HTMLButtonElement>('[data-mm-open-ref]')!;
-  const inspPinBtn = root.querySelector<HTMLButtonElement>('[data-mm-pin-node]')!;
-  const inspDeleteBtn = root.querySelector<HTMLButtonElement>('[data-mm-delete-node]')!;
-  const inspConnections = root.querySelector<HTMLElement>('[data-mm-connections]')!;
-
-  // Builder DOM
-  const addNodeForm = root.querySelector<HTMLFormElement>('[data-mm-add-node-form]')!;
-  const addEdgeForm = root.querySelector<HTMLFormElement>('[data-mm-add-edge-form]')!;
-  const sourceSelect = root.querySelector<HTMLSelectElement>('[data-mm-edge-source]')!;
-  const targetSelect = root.querySelector<HTMLSelectElement>('[data-mm-edge-target]')!;
-  const exportBtn = root.querySelector<HTMLButtonElement>('[data-mm-export]')!;
-  const resetCustomBtn = root.querySelector<HTMLButtonElement>('[data-mm-reset-custom]')!;
+  const bibStream = root.querySelector<HTMLElement>('[data-mm-bib-stream]')!;
 
   let nodes: MindNode[] = [];
   let edges: MindEdge[] = [];
   let activeFilter = 'all';
-  let layoutMode: 'force' | 'radial' | 'columns' = 'force';
-  let localDepth = 0;
+  let layoutMode: 'force' | 'clusters' | 'radial' = 'force';
   let searchQuery = '';
-  let linkDrawMode = false;
-  let linkDragSource: MindNode | null = null;
-  let pointerWorld = { x: 0, y: 0 };
 
   let selectedId = 'powerhouse';
   let hoveredId: string | null = null;
@@ -199,7 +215,7 @@ export function initPowerhouseMindmap(opts: MindmapOptions) {
   let pointerDownPos = { x: 0, y: 0 };
   let pointerMoved = false;
 
-  let cam = { x: 0, y: 0, k: 0.82 };
+  let cam = { x: 0, y: 0, k: 0.86 };
   let width = 900;
   let height = 640;
   let alpha = 1;
@@ -216,131 +232,103 @@ export function initPowerhouseMindmap(opts: MindmapOptions) {
   };
 
   let stored = loadStored();
-  const saveStored = () => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
-    } catch {
-      // ignore
+
+  const getLensAngle = (lensId: string) => {
+    switch (lensId) {
+      case 'lens-typology':
+        return -Math.PI / 2; // top
+      case 'lens-sustainability':
+        return -Math.PI / 2 + (2 * Math.PI) / 5; // top-right
+      case 'lens-phenomenology':
+        return -Math.PI / 2 + (4 * Math.PI) / 5; // bottom-right
+      case 'lens-social':
+        return -Math.PI / 2 + (6 * Math.PI) / 5; // bottom-left
+      case 'lens-fleets':
+        return -Math.PI / 2 + (8 * Math.PI) / 5; // top-left
+      default:
+        return 0;
     }
   };
 
   const buildGraph = () => {
     const map = new Map<string, MindNode>();
 
-    // 1. Core + Chapters (inner ring)
-    BASE_CHAPTERS.forEach((c) => {
-      const pinned = stored.pinnedPositions[c.id];
-      const chNum = Number(c.chapter || 0);
-      const angle = ((chNum - 1) / 5) * Math.PI * 2 - Math.PI / 2;
-      const r = c.kind === 'core' ? 0 : 140;
+    // 1. Core Hub
+    map.set(BASE_CORE.id, {
+      ...BASE_CORE,
+      x: 0,
+      y: 0,
+      vx: 0,
+      vy: 0,
+      pinned: true,
+    });
+
+    // 2. Chapters (Inner Orbit, r = 135)
+    BASE_CHAPTERS.forEach((c, idx) => {
+      const angle = (idx / 4) * Math.PI * 2 - Math.PI / 4;
+      const r = 135;
       map.set(c.id, {
         ...c,
-        summary: stored.editedSummaries[c.id] ?? c.summary,
-        x: pinned ? pinned.x : Math.cos(angle) * r,
-        y: pinned ? pinned.y : Math.sin(angle) * r,
+        x: Math.cos(angle) * r,
+        y: Math.sin(angle) * r,
         vx: 0,
         vy: 0,
-        pinned: !!pinned,
       });
     });
 
-    // 2. Subchapters (1.1..5.5 — middle ring)
-    payload.sections.forEach((sec, idx) => {
-      const chIndex = Number(sec.chapterNum) - 1;
-      const baseAngle = (chIndex / 5) * Math.PI * 2 - Math.PI / 2;
-      const secNum = Number(sec.num.split('.')[1] || 1);
-      const angle = baseAngle + (secNum - 3.5) * 0.14;
-      const r = 265 + (idx % 2) * 28;
-      const pinned = stored.pinnedPositions[sec.id];
-      map.set(sec.id, {
-        id: sec.id,
-        code: sec.num,
-        label: `${sec.num} ${sec.title}`,
-        kind: 'section',
-        chapter: sec.chapterNum,
-        sectionId: sec.id,
-        summary:
-          stored.editedSummaries[sec.id] ||
-          `${sec.bodyPlain || sec.title} (${sec.notesCount} endnote${sec.notesCount === 1 ? '' : 's'} in Chapter ${sec.chapterNum}).`,
-        x: pinned ? pinned.x : Math.cos(angle) * r,
-        y: pinned ? pinned.y : Math.sin(angle) * r,
+    // 3. Thematic Lenses (Middle Orbit, r = 250)
+    BASE_LENSES.forEach((lens) => {
+      const angle = getLensAngle(lens.id);
+      const r = 250;
+      map.set(lens.id, {
+        ...lens,
+        x: Math.cos(angle) * r,
+        y: Math.sin(angle) * r,
         vx: 0,
         vy: 0,
-        pinned: !!pinned,
       });
     });
 
-    // 3. Every Footnote / Endnote (Note 1.1..4.12 — outer sector ring)
-    payload.notes.forEach((nt, idx) => {
-      const chIndex = Number(nt.ch) - 1;
-      const baseAngle = (chIndex / 5) * Math.PI * 2 - Math.PI / 2;
-      const spread = ((nt.n % 14) - 6.5) * 0.085;
-      const r = 390 + (idx % 3) * 34;
-      const pinned = stored.pinnedPositions[nt.id];
-      map.set(nt.id, {
-        id: nt.id,
-        code: `N${nt.ch}.${nt.n}`,
-        label: `Note ${nt.ch}.${nt.n} · ${nt.shortLabel}`,
-        kind: 'note',
-        chapter: nt.ch,
-        sectionId: nt.fromSection,
-        noteHash: `#note-${nt.ch}-${nt.n}`,
-        refHash: `#ref-${nt.ch}-${nt.n}`,
-        summary: stored.editedSummaries[nt.id] || nt.plain,
-        x: pinned ? pinned.x : Math.cos(baseAngle + spread) * r,
-        y: pinned ? pinned.y : Math.sin(baseAngle + spread) * r,
-        vx: 0,
-        vy: 0,
-        pinned: !!pinned,
-      });
+    // 4. 58 Bibliography Nodes (Clustered around their respective thematic lenses)
+    const lensBibCounts: Record<string, number> = {};
+    payload.bibs.forEach((b) => {
+      const lensId = b.lens || `lens-${b.category || 'typology'}`;
+      lensBibCounts[lensId] = (lensBibCounts[lensId] || 0) + 1;
     });
 
-    // 4. Every Bibliography Entry (5.5 Bibliography — outer halo / shared hubs)
+    const lensBibCounters: Record<string, number> = {};
     payload.bibs.forEach((b, idx) => {
-      const firstCh = Number(b.chapters[0] || (idx % 4) + 1) - 1;
-      const baseAngle = (firstCh / 5) * Math.PI * 2 - Math.PI / 2;
-      const offset = ((idx % 12) - 5.5) * 0.095;
-      const r = 515 + (idx % 3) * 38;
-      const pinned = stored.pinnedPositions[b.id];
+      const lensId = b.lens || `lens-${b.category || 'typology'}`;
+      const totalInLens = lensBibCounts[lensId] || 12;
+      const curIndex = lensBibCounters[lensId] || 0;
+      lensBibCounters[lensId] = curIndex + 1;
+
+      const baseAngle = getLensAngle(lensId);
+      const spread = ((curIndex - (totalInLens - 1) / 2) / Math.max(1, totalInLens)) * 1.25;
+      const r = 410 + (idx % 3) * 32;
+      const angle = baseAngle + spread;
+
       map.set(b.id, {
         id: b.id,
         code: `BIB ${String(b.idx).padStart(2, '0')}`,
         label: b.shortAuthor,
         kind: 'bib',
-        chapter: b.chapters[0] || '5',
-        sectionId: '5-5',
-        summary:
-          stored.editedSummaries[b.id] ||
-          `${b.plain} — Cited in: ${b.sections.length ? b.sections.map((s) => s.replace('-', '.')).join(', ') : '5.5 Master Bibliography'}.`,
-        x: pinned ? pinned.x : Math.cos(baseAngle + offset) * r,
-        y: pinned ? pinned.y : Math.sin(baseAngle + offset) * r,
+        category: b.category,
+        categoryLabel: b.categoryLabel,
+        summary: b.plain,
+        x: Math.cos(angle) * r,
+        y: Math.sin(angle) * r,
         vx: 0,
         vy: 0,
-        pinned: !!pinned,
-      });
-    });
-
-    // 5. Custom nodes added by user
-    stored.customNodes.forEach((cn, i) => {
-      const pinned = stored.pinnedPositions[cn.id];
-      map.set(cn.id, {
-        ...cn,
-        summary: stored.editedSummaries[cn.id] ?? cn.summary,
-        x: pinned ? pinned.x : cn.x ?? Math.cos(i * 1.1) * 300,
-        y: pinned ? pinned.y : cn.y ?? Math.sin(i * 1.1) * 300,
-        vx: 0,
-        vy: 0,
-        custom: true,
-        pinned: !!pinned,
       });
     });
 
     nodes = [...map.values()];
 
-    // Build Edges
+    // 5. Build Edges
     const edgeList: MindEdge[] = [];
     const seen = new Set<string>();
-    const addEdge = (source: string, target: string, label?: string, strength = 1, custom = false) => {
+    const addEdge = (source: string, target: string, label?: string, strength = 1) => {
       if (!map.has(source) || !map.has(target) || source === target) return;
       const key = source < target ? `${source}|${target}` : `${target}|${source}`;
       if (seen.has(key)) return;
@@ -351,49 +339,41 @@ export function initPowerhouseMindmap(opts: MindmapOptions) {
         target,
         label,
         strength,
-        custom,
       });
     };
 
     // Core -> Chapters
-    ['ch1', 'ch2', 'ch3', 'ch4', 'ch5'].forEach((chId) => {
-      addEdge('powerhouse', chId, 'chapter', 1.5);
+    ['ch1', 'ch2', 'ch3', 'ch4'].forEach((chId) => {
+      addEdge('powerhouse', chId, 'chapter', 1.8);
     });
 
-    // Chapters -> Subchapters
-    payload.sections.forEach((sec) => {
-      addEdge(sec.chapterId, sec.id, 'subchapter', 1.25);
+    // Core -> Lenses
+    BASE_LENSES.forEach((lens) => {
+      addEdge('powerhouse', lens.id, 'thematic lens', 1.6);
     });
 
-    // Notes compilation chapters in Ch 5 -> Ch 1..4
-    addEdge('5-1', 'ch1', 'compiles Ch 1 notes', 1.1);
-    addEdge('5-2', 'ch2', 'compiles Ch 2 notes', 1.1);
-    addEdge('5-3', 'ch3', 'compiles Ch 3 notes', 1.1);
-    addEdge('5-4', 'ch4', 'compiles Ch 4 notes', 1.1);
+    // Lenses -> Chapters
+    addEdge('lens-typology', 'ch1', 'grounds typology', 1.1);
+    addEdge('lens-typology', 'ch2', 'station cathedral', 1.3);
+    addEdge('lens-sustainability', 'ch1', 'ecological design', 1.2);
+    addEdge('lens-sustainability', 'ch2', 'grid & storage', 1.2);
+    addEdge('lens-phenomenology', 'ch1', 'pause to place', 1.1);
+    addEdge('lens-phenomenology', 'ch3', 'place gathering', 1.3);
+    addEdge('lens-social', 'ch1', 'social framework', 1.1);
+    addEdge('lens-social', 'ch4', 'right to the city', 1.3);
+    addEdge('lens-fleets', 'ch2', 'fleet turnaround', 1.4);
 
-    // Subchapter -> Note, Note -> 5.x Notes Section, Note -> Bibliography, and Subchapter -> Bibliography
-    payload.notes.forEach((nt) => {
-      addEdge(nt.fromSection, nt.id, `note ${nt.n}`, 1.15);
-      addEdge(nt.notesSectionId, nt.id, `listed in 5.${nt.ch}`, 0.55);
-      nt.bibIds.forEach((bibId) => {
-        addEdge(nt.id, bibId, 'cites source', 1.05);
-        addEdge(nt.fromSection, bibId, `cites via n.${nt.n}`, 0.75);
-      });
-    });
-
-    // Bibliography -> 5.5 Master Bibliography + Chapter links
+    // Bibliography -> Thematic Lenses and Cited Chapters
     payload.bibs.forEach((b) => {
-      addEdge('5-5', b.id, 'in 5.5 Bibliography', 0.55);
-      b.sections.forEach((secId) => {
-        addEdge(secId, b.id, 'cites bibliography', 0.85);
-      });
+      const lensId = b.lens || `lens-${b.category || 'typology'}`;
+      addEdge(lensId, b.id, 'cites literature', 1.05);
+
       b.chapters.forEach((chNum) => {
-        addEdge(`ch${chNum}`, b.id, `Ch ${chNum} source`, 0.5);
+        if (chNum >= '1' && chNum <= '4') {
+          addEdge(`ch${chNum}`, b.id, `Ch ${chNum} source`, 0.65);
+        }
       });
     });
-
-    // Custom edges
-    stored.customEdges.forEach((e) => addEdge(e.source, e.target, e.label, e.strength ?? 1.1, true));
 
     edges = edgeList;
 
@@ -406,57 +386,22 @@ export function initPowerhouseMindmap(opts: MindmapOptions) {
       n.degree = deg.get(n.id) || 1;
     });
 
-    populateEdgeSelects();
     updateStats();
-  };
-
-  const populateEdgeSelects = () => {
-    if (!sourceSelect || !targetSelect) return;
-    const sorted = [...nodes].sort((a, b) => (a.code || a.label).localeCompare(b.code || b.label));
-    const html = sorted
-      .map((n) => `<option value="${n.id}">${n.code ? `[${n.code}] ` : ''}${n.label}</option>`)
-      .join('');
-    sourceSelect.innerHTML = html;
-    targetSelect.innerHTML = html;
-    if (selectedId) sourceSelect.value = selectedId;
-    if (sorted.length > 1) targetSelect.value = sorted[1].id;
   };
 
   const getVisibleSet = (): Set<string> => {
     const visible = new Set<string>();
     nodes.forEach((n) => {
       let pass = true;
-      if (activeFilter === 'bib') {
-        pass = n.kind === 'core' || n.kind === 'chapter' || n.kind === 'section' || n.kind === 'bib';
-      } else if (activeFilter === 'notes') {
-        pass = n.kind === 'core' || n.kind === 'chapter' || n.kind === 'section' || n.kind === 'note';
-      } else if (activeFilter === 'ch1' || activeFilter === 'ch2' || activeFilter === 'ch3' || activeFilter === 'ch4') {
-        const targetCh = activeFilter.replace('ch', '');
-        pass =
-          n.kind === 'core' ||
-          n.chapter === targetCh ||
-          n.id === `5-${targetCh}` ||
-          (n.kind === 'bib' && edges.some((e) => (e.source === n.id || e.target === n.id) && (e.source.startsWith(`${targetCh}-`) || e.target.startsWith(`${targetCh}-`) || e.source.startsWith(`note-${targetCh}-`) || e.target.startsWith(`note-${targetCh}-`))));
-      } else if (activeFilter === 'custom') {
-        pass = n.kind === 'core' || n.kind === 'chapter' || !!n.custom;
+      if (activeFilter !== 'all') {
+        if (n.kind === 'bib') {
+          pass = n.category === activeFilter;
+        } else if (n.kind === 'lens') {
+          pass = n.id === `lens-${activeFilter}`;
+        }
       }
       if (pass) visible.add(n.id);
     });
-
-    if (localDepth > 0 && selectedId) {
-      const hopSet = new Set<string>([selectedId]);
-      for (let step = 0; step < localDepth; step++) {
-        const current = [...hopSet];
-        edges.forEach((e) => {
-          if (current.includes(e.source)) hopSet.add(e.target);
-          if (current.includes(e.target)) hopSet.add(e.source);
-        });
-      }
-      for (const id of [...visible]) {
-        if (!hopSet.has(id)) visible.delete(id);
-      }
-    }
-
     return visible;
   };
 
@@ -465,166 +410,153 @@ export function initPowerhouseMindmap(opts: MindmapOptions) {
     const q = searchQuery.toLowerCase();
     return (
       n.label.toLowerCase().includes(q) ||
-      (n.code && n.code.toLowerCase().includes(q)) ||
-      n.summary.toLowerCase().includes(q)
+      (n.code?.toLowerCase().includes(q) ?? false) ||
+      n.summary.toLowerCase().includes(q) ||
+      (n.categoryLabel?.toLowerCase().includes(q) ?? false)
     );
   };
 
   const nodeRadius = (n: MindNode): number => {
     if (n.kind === 'core') return 16;
-    if (n.kind === 'chapter') return 11.5;
-    if (n.kind === 'section') return 8;
-    if (n.kind === 'bib') return 6.5 + Math.min(3.5, (n.degree || 1) * 0.35);
-    if (n.kind === 'note') return 5;
-    return 7.5;
-  };
-
-  const targetCoordsForLayout = (n: MindNode, idx: number): { x: number; y: number } => {
-    if (layoutMode === 'radial') {
-      if (n.kind === 'core') return { x: 0, y: 0 };
-      const chNum = Number(n.chapter || 1) - 1;
-      const baseA = (chNum / 5) * Math.PI * 2 - Math.PI / 2;
-      if (n.kind === 'chapter') return { x: Math.cos(baseA) * 145, y: Math.sin(baseA) * 145 };
-      if (n.kind === 'section') {
-        const secIdx = Number((n.code || '1.1').split('.')[1] || 1);
-        const a = baseA + (secIdx - 3.5) * 0.14;
-        return { x: Math.cos(a) * 265, y: Math.sin(a) * 265 };
-      }
-      if (n.kind === 'note') {
-        const nIdx = Number((n.code || 'N1.1').split('.')[1] || 1);
-        const a = baseA + ((nIdx % 16) - 7.5) * 0.075;
-        const r = 385 + (nIdx % 2) * 32;
-        return { x: Math.cos(a) * r, y: Math.sin(a) * r };
-      }
-      const a = (idx / Math.max(1, nodes.length)) * Math.PI * 2;
-      return { x: Math.cos(a) * 510, y: Math.sin(a) * 510 };
-    }
-    if (layoutMode === 'columns') {
-      // 4 horizontal tiers: Chapters -> Subchapters -> Notes -> Bibliography
-      const chNum = Number(n.chapter || 1) - 3;
-      if (n.kind === 'core') return { x: 0, y: -320 };
-      if (n.kind === 'chapter') return { x: chNum * 210, y: -220 };
-      if (n.kind === 'section') {
-        const secIdx = Number((n.code || '1.1').split('.')[1] || 1);
-        return { x: chNum * 210 + (secIdx - 3.5) * 26, y: -105 };
-      }
-      if (n.kind === 'note') {
-        const nIdx = Number((n.code || 'N1.1').split('.')[1] || 1);
-        return { x: chNum * 210 + ((nIdx % 10) - 4.5) * 20, y: 35 + Math.floor(nIdx / 10) * 34 };
-      }
-      if (n.kind === 'bib') {
-        const bIdx = Number((n.code || 'BIB 01').replace(/\D+/g, '') || 1) - 1;
-        return { x: ((bIdx % 15) - 7) * 72, y: 220 + Math.floor(bIdx / 15) * 44 };
-      }
-      return { x: chNum * 180, y: 0 };
-    }
-    return { x: 0, y: 0 };
+    if (n.kind === 'chapter') return 12;
+    if (n.kind === 'lens') return 10.5;
+    return 6.5;
   };
 
   const stepPhysics = () => {
+    if (alpha < 0.008) return;
+
     const visible = getVisibleSet();
     const activeNodes = nodes.filter((n) => visible.has(n.id));
-    const nodeById = new Map(activeNodes.map((n) => [n.id, n]));
 
-    if (layoutMode !== 'force') {
-      activeNodes.forEach((n, idx) => {
-        if (n === draggingNode || n.pinned) return;
-        const tgt = targetCoordsForLayout(n, idx);
-        n.x += (tgt.x - n.x) * 0.12;
-        n.y += (tgt.y - n.y) * 0.12;
-        n.vx = 0;
-        n.vy = 0;
+    // Force layout / Cluster layout / Radial layout
+    if (layoutMode === 'radial') {
+      activeNodes.forEach((n) => {
+        if (n.kind === 'core') {
+          n.x += (0 - n.x) * 0.1;
+          n.y += (0 - n.y) * 0.1;
+          return;
+        }
+        let targetR = 410;
+        let targetAngle = Math.atan2(n.y, n.x);
+        if (n.kind === 'chapter') targetR = 140;
+        else if (n.kind === 'lens') targetR = 250;
+        const tx = Math.cos(targetAngle) * targetR;
+        const ty = Math.sin(targetAngle) * targetR;
+        n.vx += (tx - n.x) * 0.05 * alpha;
+        n.vy += (ty - n.y) * 0.05 * alpha;
       });
-      return;
+    } else if (layoutMode === 'clusters') {
+      activeNodes.forEach((n) => {
+        if (n.kind === 'core') {
+          n.x += (0 - n.x) * 0.1;
+          n.y += (0 - n.y) * 0.1;
+          return;
+        }
+        if (n.kind === 'lens') {
+          const angle = getLensAngle(n.id);
+          const tx = Math.cos(angle) * 240;
+          const ty = Math.sin(angle) * 240;
+          n.vx += (tx - n.x) * 0.08 * alpha;
+          n.vy += (ty - n.y) * 0.08 * alpha;
+        } else if (n.kind === 'bib') {
+          const lensNode = activeNodes.find((x) => x.id === `lens-${n.category}`);
+          if (lensNode) {
+            n.vx += (lensNode.x - n.x) * 0.02 * alpha;
+            n.vy += (lensNode.y - n.y) * 0.02 * alpha;
+          }
+        }
+      });
     }
 
-    const repulsion = 1950;
-    const springLen = 88;
-    const springK = 0.04;
-
-    for (let i = 0; i < activeNodes.length; i++) {
+    // Node-Node Repulsion
+    const count = activeNodes.length;
+    for (let i = 0; i < count; i++) {
       const a = activeNodes[i];
-      for (let j = i + 1; j < activeNodes.length; j++) {
+      for (let j = i + 1; j < count; j++) {
         const b = activeNodes[j];
-        let dx = b.x - a.x;
-        let dy = b.y - a.y;
-        let d2 = dx * dx + dy * dy;
-        if (d2 < 16) {
-          dx = (Math.random() - 0.5) * 4;
-          dy = (Math.random() - 0.5) * 4;
-          d2 = dx * dx + dy * dy + 16;
-        }
-        if (d2 > 280000) continue;
-        const d = Math.sqrt(d2);
-        const f = (repulsion * alpha) / d2;
-        const fx = (dx / d) * f;
-        const fy = (dy / d) * f;
-        if (a !== draggingNode && !a.pinned) {
-          a.vx -= fx;
-          a.vy -= fy;
-        }
-        if (b !== draggingNode && !b.pinned) {
-          b.vx += fx;
-          b.vy += fy;
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const distSq = dx * dx + dy * dy + 1;
+        const dist = Math.sqrt(distSq);
+
+        let minDist = nodeRadius(a) + nodeRadius(b) + 18;
+        if (a.kind === 'lens' || b.kind === 'lens') minDist += 24;
+        if (a.kind === 'core' || b.kind === 'core') minDist += 35;
+
+        if (dist < minDist) {
+          const force = ((minDist - dist) / dist) * 0.45 * alpha;
+          const fx = dx * force;
+          const fy = dy * force;
+          if (!a.pinned) {
+            a.vx -= fx;
+            a.vy -= fy;
+          }
+          if (!b.pinned) {
+            b.vx += fx;
+            b.vy += fy;
+          }
+        } else if (dist < 260) {
+          const rep = (3800 / (distSq + 80)) * alpha;
+          const fx = (dx / dist) * rep;
+          const fy = (dy / dist) * rep;
+          if (!a.pinned) {
+            a.vx -= fx;
+            a.vy -= fy;
+          }
+          if (!b.pinned) {
+            b.vx += fx;
+            b.vy += fy;
+          }
         }
       }
     }
 
+    // Edge Springs
     edges.forEach((e) => {
-      const s = nodeById.get(e.source);
-      const t = nodeById.get(e.target);
-      if (!s || !t) return;
+      const s = mapNode(e.source);
+      const t = mapNode(e.target);
+      if (!s || !t || !visible.has(s.id) || !visible.has(t.id)) return;
+
       const dx = t.x - s.x;
       const dy = t.y - s.y;
-      const d = Math.sqrt(dx * dx + dy * dy) || 1;
-      const targetDist =
-        s.kind === 'core' || t.kind === 'core'
-          ? springLen * 1.45
-          : s.kind === 'note' || t.kind === 'note'
-            ? springLen * 0.78
-            : springLen;
-      const f = (d - targetDist) * springK * (e.strength ?? 1) * alpha;
-      const fx = (dx / d) * f;
-      const fy = (dy / d) * f;
-      if (s !== draggingNode && !s.pinned) {
+      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+
+      let targetDist = 95;
+      if (s.kind === 'core' || t.kind === 'core') targetDist = 135;
+      else if (s.kind === 'lens' || t.kind === 'lens') targetDist = 80;
+
+      const delta = dist - targetDist;
+      const force = delta * 0.024 * (e.strength || 1) * alpha;
+      const fx = (dx / dist) * force;
+      const fy = (dy / dist) * force;
+
+      if (!s.pinned) {
         s.vx += fx;
         s.vy += fy;
       }
-      if (t !== draggingNode && !t.pinned) {
+      if (!t.pinned) {
         t.vx -= fx;
         t.vy -= fy;
       }
     });
 
+    // Gentle Gravity towards Center
     activeNodes.forEach((n) => {
-      if (n === draggingNode || n.pinned) return;
-      if (n.kind === 'core') {
-        n.vx += (0 - n.x) * 0.09 * alpha;
-        n.vy += (0 - n.y) * 0.09 * alpha;
-      } else {
-        const chIdx = Number(n.chapter || 1) - 1;
-        const angle = (chIdx / 5) * Math.PI * 2 - Math.PI / 2;
-        const targetR =
-          n.kind === 'chapter'
-            ? 145
-            : n.kind === 'section'
-              ? 265
-              : n.kind === 'note'
-                ? 395
-                : 510;
-        const gx = Math.cos(angle) * targetR;
-        const gy = Math.sin(angle) * targetR;
-        n.vx += (gx - n.x) * 0.012 * alpha;
-        n.vy += (gy - n.y) * 0.012 * alpha;
-      }
-      n.vx *= 0.76;
-      n.vy *= 0.76;
+      if (n.pinned) return;
+      n.vx += (0 - n.x) * 0.0016 * alpha;
+      n.vy += (0 - n.y) * 0.0016 * alpha;
+
+      n.vx *= 0.74;
+      n.vy *= 0.74;
       n.x += n.vx;
       n.y += n.vy;
     });
 
-    alpha = Math.max(0.05, alpha * 0.991);
+    alpha = Math.max(0.005, alpha * 0.992);
   };
+
+  const mapNode = (id: string): MindNode | undefined => nodes.find((x) => x.id === id);
 
   const getPalette = () => {
     const cs = getComputedStyle(root);
@@ -641,10 +573,24 @@ export function initPowerhouseMindmap(opts: MindmapOptions) {
 
   const colorForNode = (n: MindNode, pal: ReturnType<typeof getPalette>): string => {
     if (n.kind === 'core' || n.kind === 'chapter') return pal.fg;
-    if (n.kind === 'section') return pal.fg;
-    if (n.kind === 'note') return pal.orange;
-    if (n.kind === 'bib') return pal.green;
-    return pal.blue;
+    if (n.kind === 'lens' || n.kind === 'bib') {
+      const cat = n.category || (n.id.startsWith('lens-') ? n.id.replace('lens-', '') : 'typology');
+      switch (cat) {
+        case 'typology':
+          return pal.red;
+        case 'sustainability':
+          return pal.green;
+        case 'phenomenology':
+          return pal.teal;
+        case 'social':
+          return pal.blue;
+        case 'fleets':
+          return pal.orange;
+        default:
+          return pal.blue;
+      }
+    }
+    return pal.fg;
   };
 
   const draw = () => {
@@ -659,11 +605,11 @@ export function initPowerhouseMindmap(opts: MindmapOptions) {
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, width, height);
 
-    // Subtle Obsidian dot matrix
+    // Subtle background matrix
     ctx.fillStyle = pal.muted;
-    ctx.globalAlpha = 0.14;
-    const gridStep = 36 * cam.k;
-    if (gridStep >= 14) {
+    ctx.globalAlpha = 0.12;
+    const gridStep = 40 * cam.k;
+    if (gridStep >= 16) {
       const offsetX = ((width / 2 + cam.x) % gridStep + gridStep) % gridStep;
       const offsetY = ((height / 2 + cam.y) % gridStep + gridStep) % gridStep;
       for (let gx = offsetX; gx < width; gx += gridStep) {
@@ -696,48 +642,28 @@ export function initPowerhouseMindmap(opts: MindmapOptions) {
       const t = nodeById.get(e.target);
       if (!s || !t) return;
 
-      const isFocusEdge = focusId && (e.source === focusId || e.target === focusId);
+      const isFocusEdge = s.id === focusId || t.id === focusId;
       const searchDim = searchQuery && !matchesSearch(s) && !matchesSearch(t);
 
       ctx.beginPath();
       ctx.moveTo(s.x, s.y);
       ctx.lineTo(t.x, t.y);
 
-      const isBibEdge = s.kind === 'bib' || t.kind === 'bib';
-      if (e.custom) {
-        ctx.setLineDash([4 / cam.k, 3 / cam.k]);
-      } else {
-        ctx.setLineDash([]);
-      }
-
       if (hoveredId) {
-        ctx.strokeStyle = isFocusEdge ? (isBibEdge ? pal.green : pal.fg) : pal.muted;
-        ctx.globalAlpha = isFocusEdge ? 0.85 : 0.06;
-        ctx.lineWidth = (isFocusEdge ? 1.65 : 0.65) / cam.k;
+        ctx.strokeStyle = isFocusEdge ? pal.fg : pal.muted;
+        ctx.globalAlpha = isFocusEdge ? 0.88 : 0.05;
+        ctx.lineWidth = (isFocusEdge ? 1.75 : 0.6) / cam.k;
       } else if (searchDim) {
         ctx.strokeStyle = pal.muted;
-        ctx.globalAlpha = 0.05;
-        ctx.lineWidth = 0.65 / cam.k;
+        ctx.globalAlpha = 0.04;
+        ctx.lineWidth = 0.6 / cam.k;
       } else {
-        ctx.strokeStyle = isFocusEdge ? (isBibEdge ? pal.green : pal.fg) : pal.muted;
-        ctx.globalAlpha = isFocusEdge ? 0.62 : 0.16;
-        ctx.lineWidth = (isFocusEdge ? 1.4 : 0.75) / cam.k;
+        ctx.strokeStyle = isFocusEdge ? pal.fg : pal.muted;
+        ctx.globalAlpha = isFocusEdge ? 0.65 : 0.14;
+        ctx.lineWidth = (isFocusEdge ? 1.5 : 0.75) / cam.k;
       }
       ctx.stroke();
     });
-    ctx.setLineDash([]);
-
-    if (linkDrawMode && linkDragSource) {
-      ctx.beginPath();
-      ctx.moveTo(linkDragSource.x, linkDragSource.y);
-      ctx.lineTo(pointerWorld.x, pointerWorld.y);
-      ctx.strokeStyle = pal.red;
-      ctx.globalAlpha = 0.9;
-      ctx.lineWidth = 2 / cam.k;
-      ctx.setLineDash([5 / cam.k, 4 / cam.k]);
-      ctx.stroke();
-      ctx.setLineDash([]);
-    }
 
     // 2. Draw Nodes
     nodeById.forEach((n) => {
@@ -748,43 +674,36 @@ export function initPowerhouseMindmap(opts: MindmapOptions) {
       const matches = matchesSearch(n);
 
       let nodeAlpha = 1;
-      if (hoveredId && !isNeighbor) nodeAlpha = 0.14;
-      else if (searchQuery && !matches) nodeAlpha = 0.12;
+      if (hoveredId && !isNeighbor) nodeAlpha = 0.12;
+      else if (searchQuery && !matches) nodeAlpha = 0.1;
 
       ctx.globalAlpha = nodeAlpha;
 
+      // Outer focus glow ring
       if (isSelected || isHovered || n.kind === 'core') {
         ctx.beginPath();
-        ctx.arc(n.x, n.y, r + (isSelected || isHovered ? 5 : 3.5) / cam.k, 0, Math.PI * 2);
+        ctx.arc(n.x, n.y, r + (isSelected || isHovered ? 5.5 : 3.5) / cam.k, 0, Math.PI * 2);
         ctx.strokeStyle = isSelected || isHovered ? pal.fg : pal.muted;
-        ctx.lineWidth = (isSelected ? 1.6 : 1) / cam.k;
+        ctx.lineWidth = (isSelected ? 1.8 : 1) / cam.k;
         ctx.stroke();
       }
 
+      // Main Node Fill
       ctx.beginPath();
       ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
-      const fill = colorForNode(n, pal);
-      if (n.kind === 'section') {
-        ctx.fillStyle = isSelected || isHovered || isNeighbor ? pal.fg : pal.bg;
-        ctx.fill();
-        ctx.lineWidth = 1.5 / cam.k;
-        ctx.strokeStyle = pal.fg;
-        ctx.stroke();
-      } else {
-        ctx.fillStyle = fill;
-        ctx.fill();
-      }
+      ctx.fillStyle = colorForNode(n, pal);
+      ctx.fill();
 
+      // Node Label
       const showLabel =
         n.kind === 'core' ||
         n.kind === 'chapter' ||
+        n.kind === 'lens' ||
         isSelected ||
         isHovered ||
         (hoveredId && isNeighbor) ||
         (searchQuery && matches) ||
-        (n.kind === 'section' && cam.k >= 0.72) ||
-        (n.kind === 'bib' && cam.k >= 1.05) ||
-        cam.k >= 1.45;
+        cam.k >= 1.05;
 
       if (showLabel) {
         const fontSize =
@@ -792,15 +711,15 @@ export function initPowerhouseMindmap(opts: MindmapOptions) {
             ? 13
             : n.kind === 'chapter'
               ? 11.5
-              : n.kind === 'section'
-                ? 10
+              : n.kind === 'lens'
+                ? 10.5
                 : 9;
-        const scaledSize = Math.max(7.5, fontSize / Math.pow(cam.k, 0.35));
+        const scaledSize = Math.max(7.5, fontSize / Math.pow(cam.k, 0.3));
         ctx.font = `${isSelected || isHovered || n.kind === 'core' || n.kind === 'chapter' ? '600' : '400'} ${scaledSize}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
         ctx.fillStyle = pal.fg;
-        ctx.fillText(n.label, n.x, n.y + r + 3.5 / cam.k);
+        ctx.fillText(n.label, n.x, n.y + r + 4 / cam.k);
       }
     });
 
@@ -828,7 +747,7 @@ export function initPowerhouseMindmap(opts: MindmapOptions) {
     for (let i = nodes.length - 1; i >= 0; i--) {
       const n = nodes[i];
       if (!visible.has(n.id)) continue;
-      const r = nodeRadius(n) + 5 / cam.k;
+      const r = nodeRadius(n) + 6 / cam.k;
       const dx = wx - n.x;
       const dy = wy - n.y;
       if (dx * dx + dy * dy <= r * r) return n;
@@ -836,89 +755,43 @@ export function initPowerhouseMindmap(opts: MindmapOptions) {
     return null;
   };
 
-  const kindLabel: Record<NodeKind, string> = {
-    core: 'Core Thesis Hypothesis',
-    chapter: 'Book Chapter',
-    section: 'Subchapter',
-    note: 'Endnote Citation (Ch 5.1–5.4)',
-    bib: 'Bibliography Source (5.5)',
-    lens: 'Theoretical Lens',
-    custom: 'Custom Citation / Note',
-  };
-
-  const selectNode = (id: string) => {
+  const selectNode = (id: string, autoScroll = true) => {
     const n = nodes.find((x) => x.id === id);
     if (!n) return;
     selectedId = id;
-    if (sourceSelect) sourceSelect.value = id;
 
-    inspKind.textContent = `${n.code ? n.code + ' · ' : ''}${kindLabel[n.kind]}`;
-    inspTitle.textContent = n.label;
-    inspSummary.textContent = n.summary;
-    inspEditArea.value = n.summary;
-    inspPinBtn.textContent = n.pinned ? 'Unpin node' : 'Pin position';
-    inspDeleteBtn.hidden = !n.custom;
-
-    if (n.noteHash) {
-      inspOpenBookBtn.hidden = false;
-      inspOpenBookBtn.textContent = `Open ${n.code} in Ch 5 Notes ↗`;
-      if (inspOpenRefBtn) {
-        inspOpenRefBtn.hidden = false;
-        inspOpenRefBtn.textContent = `Jump to citation in ${n.sectionId?.replace('-', '.')} ↗`;
+    // Highlight corresponding card in the right-hand bibliography stream
+    if (bibStream) {
+      bibStream.querySelectorAll('.ph__mm-bib-card.is-active').forEach((el) => el.classList.remove('is-active'));
+      if (n.kind === 'bib') {
+        const card = bibStream.querySelector<HTMLElement>(`#mm-bib-${id}`);
+        if (card) {
+          card.classList.add('is-active');
+          if (autoScroll) {
+            card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        }
       }
-    } else if (n.sectionId) {
-      inspOpenBookBtn.hidden = false;
-      inspOpenBookBtn.textContent =
-        n.kind === 'bib' ? 'Open 5.5 Bibliography ↗' : `Open ${n.sectionId.replace('-', '.')} in book ↗`;
-      if (inspOpenRefBtn) inspOpenRefBtn.hidden = true;
-    } else {
-      inspOpenBookBtn.hidden = true;
-      if (inspOpenRefBtn) inspOpenRefBtn.hidden = true;
     }
-
-    const connected: { node: MindNode; relation: string; edgeId: string; custom?: boolean }[] = [];
-    edges.forEach((e) => {
-      if (e.source === id) {
-        const target = nodes.find((x) => x.id === e.target);
-        if (target) connected.push({ node: target, relation: e.label || 'linked', edgeId: e.id, custom: e.custom });
-      } else if (e.target === id) {
-        const source = nodes.find((x) => x.id === e.source);
-        if (source) connected.push({ node: source, relation: e.label || 'linked', edgeId: e.id, custom: e.custom });
-      }
-    });
-
-    inspConnections.innerHTML = connected
-      .map(
-        (c) =>
-          `<span class="ph__mm-conn-item"><button type="button" class="ph__mm-conn-pill" data-mm-jump-node="${c.node.id}"><span>${c.node.code || '•'}</span> ${c.node.label} <em>(${c.relation})</em></button>${c.custom ? `<button type="button" class="ph__mm-conn-del" data-mm-del-edge="${c.edgeId}" aria-label="Remove link" title="Remove link">×</button>` : ''}</span>`
-      )
-      .join('');
   };
 
   const updateStats = () => {
     const visible = getVisibleSet();
     const visEdges = edges.filter((e) => visible.has(e.source) && visible.has(e.target));
-    statsEl.textContent = `${visible.size} nodes · ${visEdges.length} citation links`;
+    if (statsEl) {
+      statsEl.textContent = `${visible.size} nodes · ${visEdges.length} citation links`;
+    }
   };
 
   canvas.addEventListener('pointerdown', (e) => {
     const w = screenToWorld(e.clientX, e.clientY);
-    pointerWorld = w;
     pointerDownPos = { x: e.clientX, y: e.clientY };
     pointerMoved = false;
     const hit = hitTest(w.x, w.y);
 
-    if (linkDrawMode && hit) {
-      linkDragSource = hit;
-      selectNode(hit.id);
-      canvas.setPointerCapture(e.pointerId);
-      return;
-    }
-
     if (hit) {
       draggingNode = hit;
       alpha = Math.max(alpha, 0.45);
-      selectNode(hit.id);
       canvas.setPointerCapture(e.pointerId);
     } else {
       isPanning = true;
@@ -928,19 +801,12 @@ export function initPowerhouseMindmap(opts: MindmapOptions) {
   });
 
   canvas.addEventListener('pointermove', (e) => {
-    const w = screenToWorld(e.clientX, e.clientY);
-    pointerWorld = w;
-    if (Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y) > 4) {
-      pointerMoved = true;
-    }
-
-    if (linkDrawMode && linkDragSource) {
-      const hit = hitTest(w.x, w.y);
-      hoveredId = hit ? hit.id : linkDragSource.id;
-      return;
-    }
+    const dx = e.clientX - pointerDownPos.x;
+    const dy = e.clientY - pointerDownPos.y;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) pointerMoved = true;
 
     if (draggingNode) {
+      const w = screenToWorld(e.clientX, e.clientY);
       draggingNode.x = w.x;
       draggingNode.y = w.y;
       draggingNode.vx = 0;
@@ -955,48 +821,66 @@ export function initPowerhouseMindmap(opts: MindmapOptions) {
       return;
     }
 
+    const w = screenToWorld(e.clientX, e.clientY);
     const hit = hitTest(w.x, w.y);
+    const prev = hoveredId;
     hoveredId = hit ? hit.id : null;
-    canvas.style.cursor = hit ? 'pointer' : linkDrawMode ? 'crosshair' : 'grab';
+    if (prev !== hoveredId) {
+      canvas.style.cursor = hit ? 'pointer' : 'default';
+    }
   });
 
-  const endPointer = () => {
-    if (linkDrawMode && linkDragSource) {
-      const target = hitTest(pointerWorld.x, pointerWorld.y);
-      if (target && target.id !== linkDragSource.id) {
-        const newEdge: MindEdge = {
-          id: `${linkDragSource.id}__${target.id}`,
-          source: linkDragSource.id,
-          target: target.id,
-          label: 'cites / links',
-          strength: 1.1,
-          custom: true,
-        };
-        stored.customEdges.push(newEdge);
-        saveStored();
-        buildGraph();
-        selectNode(target.id);
-        alpha = 0.6;
+  const endDragOrPan = (e: PointerEvent) => {
+    if (draggingNode) {
+      draggingNode = null;
+      try {
+        canvas.releasePointerCapture(e.pointerId);
+      } catch {
+        // ignore
       }
-      linkDragSource = null;
     }
-    if (draggingNode && pointerMoved && draggingNode.pinned) {
-      stored.pinnedPositions[draggingNode.id] = { x: draggingNode.x, y: draggingNode.y };
-      saveStored();
+    if (isPanning) {
+      isPanning = false;
+      try {
+        canvas.releasePointerCapture(e.pointerId);
+      } catch {
+        // ignore
+      }
     }
-    draggingNode = null;
-    isPanning = false;
   };
 
-  canvas.addEventListener('pointerup', endPointer);
-  canvas.addEventListener('pointercancel', endPointer);
+  canvas.addEventListener('pointerup', (e) => {
+    endDragOrPan(e);
+    if (!pointerMoved) {
+      const w = screenToWorld(e.clientX, e.clientY);
+      const hit = hitTest(w.x, w.y);
+      if (hit) {
+        selectNode(hit.id, true);
+      }
+    }
+  });
+
+  canvas.addEventListener('pointercancel', endDragOrPan);
 
   canvas.addEventListener('dblclick', (e) => {
     const w = screenToWorld(e.clientX, e.clientY);
     const hit = hitTest(w.x, w.y);
-    if (!hit) return;
-    if (hit.noteHash) onJumpToHash(hit.noteHash);
-    else if (hit.sectionId) onJumpToSection(hit.sectionId);
+    if (hit) {
+      if (hit.kind === 'bib') {
+        const item = payload.bibs.find((b) => b.id === hit.id);
+        if (item?.sections[0]) {
+          onJumpToSection(item.sections[0]);
+        } else {
+          onJumpToSection('5-5');
+        }
+      } else if (hit.kind === 'chapter') {
+        onJumpToSection(`${hit.chapter}-0`);
+      } else if (hit.kind === 'lens') {
+        const cat = hit.category || hit.id.replace('lens-', '');
+        const btn = bibFilterBtns.find((b) => b.dataset.mmBibFilter === cat);
+        btn?.click();
+      }
+    }
   });
 
   canvas.addEventListener(
@@ -1004,239 +888,124 @@ export function initPowerhouseMindmap(opts: MindmapOptions) {
     (e) => {
       e.preventDefault();
       const rect = canvas.getBoundingClientRect();
-      const mx = e.clientX - rect.left - width / 2;
-      const my = e.clientY - rect.top - height / 2;
-      const factor = Math.exp(-e.deltaY * 0.0015);
-      const nextK = Math.max(0.32, Math.min(3.5, cam.k * factor));
-      cam.x = mx - ((mx - cam.x) / cam.k) * nextK;
-      cam.y = my - ((my - cam.y) / cam.k) * nextK;
-      cam.k = nextK;
+      const mouseX = e.clientX - rect.left - width / 2;
+      const mouseY = e.clientY - rect.top - height / 2;
+
+      const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
+      const newK = Math.max(0.3, Math.min(3.2, cam.k * factor));
+      const kRatio = newK / cam.k;
+
+      cam.x = mouseX - (mouseX - cam.x) * kRatio;
+      cam.y = mouseY - (mouseY - cam.y) * kRatio;
+      cam.k = newK;
     },
     { passive: false }
   );
 
+  // Search input: filters both canvas and right-hand list
   searchInput?.addEventListener('input', () => {
-    searchQuery = searchInput.value.trim();
-    if (searchQuery) {
-      const first = nodes.find((n) => matchesSearch(n));
-      if (first) selectNode(first.id);
-    }
-  });
-
-  filterBtns.forEach((btn) =>
-    btn.addEventListener('click', () => {
-      activeFilter = btn.dataset.mmFilter!;
-      filterBtns.forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
-      alpha = 0.65;
-      updateStats();
-    })
-  );
-
-  layoutBtns.forEach((btn) =>
-    btn.addEventListener('click', () => {
-      layoutMode = btn.dataset.mmLayout as 'force' | 'radial' | 'columns';
-      layoutBtns.forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
-      alpha = 0.85;
-    })
-  );
-
-  depthBtns.forEach((btn) =>
-    btn.addEventListener('click', () => {
-      localDepth = Number(btn.dataset.mmDepth || 0);
-      depthBtns.forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
-      alpha = 0.6;
-      updateStats();
-    })
-  );
-
-  linkModeBtn?.addEventListener('click', () => {
-    linkDrawMode = !linkDrawMode;
-    linkModeBtn.setAttribute('aria-pressed', String(linkDrawMode));
-    linkModeBtn.textContent = linkDrawMode ? 'Drag node → node (Active)' : '+ Drag-Connect Mode';
-  });
-
-  zoomInBtn?.addEventListener('click', () => {
-    cam.k = Math.min(3.5, cam.k * 1.25);
-  });
-  zoomOutBtn?.addEventListener('click', () => {
-    cam.k = Math.max(0.32, cam.k / 1.25);
-  });
-  zoomResetBtn?.addEventListener('click', () => {
-    cam = { x: 0, y: 0, k: 0.82 };
-    alpha = 0.75;
-  });
-
-  sideTabBtns.forEach((btn) =>
-    btn.addEventListener('click', () => {
-      const target = btn.dataset.mmSidetab!;
-      sideTabBtns.forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
-      sidePanes.forEach((p) => (p.hidden = p.dataset.mmPane !== target));
-    })
-  );
-
-  inspConnections?.addEventListener('click', (e) => {
-    const jumpBtn = (e.target as Element).closest<HTMLButtonElement>('[data-mm-jump-node]');
-    if (jumpBtn) {
-      const id = jumpBtn.dataset.mmJumpNode!;
-      selectNode(id);
-      const n = nodes.find((x) => x.id === id);
-      if (n) {
-        cam.x = -n.x * cam.k * 0.4;
-        cam.y = -n.y * cam.k * 0.4;
-      }
-      return;
-    }
-    const delBtn = (e.target as Element).closest<HTMLButtonElement>('[data-mm-del-edge]');
-    if (delBtn) {
-      const edgeId = delBtn.dataset.mmDelEdge!;
-      stored.customEdges = stored.customEdges.filter((ce) => ce.id !== edgeId);
-      saveStored();
-      buildGraph();
-      selectNode(selectedId);
-    }
-  });
-
-  inspOpenBookBtn?.addEventListener('click', () => {
-    const n = nodes.find((x) => x.id === selectedId);
-    if (!n) return;
-    if (n.noteHash) onJumpToHash(n.noteHash);
-    else if (n.sectionId) onJumpToSection(n.sectionId);
-  });
-
-  inspOpenRefBtn?.addEventListener('click', () => {
-    const n = nodes.find((x) => x.id === selectedId);
-    if (!n || !n.refHash) return;
-    onJumpToHash(n.refHash);
-  });
-
-  inspPinBtn?.addEventListener('click', () => {
-    const n = nodes.find((x) => x.id === selectedId);
-    if (!n) return;
-    n.pinned = !n.pinned;
-    if (n.pinned) {
-      stored.pinnedPositions[n.id] = { x: n.x, y: n.y };
-    } else {
-      delete stored.pinnedPositions[n.id];
-    }
-    saveStored();
-    selectNode(n.id);
-  });
-
-  inspDeleteBtn?.addEventListener('click', () => {
-    const n = nodes.find((x) => x.id === selectedId);
-    if (!n || !n.custom) return;
-    stored.customNodes = stored.customNodes.filter((cn) => cn.id !== n.id);
-    stored.customEdges = stored.customEdges.filter((ce) => ce.source !== n.id && ce.target !== n.id);
-    delete stored.editedSummaries[n.id];
-    delete stored.pinnedPositions[n.id];
-    saveStored();
-    buildGraph();
-    selectNode('powerhouse');
-  });
-
-  inspSaveBtn?.addEventListener('click', () => {
-    const n = nodes.find((x) => x.id === selectedId);
-    if (!n) return;
-    const text = inspEditArea.value.trim();
-    if (!text) return;
-    n.summary = text;
-    stored.editedSummaries[n.id] = text;
-    saveStored();
-    inspSummary.textContent = text;
-    inspSaveBtn.textContent = 'Saved ✓';
-    setTimeout(() => {
-      inspSaveBtn.textContent = 'Save note / citation';
-    }, 1400);
-  });
-
-  addNodeForm?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const fd = new FormData(addNodeForm);
-    const label = String(fd.get('label') || '').trim();
-    const code = String(fd.get('code') || 'BIB').trim().toUpperCase();
-    const kind = String(fd.get('kind') || 'bib') as NodeKind;
-    const chapter = String(fd.get('chapter') || '1');
-    const connectTo = String(fd.get('connectTo') || selectedId || 'ch1');
-    const relation = String(fd.get('relation') || 'cited in').trim();
-    const summary = String(fd.get('summary') || '').trim() || `${label} — added in the Powerhouse Citation Mindmap.`;
-
-    if (!label) return;
-    const id = 'custom-' + Date.now().toString(36);
-    const parent = nodes.find((n) => n.id === connectTo) || nodes[0];
-    const newNode: Omit<MindNode, 'vx' | 'vy'> = {
-      id,
-      code,
-      label,
-      kind,
-      chapter,
-      sectionId: connectTo.includes('-') ? connectTo : `${chapter}-1`,
-      summary,
-      custom: true,
-      x: (parent ? parent.x : 0) + (Math.random() - 0.5) * 90,
-      y: (parent ? parent.y : 0) + (Math.random() - 0.5) * 90,
-    };
-    stored.customNodes.push(newNode);
-    if (connectTo) {
-      stored.customEdges.push({
-        id: `${connectTo}__${id}`,
-        source: connectTo,
-        target: id,
-        label: relation,
-        strength: 1.15,
-        custom: true,
+    searchQuery = searchInput.value.toLowerCase().trim();
+    if (bibStream) {
+      const cards = bibStream.querySelectorAll<HTMLElement>('.ph__mm-bib-card');
+      cards.forEach((c) => {
+        const text = c.textContent?.toLowerCase() || '';
+        const match = !searchQuery || text.includes(searchQuery);
+        c.hidden = !match;
       });
     }
-    saveStored();
-    buildGraph();
-    selectNode(id);
-    alpha = 0.8;
-    addNodeForm.reset();
-    sideTabBtns[0]?.click();
+    alpha = Math.max(alpha, 0.4);
   });
 
-  addEdgeForm?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const fd = new FormData(addEdgeForm);
-    const source = String(fd.get('source') || '');
-    const target = String(fd.get('target') || '');
-    const label = String(fd.get('label') || 'cites').trim();
-    if (!source || !target || source === target) return;
-    stored.customEdges.push({
-      id: `${source}__${target}`,
-      source,
-      target,
-      label,
-      strength: 1.1,
-      custom: true,
+  // Thematic Category Filter Pills
+  bibFilterBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      bibFilterBtns.forEach((b) => b.setAttribute('aria-pressed', 'false'));
+      btn.setAttribute('aria-pressed', 'true');
+      const cat = btn.dataset.mmBibFilter || 'all';
+      activeFilter = cat;
+
+      // Filter cards in right-hand list
+      if (bibStream) {
+        const cards = bibStream.querySelectorAll<HTMLElement>('.ph__mm-bib-card');
+        cards.forEach((c) => {
+          const cardCat = c.dataset.bibCat;
+          const match = cat === 'all' || cardCat === cat;
+          c.hidden = !match;
+        });
+      }
+
+      // Camera centering
+      if (cat !== 'all') {
+        const targetLens = nodes.find((n) => n.id === `lens-${cat}`);
+        if (targetLens) {
+          cam.x = -targetLens.x * cam.k;
+          cam.y = -targetLens.y * cam.k;
+          cam.k = 1.05;
+          selectNode(targetLens.id, false);
+        }
+      } else {
+        cam.x = 0;
+        cam.y = 0;
+        cam.k = 0.86;
+        selectNode('powerhouse', false);
+      }
+      alpha = Math.max(alpha, 0.65);
+      updateStats();
     });
-    saveStored();
-    buildGraph();
-    selectNode(source);
-    alpha = 0.65;
   });
 
-  exportBtn?.addEventListener('click', () => {
-    const blob = new Blob([JSON.stringify({ nodes, edges, custom: stored }, null, 2)], {
-      type: 'application/json',
+  // Layout buttons
+  layoutBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      layoutBtns.forEach((b) => b.setAttribute('aria-pressed', 'false'));
+      btn.setAttribute('aria-pressed', 'true');
+      layoutMode = (btn.dataset.mmLayout as any) || 'force';
+      alpha = 0.85;
     });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'powerhouse-citations-mindmap.json';
-    a.click();
-    URL.revokeObjectURL(url);
   });
 
-  resetCustomBtn?.addEventListener('click', () => {
-    stored = { customNodes: [], customEdges: [], editedSummaries: {}, pinnedPositions: {} };
-    saveStored();
-    buildGraph();
-    selectNode('powerhouse');
-    alpha = 0.85;
+  // Zoom controls
+  zoomInBtn?.addEventListener('click', () => {
+    cam.k = Math.min(3.2, cam.k * 1.25);
+  });
+  zoomOutBtn?.addEventListener('click', () => {
+    cam.k = Math.max(0.3, cam.k / 1.25);
+  });
+  zoomResetBtn?.addEventListener('click', () => {
+    cam.x = 0;
+    cam.y = 0;
+    cam.k = 0.86;
+    alpha = 0.6;
+  });
+
+  // Two-way wiring from right-hand Bibliography stream to canvas
+  bibStream?.addEventListener('click', (e) => {
+    const locateBtn = (e.target as Element).closest<HTMLElement>('[data-mm-locate]');
+    const jumpLink = (e.target as Element).closest<HTMLAnchorElement>('[data-mm-jump]');
+    const card = (e.target as Element).closest<HTMLElement>('.ph__mm-bib-card');
+
+    if (jumpLink) {
+      e.preventDefault();
+      const secId = jumpLink.dataset.mmJump!;
+      onJumpToSection(secId);
+      return;
+    }
+
+    if (locateBtn || card) {
+      const bibId = locateBtn?.dataset.mmLocate || card?.dataset.bibId;
+      if (!bibId) return;
+      const targetNode = nodes.find((n) => n.id === bibId);
+      if (targetNode) {
+        cam.x = -targetNode.x * cam.k;
+        cam.y = -targetNode.y * cam.k;
+        selectNode(targetNode.id, false);
+        alpha = Math.max(alpha, 0.55);
+      }
+    }
   });
 
   const resize = () => {
-    const rect = canvas.parentElement!.getBoundingClientRect();
+    const rect = canvas.getBoundingClientRect();
     if (rect.width > 0 && rect.height > 0) {
       width = rect.width;
       height = rect.height;
@@ -1249,7 +1018,7 @@ export function initPowerhouseMindmap(opts: MindmapOptions) {
 
   buildGraph();
   resize();
-  selectNode('powerhouse');
+  selectNode('powerhouse', false);
   loop();
 
   return {
