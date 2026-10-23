@@ -14,6 +14,14 @@ import nycSvg from '../../../public/maps/nyc-ntas.svg?raw';
 import nyCounties from '../../data/powerhouse-ny-counties.json';
 import nyStateSvg from '../../../public/maps/ny-counties.svg?raw';
 import manhattanSvg from '../../../public/maps/nyc-manhattan.svg?raw';
+import { execSync } from 'node:child_process';
+
+let gitCommit = '2a57a9d';
+try {
+  gitCommit = execSync('git rev-parse --short HEAD').toString().trim();
+} catch {
+  gitCommit = 'live';
+}
 
 const fmt = (n: number) => Math.round(n).toLocaleString('en-US');
 const kfmt = (n: number) => (n >= 1e6 ? (n / 1e6).toFixed(2) + 'm' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'k' : String(Math.round(n)));
@@ -921,7 +929,7 @@ const mindmapBibs = rawBibs.map((b) => ({
   <article class="ph" data-analysis>
     <header class="ph__header">
       <a href="/projects/the-powerhouse/" class="ph__brand">The Powerhouse <span>/ Infrastructure research &amp; data visualiser</span></a>
-      <span class="ph__stamp">Official sources · Vector GIS + D3 SVG · 18 October 2026</span>
+      <span class="ph__stamp">commit · {gitCommit}</span>
     </header>
 
     <!-- Introduction: sits above the slide nav and stays put whichever slide is open -->
@@ -1986,7 +1994,7 @@ const mindmapBibs = rawBibs.map((b) => ({
   .ph__header { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; padding-bottom: var(--_tokens---space--micro); border-bottom: 1px solid var(--_tokens---color--line); font-size: var(--_tokens---type--micro); }
   .ph__brand { font-weight: 600; text-decoration: none; }
   .ph__brand span, .ph__stamp { color: var(--_tokens---color--muted); font-weight: 400; }
-  .ph__intro { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: var(--_tokens---space--small); padding: var(--_tokens---space--small) 0; border-bottom: 1px solid var(--_tokens---color--line); }
+  .ph__intro { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: var(--_tokens---space--small); padding: var(--_tokens---space--small) 0; border-bottom: none; }
   .ph__intro-col { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
   .ph__intro p:not(.ph__kicker) { font-size: var(--_tokens---type--small); line-height: 1.5; margin: 0; max-width: 64ch; }
   .ph__intro p.ph__intro-claim { font-size: var(--_tokens---type--medium); line-height: 1.15; letter-spacing: -.03em; }
@@ -2031,19 +2039,31 @@ const mindmapBibs = rawBibs.map((b) => ({
   .ph__chapters button[aria-pressed='true'] span, .ph__subtabs button[aria-pressed='true'] span, .ph__nav a[aria-current] span { opacity: .75; }
   .ph__subtabs button[data-planned='true'] { border-style: dashed; }
   @media (pointer: coarse) { .ph__chapters button, .ph__subtabs button, .ph__nav a { min-height: 32px; } }
-  .ph__tabbar { scroll-margin-top: 72px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: var(--_tokens---space--micro) 0 4px; }
+  .ph__tabbar { scroll-margin-top: 72px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; }
   .ph__tabbar .ph__chapters { margin: 0; flex: 1 1 auto; min-width: 0; }
-  @media (min-width: 1024px) { .ph__tabbar { flex-wrap: nowrap; align-items: flex-start; } .ph__tabbar .ph__chapters { flex: 1 1 auto; } .ph__index { flex: 0 1 24rem; } .ph__index > summary { display: flex; } }
+  @media (min-width: 1024px) { .ph__tabbar { flex-wrap: nowrap; align-items: center; } .ph__tabbar .ph__chapters { flex: 1 1 auto; } .ph__index { flex: 0 1 24rem; } .ph__index > summary { display: flex; } }
   /* Section tabs: equal pills in two rows; the number leads, the name truncates */
-  .ph__subtabs { margin: 0 0 6px; }
+  .ph__subtabs { margin: 0; }
   .ph__subtabs[hidden] { display: none; }
   /* The two tab rows stay pinned while the document scrolls under them */
-  .ph__toc { position: sticky; top: 0; z-index: 40; margin: var(--_tokens---space--small) calc(-1 * var(--_tokens---space--micro)) 0; padding: 6px var(--_tokens---space--micro) 0; background: var(--_tokens---color--bg); }
+  .ph__toc {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    margin: 0 calc(-1 * var(--_tokens---space--micro));
+    padding: 10px var(--_tokens---space--micro);
+    background: var(--_tokens---color--bg);
+    border-top: 1px solid var(--_tokens---color--line);
+    border-bottom: 1px solid var(--_tokens---color--line);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
   @media (min-width: 700px) { .ph__toc { top: var(--_tokens---layout--bar, 52px); } }
   /* On a phone three rows of pills would cover half the screen; they scroll away there. */
   @media (max-width: 699.98px) { .ph__toc { position: static; } }
-  .ph__toc .ph__tabbar { margin-top: 0; }
-  .ph__toc .ph__subtabs { margin-bottom: 0; padding-bottom: 6px; border-bottom: 1px solid var(--_tokens---color--line); }
+  .ph__toc .ph__tabbar { margin: 0; }
+  .ph__toc .ph__subtabs { margin: 0; padding: 0; border: none; }
   /* Two-level collapsible outline, styled after the About page:
      1) Outer level (.ph__ch-group): Chapter 1 · Charging Anchor, Chapter 2 · The Stop, …
      2) Inner level (.ph__fold): 1.0, 1.1, 1.2, …
