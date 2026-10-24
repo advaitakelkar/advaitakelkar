@@ -13,9 +13,11 @@ its own: no watcher, no hook, no build step.
 |---|---|---|
 | Book → web | "pull the book" / "update the web from InDesign" | Read the open InDesign book, rewrite `src/data/powerhouse-book.json`, show the diff, wait for OK before committing. |
 | Web → book | "push to InDesign" / "update the book from the web" | Read `src/data/powerhouse-book.json`, write the changed sections back into the open InDesign document, save a copy first, report what moved. |
+| Book → PDF | "update the PDF" (also the last step of both rows above) | Export the open InDesign book to the PDF beside the `.indd` (same name), then `pnpm book:pdf` copies it to `public/powerhouse/the-powerhouse-book.pdf` and refreshes `src/data/powerhouse-pdf.json`. The "PDF · Current Book" pill on the page links to it and shows its export date. |
 
 Both directions save their work in the **current** place: the web side in this repo, the
-book side in the InDesign file that is open (after a dated backup beside it).
+book side in the InDesign file that is open (after a dated backup beside it). The PDF beside
+the `.indd` is always the latest export; the site only ever copies it, never edits it.
 
 ## Files
 
@@ -25,6 +27,7 @@ book side in the InDesign file that is open (after a dated backup beside it).
 | `src/components/PowerhouseBookText.astro` | Renders one block; links each `<sup>` to its note. |
 | `src/pages/powerhouse.astro` | The `book` array: chapter and section titles, numbers, book pages. |
 | InDesign | `HUB/1 Projects/Academic/MArch/Graduate Thesis/Graduate Seminar/Working/Book/The Powerhouse_Thesis Book_Ch1-2.indd` (current). |
+| PDF | `The Powerhouse_Thesis Book_Ch1-2.pdf` beside the `.indd`; copied by `scripts/sync-powerhouse-pdf.mjs` (`pnpm book:pdf`). |
 
 ## Data contract (what must survive a round trip)
 
