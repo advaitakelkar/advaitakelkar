@@ -456,7 +456,7 @@ const sources = {
 type BookSection = { id: string; num: string; title: string; page?: number; planned?: boolean };
 const book: { id: string; num: string; short: string; title: string; subtitle?: string; sections: BookSection[] }[] = [
   {
-    id: 'ch1', num: '1', short: 'The Powerhouse', title: 'The Powerhouse', subtitle: 'A sustainable charging anchor',
+    id: 'ch1', num: '1', short: 'Introduction', title: 'Introduction', subtitle: 'A sustainable charging anchor',
     sections: [
       { id: '1-1', num: '1.1', title: 'Electrification and Speed', page: 7 },
       { id: '1-2', num: '1.2', title: 'The Architecture of the Stop', page: 8 },
@@ -1045,8 +1045,8 @@ const mindmapBibs = rawBibs.map((b) => ({
               </div>
               <div class="ph__concept-card">
                 <div class="ph__concept-badge">Hypothesis</div>
-                <h3 class="ph__concept-title">A Sustainable Charging Anchor</h3>
-                <p class="ph__concept-desc">An Electric Vehicle Powerhouse complex that turns charging activities into an opportunity for enhanced civic and community engagements.</p>
+                <h3 class="ph__concept-title">Charging as Civic Life</h3>
+                <p class="ph__concept-desc ph__concept-hypothesis">An Electric Vehicle Powerhouse complex that turns charging activities into an opportunity for enhanced civic and community engagements.</p>
                 <div class="ph__concept-points">
                   <div><b>Open to all</b><span>Pedestrians, cyclists, transit riders and EV drivers alike.</span></div>
                   <div><b>Site-specific hook</b><span>Takes its programme from what the local neighbourhood lacks.</span></div>
@@ -1078,16 +1078,82 @@ const mindmapBibs = rawBibs.map((b) => ({
         </div>
 
         <div class="ph__editorial">
-          <!-- Unit 1: Energy conversion and emissions waste -->
-          <div class="ph__read-unit">
-            <div class="ph__read-text">
-              <p set:html={linkNotes(bookText['1-1'].body[0], '1')} />
+          <section id="usa" class="ph__slide" data-slide="0" aria-labelledby="usa-title">
+            <!-- Full-Width Heading -->
+            <div class="ph__heading ph__heading--full">
+              <p class="ph__kicker">USA / road infrastructure and electrification, in numbers</p>
+              <h2 id="usa-title" tabindex="-1">Where public charging is today</h2>
             </div>
-            <div class="ph__read-visual">
-              <div class="ph__fig-header">
-                <span class="ph__fig-tag">Figure 1.1</span>
-                <span class="ph__fig-title">Energy conversion</span>
+
+            <!-- 2-Column Section Spread: Left = Text, Right = Map & State List -->
+            <div class="ph__national-split">
+              <!-- Left Column: Transport Narrative & Map Note -->
+              <div class="ph__national-prose">
+                <div class="ph__read-text">
+                  <p set:html={linkNotes(bookText['1-1'].body[0], '1')} />
+                  <p class="ph__map-note-lead">Each dot on the map groups nearby charging locations, and its size grows with the number of charging points there. Public means open to any driver, even when the equipment is privately owned; private means workplaces, fleets and apartment blocks that report their chargers. Home chargers are not counted anywhere.</p>
+                </div>
               </div>
+
+              <!-- Right Column: Map & State List -->
+              <div class="ph__national-visual">
+                <div class="ph__fig-header">
+                  <span class="ph__fig-tag">Figure 1.1</span>
+                  <span class="ph__fig-title">Where public charging is today · US network</span>
+                </div>
+                <div class="ph__map-bar">
+                  <p class="ph__solo-title">Where the US’s <b id="ph-map-ports" aria-live="polite">{fmt(allUsa.ports)}</b> charging points are · <span><span id="ph-map-stations">at {fmt(allUsa.stations)} stations · public and private</span></span></p>
+                  <select id="ph-access" class="ph__map-select" aria-label="Show public, private or all charging">
+                    <option value="all" selected>All charging points</option>
+                    <option value="public">Public</option>
+                    <option value="private">Private</option>
+                  </select>
+                </div>
+                <figure class="ph__map ph__national-map">
+                  <svg class="ph__svg ph__national-svg" viewBox="0 0 975 610" role="img" aria-labelledby="ph-us-svg-title ph-us-svg-desc">
+                    <title id="ph-us-svg-title">US charging infrastructure</title><desc id="ph-us-svg-desc">Operating charging ports across the fifty states and DC. Alaska and Hawaii are insets. Dots aggregate nearby locations; exact counts appear above and in the tables.</desc>
+                    <g class="ph__land">{data.usa.states.map(st=><path d={st.d}><title>{st.name}</title></path>)}</g>
+                    <g class="ph__focus-states">{focusStates.map((f)=><path d={f.d}><title>{f.rank}. {f.name}</title></path>)}</g>
+                    <g>{data.usa.dots.map(d=><circle cx={d.x} cy={d.y} r={size(d.l1+d.l2+d.dc)} data-us-access={d.access} class="ph__charging-dot"><title>{d.access} charging · {fmt(d.l1+d.l2+d.dc)} ports in this map cell</title></circle>)}</g>
+                    <g class="ph__focus-labels" aria-hidden="true">{focusStates.map((f)=><g><line x1={f.tx} y1={f.ty} x2={f.x} y2={f.y}/><g transform={`translate(${f.x} ${f.y})`}><circle class="ph__focus-mark" r="19"/><text dy="7">{f.rank}</text></g></g>)}</g>
+                  </svg>
+                </figure>
+                <div class="ph__ranklist">
+                  <div class="ph__ranklist-head"><span>All 50 states and DC</span><b>{fmt(pub.ports)} public charging points</b></div>
+                  <ol class="ph__top5" aria-label="States by public charging points, largest first" tabindex="0">
+                    {data.ranked.map((r, i) => (
+                      <li class:list={[{ 'is-focus': i < 3 }]}><span>{i + 1}</span><b>{stateName[r.code] ?? r.code} <small>{((r.ports / pub.ports) * 100).toFixed(1)}%</small></b><i style={`width:${(r.ports / data.ranked[0].ports) * 100}%`}></i><em>{fmt(r.ports)}</em></li>
+                    ))}
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Figure 1.2: 6 Cards in Order 1 to 6 -->
+          <div class="ph__read-unit ph__read-unit--full">
+            <div class="ph__fig-header">
+              <span class="ph__fig-tag">Figure 1.2</span>
+              <span class="ph__fig-title">Energy conversion, emissions waste and US vehicle electrification · Notes 1–6</span>
+            </div>
+            <div class="ph__six-notes-grid">
+              <!-- Note 1 -->
+              <figure class="ph__fig">
+                <figcaption><b class="ph__fig-num">28%</b><span>of US GHG from transport</span></figcaption>
+                <div class="ph__waffle" aria-hidden="true">{waffle.map((on) => <i class={on ? 'on' : ''} />)}</div>
+                <p class="ph__fig-key"><span class="ph__swatch c-red"></span>Transport</p>
+                <p class="ph__fig-src">Source: EPA 1990–2022 (2024) · <a class="ph__fig-note" href="#note-1-1">Note 1</a></p>
+              </figure>
+
+              <!-- Note 2 -->
+              <figure class="ph__fig">
+                <figcaption><b class="ph__fig-num">6 billion</b><span>tonnes of CO₂ worldwide, 2024</span></figcaption>
+                <div class="ph__fig-units" aria-hidden="true">{co2Units.map(() => <i class="c-red" />)}</div>
+                <p class="ph__fig-key"><span class="ph__swatch c-red"></span>1 block = 1 billion tonnes</p>
+                <p class="ph__fig-src">Source: IEA (2025) · <a class="ph__fig-note" href="#note-1-2">Note 2</a></p>
+              </figure>
+
+              <!-- Note 3 -->
               <figure class="ph__fig">
                 <figcaption><b class="ph__fig-num">3 in 10</b><span>units of petrol move the car; an EV uses 9 in 10</span></figcaption>
                 <div class="ph__fig-bars">
@@ -1095,260 +1161,104 @@ const mindmapBibs = rawBibs.map((b) => ({
                   <div><span>Electric car</span><div class="ph__fig-bar"><i class="c-green" style="width:89%">87–91%</i><i class="c-light" style="width:11%"></i></div></div>
                 </div>
                 <p class="ph__fig-key"><span class="ph__swatch c-green"></span>Energy that moves the car</p>
-                <p class="ph__fig-src">Source: US DOE Vehicle Technologies Office, Fact of the Week #1360 (2024) · <a class="ph__fig-note" href="#note-1-3">Note 3</a></p>
+                <p class="ph__fig-src">Source: US DOE Fact #1360 (2024) · <a class="ph__fig-note" href="#note-1-3">Note 3</a></p>
               </figure>
-              <div class="ph__subfigs-row">
-                <figure class="ph__fig">
-                  <figcaption><b class="ph__fig-num">28%</b><span>of US GHG from transport</span></figcaption>
-                  <div class="ph__waffle" aria-hidden="true">{waffle.map((on) => <i class={on ? 'on' : ''} />)}</div>
-                  <p class="ph__fig-key"><span class="ph__swatch c-red"></span>Transport</p>
-                  <p class="ph__fig-src">Source: EPA 1990–2022 (2024) · <a class="ph__fig-note" href="#note-1-1">Note 1</a></p>
-                </figure>
-                <figure class="ph__fig">
-                  <figcaption><b class="ph__fig-num">6 billion</b><span>tonnes of CO₂ worldwide, 2024</span></figcaption>
-                  <div class="ph__fig-units" aria-hidden="true">{co2Units.map(() => <i class="c-red" />)}</div>
-                  <p class="ph__fig-key"><span class="ph__swatch c-red"></span>1 block = 1 billion tonnes</p>
-                  <p class="ph__fig-src">Source: IEA (2025) · <a class="ph__fig-note" href="#note-1-2">Note 2</a></p>
-                </figure>
+
+              <!-- Note 4 -->
+              <div class="ph__fig ph__dash-card ph__dash-card--vbars">
+                <figcaption><b class="ph__fig-num">{mil(usRoad.total)}</b><span>All vehicles · US · {usRoad.year}</span></figcaption>
+                <div class="ph__stack100 ph__dash-stack" role="img" aria-label={`All US vehicles ${usRoad.year}: ${usRoadBar.segs.map((x) => `${x.label} ${share(x.value, usRoadBar.total)}`).join(', ')}`}>
+                  {usRoadBar.segs.map((x) => <i class={`c-${x.c}`} style={`flex-grow:${x.value}`} title={`${x.label}: ${share(x.value, usRoadBar.total)}`}></i>)}
+                </div>
+                <ul class="ph__stack100-key">{usRoadBar.segs.map((x) => <li><i class={`c-${x.c}`}></i>{x.label} <b>{share(x.value, usRoadBar.total)}</b></li>)}</ul>
+                <p class="ph__fig-src">Source: FHWA Highway Statistics 2024, Table MV-1 · <a class="ph__fig-note" href="#note-1-4">Note 4</a></p>
+              </div>
+
+              <!-- Note 5 -->
+              <div class="ph__fig ph__dash-card ph__dash-card--vbars">
+                <figcaption><b class="ph__fig-num">{mil(usEvYears[0].ev)} → {mil(usEvYears[3].ev)}</b><span>Electric vehicles · US · 2025–2040</span></figcaption>
+                <div class="ph__dash-vbars" role="img" aria-label={`US electric vehicles: ${usEvYears.map((y) => `${y.year} ${mil(y.ev)}`).join(', ')}`}>
+                  {usEvYears.map((y) => (
+                    <div class="ph__dash-hbar">
+                      <span>{y.year}{y.year > 2025 ? ' outlook' : ''}</span>
+                      <div class="ph__dash-htrack ph__dash-htrack--split">
+                        <i class="c-green" style={`width:${(y.bev / usEvMax) * 100}%`}></i><i class="c-teal" style={`width:${(y.phev / usEvMax) * 100}%`}></i>
+                      </div>
+                      <b>{mil(y.ev)}</b>
+                    </div>
+                  ))}
+                </div>
+                <ul class="ph__stack100-key"><li><i class="c-green"></i>Battery-electric</li><li><i class="c-teal"></i>Plug-in hybrid</li></ul>
+                <p class="ph__fig-src">Source: EIA Annual Energy Outlook 2026 · <a class="ph__fig-note" href="#note-1-5">Note 5</a></p>
+              </div>
+
+              <!-- Note 6 -->
+              <div class="ph__fig ph__dash-card ph__dash-card--years">
+                <figcaption><b class="ph__fig-num">{usShareRings[0].pct} → {usShareRings[2].pct}</b><span>Share of US vehicles that are electric</span></figcaption>
+                <div class="ph__dash-years">
+                  {usShareRings.map((r) => (
+                    <div class:list={['ph__dash-year', { 'is-outlook': r.outlook }]}>
+                      <div class="ph__dash-ring ph__dash-ring--small" role="img" aria-label={`${r.year}: ${r.pct} electric`}>
+                        <svg viewBox="0 0 120 120"><circle class="ph__ring-track" cx="60" cy="60" r="48" pathLength="100" />{ring(r.bar).slice(0, 2).map((g) => <circle class={`ph__ring-seg r-${g.c}`} cx="60" cy="60" r="48" pathLength="100" stroke-dasharray={`${g.len} ${100 - g.len}`} stroke-dashoffset={g.off} />)}</svg>
+                        <div class="ph__dash-center"><b>{r.pct}</b></div>
+                      </div>
+                      <span>{r.year}{r.outlook ? ' outlook' : ''}</span>
+                    </div>
+                  ))}
+                </div>
+                <ul class="ph__stack100-key"><li><i class="c-green"></i>Battery-electric</li><li><i class="c-teal"></i>Plug-in hybrid</li></ul>
+                <p class="ph__fig-src">Source: EIA Annual Energy Outlook 2026 · <a class="ph__fig-note" href="#note-1-6">Note 6</a></p>
               </div>
             </div>
+            <p class="ph__note">Notes 1–3: EPA (2024); IEA Breakthrough Agenda Report (2025); US DOE Fact #1360. Notes 4–6: FHWA Highway Statistics 2024, Table MV-1; US EIA Annual Energy Outlook 2026; 2025 is EIA’s base year, later years are its baseline outlook, not a forecast.</p>
           </div>
 
           <!-- Unit 2: The speed of transition and home vs public charging -->
-          <div class="ph__read-unit">
+          <div class="ph__read-unit ph__read-unit--full">
             <div class="ph__read-text">
               <p set:html={linkNotes(bookText['1-1'].body[1], '1')} />
               <p set:html={linkNotes(bookText['1-1'].body[2], '1')} />
-              <p class="ph__lead-bridge">This section moves from the US network to California, New York and Florida. The question is simple: <b>where could charging also support everyday community life?</b></p>
+              <p class="ph__lead-bridge">With the national pace and home constraints established, the next sections investigate where charging stops become civic places: <b>what happens when time at the charger is treated as lived time, not lost time?</b></p>
             </div>
-            <div class="ph__read-visual">
+
+            <div class="ph__figs-4col-unit">
               <div class="ph__fig-header">
-                <span class="ph__fig-tag">Figure 1.2</span>
+                <span class="ph__fig-tag">Figure 1.3</span>
                 <span class="ph__fig-title">Home and public charging</span>
               </div>
-              <figure class="ph__fig">
-                <figcaption><b class="ph__fig-num">4 in 5</b><span>charges happen at home</span></figcaption>
-                <div class="ph__fig-bar"><i class="c-orange" style="width:80%">Home 80%</i><i class="c-teal" style="width:20%">20%</i></div>
-                <p class="ph__fig-key"><span class="ph__swatch c-orange"></span>Home <span class="ph__swatch c-teal"></span>Public and work</p>
-                <p class="ph__fig-src">Source: US DOE, National EV Charging Network · <a class="ph__fig-note" href="#note-1-9">Note 9</a></p>
-              </figure>
-              <figure class="ph__fig">
-                <figcaption><b class="ph__fig-num">33–38%</b><span>more electricity a year for a home with one EV</span></figcaption>
-                <div class="ph__fig-bars">
-                  <div><span>Average home</span><div class="ph__fig-bar"><i class="c-grey" style="width:100%">{homeKwh.toLocaleString('en-US')} kWh</i></div></div>
-                  <div><span>One EV · 3,600–4,050 kWh</span><div class="ph__fig-bar"><i class="c-yellow" style={`width:${evKwhLow}%`}></i><i class="c-yellow ph__fig-range" style={`width:${evKwhSpan}%`}></i></div></div>
-                </div>
-                <p class="ph__fig-key"><span class="ph__swatch c-yellow"></span>kWh a year</p>
-                <p class="ph__fig-src">Source: EIA 2022; fueleconomy.gov · <a class="ph__fig-note" href="#note-1-10">Note 10</a></p>
-              </figure>
-              <div class="ph__subfigs-row">
+              <div class="ph__figs-4col">
+                <figure class="ph__fig">
+                  <figcaption><b class="ph__fig-num">4 in 5</b><span>charges happen at home</span></figcaption>
+                  <div class="ph__fig-bar"><i class="c-orange" style="width:80%">Home 80%</i><i class="c-teal" style="width:20%">20%</i></div>
+                  <p class="ph__fig-key"><span class="ph__swatch c-orange"></span>Home <span class="ph__swatch c-teal"></span>Public and work</p>
+                  <p class="ph__fig-src">Source: US DOE, National EV Charging Network · <a class="ph__fig-note" href="#note-1-10">Note 10</a></p>
+                </figure>
+
+                <figure class="ph__fig">
+                  <figcaption><b class="ph__fig-num">33–38%</b><span>more electricity a year for a home with one EV</span></figcaption>
+                  <div class="ph__fig-bars">
+                    <div><span>Average home</span><div class="ph__fig-bar"><i class="c-grey" style="width:100%">{homeKwh.toLocaleString('en-US')} kWh</i></div></div>
+                    <div><span>One EV · 3,600–4,050 kWh</span><div class="ph__fig-bar"><i class="c-yellow" style={`width:${evKwhLow}%`}></i><i class="c-yellow ph__fig-range" style={`width:${evKwhSpan}%`}></i></div></div>
+                  </div>
+                  <p class="ph__fig-key"><span class="ph__swatch c-yellow"></span>kWh a year</p>
+                  <p class="ph__fig-src">Source: EIA 2022; fueleconomy.gov · <a class="ph__fig-note" href="#note-1-10">Note 10</a></p>
+                </figure>
+
                 <figure class="ph__fig">
                   <figcaption><b class="ph__fig-num">20M+</b><span>EV sales worldwide, 2025</span></figcaption>
                   <div class="ph__fig-bars">
                     <div><span>2020 · ≈3 M</span><div class="ph__fig-bar"><i class="c-blue" style={`width:${(3 / salesMax) * 100}%`}></i></div></div>
                     <div><span>2025 · 20 M+</span><div class="ph__fig-bar"><i class="c-blue" style={`width:${(20 / salesMax) * 100}%`}></i></div></div>
                   </div>
-                  <p class="ph__fig-src">Source: IEA 2025–26 · <a class="ph__fig-note" href="#note-1-5">Note 5</a></p>
+                  <p class="ph__fig-src">Source: IEA 2025–26 · <a class="ph__fig-note" href="#note-1-8">Note 8</a></p>
                 </figure>
+
                 <figure class="ph__fig">
                   <figcaption><b class="ph__fig-num">500k</b><span>Waymo rides a week</span></figcaption>
                   <div class="ph__fig-units" aria-hidden="true">{rideUnits.map(() => <i class="c-grey" />)}</div>
-                  <p class="ph__fig-src">Source: TechCrunch (2026) · <a class="ph__fig-note" href="#note-1-6">Note 6</a></p>
+                  <p class="ph__fig-src">Source: TechCrunch (2026) · <a class="ph__fig-note" href="#note-1-9">Note 9</a></p>
                 </figure>
               </div>
-            </div>
-          </div>
-
-          <!-- Unit 3: National Infrastructure & Three States Comparison -->
-          <div class="ph__read-unit ph__read-unit--full">
-            <div class="ph__fig-header">
-              <span class="ph__fig-tag">Figure 1.3</span>
-              <span class="ph__fig-title">Charging infrastructure, national and state</span>
-            </div>
-
-            <section id="usa" class="ph__slide" data-slide="0" aria-labelledby="usa-title">
-              <div class="ph__national-layout">
-                <div class="ph__national-copy">
-                  <div class="ph__heading">
-                    <p class="ph__kicker">USA / road infrastructure and electrification, in numbers</p>
-                    <h2 id="usa-title" tabindex="-1">Where public charging is today</h2>
-                  </div>
-                  
-                  <div class="ph__dash ph__dash--us">
-                    <div class="ph__dash-card ph__dash-card--vbars">
-                      <div class="ph__dash-vhead"><span class="ph__dash-label">All vehicles · US · {usRoad.year}</span><b>{mil(usRoad.total)}</b></div>
-                      <div class="ph__stack100 ph__dash-stack" role="img" aria-label={`All US vehicles ${usRoad.year}: ${usRoadBar.segs.map((x) => `${x.label} ${share(x.value, usRoadBar.total)}`).join(', ')}`}>
-                        {usRoadBar.segs.map((x) => <i class={`c-${x.c}`} style={`flex-grow:${x.value}`} title={`${x.label}: ${share(x.value, usRoadBar.total)}`}></i>)}
-                      </div>
-                      <ul class="ph__stack100-key">{usRoadBar.segs.map((x) => <li><i class={`c-${x.c}`}></i>{x.label} <b>{share(x.value, usRoadBar.total)}</b></li>)}</ul>
-                    </div>
-
-                    <div class="ph__dash-card ph__dash-card--vbars">
-                      <div class="ph__dash-vhead"><span class="ph__dash-label">Electric vehicles · US · 2025–2040</span><b>{mil(usEvYears[0].ev)} → {mil(usEvYears[3].ev)}</b></div>
-                      <div class="ph__dash-vbars" role="img" aria-label={`US electric vehicles: ${usEvYears.map((y) => `${y.year} ${mil(y.ev)}`).join(', ')}`}>
-                        {usEvYears.map((y) => (
-                          <div class="ph__dash-hbar">
-                            <span>{y.year}{y.year > 2025 ? ' outlook' : ''}</span>
-                            <div class="ph__dash-htrack ph__dash-htrack--split">
-                              <i class="c-green" style={`width:${(y.bev / usEvMax) * 100}%`}></i><i class="c-teal" style={`width:${(y.phev / usEvMax) * 100}%`}></i>
-                            </div>
-                            <b>{mil(y.ev)}</b>
-                          </div>
-                        ))}
-                      </div>
-                      <ul class="ph__stack100-key"><li><i class="c-green"></i>Battery-electric</li><li><i class="c-teal"></i>Plug-in hybrid</li></ul>
-                    </div>
-
-                    <div class="ph__dash-card ph__dash-card--years">
-                      <span class="ph__dash-label">Share of US vehicles that are electric</span>
-                      <div class="ph__dash-years">
-                        {usShareRings.map((r) => (
-                          <div class:list={['ph__dash-year', { 'is-outlook': r.outlook }]}>
-                            <div class="ph__dash-ring ph__dash-ring--small" role="img" aria-label={`${r.year}: ${r.pct} electric`}>
-                              <svg viewBox="0 0 120 120"><circle class="ph__ring-track" cx="60" cy="60" r="48" pathLength="100" />{ring(r.bar).slice(0, 2).map((g) => <circle class={`ph__ring-seg r-${g.c}`} cx="60" cy="60" r="48" pathLength="100" stroke-dasharray={`${g.len} ${100 - g.len}`} stroke-dashoffset={g.off} />)}</svg>
-                              <div class="ph__dash-center"><b>{r.pct}</b></div>
-                            </div>
-                            <span>{r.year}{r.outlook ? ' outlook' : ''}</span>
-                          </div>
-                        ))}
-                      </div>
-                      <ul class="ph__stack100-key"><li><i class="c-green"></i>Battery-electric</li><li><i class="c-teal"></i>Plug-in hybrid</li></ul>
-                    </div>
-                    <p class="ph__note">All vehicles: FHWA Highway Statistics 2024, Table MV-1. Electric vehicles and share: US cars and light trucks, EIA Annual Energy Outlook 2026; 2025 is EIA’s base year, later years are its baseline outlook, not a forecast.</p>
-                  </div>
-                </div>
-
-                <div class="ph__national-visual">
-                  <div class="ph__map-bar">
-                    <p class="ph__solo-title">Where the US’s <b id="ph-map-ports" aria-live="polite">{fmt(allUsa.ports)}</b> charging points are · <span><span id="ph-map-stations">at {fmt(allUsa.stations)} stations · public and private</span></span></p>
-                    <select id="ph-access" class="ph__map-select" aria-label="Show public, private or all charging">
-                      <option value="all" selected>All charging points</option>
-                      <option value="public">Public</option>
-                      <option value="private">Private</option>
-                    </select>
-                  </div>
-                  <p class="ph__map-note">Each dot on the map groups nearby charging locations, and its size grows with the number of charging points there. Public means open to any driver, even when the equipment is privately owned; private means workplaces, fleets and apartment blocks that report their chargers. Home chargers are not counted anywhere.</p>
-                  <figure class="ph__map ph__national-map">
-                    <svg class="ph__svg ph__national-svg" viewBox="0 0 975 610" role="img" aria-labelledby="ph-us-svg-title ph-us-svg-desc">
-                      <title id="ph-us-svg-title">US charging infrastructure</title><desc id="ph-us-svg-desc">Operating charging ports across the fifty states and DC. Alaska and Hawaii are insets. Dots aggregate nearby locations; exact counts appear above and in the tables.</desc>
-                      <g class="ph__land">{data.usa.states.map(st=><path d={st.d}><title>{st.name}</title></path>)}</g>
-                      <g class="ph__focus-states">{focusStates.map((f)=><path d={f.d}><title>{f.rank}. {f.name}</title></path>)}</g>
-                      <g>{data.usa.dots.map(d=><circle cx={d.x} cy={d.y} r={size(d.l1+d.l2+d.dc)} data-us-access={d.access} class="ph__charging-dot"><title>{d.access} charging · {fmt(d.l1+d.l2+d.dc)} ports in this map cell</title></circle>)}</g>
-                      <g class="ph__focus-labels" aria-hidden="true">{focusStates.map((f)=><g><line x1={f.tx} y1={f.ty} x2={f.x} y2={f.y}/><g transform={`translate(${f.x} ${f.y})`}><circle class="ph__focus-mark" r="19"/><text dy="7">{f.rank}</text></g></g>)}</g>
-                    </svg>
-                  </figure>
-                  <div class="ph__ranklist">
-                    <div class="ph__ranklist-head"><span>All 50 states and DC</span><b>{fmt(pub.ports)} public charging points</b></div>
-                    <ol class="ph__top5" aria-label="States by public charging points, largest first" tabindex="0">
-                      {data.ranked.map((r, i) => (
-                        <li class:list={[{ 'is-focus': i < 3 }]}><span>{i + 1}</span><b>{stateName[r.code] ?? r.code} <small>{((r.ports / pub.ports) * 100).toFixed(1)}%</small></b><i style={`width:${(r.ports / data.ranked[0].ports) * 100}%`}></i><em>{fmt(r.ports)}</em></li>
-                      ))}
-                    </ol>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <section id="comparison" class="ph__essential" aria-labelledby="comparison-title">
-              <h2 id="comparison-title" tabindex="-1">Three states, three different conditions</h2>
-              <p>California, New York and Florida hold {pct(states.reduce((n,s)=>n+s.pubPorts,0),pub.ports)} of US public charging ports. Comparing these leading states shows three different conditions; it does not identify the country’s greatest unmet need.</p>
-              <div class="ph__short-comparison">{states.map(s=><article class="ph__short-state">
-                <h3>{s.name}</h3>
-                <figure class="ph__state-overview-map"><div class="ph__overview-viewport" data-overview-map><svg class="ph__svg ph__state-overview-svg" viewBox="0 0 420 420" role="img" tabindex="0" aria-label={`${s.name}: zoomable public charging map. Use plus or minus to zoom and arrow keys to pan.`}><g data-overview-layer><path class="ph__land" d={s.map.outline}/><g class="ph__county">{s.map.counties.map(c=><path d={c.d}/>)}</g><g>{s.map.dots.filter(d=>d.access==='public').map(d=><circle cx={d.x} cy={d.y} r={Math.min(3, .5+Math.sqrt(d.l1+d.l2+d.dc)*.16)}><title>{fmt(d.l1+d.l2+d.dc)} public ports in this map cell</title></circle>)}</g></g></svg><div class="ph__overview-controls" role="group" aria-label={`${s.name} map controls`}><button type="button" data-overview-zoom="in" aria-label={`Zoom in on ${s.name}`}>+</button><button type="button" data-overview-zoom="out" aria-label={`Zoom out of ${s.name}`}>−</button><button type="button" data-overview-zoom="full">Full state</button></div></div><figcaption>Public charging locations · drag to pan · +/− to zoom</figcaption></figure>
-                <div class="ph__dash">
-                  {(() => { const [road, y16, y25, y40, plugs] = stateBars[s.name]; return (
-                    <Fragment>
-                      <div class="ph__dash-card ph__dash-card--vbars">
-                        <div class="ph__dash-vhead"><span class="ph__dash-label">{road.label}</span><b>{road.big}</b></div>
-                        <div class="ph__stack100 ph__dash-stack" role="img" aria-label={`${road.label}: ${road.bar.segs.map((x) => `${x.label} ${share(x.value, road.bar.total)}`).join(', ')}`}>
-                          {road.bar.segs.map((x) => <i class={`c-${x.c}`} style={`flex-grow:${x.value}`} title={`${x.label}: ${share(x.value, road.bar.total)}`}></i>)}
-                        </div>
-                        <ul class="ph__stack100-key">{road.key.map((x) => <li><i class={`c-${x.c}`}></i>{x.label.replace(', incl. SUVs and pickups', ' (incl. SUVs, pickups)')} <b>{share(x.value, road.bar.total)}</b></li>)}</ul>
-                      </div>
-
-                      <div class="ph__dash-card ph__dash-card--years">
-                        <span class="ph__dash-label">Share of vehicles that are electric</span>
-                        <div class="ph__dash-years">
-                          {[y16, y25, y40].map((r) => (
-                            <div class:list={['ph__dash-year', { 'is-outlook': r.dashed }]}>
-                              <div class="ph__dash-ring ph__dash-ring--small" role="img" aria-label={`${r.label}: ${r.big}`}>
-                                <svg viewBox="0 0 120 120"><circle class="ph__ring-track" cx="60" cy="60" r="48" pathLength="100" />{ring(r.bar).slice(0, 2).map((g) => <circle class={`ph__ring-seg r-${g.c}`} cx="60" cy="60" r="48" pathLength="100" stroke-dasharray={`${g.len} ${100 - g.len}`} stroke-dashoffset={g.off} />)}</svg>
-                                <div class="ph__dash-center"><b>{r.big}</b></div>
-                              </div>
-                              <span>{r.bar.title}{r.dashed ? ' outlook' : ''}</span>
-                            </div>
-                          ))}
-                        </div>
-                        <ul class="ph__stack100-key"><li><i class="c-green"></i>Battery-electric</li><li><i class="c-teal"></i>Plug-in hybrid</li></ul>
-                      </div>
-
-                      <div class="ph__dash-card ph__dash-card--vbars">
-                        <div class="ph__dash-vhead"><span class="ph__dash-label">{plugs.label}</span><b>{plugs.big}</b></div>
-                        <div class="ph__stack100 ph__dash-stack" role="img" aria-label={`${plugs.label}: ${plugs.bar.segs.map((x) => `${x.label} ${share(x.value, plugs.bar.total)}`).join(', ')}`}>
-                          {plugs.bar.segs.map((x) => <i class={`c-${x.c}`} style={`flex-grow:${x.value}`} title={`${x.label}: ${share(x.value, plugs.bar.total)}`}></i>)}
-                        </div>
-                        <ul class="ph__stack100-key">{plugs.key.map((x) => <li><i class={`c-${x.c}`}></i>{x.label.replace(', incl. SUVs and pickups', ' (incl. SUVs, pickups)')} <b>{share(x.value, plugs.bar.total)}</b></li>)}</ul>
-                      </div>
-
-                      <dl class="ph__dash-card ph__dash-figures">
-                        <div><dt>Electric vehicles · 2025</dt><dd>{fmt(s.plugins)}</dd></div>
-                        <div><dt>Public charging points · Oct 2026</dt><dd>{fmt(s.pubPorts)}</dd></div>
-                        <div class="ph__dash-figure-gauge">
-                          <dt>Electric vehicles per public charging point</dt><dd>{s.evsPerPort.toFixed(0)}</dd>
-                          <span class="ph__dash-gauge" aria-hidden="true"><i style={`width:${Math.min(100, (s.evsPerPort / 40) * 100)}%`}></i><em style={`left:${(evPerPortUS / 40) * 100}%`} title={`US average ${evPerPortUS.toFixed(0)}`}></em></span>
-                          <small>US average {evPerPortUS.toFixed(0)} (marker)</small>
-                        </div>
-                        <div><dt>Battery-electric growth · 2024–25</dt><dd>+{s.yoyPct.toFixed(1)}%</dd></div>
-                      </dl>
-                    </Fragment>
-                  ); })()}
-                </div>
-                <p class="ph__state-conclusion">{s.code==='CA'?'The largest existing market of the three. Investigate gaps within a substantial charging network.':s.code==='NY'?'A smaller EV market, with a city where access to home charging is a particular challenge.': 'The fastest recent percentage growth of the three. Test where new demand requires shared charging.'}</p>
-              </article>)}</div>
-              <p class="ph__note">Electric vehicles (EVs) here means battery-electric cars plus plug-in hybrids; ordinary hybrids that never plug in are counted as fuel vehicles. Growth measures battery EV registrations, not charger use. Vehicle and charger counts refer to different years.</p>
-              <footer class="ph__sources">Sources: <a href={sources.regs}>AFDC registrations, 2016–25</a> · <a href={sources.afdc}>AFDC charging inventory, October 2026</a> · <a href={sources.outlook}>EIA AEO2026 national outlook, Table 39</a>.</footer>
-            </section>
-
-            <!-- The end of 1.1: the three states compared in one table -->
-            <section class="ph__compare" aria-labelledby="ph-compare-title">
-              <h2 id="ph-compare-title">California, New York and Florida compared</h2>
-              <div class="ph__table-wrap" tabindex="0" role="region" aria-label="Three-state comparison">
-                <table>
-                  <thead><tr><th scope="col">Measure</th>{states.map((st) => <th scope="col">{st.name}</th>)}</tr></thead>
-                  <tbody>
-                    {compareRows.map((r) => (
-                      <tr>
-                        <th scope="row">{r.label}{r.note && <small>{r.note}</small>}</th>
-                        {r.v.map((n, k) => (
-                          <td class:list={[{ 'is-top': k === r.top, 'is-flag': r.flag === states[k].code }]}>
-                            {r.flag === states[k].code ? <span class="ph__flag">{r.show(n)}</span> : r.show(n)}
-                            {r.extra && <small>{r.extra[k]}</small>}
-                            {r.flag === states[k].code && <small class="ph__flag-note">{r.flagNote}</small>}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                    <tr class="ph__compare-role">
-                      <th scope="row">What it shows</th>
-                      {states.map((st) => <td>{roleOf[st.code].claim}</td>)}
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <p class="ph__note">Highest in each row in bold. Vehicle and charger counts come from different years; EVs per charging point is a ratio across them, not a measure of how busy the chargers are. Sources: FHWA Highway Statistics, Table MV-1; AFDC vehicle registrations 2016–2025; AFDC station inventory, 18 Oct 2026.</p>
-            </section>
-
-            <!-- The conclusion closes 1.1, set apart in an inverted box -->
-            <div class="ph__takeaway">
-              <h2>Why New York</h2>
-              <p><b>New York is where the Powerhouse’s argument is sharpest.</b> California has the scale and Florida the fastest growth, but the Powerhouse is not about the biggest market. It is about people who have to stop to charge and could stay, and New York’s conditions make that stop most likely to happen and to last.</p>
-              <ol class="ph__why-ny">
-                <li><b>Charging away from home is not a choice.</b> Half of New York City’s car-owning households park on the street, with no driveway or garage to charge in. For them the one charge in five that most drivers make away from home is every charge.</li>
-                <li><b>Its stops are long.</b> {(((ny_l) / ny_p) * 100).toFixed(0)}% of New York’s public charging points are slow chargers, the highest share of the three (California {(((ca_l) / ca_p) * 100).toFixed(0)}%, Florida {(((fl_l) / fl_p) * 100).toFixed(0)}%). A charge takes hours, not minutes: time the Powerhouse turns into a place.</li>
-                <li><b>The shift is early, and fast.</b> Battery-electric cars grew {nyS.mult2025.toFixed(0)}× since 2016, yet only {((nyS.plugins / nyS.now.total) * 100).toFixed(1)}% of vehicles are electric. Most of the charging the city will need is still to be built, and the city is already planning curbside chargers, so what gets built next can be designed as a place, not only as parking.</li>
-              </ol>
-              <p class="ph__takeaway-next">New York City is the test site for the Powerhouse. Its deep dive follows: where street-parked drivers live, where chargers are planned, and what each neighbourhood lacks.</p>
-              <p class="ph__takeaway-source">Street parking: <a href="https://www.nyc.gov/html/dot/html/pr2026/expansion-of-curbside-electric-vehicle-charging.shtml">NYC DOT, curbside charging expansion, Aug 2026</a>. Chargers: AFDC station inventory, 18 Oct 2026. Vehicles: AFDC registrations 2016–2025.</p>
             </div>
           </div>
         </div>
@@ -1995,6 +1905,117 @@ const mindmapBibs = rawBibs.map((b) => ({
                   </figure>
                 </div>
                 </div>
+
+                <!-- Unit: Three States Comparison -->
+                <div class="ph__read-unit ph__read-unit--full">
+                  <div class="ph__fig-header">
+                    <span class="ph__fig-tag">Spatial Comparison</span>
+                    <span class="ph__fig-title">Three states, three different conditions</span>
+                  </div>
+
+                  <section id="comparison" class="ph__essential" aria-labelledby="comparison-title">
+                    <h2 id="comparison-title" tabindex="-1">Three states, three different conditions</h2>
+                    <p>California, New York and Florida hold {pct(states.reduce((n,s)=>n+s.pubPorts,0),pub.ports)} of US public charging ports. Comparing these leading states shows three different conditions; it does not identify the country’s greatest unmet need.</p>
+                    <div class="ph__short-comparison">{states.map(s=><article class="ph__short-state">
+                      <h3>{s.name}</h3>
+                      <figure class="ph__state-overview-map"><div class="ph__overview-viewport" data-overview-map><svg class="ph__svg ph__state-overview-svg" viewBox="0 0 420 420" role="img" tabindex="0" aria-label={`${s.name}: zoomable public charging map. Use plus or minus to zoom and arrow keys to pan.`}><g data-overview-layer><path class="ph__land" d={s.map.outline}/><g class="ph__county">{s.map.counties.map(c=><path d={c.d}/>)}</g><g>{s.map.dots.filter(d=>d.access==='public').map(d=><circle cx={d.x} cy={d.y} r={Math.min(3, .5+Math.sqrt(d.l1+d.l2+d.dc)*.16)}><title>{fmt(d.l1+d.l2+d.dc)} public ports in this map cell</title></circle>)}</g></g></svg><div class="ph__overview-controls" role="group" aria-label={`${s.name} map controls`}><button type="button" data-overview-zoom="in" aria-label={`Zoom in on ${s.name}`}>+</button><button type="button" data-overview-zoom="out" aria-label={`Zoom out of ${s.name}`}>−</button><button type="button" data-overview-zoom="full">Full state</button></div></div><figcaption>Public charging locations · drag to pan · +/− to zoom</figcaption></figure>
+                      <div class="ph__dash">
+                        {(() => { const [road, y16, y25, y40, plugs] = stateBars[s.name]; return (
+                          <Fragment>
+                            <div class="ph__dash-card ph__dash-card--vbars">
+                              <div class="ph__dash-vhead"><span class="ph__dash-label">{road.label}</span><b>{road.big}</b></div>
+                              <div class="ph__stack100 ph__dash-stack" role="img" aria-label={`${road.label}: ${road.bar.segs.map((x) => `${x.label} ${share(x.value, road.bar.total)}`).join(', ')}`}>
+                                {road.bar.segs.map((x) => <i class={`c-${x.c}`} style={`flex-grow:${x.value}`} title={`${x.label}: ${share(x.value, road.bar.total)}`}></i>)}
+                              </div>
+                              <ul class="ph__stack100-key">{road.key.map((x) => <li><i class={`c-${x.c}`}></i>{x.label.replace(', incl. SUVs and pickups', ' (incl. SUVs, pickups)')} <b>{share(x.value, road.bar.total)}</b></li>)}</ul>
+                            </div>
+
+                            <div class="ph__dash-card ph__dash-card--years">
+                              <span class="ph__dash-label">Share of vehicles that are electric</span>
+                              <div class="ph__dash-years">
+                                {[y16, y25, y40].map((r) => (
+                                  <div class:list={['ph__dash-year', { 'is-outlook': r.dashed }]}>
+                                    <div class="ph__dash-ring ph__dash-ring--small" role="img" aria-label={`${r.label}: ${r.big}`}>
+                                      <svg viewBox="0 0 120 120"><circle class="ph__ring-track" cx="60" cy="60" r="48" pathLength="100" />{ring(r.bar).slice(0, 2).map((g) => <circle class={`ph__ring-seg r-${g.c}`} cx="60" cy="60" r="48" pathLength="100" stroke-dasharray={`${g.len} ${100 - g.len}`} stroke-dashoffset={g.off} />)}</svg>
+                                      <div class="ph__dash-center"><b>{r.big}</b></div>
+                                    </div>
+                                    <span>{r.bar.title}{r.dashed ? ' outlook' : ''}</span>
+                                  </div>
+                                ))}
+                              </div>
+                              <ul class="ph__stack100-key"><li><i class="c-green"></i>Battery-electric</li><li><i class="c-teal"></i>Plug-in hybrid</li></ul>
+                            </div>
+
+                            <div class="ph__dash-card ph__dash-card--vbars">
+                              <div class="ph__dash-vhead"><span class="ph__dash-label">{plugs.label}</span><b>{plugs.big}</b></div>
+                              <div class="ph__stack100 ph__dash-stack" role="img" aria-label={`${plugs.label}: ${plugs.bar.segs.map((x) => `${x.label} ${share(x.value, plugs.bar.total)}`).join(', ')}`}>
+                                {plugs.bar.segs.map((x) => <i class={`c-${x.c}`} style={`flex-grow:${x.value}`} title={`${x.label}: ${share(x.value, plugs.bar.total)}`}></i>)}
+                              </div>
+                              <ul class="ph__stack100-key">{plugs.key.map((x) => <li><i class={`c-${x.c}`}></i>{x.label.replace(', incl. SUVs and pickups', ' (incl. SUVs, pickups)')} <b>{share(x.value, plugs.bar.total)}</b></li>)}</ul>
+                            </div>
+
+                            <dl class="ph__dash-card ph__dash-figures">
+                              <div><dt>Electric vehicles · 2025</dt><dd>{fmt(s.plugins)}</dd></div>
+                              <div><dt>Public charging points · Oct 2026</dt><dd>{fmt(s.pubPorts)}</dd></div>
+                              <div class="ph__dash-figure-gauge">
+                                <dt>Electric vehicles per public charging point</dt><dd>{s.evsPerPort.toFixed(0)}</dd>
+                                <span class="ph__dash-gauge" aria-hidden="true"><i style={`width:${Math.min(100, (s.evsPerPort / 40) * 100)}%`}></i><em style={`left:${(evPerPortUS / 40) * 100}%`} title={`US average ${evPerPortUS.toFixed(0)}`}></em></span>
+                                <small>US average {evPerPortUS.toFixed(0)} (marker)</small>
+                              </div>
+                              <div><dt>Battery-electric growth · 2024–25</dt><dd>+{s.yoyPct.toFixed(1)}%</dd></div>
+                            </dl>
+                          </Fragment>
+                        ); })()}
+                      </div>
+                      <p class="ph__state-conclusion">{s.code==='CA'?'The largest existing market of the three. Investigate gaps within a substantial charging network.':s.code==='NY'?'A smaller EV market, with a city where access to home charging is a particular challenge.': 'The fastest recent percentage growth of the three. Test where new demand requires shared charging.'}</p>
+                    </article>)}</div>
+                    <p class="ph__note">Electric vehicles (EVs) here means battery-electric cars plus plug-in hybrids; ordinary hybrids that never plug in are counted as fuel vehicles. Growth measures battery EV registrations, not charger use. Vehicle and charger counts refer to different years.</p>
+                    <footer class="ph__sources">Sources: <a href={sources.regs}>AFDC registrations, 2016–25</a> · <a href={sources.afdc}>AFDC charging inventory, October 2026</a> · <a href={sources.outlook}>EIA AEO2026 national outlook, Table 39</a>.</footer>
+                  </section>
+
+                  <!-- The three states compared in one table -->
+                  <section class="ph__compare" aria-labelledby="ph-compare-title">
+                    <h2 id="ph-compare-title">California, New York and Florida compared</h2>
+                    <div class="ph__table-wrap" tabindex="0" role="region" aria-label="Three-state comparison">
+                      <table>
+                        <thead><tr><th scope="col">Measure</th>{states.map((st) => <th scope="col">{st.name}</th>)}</tr></thead>
+                        <tbody>
+                          {compareRows.map((r) => (
+                            <tr>
+                              <th scope="row">{r.label}{r.note && <small>{r.note}</small>}</th>
+                              {r.v.map((n, k) => (
+                                <td class:list={[{ 'is-top': k === r.top, 'is-flag': r.flag === states[k].code }]}>
+                                  {r.flag === states[k].code ? <span class="ph__flag">{r.show(n)}</span> : r.show(n)}
+                                  {r.extra && <small>{r.extra[k]}</small>}
+                                  {r.flag === states[k].code && <small class="ph__flag-note">{r.flagNote}</small>}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                          <tr class="ph__compare-role">
+                            <th scope="row">What it shows</th>
+                            {states.map((st) => <td>{roleOf[st.code].claim}</td>)}
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <p class="ph__note">Highest in each row in bold. Vehicle and charger counts come from different years; EVs per charging point is a ratio across them, not a measure of how busy the chargers are. Sources: FHWA Highway Statistics, Table MV-1; AFDC vehicle registrations 2016–2025; AFDC station inventory, 18 Oct 2026.</p>
+                  </section>
+
+                  <!-- The conclusion: why New York sets up the deep dive -->
+                  <div class="ph__takeaway">
+                    <h2>Why New York</h2>
+                    <p><b>New York is where the Powerhouse’s argument is sharpest.</b> California has the scale and Florida the fastest growth, but the Powerhouse is not about the biggest market. It is about people who have to stop to charge and could stay, and New York’s conditions make that stop most likely to happen and to last.</p>
+                    <ol class="ph__why-ny">
+                      <li><b>Charging away from home is not a choice.</b> Half of New York City’s car-owning households park on the street, with no driveway or garage to charge in. For them the one charge in five that most drivers make away from home is every charge.</li>
+                      <li><b>Its stops are long.</b> {(((ny_l) / ny_p) * 100).toFixed(0)}% of New York’s public charging points are slow chargers, the highest share of the three (California {(((ca_l) / ca_p) * 100).toFixed(0)}%, Florida {(((fl_l) / fl_p) * 100).toFixed(0)}%). A charge takes hours, not minutes: time the Powerhouse turns into a place.</li>
+                      <li><b>The shift is early, and fast.</b> Battery-electric cars grew {nyS.mult2025.toFixed(0)}× since 2016, yet only {((nyS.plugins / nyS.now.total) * 100).toFixed(1)}% of vehicles are electric. Most of the charging the city will need is still to be built, and the city is already planning curbside chargers, so what gets built next can be designed as a place, not only as parking.</li>
+                    </ol>
+                    <p class="ph__takeaway-next">New York City is the test site for the Powerhouse. Its deep dive follows: where street-parked drivers live, where chargers are planned, and what each neighbourhood lacks.</p>
+                    <p class="ph__takeaway-source">Street parking: <a href="https://www.nyc.gov/html/dot/html/pr2026/expansion-of-curbside-electric-vehicle-charging.shtml">NYC DOT, curbside charging expansion, Aug 2026</a>. Chargers: AFDC station inventory, 18 Oct 2026. Vehicles: AFDC registrations 2016–2025.</p>
+                  </div>
+                </div>
+
                 <section class="ph__zoom" aria-label="New York, from the state to Manhattan">
                   <p class="ph__kicker ph__zoom-kicker">New York, closer: the state, the city, Manhattan</p>
                   <div class="ph__zoom-grid">
@@ -2672,8 +2693,6 @@ const mindmapBibs = rawBibs.map((b) => ({
   .ph__notes-list :global(a), .ph__bib-list :global(a) { color: inherit; overflow-wrap: anywhere; }
   .ph__note-back { color: var(--_tokens---color--muted) !important; font-size: .9em; }
   @media (max-width: 1023.98px) { .ph__notes-list, .ph__bib-list { columns: 1; } }
-  .ph :global(.ph__book sup a) { color: inherit; text-decoration: none; padding: 0 1px; }
-  @media (hover: hover) { .ph :global(.ph__book sup a:hover) { color: var(--_tokens---color--fg); text-decoration: underline; } }
   .ph :global(.ph__book sup[id]), .ph__notes-list li { scroll-margin-top: calc(var(--ph-toc-h, 140px) + 160px); }
   .ph :global(.ph__book-notes) { columns: 2; column-gap: var(--_tokens---space--small); display: block; }
     .ph :global(.ph__book-notes li) { break-inside: avoid; margin-bottom: 8px; }
@@ -2683,17 +2702,169 @@ const mindmapBibs = rawBibs.map((b) => ({
   .ph__interpretation td { white-space: normal; min-width: 180px; line-height: 1.6; }
   .ph__interpretation th:first-child { white-space: normal; min-width: 160px; }
   .ph__state-detail > section { padding-top: 16px; }
-  .ph__national-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 32px; align-items: stretch; }
-  .ph__national-visual { display: flex; flex-direction: column; }
+  .ph__heading--full { margin-bottom: 24px; }
+  .ph__heading--full h2 { font-size: var(--_tokens---type--medium); margin-bottom: 8px; }
+  .ph__national-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.25fr);
+    gap: 40px;
+    align-items: start;
+    margin-bottom: 24px;
+  }
+  .ph__national-prose { min-width: 0; }
+  .ph__national-prose .ph__read-text {
+    column-count: 1 !important;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    font-size: clamp(0.875rem, 0.835rem + 0.15vw, 0.9625rem);
+    line-height: 1.7;
+    color: var(--_tokens---color--fg);
+  }
+  .ph__national-prose .ph__read-text p {
+    max-width: none;
+    margin: 0;
+  }
+  .ph__national-prose .ph__map-note-lead {
+    font-size: clamp(0.8125rem, 0.775rem + 0.12vw, 0.875rem);
+    line-height: 1.55;
+    color: var(--_tokens---color--muted);
+    padding-top: 14px;
+    border-top: 1px solid var(--_tokens---color--line);
+    margin-top: 4px;
+  }
+  .ph__national-visual { display: flex; flex-direction: column; min-width: 0; width: 100%; }
+  .ph__national-visual .ph__fig-header { margin-bottom: 8px; }
+  .ph__national-visual .ph__map-bar { margin-bottom: 6px; }
+  .ph__national-visual .ph__solo-title { font-size: var(--_tokens---type--micro); text-align: left; }
+  .ph__national-visual .ph__national-map { margin: 8px 0 16px; }
+  .ph__national-visual .ph__ranklist {
+    margin-top: 0;
+    max-height: 270px;
+    min-height: 12rem;
+  }
+  .ph__national-visual .ph__ranklist .ph__top5 {
+    max-height: 220px;
+    overflow-y: auto;
+  }
+  @media (max-width: 1023.98px) {
+    .ph__national-split {
+      grid-template-columns: 1fr;
+      gap: 28px;
+    }
+  }
+  .ph__map-note-lead {
+    font-size: clamp(0.8125rem, 0.775rem + 0.12vw, 0.875rem);
+    line-height: 1.55;
+    color: var(--_tokens---color--muted);
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--_tokens---color--line);
+  }
   /* All states, ten or so in view: the list fills the column down to the end of the left one */
-  .ph__ranklist { display: flex; flex-direction: column; flex: 1 1 0; min-height: 16rem; margin-top: 28px; padding-top: 12px; border-top: 1px solid var(--_tokens---color--line); }
+  .ph__ranklist { display: flex; flex-direction: column; flex: 1 1 0; min-height: 14rem; margin-top: 24px; padding-top: 12px; border-top: 1px solid var(--_tokens---color--line); }
   .ph__ranklist-head { display: flex; justify-content: space-between; gap: 12px; font-size: var(--_tokens---type--micro); margin-bottom: 10px; }
   .ph__ranklist-head span { color: var(--_tokens---color--muted); }
   .ph__ranklist-head b { font-weight: 600; font-variant-numeric: tabular-nums; }
   .ph__ranklist .ph__top5 { flex: 1 1 0; min-height: 0; overflow-y: auto; margin: 0; padding-right: 6px; }
-  .ph__national-copy, .ph__national-visual { min-width: 0; }
-  .ph__national-copy .ph__heading > p:last-child { font-size: var(--_tokens---type--micro); line-height: 1.65; }
-  .ph__national-visual .ph__solo-title { font-size: var(--_tokens---type--micro); text-align: left; }
+  .ph__six-notes-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 14px;
+    align-items: stretch;
+  }
+  .ph__six-notes-grid .ph__fig {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    margin: 0;
+  }
+  .ph__six-notes-grid .ph__dash-card {
+    border: 1px solid var(--_tokens---color--line);
+    border-radius: 12px;
+    padding: 12px;
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: var(--_tokens---type--micro);
+    min-height: 0;
+  }
+  .ph__six-notes-grid .ph__dash-card figcaption {
+    margin: 0 0 auto;
+    display: grid;
+    gap: 4px;
+  }
+  .ph__six-notes-grid .ph__dash-card .ph__fig-num {
+    font-size: clamp(1.4rem, 1.1rem + 1vw, 2rem);
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: -0.01em;
+  }
+  .ph__six-notes-grid .ph__dash-card figcaption > span {
+    font-size: var(--_tokens---type--ultrathin);
+    line-height: 1.4;
+    color: var(--_tokens---color--muted);
+  }
+  .ph__six-notes-grid .ph__dash-card .ph__fig-src {
+    margin-top: auto;
+    padding-top: 8px;
+    border-top: 1px solid var(--_tokens---color--line);
+    font-size: var(--_tokens---type--ultrathin);
+    line-height: 1.4;
+    color: var(--_tokens---color--muted);
+  }
+  @media (max-width: 959.98px) {
+    .ph__six-notes-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  .ph__figs-3col {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 14px;
+    align-items: stretch;
+  }
+  .ph__figs-3col .ph__fig {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    margin: 0;
+  }
+  @media (max-width: 899.98px) {
+    .ph__figs-3col {
+      grid-template-columns: 1fr;
+    }
+  }
+  .ph__figs-4col-unit {
+    margin-top: 24px;
+    width: 100%;
+  }
+  .ph__figs-4col {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 14px;
+    align-items: stretch;
+  }
+  .ph__figs-4col .ph__fig {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    margin: 0;
+  }
+  @media (max-width: 1023.98px) {
+    .ph__figs-4col {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+  }
+  @media (max-width: 599.98px) {
+    .ph__figs-4col {
+      grid-template-columns: 1fr;
+    }
+  }
   .ph__state-overview-map { margin: 16px 0; }
   .ph__overview-viewport { position: relative; width: 100%; aspect-ratio: 1; overflow: hidden; background: var(--_tokens---color--bg); }
   .ph__overview-viewport .ph__state-overview-svg { width: 100%; height: 100%; cursor: grab; touch-action: pan-y; }
@@ -2761,19 +2932,44 @@ const mindmapBibs = rawBibs.map((b) => ({
     color: var(--_tokens---color--fg);
     margin-bottom: 1.35em;
   }
-  .ph__read-text sup {
+  /* Note references in reading text: distinct grey highlight badge */
+  .ph :global(sup[id^="ref-"]),
+  .ph__read-text sup,
+  .ph :global(.ph__book sup) {
     font-size: 0.72em;
-    vertical-align: super;
+    vertical-align: baseline;
+    position: relative;
+    top: -0.42em;
     line-height: 0;
-    padding: 0 1px;
+    margin: 0 2px 0 1px;
   }
-  .ph__read-text sup a {
-    color: var(--ph-red, #cc2b1d);
+  .ph :global(sup[id^="ref-"] a),
+  .ph__read-text sup a,
+  .ph :global(.ph__book sup a) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.45em;
+    height: 1.45em;
+    padding: 0 4px;
+    background-color: color-mix(in srgb, var(--_tokens---color--fg) 12%, transparent);
+    color: var(--_tokens---color--fg);
+    border-radius: 3px;
+    font-size: 0.85em;
     font-weight: 600;
+    font-variant-numeric: tabular-nums;
     text-decoration: none;
+    line-height: 1;
+    transition: background-color var(--_tokens---motion--base, 0.15s ease), color var(--_tokens---motion--base, 0.15s ease);
   }
-  .ph__read-text sup a:hover {
-    text-decoration: underline;
+  @media (hover: hover) {
+    .ph :global(sup[id^="ref-"] a:hover),
+    .ph__read-text sup a:hover,
+    .ph :global(.ph__book sup a:hover) {
+      background-color: color-mix(in srgb, var(--_tokens---color--fg) 22%, transparent);
+      color: var(--ph-red, #cc2b1d);
+      text-decoration: none;
+    }
   }
   .ph__read-visual {
     min-width: 0;
@@ -2837,6 +3033,17 @@ const mindmapBibs = rawBibs.map((b) => ({
     margin: 0;
     color: var(--_tokens---color--fg);
   }
+  .ph__concept-hypothesis {
+    padding: 24px;
+    border: 1px solid #111;
+    border-radius: 0;
+    background: #111;
+    color: #fff;
+    font-size: var(--_tokens---type--medium);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -.03em;
+  }
   .ph__concept-points {
     display: grid;
     gap: 10px;
@@ -2860,6 +3067,101 @@ const mindmapBibs = rawBibs.map((b) => ({
     .ph__read-unit {
       grid-template-columns: 1fr;
       gap: 24px;
+    }
+  }
+
+  /* Chapter 1 report: prose reads across two columns; evidence follows its passage. */
+  [data-chapter-group="ch1"] .ph__read-unit {
+    display: block;
+    padding-bottom: 32px;
+    border-bottom-style: solid;
+  }
+  [data-chapter-group="ch1"] .ph__read-text {
+    font-size: clamp(0.8125rem, 0.775rem + 0.15vw, 0.9375rem);
+    column-count: 2;
+    column-gap: 44px;
+    column-fill: balance;
+    orphans: 3;
+    widows: 3;
+  }
+  [data-chapter-group="ch1"] .ph__read-text p {
+    max-width: none;
+  }
+  [data-chapter-group="ch1"] .ph__read-text .ph__book-lead {
+    font-size: inherit;
+    line-height: inherit;
+  }
+  [data-chapter-group="ch1"] .ph__read-visual {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px 44px;
+    margin-top: 28px;
+    align-items: start;
+  }
+  [data-chapter-group="ch1"] .ph__read-visual > :is(.ph__fig-header, .ph__fig--wide, .ph__concept-card, .ph__subfigs-row) {
+    grid-column: 1 / -1;
+  }
+  [data-chapter-group="ch1"] .ph__read-visual > .ph__fig:first-of-type:last-of-type {
+    grid-column: 1 / -1;
+  }
+  [data-chapter-group="ch1"] :is(.ph__fig, .ph__concept-card) {
+    break-inside: avoid;
+  }
+  /* Quiet report furniture: hierarchy comes from type and spacing. */
+  [data-chapter-group="ch1"] :is(.ph__book-running-head, .ph__book-running-foot, .ph__read-unit) {
+    border: 0;
+  }
+  [data-section-panel="1-0"] .ph__concept-card {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    padding: 0;
+  }
+  [data-section-panel="1-0"] .ph__fig-header {
+    border: 0;
+    padding-bottom: 0;
+  }
+  [data-section-panel="1-0"] .ph__concept-points {
+    border: 0;
+    padding-top: 6px;
+  }
+  [data-section-panel="1-0"] .ph__concept-badge {
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--_tokens---color--muted);
+  }
+
+  /* Balance the introduction and its inline concept together across both columns. */
+  [data-section-panel="1-0"] .ph__read-unit {
+    display: block;
+    column-count: 2;
+    column-gap: 44px;
+    column-fill: balance;
+    font-size: clamp(0.8125rem, 0.775rem + 0.15vw, 0.9375rem);
+    line-height: 1.68;
+    orphans: 3;
+    widows: 3;
+  }
+  [data-section-panel="1-0"] .ph__read-text {
+    display: contents;
+    column-count: auto;
+    orphans: 2;
+    widows: 2;
+  }
+  [data-section-panel="1-0"] .ph__read-visual {
+    display: block;
+    margin-top: 20px;
+    break-inside: avoid;
+  }
+  [data-section-panel="1-0"] .ph__fig-header { margin-bottom: 14px; }
+  @media (max-width: 699.98px) {
+    [data-section-panel="1-0"] .ph__read-unit { column-count: 1; }
+    [data-chapter-group="ch1"] .ph__read-text { column-count: 1; }
+    [data-chapter-group="ch1"] .ph__read-visual {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 20px;
+      margin-top: 24px;
     }
   }
 
@@ -3000,8 +3302,23 @@ const mindmapBibs = rawBibs.map((b) => ({
   .ph__dash-htrack i { display: block; height: 100%; border-radius: 5px; }
   .ph__dash-htrack--split { display: flex; gap: 2px; }
   .ph__dash-htrack--split i { flex: 0 0 auto; border-radius: 0; }
-  .ph__dash--us { margin-top: 20px; }
+  .ph__dash--us {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 24px;
+    align-items: stretch;
+  }
+  .ph__dash--us .ph__dash-card {
+    min-height: 0;
+    padding: 14px;
+  }
   .ph__dash--us .ph__dash-hbar { grid-template-columns: 6.6em minmax(0, 1fr) 3.6em; }
+  @media (max-width: 959.98px) {
+    .ph__dash--us {
+      grid-template-columns: 1fr;
+    }
+  }
   .ph__dash-label { display: block; font-size: 11px; color: var(--_tokens---color--muted); margin-bottom: 6px; }
   .ph__dash-ring { position: relative; width: 112px; aspect-ratio: 1; }
   .ph__dash-ring svg { display: block; width: 100%; height: 100%; }
