@@ -8,6 +8,7 @@ import data from '../../data/powerhouse-analysis.json';
 import networks from '../../data/powerhouse-networks.json';
 import roads from '../../data/powerhouse-roads.json';
 import bookTextData from '../../data/powerhouse-book.json';
+import bookPdf from '../../data/powerhouse-pdf.json';
 import official from '../../data/powerhouse-official.json';
 import nyc from '../../data/powerhouse-nyc.json';
 import nycSvg from '../../../public/maps/nyc-ntas.svg?raw';
@@ -265,26 +266,6 @@ function glanceOf(name: string) {
   };
 }
 const glances: Record<string, ReturnType<typeof glanceOf>> = Object.fromEntries(['United States', 'California', 'New York', 'Florida'].map((n) => [n, glanceOf(n)]));
-// The US dashboard (left of the national map): every vehicle by type (FHWA 2024), electric
-// vehicles from 2025 to 2040, and the electric share as rings (EIA AEO2026 baseline).
-const usRoad = roadOf['United States'];
-const usRoadBar: StackBar = { title: 'US', total: usRoad.total, segs: [
-  { label: 'Trucks (incl. SUVs, pickups)', value: usRoad.trucks, c: 'red' },
-  { label: 'Cars', value: usRoad.automobiles, c: 'orange' },
-  { label: 'Motorcycles', value: usRoad.motorcycles, c: 'yellow' },
-  { label: 'Buses', value: usRoad.buses, c: 'blue' },
-] };
-const usEvYears = [2025, 2030, 2035, 2040].map((y) => { const v = nat(String(y)); return { year: y, bev: v.bev, phev: v.phev, ev: v.bev + v.phev, total: v.total }; });
-const usEvMax = Math.max(...usEvYears.map((y) => y.ev));
-const usShareRings = [2025, 2030, 2040].map((y) => {
-  const v = nat(String(y));
-  const bar: StackBar = { title: String(y), total: v.total, segs: [
-    { label: 'Battery-electric', value: v.bev, c: 'green' },
-    { label: 'Plug-in hybrid', value: v.phev, c: 'teal' },
-    { label: 'Fuel', value: v.total - v.bev - v.phev, c: 'light' },
-  ] };
-  return { year: y, bar, pct: share(v.bev + v.phev, v.total), outlook: y > 2025 };
-});
 
 // Rings for the state dashboards: each segment is an arc on a circle of pathLength 100, so
 // its dash length is its percentage and its offset where the previous ones ended (from 12
@@ -456,15 +437,15 @@ const sources = {
 type BookSection = { id: string; num: string; title: string; page?: number; planned?: boolean };
 const book: { id: string; num: string; short: string; title: string; subtitle?: string; sections: BookSection[] }[] = [
   {
-    id: 'ch1', num: '1', short: 'Introduction', title: 'Introduction', subtitle: 'A sustainable charging anchor',
+    id: 'ch1', num: '1', short: 'Introduction', title: 'Introduction', subtitle: 'The Architecture of the Pause',
     sections: [
-      { id: '1-1', num: '1.1', title: 'Electrification and Speed', page: 7 },
-      { id: '1-2', num: '1.2', title: 'The Architecture of the Stop', page: 8 },
-      { id: '1-3', num: '1.3', title: 'Charge Time', page: 9 },
-      { id: '1-4', num: '1.4', title: 'Public Space as Community', page: 10 },
-      { id: '1-5', num: '1.5', title: 'The Anchor', page: 11 },
-      { id: '1-6', num: '1.6', title: 'Argument, Objectives, and Scope', page: 12 },
-      { id: '1-7', num: '1.7', title: 'Theoretical Framework', page: 13 },
+      { id: '1-1', num: '1.1', title: 'A New Road System', page: 7 },
+      { id: '1-2', num: '1.2', title: 'The Pause Today', page: 8 },
+      { id: '1-3', num: '1.3', title: 'What Is a Charge Stop?', page: 9 },
+      { id: '1-4', num: '1.4', title: 'Programme Makes the Place', page: 10 },
+      { id: '1-5', num: '1.5', title: 'The Network Around the Charger', page: 11 },
+      { id: '1-6', num: '1.6', title: 'The Proposition', page: 12 },
+      { id: '1-7', num: '1.7', title: 'Three Ways of Reading the Pause', page: 13 },
     ],
   },
   {
@@ -507,64 +488,16 @@ const book: { id: string; num: string; short: string; title: string; subtitle?: 
       { id: '5-2', num: '5.2', title: 'Notes to Chapter 2' },
       { id: '5-3', num: '5.3', title: 'Notes to Chapter 3' },
       { id: '5-4', num: '5.4', title: 'Notes to Chapter 4' },
-      { id: '5-5', num: '5.5', title: 'Master Bibliography (58 Peer-Reviewed Sources)' },
+      { id: '5-5', num: '5.5', title: 'Master Bibliography' },
     ],
   },
 ];
 // The section that holds the five data slides below.
 const dataSection = '1-1';
-// 1.1 in numbers: the figures the book text cites, drawn beside it. Each card names its note.
+// 1.1 in three numbers: transport's share of emissions, electric car sales, home charging.
 const waffle = Array.from({ length: 100 }, (_, i) => i < 28);
-const co2Units = Array.from({ length: 6 }); // 1 block = 1 billion tonnes (note 2)
-const rideUnits = Array.from({ length: 5 }); // 1 block = 100,000 rides a week (note 6)
-const evYearKwh = [3600, 4050]; // 30 kWh per 100 miles × 12,000–13,500 miles (note 10)
-const homeKwh = 10791; // EIA, average US household, 2022
-const evKwhLow = Math.round((evYearKwh[0] / homeKwh) * 100);
-const evKwhSpan = Math.round(((evYearKwh[1] - evYearKwh[0]) / homeKwh) * 100);
 const salesMax = 22;
-// 1.2 in numbers. The typical pause at each kind of stop (Table 1.1), on a log scale from
-// one minute to a day, so five minutes and overnight both read.
-const pauseX = (m: number) => (Math.log(m) / Math.log(1440)) * 100;
-const pauses = [
-  { name: 'Caravanserai', label: 'Overnight', from: 480, to: 720, cls: 'c-grey' },
-  { name: 'Coaching inn', label: 'Hours to overnight', from: 120, to: 720, cls: 'c-grey' },
-  { name: 'Railway station', label: '30–60 min', from: 30, to: 60, cls: 'c-grey' },
-  { name: 'Airport', label: '1–2 h', from: 60, to: 120, cls: 'c-grey' },
-  { name: 'Gas station', label: '5 min', from: 4.5, to: 5.5, cls: 'c-orange' },
-  { name: 'The Powerhouse', label: '20–60 min, daily', from: 20, to: 60, cls: 'c-red' },
-].map((p) => ({ ...p, left: pauseX(p.from), width: pauseX(p.to) - pauseX(p.from) }));
-const pauseTicks = [[5, '5 min'], [30, '30 min'], [240, '4 h'], [1440, '24 h']].map(([m, l]) => ({ l, x: pauseX(m as number) }));
-const pennLeft = ((1910 - 1900) / 125) * 100;
-const pennWidth = ((1963 - 1910) / 125) * 100;
-// 1.3 in numbers, in reading order: every vehicle, then home, then the roadside stop, then
-// the US truck driver's legal day. Charge times on a log scale from ten minutes to two days.
-const logT = (m: number) => ((Math.log(m) - Math.log(10)) / (Math.log(3000) - Math.log(10))) * 100;
-const span = (from: number, to: number) => ({ left: logT(from), width: Math.max(logT(to) - logT(from), 1.2) });
-// Each vehicle from its fastest charger to its slowest, smallest vehicle first.
-const vehicleCharge = [
-  { name: 'E-bike', label: '2–6 h', ...span(120, 360), cls: 'c-teal' }, // fast charger to 80% · standard charger to full
-  { name: 'Motorcycle', label: '1–4 h', ...span(60, 240), cls: 'c-yellow' }, // Zero: upgraded charging · standard
-  { name: 'Car', label: '20 min–50 h', ...span(20, 3000), cls: 'c-blue' }, // DC fast to 80% · Level 1 wall socket to full
-  { name: 'Bus', label: '30 min–12 h', ...span(30, 720), cls: 'c-green' }, // pantograph / high-power DC · low-power depot
-  { name: 'Truck', label: '30 min*–2.5 h', ...span(30, 150), cls: 'c-red' }, // Tesla Semi claim · eCascadia to 80%
-];
-const vehicleTicks = [[10, '10 min'], [60, '1 h'], [240, '4 h'], [1440, '24 h']].map(([m, l]) => ({ l, x: logT(m as number) }));
-const homeMax = 50;
-const roadMax = 80;
-const roadside = [
-  { name: 'Tesla Supercharger', label: 'under 30 min', min: 27, cls: 'c-red' },
-  { name: 'Paid DC fast', label: '42 min', min: 42, cls: 'c-orange' },
-  { name: 'Free DC fast', label: '78 min', min: 78, cls: 'c-yellow' },
-];
-// 49 C.F.R. § 395.3: 8 h driving, a 30-minute break, 3 more hours (11 in all) inside a
-// 14-hour window, then 10 hours off duty. Laid out on one 24-hour bar.
-const truckDay = [
-  { label: '8 h driving', h: 8, cls: 'c-grey' },
-  { label: '', h: 0.5, cls: 'c-orange' },
-  { label: '3 h', h: 3, cls: 'c-grey' },
-  { label: '', h: 2.5, cls: 'c-light' },
-  { label: '10 h off duty', h: 10, cls: 'c-teal' },
-].map((t) => ({ ...t, w: (t.h / 24) * 100 }));
+// 1.3: the stays the Powerhouse plans for, on a ten-hour line.
 const studyRows = [
   { name: 'US truck break', label: '30 min', from: 0, to: 30, cls: 'c-orange' },
   { name: 'Fast charge', label: '20–60 min', from: 20, to: 60, cls: 'c-grey' },
@@ -572,14 +505,14 @@ const studyRows = [
   { name: 'US truck rest', label: '10 h off duty', from: 0, to: 600, cls: 'c-teal' },
 ].map((r) => ({ ...r, left: (r.from / 600) * 100, width: ((r.to - r.from) / 600) * 100 }));
 // 1.4 and 1.5 in numbers.
+// 1.5: the network around the charger, innermost ring first; every ring is open to people not charging.
+const networkRings = [
+  { stay: '20 min', items: 'seats, food, washrooms, play', c: 'teal' },
+  { stay: '1–2 h', items: 'gym, clinic, reading room, workspace', c: 'yellow' },
+  { stay: 'A night', items: 'rooms, showers, a drivers’ kitchen', c: 'blue' },
+];
 const popsRated = [true, true, false, false, false]; // about two in five rated marginal (note 21)
-// The programme is the hook and charging the outcome: the site decides what is built.
-const siteSteps = [['Where EV adoption is rising', 'c-grey'], ['What the area lacks', 'c-light'], ['The programme it needs: the hook', 'c-red'], ['Charging: the outcome', 'c-teal']];
-const programmeExamples = ['Gym', 'Workspace', 'Childcare', 'Drivers’ hostel', 'Market', 'Clinic', 'Community hall'];
-const mallStrip = [['Department store', 18, 'c-red'], ['Shops', 20, 'c-light'], ['Covered court', 24, 'c-teal'], ['Shops', 20, 'c-light'], ['Department store', 18, 'c-red']];
-const phStrip = [['Charger', 18, 'c-red'], ['Programme', 20, 'c-light'], ['Open ground', 24, 'c-teal'], ['Programme', 20, 'c-light'], ['Energy', 18, 'c-yellow']];
-const anchorLoop = [['Charger', 'c-red'], ['People with an hour', 'c-grey'], ['Paid programmes', 'c-orange'], ['Rent', 'c-yellow'], ['Free programmes, charging, open ground', 'c-teal']];
-// Forty architectural programmes the Powerhouse could hold, rooms and grounds rather than
+// Kept for Chapter 4 (the matrix left 1.5 in the Chapter 1 rewrite). Forty architectural programmes the Powerhouse could hold, rooms and grounds rather than
 // services. Jev (TypeSafe) judged each: free or paid, and whether it stays busy all day without
 // anyone charging (run: p ≥ 0.38). Where Jev was unsure (confidence ≤ 0.5) the programme goes
 // free, since part of every site stays open to anyone; the thesis also sets community hall, dog
@@ -627,26 +560,10 @@ const programmeJudged = [
   { t: "Learning centre", k: 'paid', run: false, common: false },
   { t: "Dance and yoga studio", k: 'paid', run: false, common: false },
 ];
-// 1.6 as the section is titled: the argument, the objectives that test it, and the scope.
-const argumentChain = [['Parking: idle public infrastructure', 'c-grey'], ['Its electric version, where EV adoption rises', 'c-blue'], ['A programme the area lacks: the hook', 'c-orange'], ['Charging: the outcome', 'c-teal'], ['Civic and community life', 'c-red']];
-const objectives = [
-  { ch: '02 The Stop', aim: 'Measure the stay: how long each vehicle stops, from a quick charge to an overnight rest', cls: 'c-blue' },
-  { ch: '03 The Public Space', aim: 'Measure the ground: the share of a roadside site given to community use, leaving out parking and charging bays', cls: 'c-teal' },
-  { ch: '04 The Programme', aim: 'Define the programme: what each neighbourhood lacks, free and paid, and whether it gives people a reason to stay', cls: 'c-orange' },
-];
-// Scope as the earlier sections set it: New York (1.1), every road vehicle and every length
-// of stay (1.3), parking and dead space (1.4), forty programmes paid for by their own rent (1.5).
-const scopeRows = [
-  { k: 'Where', v: 'New York first, where EV adoption is rising and half of city car owners park on the street; then the US, with UK, European and Japanese precedents', cls: 'c-blue' },
-  { k: 'Ground', v: 'Parking lots and other dead space', cls: 'c-grey' },
-  { k: 'Who', v: 'E-bikes, motorcycles, cars, buses and trucks, and people who do not charge at all', cls: 'c-teal' },
-  { k: 'Stay', v: 'From a 20-minute charge to an overnight rest, wired or wireless', cls: 'c-yellow' },
-  { k: 'Programme', v: 'Forty architectural programmes, free and paid, chosen for what the area lacks', cls: 'c-orange' },
-];
 // 1.7: three lenses, each on one part of the argument.
 // 1.7 as one flow: three lenses, each answering one question, leading to the Powerhouse.
 const lensFlow = [
-  { n: 1, lens: 'Sustainability', q: 'Should it exist?', a: 'Yes: it builds on land parking already covers, makes its own energy and serves people who cannot charge at home.', cls: 'c-green', reads: '1.1, 1.3' },
+  { n: 1, lens: 'Sustainability', q: 'Should it exist?', a: 'Yes: it builds on ground vehicles already claim, makes its own energy and serves people who cannot charge at home.', cls: 'c-green', reads: '1.1, 1.3' },
   { n: 2, lens: 'Phenomenology', q: 'Can the stop become a place?', a: 'Yes: the site gathers a pause in a journey into a place people know and belong to.', cls: 'c-yellow', reads: '1.2, 1.3' },
   { n: 3, lens: 'Social theory', q: 'Who is it for?', a: 'Everyone: lived by its users rather than planned for vehicles, and safe because people are there.', cls: 'c-blue', reads: '1.4, 1.5' },
 ];
@@ -743,6 +660,10 @@ const stripHtml = (html: string) =>
 
 const linkNotes = (html: string, ch = '1') =>
   html ? html.replace(/<sup>(\d+)<\/sup>/g, (_, n) => `<sup id="ref-${ch}-${n}"><a href="#note-${ch}-${n}" aria-label="Note ${n}">${n}</a></sup>`) : '';
+
+// Latest InDesign export, copied in by scripts/sync-powerhouse-pdf.mjs
+const pdfDateShort = new Date(bookPdf.exported).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'America/New_York' });
+const pdfSize = `${(bookPdf.bytes / 1e6).toFixed(1)} MB`;
 
 const mindmapSections = book.flatMap((c) =>
   c.sections.map((s) => {
@@ -940,9 +861,14 @@ const mindmapBibs = rawBibs.map((b) => ({
       <div class="ph__intro-col">
         <p class="ph__kicker" id="ph-intro-title">Abstract</p>
         <p>Road transport is going electric, and every electric vehicle has to stop to charge. Yet most charging sites are still car parks with a row of plugs, used by drivers and by no one else. This thesis proposes the Powerhouse, a new type of stop built on ground that parking already covers: chargers alongside a programme chosen for the neighbourhood, and public space open to everyone.</p>
-        <button type="button" class="ph__mm-trigger" data-mm-open aria-haspopup="dialog" aria-controls="ph-mindmap-lightbox">
-          <span>Mindmap</span> Notes &amp; Bibliography Graph ↗
-        </button>
+        <div class="ph__intro-pills">
+          <button type="button" class="ph__mm-trigger" data-mm-open aria-haspopup="dialog" aria-controls="ph-mindmap-lightbox">
+            <span>Mindmap</span> Notes &amp; Bibliography Graph ↗
+          </button>
+          <a class="ph__mm-trigger" href={bookPdf.file} target="_blank" rel="noopener" title={`${bookPdf.source} · ${bookPdf.pages} pages · ${pdfSize}`}>
+            <span>PDF</span> Book · {pdfDateShort} ↗
+          </a>
+        </div>
       </div>
       <div>
         <p class="ph__kicker">Hypothesis</p>
@@ -970,7 +896,7 @@ const mindmapBibs = rawBibs.map((b) => ({
           <div class="ph__index-fold"><ol>
             <li>
               <button type="button" data-section={`${c.num}-0`} aria-pressed="false">
-                <span>{c.num}.0</span> {c.title}
+                <span>{c.num}.0</span> {c.id === 'ch1' ? c.subtitle : c.title}
               </button>
             </li>
             {c.sections.map((s, j) => (
@@ -991,8 +917,8 @@ const mindmapBibs = rawBibs.map((b) => ({
     {book.map((c, i) => (
       <nav class="ph__subtabs" data-subtabs={c.id} aria-label={`Chapter ${c.num} sections`} hidden={i !== 0}>
         <span class="ph__row-label" aria-hidden="true">Chapter {c.num}</span>
-        <button type="button" data-section={`${c.num}-0`} aria-pressed="false" title={`${c.num}.0 ${c.title}`}>
-          <span>{c.num}.0</span> {c.title}
+        <button type="button" data-section={`${c.num}-0`} aria-pressed="false" title={`${c.num}.0 ${c.id === 'ch1' ? c.subtitle : c.title}`}>
+          <span>{c.num}.0</span> {c.id === 'ch1' ? c.subtitle : c.title}
         </button>
         {c.sections.map((s, j) => (
           <button type="button" data-section={s.id} aria-pressed={i === 0 && j === 0 ? 'true' : 'false'} data-planned={s.planned ? 'true' : undefined} title={`${s.num} ${s.title}`}>
@@ -1019,7 +945,7 @@ const mindmapBibs = rawBibs.map((b) => ({
       <div class="ph__ch-body">
     <details class="ph__fold ph__fold--chapter" id="ch1" data-chapter-head="ch1" data-section-panel="1-0">
       <summary class="ph__fold-sum">
-        <span class="ph__fold-title">{book[0].num}.0 {book[0].title}</span>
+        <span class="ph__fold-title">{book[0].num}.0 {book[0].subtitle}</span>
         <span class="ph__fold-right">
           <span class="ph__fold-meta">Chapter {book[0].num} · Book page 7</span>
           <span class="ph__fold-ring" aria-hidden="true"><Icon name="arrow" class="ph__fold-chevron" /></span>
@@ -1028,7 +954,7 @@ const mindmapBibs = rawBibs.map((b) => ({
       <div class="ph__fold-body">
         <div class="ph__book-running-head" aria-hidden="true">
           <span>The Powerhouse / Chapter 1: {book[0].title}</span>
-          <span>1.0 Introduction</span>
+          <span>1.0 {book[0].subtitle}</span>
         </div>
         <div class="ph__editorial">
           <div class="ph__read-unit">
@@ -1038,24 +964,19 @@ const mindmapBibs = rawBibs.map((b) => ({
               <p>{bookText.ch1.body[2]}</p>
               <p>{bookText.ch1.body[3]}</p>
             </div>
-            <div class="ph__read-visual">
+            <div class="ph__figrow ph__figrow--4">
               <div class="ph__fig-header">
-                <span class="ph__fig-tag">Core Concept</span>
-                <span class="ph__fig-title">The Powerhouse thesis</span>
+                <span class="ph__fig-tag">The thesis</span>
+                <span class="ph__fig-title">In one line</span>
               </div>
-              <div class="ph__concept-card">
-                <div class="ph__concept-badge">Hypothesis</div>
-                <h3 class="ph__concept-title">Charging as Civic Life</h3>
-                <p class="ph__concept-desc ph__concept-hypothesis">An Electric Vehicle Powerhouse complex that turns charging activities into an opportunity for enhanced civic and community engagements.</p>
-                <div class="ph__concept-points">
-                  <div><b>Open to all</b><span>Pedestrians, cyclists, transit riders and EV drivers alike.</span></div>
-                  <div><b>Site-specific hook</b><span>Takes its programme from what the local neighbourhood lacks.</span></div>
-                  <div><b>Self-sustaining</b><span>On-site renewable energy; paid programmes cross-subsidise free civic space.</span></div>
-                </div>
-              </div>
+              <div class="ph__statement ph__statement--lead"><b>The programme brings people in; the charge lets them stay.</b></div>
+              <div class="ph__statement"><b>The charger at the centre</b><span>Every electric vehicle has to stop; the charge sets how long people stay.</span></div>
+              <div class="ph__statement"><b>A network of programmes</b><span>Chosen for what the neighbourhood lacks, arranged around the charge.</span></div>
+              <div class="ph__statement"><b>Open to all</b><span>Everyone who drives, and anyone on foot, by bus or by bicycle.</span></div>
             </div>
           </div>
         </div>
+
         <div class="ph__book-running-foot" aria-hidden="true">
           <span>THE POWERHOUSE / CHAPTER 1</span>
           <span>PAGE 7</span>
@@ -1074,191 +995,41 @@ const mindmapBibs = rawBibs.map((b) => ({
       <div class="ph__fold-body">
         <div class="ph__book-running-head" aria-hidden="true">
           <span>The Powerhouse / Chapter 1: {book[0].title}</span>
-          <span>1.1 Electrification and Speed</span>
+          <span>{book[0].sections[0].num} {book[0].sections[0].title}</span>
         </div>
 
         <div class="ph__editorial">
-          <section id="usa" class="ph__slide" data-slide="0" aria-labelledby="usa-title">
-            <!-- Full-Width Heading -->
-            <div class="ph__heading ph__heading--full">
-              <p class="ph__kicker">USA / road infrastructure and electrification, in numbers</p>
-              <h2 id="usa-title" tabindex="-1">Where public charging is today</h2>
-            </div>
-
-            <!-- 2-Column Section Spread: Left = Text, Right = Map & State List -->
-            <div class="ph__national-split">
-              <!-- Left Column: Transport Narrative & Map Note -->
-              <div class="ph__national-prose">
-                <div class="ph__read-text">
-                  <p set:html={linkNotes(bookText['1-1'].body[0], '1')} />
-                  <p class="ph__map-note-lead">Each dot on the map groups nearby charging locations, and its size grows with the number of charging points there. Public means open to any driver, even when the equipment is privately owned; private means workplaces, fleets and apartment blocks that report their chargers. Home chargers are not counted anywhere.</p>
-                </div>
+          <div class="ph__read-unit">
+            <div class="ph__figrow ph__figrow--3">
+              <div class="ph__fig-header">
+                <span class="ph__fig-tag">Figure 1.1</span>
+                <span class="ph__fig-title">Electrification in three numbers</span>
               </div>
-
-              <!-- Right Column: Map & State List -->
-              <div class="ph__national-visual">
-                <div class="ph__fig-header">
-                  <span class="ph__fig-tag">Figure 1.1</span>
-                  <span class="ph__fig-title">Where public charging is today · US network</span>
-                </div>
-                <div class="ph__map-bar">
-                  <p class="ph__solo-title">Where the US’s <b id="ph-map-ports" aria-live="polite">{fmt(allUsa.ports)}</b> charging points are · <span><span id="ph-map-stations">at {fmt(allUsa.stations)} stations · public and private</span></span></p>
-                  <select id="ph-access" class="ph__map-select" aria-label="Show public, private or all charging">
-                    <option value="all" selected>All charging points</option>
-                    <option value="public">Public</option>
-                    <option value="private">Private</option>
-                  </select>
-                </div>
-                <figure class="ph__map ph__national-map">
-                  <svg class="ph__svg ph__national-svg" viewBox="0 0 975 610" role="img" aria-labelledby="ph-us-svg-title ph-us-svg-desc">
-                    <title id="ph-us-svg-title">US charging infrastructure</title><desc id="ph-us-svg-desc">Operating charging ports across the fifty states and DC. Alaska and Hawaii are insets. Dots aggregate nearby locations; exact counts appear above and in the tables.</desc>
-                    <g class="ph__land">{data.usa.states.map(st=><path d={st.d}><title>{st.name}</title></path>)}</g>
-                    <g class="ph__focus-states">{focusStates.map((f)=><path d={f.d}><title>{f.rank}. {f.name}</title></path>)}</g>
-                    <g>{data.usa.dots.map(d=><circle cx={d.x} cy={d.y} r={size(d.l1+d.l2+d.dc)} data-us-access={d.access} class="ph__charging-dot"><title>{d.access} charging · {fmt(d.l1+d.l2+d.dc)} ports in this map cell</title></circle>)}</g>
-                    <g class="ph__focus-labels" aria-hidden="true">{focusStates.map((f)=><g><line x1={f.tx} y1={f.ty} x2={f.x} y2={f.y}/><g transform={`translate(${f.x} ${f.y})`}><circle class="ph__focus-mark" r="19"/><text dy="7">{f.rank}</text></g></g>)}</g>
-                  </svg>
-                </figure>
-                <div class="ph__ranklist">
-                  <div class="ph__ranklist-head"><span>All 50 states and DC</span><b>{fmt(pub.ports)} public charging points</b></div>
-                  <ol class="ph__top5" aria-label="States by public charging points, largest first" tabindex="0">
-                    {data.ranked.map((r, i) => (
-                      <li class:list={[{ 'is-focus': i < 3 }]}><span>{i + 1}</span><b>{stateName[r.code] ?? r.code} <small>{((r.ports / pub.ports) * 100).toFixed(1)}%</small></b><i style={`width:${(r.ports / data.ranked[0].ports) * 100}%`}></i><em>{fmt(r.ports)}</em></li>
-                    ))}
-                  </ol>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <!-- Figure 1.2: 6 Cards in Order 1 to 6 -->
-          <div class="ph__read-unit ph__read-unit--full">
-            <div class="ph__fig-header">
-              <span class="ph__fig-tag">Figure 1.2</span>
-              <span class="ph__fig-title">Energy conversion, emissions waste and US vehicle electrification · Notes 1–6</span>
-            </div>
-            <div class="ph__six-notes-grid">
-              <!-- Note 1 -->
               <figure class="ph__fig">
-                <figcaption><b class="ph__fig-num">28%</b><span>of US GHG from transport</span></figcaption>
+                <figcaption><b class="ph__fig-num">28%</b><span>of US greenhouse gas comes from transport</span></figcaption>
                 <div class="ph__waffle" aria-hidden="true">{waffle.map((on) => <i class={on ? 'on' : ''} />)}</div>
                 <p class="ph__fig-key"><span class="ph__swatch c-red"></span>Transport</p>
                 <p class="ph__fig-src">Source: EPA 1990–2022 (2024) · <a class="ph__fig-note" href="#note-1-1">Note 1</a></p>
               </figure>
-
-              <!-- Note 2 -->
               <figure class="ph__fig">
-                <figcaption><b class="ph__fig-num">6 billion</b><span>tonnes of CO₂ worldwide, 2024</span></figcaption>
-                <div class="ph__fig-units" aria-hidden="true">{co2Units.map(() => <i class="c-red" />)}</div>
-                <p class="ph__fig-key"><span class="ph__swatch c-red"></span>1 block = 1 billion tonnes</p>
-                <p class="ph__fig-src">Source: IEA (2025) · <a class="ph__fig-note" href="#note-1-2">Note 2</a></p>
-              </figure>
-
-              <!-- Note 3 -->
-              <figure class="ph__fig">
-                <figcaption><b class="ph__fig-num">3 in 10</b><span>units of petrol move the car; an EV uses 9 in 10</span></figcaption>
+                <figcaption><b class="ph__fig-num">20M+</b><span>electric cars sold worldwide in 2025</span></figcaption>
                 <div class="ph__fig-bars">
-                  <div><span>Petrol car</span><div class="ph__fig-bar"><i class="c-green" style="width:30%">30%</i><i class="c-light" style="width:70%">70% lost as heat</i></div></div>
-                  <div><span>Electric car</span><div class="ph__fig-bar"><i class="c-green" style="width:89%">87–91%</i><i class="c-light" style="width:11%"></i></div></div>
+                  <div><span>2020 · ≈3 M</span><div class="ph__fig-bar"><i class="c-blue" style={`width:${(3 / salesMax) * 100}%`}></i></div></div>
+                  <div><span>2025 · 20 M+</span><div class="ph__fig-bar"><i class="c-blue" style={`width:${(20 / salesMax) * 100}%`}></i></div></div>
                 </div>
-                <p class="ph__fig-key"><span class="ph__swatch c-green"></span>Energy that moves the car</p>
-                <p class="ph__fig-src">Source: US DOE Fact #1360 (2024) · <a class="ph__fig-note" href="#note-1-3">Note 3</a></p>
+                <p class="ph__fig-src">Source: IEA 2025–26 · <a class="ph__fig-note" href="#note-1-4">Note 4</a></p>
               </figure>
-
-              <!-- Note 4 -->
-              <div class="ph__fig ph__dash-card ph__dash-card--vbars">
-                <figcaption><b class="ph__fig-num">{mil(usRoad.total)}</b><span>All vehicles · US · {usRoad.year}</span></figcaption>
-                <div class="ph__stack100 ph__dash-stack" role="img" aria-label={`All US vehicles ${usRoad.year}: ${usRoadBar.segs.map((x) => `${x.label} ${share(x.value, usRoadBar.total)}`).join(', ')}`}>
-                  {usRoadBar.segs.map((x) => <i class={`c-${x.c}`} style={`flex-grow:${x.value}`} title={`${x.label}: ${share(x.value, usRoadBar.total)}`}></i>)}
-                </div>
-                <ul class="ph__stack100-key">{usRoadBar.segs.map((x) => <li><i class={`c-${x.c}`}></i>{x.label} <b>{share(x.value, usRoadBar.total)}</b></li>)}</ul>
-                <p class="ph__fig-src">Source: FHWA Highway Statistics 2024, Table MV-1 · <a class="ph__fig-note" href="#note-1-4">Note 4</a></p>
-              </div>
-
-              <!-- Note 5 -->
-              <div class="ph__fig ph__dash-card ph__dash-card--vbars">
-                <figcaption><b class="ph__fig-num">{mil(usEvYears[0].ev)} → {mil(usEvYears[3].ev)}</b><span>Electric vehicles · US · 2025–2040</span></figcaption>
-                <div class="ph__dash-vbars" role="img" aria-label={`US electric vehicles: ${usEvYears.map((y) => `${y.year} ${mil(y.ev)}`).join(', ')}`}>
-                  {usEvYears.map((y) => (
-                    <div class="ph__dash-hbar">
-                      <span>{y.year}{y.year > 2025 ? ' outlook' : ''}</span>
-                      <div class="ph__dash-htrack ph__dash-htrack--split">
-                        <i class="c-green" style={`width:${(y.bev / usEvMax) * 100}%`}></i><i class="c-teal" style={`width:${(y.phev / usEvMax) * 100}%`}></i>
-                      </div>
-                      <b>{mil(y.ev)}</b>
-                    </div>
-                  ))}
-                </div>
-                <ul class="ph__stack100-key"><li><i class="c-green"></i>Battery-electric</li><li><i class="c-teal"></i>Plug-in hybrid</li></ul>
-                <p class="ph__fig-src">Source: EIA Annual Energy Outlook 2026 · <a class="ph__fig-note" href="#note-1-5">Note 5</a></p>
-              </div>
-
-              <!-- Note 6 -->
-              <div class="ph__fig ph__dash-card ph__dash-card--years">
-                <figcaption><b class="ph__fig-num">{usShareRings[0].pct} → {usShareRings[2].pct}</b><span>Share of US vehicles that are electric</span></figcaption>
-                <div class="ph__dash-years">
-                  {usShareRings.map((r) => (
-                    <div class:list={['ph__dash-year', { 'is-outlook': r.outlook }]}>
-                      <div class="ph__dash-ring ph__dash-ring--small" role="img" aria-label={`${r.year}: ${r.pct} electric`}>
-                        <svg viewBox="0 0 120 120"><circle class="ph__ring-track" cx="60" cy="60" r="48" pathLength="100" />{ring(r.bar).slice(0, 2).map((g) => <circle class={`ph__ring-seg r-${g.c}`} cx="60" cy="60" r="48" pathLength="100" stroke-dasharray={`${g.len} ${100 - g.len}`} stroke-dashoffset={g.off} />)}</svg>
-                        <div class="ph__dash-center"><b>{r.pct}</b></div>
-                      </div>
-                      <span>{r.year}{r.outlook ? ' outlook' : ''}</span>
-                    </div>
-                  ))}
-                </div>
-                <ul class="ph__stack100-key"><li><i class="c-green"></i>Battery-electric</li><li><i class="c-teal"></i>Plug-in hybrid</li></ul>
-                <p class="ph__fig-src">Source: EIA Annual Energy Outlook 2026 · <a class="ph__fig-note" href="#note-1-6">Note 6</a></p>
-              </div>
+              <figure class="ph__fig">
+                <figcaption><b class="ph__fig-num">4 in 5</b><span>charges happen at home</span></figcaption>
+                <div class="ph__fig-bar"><i class="c-orange" style="width:80%">Home 80%</i><i class="c-teal" style="width:20%">20%</i></div>
+                <p class="ph__fig-key"><span class="ph__swatch c-orange"></span>Home <span class="ph__swatch c-teal"></span>Public and work</p>
+                <p class="ph__fig-src">Source: US DOE, National EV Charging Network · <a class="ph__fig-note" href="#note-1-7">Note 7</a></p>
+              </figure>
             </div>
-            <p class="ph__note">Notes 1–3: EPA (2024); IEA Breakthrough Agenda Report (2025); US DOE Fact #1360. Notes 4–6: FHWA Highway Statistics 2024, Table MV-1; US EIA Annual Energy Outlook 2026; 2025 is EIA’s base year, later years are its baseline outlook, not a forecast.</p>
-          </div>
-
-          <!-- Unit 2: The speed of transition and home vs public charging -->
-          <div class="ph__read-unit ph__read-unit--full">
             <div class="ph__read-text">
+              <p set:html={linkNotes(bookText['1-1'].body[0], '1')} />
               <p set:html={linkNotes(bookText['1-1'].body[1], '1')} />
               <p set:html={linkNotes(bookText['1-1'].body[2], '1')} />
-              <p class="ph__lead-bridge">With the national pace and home constraints established, the next sections investigate where charging stops become civic places: <b>what happens when time at the charger is treated as lived time, not lost time?</b></p>
-            </div>
-
-            <div class="ph__figs-4col-unit">
-              <div class="ph__fig-header">
-                <span class="ph__fig-tag">Figure 1.3</span>
-                <span class="ph__fig-title">Home and public charging</span>
-              </div>
-              <div class="ph__figs-4col">
-                <figure class="ph__fig">
-                  <figcaption><b class="ph__fig-num">4 in 5</b><span>charges happen at home</span></figcaption>
-                  <div class="ph__fig-bar"><i class="c-orange" style="width:80%">Home 80%</i><i class="c-teal" style="width:20%">20%</i></div>
-                  <p class="ph__fig-key"><span class="ph__swatch c-orange"></span>Home <span class="ph__swatch c-teal"></span>Public and work</p>
-                  <p class="ph__fig-src">Source: US DOE, National EV Charging Network · <a class="ph__fig-note" href="#note-1-10">Note 10</a></p>
-                </figure>
-
-                <figure class="ph__fig">
-                  <figcaption><b class="ph__fig-num">33–38%</b><span>more electricity a year for a home with one EV</span></figcaption>
-                  <div class="ph__fig-bars">
-                    <div><span>Average home</span><div class="ph__fig-bar"><i class="c-grey" style="width:100%">{homeKwh.toLocaleString('en-US')} kWh</i></div></div>
-                    <div><span>One EV · 3,600–4,050 kWh</span><div class="ph__fig-bar"><i class="c-yellow" style={`width:${evKwhLow}%`}></i><i class="c-yellow ph__fig-range" style={`width:${evKwhSpan}%`}></i></div></div>
-                  </div>
-                  <p class="ph__fig-key"><span class="ph__swatch c-yellow"></span>kWh a year</p>
-                  <p class="ph__fig-src">Source: EIA 2022; fueleconomy.gov · <a class="ph__fig-note" href="#note-1-10">Note 10</a></p>
-                </figure>
-
-                <figure class="ph__fig">
-                  <figcaption><b class="ph__fig-num">20M+</b><span>EV sales worldwide, 2025</span></figcaption>
-                  <div class="ph__fig-bars">
-                    <div><span>2020 · ≈3 M</span><div class="ph__fig-bar"><i class="c-blue" style={`width:${(3 / salesMax) * 100}%`}></i></div></div>
-                    <div><span>2025 · 20 M+</span><div class="ph__fig-bar"><i class="c-blue" style={`width:${(20 / salesMax) * 100}%`}></i></div></div>
-                  </div>
-                  <p class="ph__fig-src">Source: IEA 2025–26 · <a class="ph__fig-note" href="#note-1-8">Note 8</a></p>
-                </figure>
-
-                <figure class="ph__fig">
-                  <figcaption><b class="ph__fig-num">500k</b><span>Waymo rides a week</span></figcaption>
-                  <div class="ph__fig-units" aria-hidden="true">{rideUnits.map(() => <i class="c-grey" />)}</div>
-                  <p class="ph__fig-src">Source: TechCrunch (2026) · <a class="ph__fig-note" href="#note-1-9">Note 9</a></p>
-                </figure>
-              </div>
             </div>
           </div>
         </div>
@@ -1281,108 +1052,50 @@ const mindmapBibs = rawBibs.map((b) => ({
       <div class="ph__fold-body">
         <div class="ph__book-running-head" aria-hidden="true">
           <span>The Powerhouse / Chapter 1: {book[0].title}</span>
-          <span>1.2 The Architecture of the Stop</span>
+          <span>{book[0].sections[1].num} {book[0].sections[1].title}</span>
         </div>
 
         <div class="ph__editorial">
-          <!-- Unit 1: The architecture of waiting & the gas station formula -->
           <div class="ph__read-unit">
             <div class="ph__read-text">
               <p set:html={linkNotes(bookText['1-2'].body[0], '1')} />
               <p set:html={linkNotes(bookText['1-2'].body[1], '1')} />
             </div>
-            <div class="ph__read-visual">
-              <div class="ph__fig-header">
-                <span class="ph__fig-tag">Figure 1.4</span>
-                <span class="ph__fig-title">From refuelling to a civic stop</span>
-              </div>
-              <figure class="ph__fig ph__fig--wide">
-                <figcaption><b class="ph__fig-num">5 min</b><span>the gas station’s stop: too short for a civic form</span></figcaption>
-                <div class="ph__pause" aria-label="Typical pause at each kind of stop">
-                  {pauses.map((p) => (
-                    <div class="ph__pause-row"><span>{p.name}</span><div class="ph__pause-track"><i class={p.cls} style={`left:${p.left}%;width:${p.width}%`}></i></div><span>{p.label}</span></div>
-                  ))}
-                  <div class="ph__pause-row ph__pause-axis" aria-hidden="true"><span></span><div class="ph__pause-track">{pauseTicks.map((t) => <em style={`left:${t.x}%`}>{t.l}</em>)}</div><span></span></div>
+            <div class="ph__figrow ph__figrow--1">
+              <figure class="ph__book-table">
+                <figcaption><b>Table 1.1.</b> Every age built a civic building around its stop: what is the charging stop’s civic form?</figcaption>
+                <div class="ph__book-tscroll">
+                  <table>
+                    <thead>
+                      <tr><th scope="col">Era &amp; stop</th><th scope="col">Typical pause</th><th scope="col">Civic form &amp; public life</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr><th scope="row">Caravanserai</th><td>Overnight</td><td>Courtyard for shelter, trade and exchange on the Silk Road</td></tr>
+                      <tr><th scope="row">Coaching inn</th><td>Hours to overnight</td><td>Rest, food and news for travellers and the town</td></tr>
+                      <tr><th scope="row">Railway station</th><td>30–60 minutes</td><td>Civic hall and concourse (Penn Station, 1910: a waiting room modelled on Roman baths)</td></tr>
+                      <tr><th scope="row">Airport</th><td>1–2 hours</td><td>The terminal as a self-contained city of waiting</td></tr>
+                      <tr><th scope="row">Gas station</th><td>5 minutes</td><td>Forecourt canopy and payment booth; too short for a civic form</td></tr>
+                      <tr><th scope="row">The Powerhouse</th><td>20 minutes to overnight, every day</td><td>Charging cluster, local energy and neighbourhood civic room open to all</td></tr>
+                    </tbody>
+                  </table>
                 </div>
-                <p class="ph__fig-key"><span class="ph__swatch c-grey"></span>Earlier stops <span class="ph__swatch c-orange"></span>Gas station <span class="ph__swatch c-red"></span>The Powerhouse · typical pause, log scale</p>
-                <p class="ph__fig-src">Source: Table 1.1; Meeks, The Railroad Station (1956) · <a class="ph__fig-note" href="#note-1-11">Note 11</a>; Jakle and Sculle, The Gas Station in America (1994) · <a class="ph__fig-note" href="#note-1-12">Note 12</a></p>
-              </figure>
-              <figure class="ph__fig">
-                <figcaption><b class="ph__fig-num">1963</b><span>Penn Station demolished, 53 years after it opened</span></figcaption>
-                <div class="ph__fig-bars"><div><span>1900 · · · 2025</span><div class="ph__fig-bar"><i style={`width:${pennLeft}%`}></i><i class="c-grey" style={`width:${pennWidth}%`}>1910–1963</i></div></div></div>
-                <p class="ph__fig-key"><span class="ph__swatch c-grey"></span>New York’s civic room for the train</p>
-                <p class="ph__fig-src">Source: Meeks, The Railroad Station (1956) · <a class="ph__fig-note" href="#note-1-11">Note 11</a></p>
               </figure>
             </div>
-          </div>
-
-          <!-- Unit 2: Table 1.1 Full Width -->
-          <div class="ph__read-unit ph__read-unit--full">
-            <figure class="ph__book-table">
-              <figcaption><b>Table 1.1.</b> Every age built a civic building around its stop: what is the charging stop’s civic form?</figcaption>
-              <div class="ph__book-tscroll">
-                <table>
-                  <thead>
-                    <tr><th scope="col">Era &amp; stop</th><th scope="col">Typical pause</th><th scope="col">Civic form &amp; public life</th></tr>
-                  </thead>
-                  <tbody>
-                    <tr><th scope="row">Caravanserai</th><td>Overnight</td><td>Courtyard for shelter, trade and exchange on the Silk Road</td></tr>
-                    <tr><th scope="row">Coaching inn</th><td>Hours to overnight</td><td>Rest, food and news for travellers and the town</td></tr>
-                    <tr><th scope="row">Railway station</th><td>30–60 minutes</td><td>Civic hall and concourse (Penn Station, 1910: a waiting room modelled on Roman baths)</td></tr>
-                    <tr><th scope="row">Airport</th><td>1–2 hours</td><td>The terminal as a self-contained city of waiting</td></tr>
-                    <tr><th scope="row">Gas station</th><td>5 minutes</td><td>Forecourt canopy and payment booth; too short for a civic form</td></tr>
-                    <tr><th scope="row">The Powerhouse</th><td>20 minutes to overnight, every day</td><td>Charging cluster, local energy and neighbourhood civic room open to all</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </figure>
-          </div>
-
-          <!-- Unit 3: The inherited void and truck parking crisis -->
-          <div class="ph__read-unit">
             <div class="ph__read-text">
+              <p set:html={linkNotes(bookText['1-2'].body[2], '1')} />
               <p set:html={linkNotes(bookText['1-2'].body[3], '1')} />
-            </div>
-            <div class="ph__read-visual">
-              <div class="ph__fig-header">
-                <span class="ph__fig-tag">Regulation &amp; Freight</span>
-                <span class="ph__fig-title">The inherited void</span>
-              </div>
-              <figure class="ph__fig">
-                <figcaption><b class="ph__fig-num">None</b><span>of NEVI’s federal standards cover the place around the charger</span></figcaption>
-                <div class="ph__fig-bars">
-                  <div><span>Power</span><div class="ph__fig-bar"><i class="c-green" style="width:100%">Set</i></div></div>
-                  <div><span>Equipment</span><div class="ph__fig-bar"><i class="c-green" style="width:100%">Set</i></div></div>
-                  <div><span>The place around it</span><div class="ph__fig-bar"></div></div>
+              <div class="ph__infig">
+                <div class="ph__fig-header">
+                  <span class="ph__fig-tag">Figure 1.2</span>
+                  <span class="ph__fig-title">Civic road stations</span>
                 </div>
-                <p class="ph__fig-key"><span class="ph__swatch c-green"></span>Standard set</p>
-                <p class="ph__fig-src">Source: FHWA, NEVI Standards and Requirements, 23 C.F.R. pt. 680 (2023) · <a class="ph__fig-note" href="#note-1-13">Note 13</a></p>
-              </figure>
-              <figure class="ph__fig">
-                <figcaption><b class="ph__fig-num">#2</b><span>truck parking, among US trucking’s most pressing problems</span></figcaption>
-                <div class="ph__fig-rank"><i class="c-grey">1 · The economy</i><i class="c-red">2 · Truck parking</i></div>
-                <p class="ph__fig-key"><span class="ph__swatch c-red"></span>Where drivers stop</p>
-                <p class="ph__fig-src">Source: Duah et al., Transportation Research Interdisciplinary Perspectives 34 (2025) · <a class="ph__fig-note" href="#note-1-14">Note 14</a></p>
-              </figure>
-            </div>
-          </div>
-
-          <!-- Unit 4: Precedents: Commercial Forecourts & Civic Road Stations -->
-          <div class="ph__read-unit">
-            <div class="ph__read-text">
-              <p set:html={linkNotes(bookText['1-2'].body[4], '1')} />
-            </div>
-            <div class="ph__read-visual">
-              <div class="ph__fig-header">
-                <span class="ph__fig-tag">Precedents</span>
-                <span class="ph__fig-title">Civic road stations</span>
+                <figure class="ph__fig">
+                  <figcaption><b class="ph__fig-num">1,200+</b><span>michi-no-eki road stations in Japan since 1993, run with the town</span></figcaption>
+                  <div class="ph__fig-chips">{michi.map(([t, c]) => <i class={c}>{t}</i>)}</div>
+                  <p class="ph__fig-key"><span class="ph__swatch c-teal"></span>For travellers <span class="ph__swatch c-orange"></span>For the town</p>
+                  <p class="ph__fig-src">Source: MLIT Japan, “Michi-no-Eki (Roadside Stations)” · <a class="ph__fig-note" href="#note-1-16">Note 16</a></p>
+                </figure>
               </div>
-              <figure class="ph__fig ph__fig--wide">
-                <figcaption><b class="ph__fig-num">1,200+</b><span>Michi-no-eki road stations in Japan since 1993, run with the town</span></figcaption>
-                <div class="ph__fig-chips">{michi.map(([t, c]) => <i class={c}>{t}</i>)}</div>
-                <p class="ph__fig-key"><span class="ph__swatch c-teal"></span>For travellers <span class="ph__swatch c-orange"></span>For the town</p>
-                <p class="ph__fig-src">Source: MLIT Japan, “Michi-no-Eki (Roadside Stations)” · <a class="ph__fig-note" href="#note-1-18">Note 18</a>; Gridserve Braintree (2020) · <a class="ph__fig-note" href="#note-1-17">Note 17</a></p>
-              </figure>
             </div>
           </div>
         </div>
@@ -1405,84 +1118,28 @@ const mindmapBibs = rawBibs.map((b) => ({
       <div class="ph__fold-body">
         <div class="ph__book-running-head" aria-hidden="true">
           <span>The Powerhouse / Chapter 1: {book[0].title}</span>
-          <span>1.3 Charge Time</span>
+          <span>{book[0].sections[2].num} {book[0].sections[2].title}</span>
         </div>
 
         <div class="ph__editorial">
-          <!-- Unit 1: Vehicle size and charging spectrum -->
           <div class="ph__read-unit">
             <div class="ph__read-text">
+              <div class="ph__infig">
+                <div class="ph__fig-header">
+                  <span class="ph__fig-tag">Figure 1.3</span>
+                  <span class="ph__fig-title">The length of a charge stop</span>
+                </div>
+                <figure class="ph__fig">
+                  <figcaption><b class="ph__fig-num">20 min–10 h</b><span>stays the Powerhouse plans for: the programme fits the stay</span></figcaption>
+                  <div class="ph__fig-bars">
+                    {studyRows.map((r) => <div><span>{r.name} · {r.label}</span><div class="ph__fig-bar"><i style={`width:${r.left}%`}></i><i class={r.cls} style={`width:${r.width}%`}></i></div></div>)}
+                  </div>
+                  <p class="ph__fig-src">Sources: US DOE, Alternative Fuels Data Center · <a class="ph__fig-note" href="#note-1-17">Note 17</a>; 49 C.F.R. § 395.3 · <a class="ph__fig-note" href="#note-1-18">Note 18</a></p>
+                </figure>
+              </div>
               <p set:html={linkNotes(bookText['1-3'].body[0], '1')} />
-            </div>
-            <div class="ph__read-visual">
-              <div class="ph__fig-header">
-                <span class="ph__fig-tag">Figure 1.5</span>
-                <span class="ph__fig-title">Vehicle size and charge time</span>
-              </div>
-              <figure class="ph__fig ph__fig--wide">
-                <figcaption><b class="ph__fig-num">20 min–50 h</b><span>to charge, from the fastest charger to the slowest, by vehicle size</span></figcaption>
-                <div class="ph__pause">
-                  {vehicleCharge.map((p) => (
-                    <div class="ph__pause-row"><span>{p.name}</span><div class="ph__pause-track"><i class={p.cls} style={`left:${p.left}%;width:${p.width}%`}></i></div><span>{p.label}</span></div>
-                  ))}
-                  <div class="ph__pause-row ph__pause-axis" aria-hidden="true"><span></span><div class="ph__pause-track">{vehicleTicks.map((t) => <em style={`left:${t.x}%`}>{t.l}</em>)}</div><span></span></div>
-                </div>
-                <p class="ph__fig-key">Left end: fast charge, to 70–80% · right end: home or depot, to full · log scale · * Tesla Semi claim, unverified</p>
-                <p class="ph__fig-src">Sources: Upway; Zero Motorcycles; US DOT; Monta; Tesla Semi; Freightliner eCascadia; Volvo Trucks</p>
-              </figure>
-            </div>
-          </div>
-
-          <!-- Unit 2: The stays the Powerhouse plans for & dwell dynamics -->
-          <div class="ph__read-unit">
-            <div class="ph__read-text">
-              <p>Charging times establish an entirely new rhythm of human dwell. Unlike the five-minute petrol visit, charging intervals range from the quick 20-to-30-minute top-off along highways to several hours at community hubs and ten hours for mandated commercial driver rest periods. Siting charging where drivers already pause harmonises technological necessity with daily life: drivers charge while eating, working, sleeping, or accessing civic resources.</p>
-              <p>For freight, the stop is coordinated with Federal regulations: 49 C.F.R. § 395.3 requires a 30-minute break after 8 hours of driving, and 10 consecutive hours off duty after an 11-hour driving limit. Fast chargers restore truck range during required meal breaks, while Level 2 and wireless pads replenish vehicles overnight without demanding human intervention.</p>
-            </div>
-            <div class="ph__read-visual">
-              <div class="ph__fig-header">
-                <span class="ph__fig-tag">Dwell Dynamics</span>
-                <span class="ph__fig-title">The spectrum of charging stays</span>
-              </div>
-              <div class="ph__subfigs-row">
-                <figure class="ph__fig">
-                  <figcaption><b class="ph__fig-num">27 min</b><span>Tesla Supercharger stop</span></figcaption>
-                  <div class="ph__fig-bars">
-                    {roadside.map((r) => <div><span>{r.name} · {r.label}</span><div class="ph__fig-bar"><i class={r.cls} style={`width:${(r.min / roadMax) * 100}%`}></i></div></div>)}
-                  </div>
-                  <p class="ph__fig-src">Sources: Tesla 2025; US DOE #1319</p>
-                </figure>
-                <figure class="ph__fig">
-                  <figcaption><b class="ph__fig-num">30 min</b><span>US truck driver break</span></figcaption>
-                  <div class="ph__fig-bar ph__fig-day">{truckDay.map((t) => <i class={t.cls} style={`width:${t.w}%`}>{t.label}</i>)}</div>
-                  <p class="ph__fig-src">Source: 49 C.F.R. § 395.3 · <a class="ph__fig-note" href="#note-1-19">Note 19</a></p>
-                </figure>
-              </div>
-              <div class="ph__subfigs-row">
-                <figure class="ph__fig">
-                  <figcaption><b class="ph__fig-num">4–10 h</b><span>Level 2 home overnight charge</span></figcaption>
-                  <div class="ph__fig-bars">
-                    <div><span>Level 2 · 240 V</span><div class="ph__fig-bar"><i class="c-blue" style={`width:${(4 / homeMax) * 100}%`}></i><i class="c-blue ph__fig-range" style={`width:${(6 / homeMax) * 100}%`}></i></div></div>
-                    <div><span>Level 1 · 120 V</span><div class="ph__fig-bar"><i class="c-light" style={`width:${(40 / homeMax) * 100}%`}>40–50+ h</i></div></div>
-                  </div>
-                  <p class="ph__fig-src">Source: US DOT Charger Speeds</p>
-                </figure>
-                <figure class="ph__fig">
-                  <figcaption><b class="ph__fig-num">11 kW</b><span>wireless pad: park, no plug</span></figcaption>
-                  <div class="ph__fig-bars">
-                    <div><span>Wireless · 11 kW</span><div class="ph__fig-bar"><i class="c-teal" style="width:57%"></i></div></div>
-                    <div><span>Level 2 cable</span><div class="ph__fig-bar"><i class="c-blue" style="width:100%"></i></div></div>
-                  </div>
-                  <p class="ph__fig-src">Sources: Electreon (2026); WiTricity</p>
-                </figure>
-              </div>
-              <figure class="ph__fig ph__fig--wide">
-                <figcaption><b class="ph__fig-num">20 min–10 h</b><span>stays the Powerhouse plans for: the programme fits the stay</span></figcaption>
-                <div class="ph__fig-bars">
-                  {studyRows.map((r) => <div><span>{r.name} · {r.label}</span><div class="ph__fig-bar"><i style={`width:${r.left}%`}></i><i class={r.cls} style={`width:${r.width}%`}></i></div></div>)}
-                </div>
-                <p class="ph__fig-src">Sources: US DOT; 49 C.F.R. § 395.3</p>
-              </figure>
+              <p set:html={linkNotes(bookText['1-3'].body[1], '1')} />
+              <p set:html={linkNotes(bookText['1-3'].body[2], '1')} />
             </div>
           </div>
         </div>
@@ -1505,72 +1162,35 @@ const mindmapBibs = rawBibs.map((b) => ({
       <div class="ph__fold-body">
         <div class="ph__book-running-head" aria-hidden="true">
           <span>The Powerhouse / Chapter 1: {book[0].title}</span>
-          <span>1.4 Public Space as Community</span>
+          <span>{book[0].sections[3].num} {book[0].sections[3].title}</span>
         </div>
 
         <div class="ph__editorial">
-          <!-- Unit 1: Idle Parking Ground -->
           <div class="ph__read-unit">
             <div class="ph__read-text">
               <p set:html={linkNotes(bookText['1-4'].body[0], '1')} />
-            </div>
-            <div class="ph__read-visual">
-              <div class="ph__fig-header">
-                <span class="ph__fig-tag">Infrastructure</span>
-                <span class="ph__fig-title">Idle parking lots</span>
-              </div>
-              <figure class="ph__fig ph__fig--wide">
-                <figcaption><b class="ph__fig-num">95%</b><span>of its life a car spends parked: idle public infrastructure the Powerhouse turns into a civic amenity</span></figcaption>
-                <div class="ph__fig-bar"><i class="c-grey" style="width:95%">Parked</i><i class="c-red" style="width:5%"></i></div>
-                <p class="ph__fig-key"><span class="ph__swatch c-grey"></span>Parked <span class="ph__swatch c-red"></span>Moving</p>
-                <p class="ph__fig-src">Source: Shoup, The High Cost of Free Parking (2005) · <a class="ph__fig-note" href="#note-1-20">Note 20</a></p>
-              </figure>
-            </div>
-          </div>
-
-          <!-- Unit 2: Space alone vs The Restorative Third Place -->
-          <div class="ph__read-unit">
-            <div class="ph__read-text">
               <p set:html={linkNotes(bookText['1-4'].body[1], '1')} />
             </div>
-            <div class="ph__read-visual">
+            <div class="ph__figrow ph__figrow--2">
               <div class="ph__fig-header">
-                <span class="ph__fig-tag">Figure 1.6</span>
+                <span class="ph__fig-tag">Figure 1.4</span>
                 <span class="ph__fig-title">The limits of space alone</span>
               </div>
               <figure class="ph__fig">
                 <figcaption><b class="ph__fig-num">2 in 5</b><span>of New York’s 503 plazas traded for bigger buildings rated marginal: space with no reason to be there</span></figcaption>
                 <div class="ph__fig-units ph__fig-units--5" aria-hidden="true">{popsRated.map((m) => <i class={m ? 'c-red' : 'c-grey'} />)}</div>
                 <p class="ph__fig-key"><span class="ph__swatch c-red"></span>Marginal <span class="ph__swatch c-grey"></span>The rest</p>
-                <p class="ph__fig-src">Source: Kayden et al., Privately Owned Public Space (2000) · <a class="ph__fig-note" href="#note-1-21">Note 21</a></p>
+                <p class="ph__fig-src">Source: Kayden et al., Privately Owned Public Space (2000) · <a class="ph__fig-note" href="#note-1-20">Note 20</a></p>
               </figure>
               <figure class="ph__fig">
                 <figcaption><b class="ph__fig-num">3rd place</b><span>cafés and gathering spaces restore people about as well as green space</span></figcaption>
                 <div class="ph__fig-units ph__fig-units--3" aria-hidden="true"><i class="c-light">Home</i><i class="c-light">Work</i><i class="c-teal">3rd place</i></div>
                 <p class="ph__fig-key"><span class="ph__swatch c-teal"></span>Restorative, mainly through social contact</p>
-                <p class="ph__fig-src">Sources: Whyte (1980) · <a class="ph__fig-note" href="#note-1-22">Note 22</a>; Xu et al. (2025) · <a class="ph__fig-note" href="#note-1-23">Note 23</a></p>
+                <p class="ph__fig-src">Sources: Oldenburg (1989) · <a class="ph__fig-note" href="#note-1-22">Note 22</a>; Xu et al. (2025) · <a class="ph__fig-note" href="#note-1-23">Note 23</a></p>
               </figure>
             </div>
-          </div>
-
-          <!-- Unit 3: The Site-Specific Hook -->
-          <div class="ph__read-unit">
             <div class="ph__read-text">
               <p set:html={linkNotes(bookText['1-4'].body[2], '1')} />
-              <p set:html={linkNotes(bookText['1-4'].body[3], '1')} />
-            </div>
-            <div class="ph__read-visual">
-              <div class="ph__fig-header">
-                <span class="ph__fig-tag">Figure 1.7</span>
-                <span class="ph__fig-title">The programme is the hook</span>
-              </div>
-              <figure class="ph__fig ph__fig--wide">
-                <figcaption><b class="ph__fig-num">Site-specific</b><span>the programme the community needs is the hook; charging is the outcome</span></figcaption>
-                <ol class="ph__fig-loop">{siteSteps.map(([t, c]) => <li class={c}>{t}</li>)}</ol>
-                <div class="ph__fig-chips">{programmeExamples.map((t) => <i class="c-light">{t}</i>)}</div>
-                <p class="ph__fig-key"><span class="ph__swatch c-light"></span>For example, whatever the site needs · part of every site stays open to anyone</p>
-                <p class="ph__fig-src">Source: the thesis, section 1.4</p>
-              </figure>
             </div>
           </div>
         </div>
@@ -1593,82 +1213,32 @@ const mindmapBibs = rawBibs.map((b) => ({
       <div class="ph__fold-body">
         <div class="ph__book-running-head" aria-hidden="true">
           <span>The Powerhouse / Chapter 1: {book[0].title}</span>
-          <span>1.5 The Anchor</span>
+          <span>{book[0].sections[4].num} {book[0].sections[4].title}</span>
         </div>
 
         <div class="ph__editorial">
-          <!-- Unit 1: The Shopping Mall Precedent -->
           <div class="ph__read-unit">
             <div class="ph__read-text">
               <p set:html={linkNotes(bookText['1-5'].body[0], '1')} />
-            </div>
-            <div class="ph__read-visual">
-              <div class="ph__fig-header">
-                <span class="ph__fig-tag">Typological Precedent</span>
-                <span class="ph__fig-title">Southdale 1956 and the anchor concept</span>
-              </div>
-              <figure class="ph__fig ph__fig--wide">
-                <figcaption><b class="ph__fig-num">1956</b><span>Southdale: two anchors pull people past the shops, whose rent pays for the court</span></figcaption>
-                <div class="ph__fig-bars">
-                  <div><span>Southdale mall, 1956</span><div class="ph__fig-bar ph__fig-strip">{mallStrip.map(([t, w, c]) => <i class={c} style={`width:${w}%`}>{t}</i>)}</div></div>
-                  <div><span>The Powerhouse</span><div class="ph__fig-bar ph__fig-strip">{phStrip.map(([t, w, c]) => <i class={c} style={`width:${w}%`}>{t}</i>)}</div></div>
-                </div>
-                <p class="ph__fig-key"><span class="ph__swatch c-red"></span>Anchor <span class="ph__swatch c-light"></span>Paying programme <span class="ph__swatch c-teal"></span>Shared space · not to scale</p>
-                <p class="ph__fig-src">Sources: Hardwick, Mall Maker (2004) · <a class="ph__fig-note" href="#note-1-24">Note 24</a>; Gruen and Smith, Shopping Towns USA (1960) · <a class="ph__fig-note" href="#note-1-25">Note 25</a></p>
-              </figure>
-            </div>
-          </div>
-
-          <!-- Unit 2: The Charger as Anchor & The Funding Cycle -->
-          <div class="ph__read-unit">
-            <div class="ph__read-text">
               <p set:html={linkNotes(bookText['1-5'].body[1], '1')} />
-            </div>
-            <div class="ph__read-visual">
-              <div class="ph__fig-header">
-                <span class="ph__fig-tag">Figure 1.8</span>
-                <span class="ph__fig-title">Proposed programme and funding cycle</span>
-              </div>
-              <figure class="ph__fig">
-                <figcaption><b class="ph__fig-num">Free</b><span>charging, paid for by the rent of the programme it anchors</span></figcaption>
-                <ol class="ph__fig-loop">{anchorLoop.map(([t, c]) => <li class={c}>{t}</li>)}</ol>
-                <p class="ph__fig-key">Each step pays for the next</p>
-                <p class="ph__fig-src">Source: the thesis, section 1.5</p>
-              </figure>
-              <div class="ph__fig-header">
-                <span class="ph__fig-tag">Figure 1.9</span>
-                <span class="ph__fig-title">Infrastructure as the anchor</span>
-              </div>
-              <figure class="ph__fig">
-                <figcaption><b class="ph__fig-num">Public</b><span>the Powerhouse is anchored by infrastructure, not a store</span></figcaption>
-                <div class="ph__fig-compare">
-                  <div class="c-light"><b>Mall</b><span>Anchor: department store</span><span>Shared space: private property</span></div>
-                  <div class="c-red"><b>Powerhouse</b><span>Anchor: the charger</span><span>Shared space: built for the community</span></div>
+              <p set:html={linkNotes(bookText['1-5'].body[2], '1')} />
+              <div class="ph__infig">
+                <div class="ph__fig-header">
+                  <span class="ph__fig-tag">Figure 1.5</span>
+                  <span class="ph__fig-title">The network around the charger</span>
                 </div>
-                <p class="ph__fig-src">Source: the thesis, section 1.5</p>
-              </figure>
-            </div>
-          </div>
-
-          <!-- Unit 3: 40 Programmes Matrix Full Width -->
-          <div class="ph__read-unit ph__read-unit--full">
-            <div class="ph__fig-header">
-              <span class="ph__fig-tag">Programme Matrix</span>
-              <span class="ph__fig-title">Free civic amenities and revenue-generating programmes</span>
-            </div>
-            <figure class="ph__fig ph__fig--wide">
-              <figcaption><b class="ph__fig-num">{programmeJudged.length} programmes</b><span>a stop can hold, free or paid; a site picks what its area lacks</span></figcaption>
-              <div class="ph__prog">
-                {programmeGrid.map((r) => (
-                  <Fragment>
-                    <span class="ph__prog-kind">{r.kind}</span>
-                    <div class="ph__fig-chips">{r.items.map((p) => <i class={r.cls}>{p.t}</i>)}</div>
-                  </Fragment>
-                ))}
+                <figure class="ph__fig">
+                  <figcaption><b class="ph__fig-num">1 charger</b><span>at the centre, with programmes around it arranged by how long people stay</span></figcaption>
+                  <div class="ph__rings" role="img" aria-label={`The charger at the centre; around it, ${networkRings.map((r) => `${r.stay}: ${r.items}`).join('; ')}; public space at the edge`}>
+                    {networkRings.reduce((inner, r) => (
+                      <div class="ph__rings-ring" style={`--ring: var(--ph-${r.c})`}><p><b>{r.stay}</b> {r.items}</p>{inner}</div>
+                    ), <div class="ph__rings-core">Charger</div>)}
+                  </div>
+                  <p class="ph__fig-key">Each ring serves people charging and is open to people who are not · public space at the edge</p>
+                  <p class="ph__fig-src">Sources: the thesis, section 1.5; Allen, “Infrastructural Urbanism” (1999) · <a class="ph__fig-note" href="#note-1-25">Note 25</a></p>
+                </figure>
               </div>
-              <p class="ph__fig-key"><span class="ph__swatch c-teal"></span>Free <span class="ph__swatch c-orange"></span>Paid</p>
-              <p class="ph__fig-src">Sorted with Jev (TypeSafe), judgements not survey data; unsure calls and four thesis choices set free. Recurring: FHWA NEVI guidance; Gilbarco Veeder-Root driver poll; Deloitte; Gridserve, Rove, Audi, IONNA, Love’s.</p>
-            </figure>
+            </div>
           </div>
         </div>
 
@@ -1690,66 +1260,15 @@ const mindmapBibs = rawBibs.map((b) => ({
       <div class="ph__fold-body">
         <div class="ph__book-running-head" aria-hidden="true">
           <span>The Powerhouse / Chapter 1: {book[0].title}</span>
-          <span>1.6 Argument, Objectives, and Scope</span>
+          <span>{book[0].sections[5].num} {book[0].sections[5].title}</span>
         </div>
 
         <div class="ph__editorial">
-          <!-- Unit 1: The Central Argument -->
           <div class="ph__read-unit">
             <div class="ph__read-text">
               <p set:html={linkNotes(bookText['1-6'].body[0], '1')} />
-            </div>
-            <div class="ph__read-visual">
-              <div class="ph__fig-header">
-                <span class="ph__fig-tag">Figure 1.10</span>
-                <span class="ph__fig-title">The argument and its test</span>
-              </div>
-              <figure class="ph__fig ph__fig--wide">
-                <figcaption><b class="ph__fig-num">Argument</b><span>an Electric Vehicle Powerhouse turns charging into civic and community engagement</span></figcaption>
-                <ol class="ph__fig-loop">{argumentChain.map(([t, c]) => <li class={c}>{t}</li>)}</ol>
-                <p class="ph__fig-key">Fails if the extra time leads only to more retail</p>
-                <p class="ph__fig-src">Source: the thesis, sections 1.4–1.6</p>
-              </figure>
-            </div>
-          </div>
-
-          <!-- Unit 2: Three Objectives -->
-          <div class="ph__read-unit">
-            <div class="ph__read-text">
               <p set:html={linkNotes(bookText['1-6'].body[1], '1')} />
-            </div>
-            <div class="ph__read-visual">
-              <div class="ph__fig-header">
-                <span class="ph__fig-tag">Validation</span>
-                <span class="ph__fig-title">Three objectives that test the hypothesis</span>
-              </div>
-              <figure class="ph__fig ph__fig--wide">
-                <figcaption><b class="ph__fig-num">Objectives</b><span>three questions test the argument; each becomes a chapter</span></figcaption>
-                <div class="ph__tests">{objectives.map((o) => <div><i class={o.cls}>{o.ch}</i><span>{o.aim}</span></div>)}</div>
-                <p class="ph__fig-src">Source: the thesis, section 1.6</p>
-              </figure>
-            </div>
-          </div>
-
-          <!-- Unit 3: Scope and Boundaries -->
-          <div class="ph__read-unit">
-            <div class="ph__read-text">
               <p set:html={linkNotes(bookText['1-6'].body[2], '1')} />
-            </div>
-            <div class="ph__read-visual">
-              <div class="ph__fig-header">
-                <span class="ph__fig-tag">Boundaries</span>
-                <span class="ph__fig-title">Scope of the investigation</span>
-              </div>
-              <figure class="ph__fig ph__fig--wide">
-                <figcaption><b class="ph__fig-num">Scope</b><span>not a five-minute stop: any stay, any road vehicle, on ground parking already holds</span></figcaption>
-                <div class="ph__tests ph__tests--tight">{scopeRows.map((r) => <div><i class={r.cls}>{r.k}</i><span>{r.v}</span></div>)}</div>
-                <div class="ph__fig-compare">
-                  <div class="c-light"><b>Left out</b><span>Chargers at malls and supermarkets, where shopping draws the charger</span></div>
-                  <div class="c-light"><b>Paid for by</b><span>The rent of paid programmes, which keeps charging and the free programmes free</span></div>
-                </div>
-                <p class="ph__fig-src">Sources: the thesis, sections 1.1–1.5; BYD megawatt flash charging (2025) · <a class="ph__fig-note" href="#note-1-26">Note 26</a></p>
-              </figure>
             </div>
           </div>
         </div>
@@ -1772,57 +1291,26 @@ const mindmapBibs = rawBibs.map((b) => ({
       <div class="ph__fold-body">
         <div class="ph__book-running-head" aria-hidden="true">
           <span>The Powerhouse / Chapter 1: {book[0].title}</span>
-          <span>1.7 Theoretical Framework</span>
+          <span>{book[0].sections[6].num} {book[0].sections[6].title}</span>
         </div>
 
         <div class="ph__editorial">
-          <!-- Unit 1: Three Lenses Overview -->
           <div class="ph__read-unit">
+            <div class="ph__figrow ph__figrow--4">
+              <div class="ph__fig-header">
+                <span class="ph__fig-tag">Figure 1.6</span>
+                <span class="ph__fig-title">Three ways of reading the pause</span>
+              </div>
+              {lensFlow.map((l) => (
+                <div class="ph__lens"><i class={l.cls}>{l.n} {l.lens}</i><b>{l.q}</b><span>{l.a}</span></div>
+              ))}
+              <div class="ph__lens ph__lens--end"><i class="c-red">The Powerhouse</i><b>A place for the pause</b><span>A charger at the centre, a network of programmes around it, open to all.</span></div>
+            </div>
             <div class="ph__read-text">
               <p set:html={linkNotes(bookText['1-7'].body[0], '1')} />
-            </div>
-            <div class="ph__read-visual">
-              <div class="ph__fig-header">
-                <span class="ph__fig-tag">Figure 1.11</span>
-                <span class="ph__fig-title">Three lenses for the Powerhouse</span>
-              </div>
-              <figure class="ph__fig ph__fig--wide">
-                <figcaption><b class="ph__fig-num">3 lenses</b><span>three questions, answered in turn, lead to the Powerhouse</span></figcaption>
-                <div class="ph__flow">
-                  {lensFlow.map((l) => (
-                    <Fragment>
-                      <div class="ph__flow-step"><i class={l.cls}>{l.n} {l.lens}</i><b>{l.q}</b><span>{l.a}</span></div>
-                      <span class="ph__flow-arrow" aria-hidden="true">↓</span>
-                    </Fragment>
-                  ))}
-                  <div class="ph__flow-step ph__flow-end"><i class="c-red">The Powerhouse</i><b>A civic place on idle parking</b><span>Open to all, sustained by its own energy and programme.</span></div>
-                </div>
-                <p class="ph__fig-src">Source: the thesis, section 1.7</p>
-              </figure>
-            </div>
-          </div>
-
-          <!-- Unit 2: Theoretical Foundations & Thinkers -->
-          <div class="ph__read-unit">
-            <div class="ph__read-text">
               <p set:html={linkNotes(bookText['1-7'].body[1], '1')} />
               <p set:html={linkNotes(bookText['1-7'].body[2], '1')} />
               <p set:html={linkNotes(bookText['1-7'].body[3], '1')} />
-            </div>
-            <div class="ph__read-visual">
-              <div class="ph__fig-header">
-                <span class="ph__fig-tag">Theoretical Matrix</span>
-                <span class="ph__fig-title">Thinkers and architectural foundations</span>
-              </div>
-              <figure class="ph__fig ph__fig--wide">
-                <figcaption><b class="ph__fig-num">Each part</b><span>what the thinkers say, and what it means for the Powerhouse</span></figcaption>
-                <div class="ph__explain">
-                  <div><i class="c-green">1 Sustainability</i><p>Brundtland defines sustainable development as meeting today’s needs without taking from future generations.<sup><a class="ph__fig-note" href="#note-1-27">27</a></sup> The Powerhouse meets it three ways: environmental (land parking already covers, its own energy), social (people who cannot charge at home) and economic (paid programmes keep it running). McHarg’s layered reading of a site decides where a Powerhouse goes; Van der Ryn and Cowan ask that its energy be visible, not hidden.<sup><a class="ph__fig-note" href="#note-1-28">28</a></sup> <em>Backs 1.1 and 1.3.</em></p></div>
-                  <div><i class="c-yellow">2 Phenomenology</i><p>Heidegger’s bridge does not just cross a river; it gathers two banks into a place.<sup><a class="ph__fig-note" href="#note-1-29">29</a></sup> The site can do the same for a pause in a journey. Norberg-Schulz adds that people need to know where they are and feel they belong,<sup><a class="ph__fig-note" href="#note-1-30">30</a></sup> which today’s identical charging stops, Augé’s non-places, do not allow. <em>Backs 1.2 and 1.3.</em></p></div>
-                  <div><i class="c-blue">3 Social theory</i><p>Lefebvre separates space as planned from space as lived; charging sites today are planned by standards and operators for the vehicle.<sup><a class="ph__fig-note" href="#note-1-31">31</a></sup> His right to the city grounds the open ground and free programmes.<sup><a class="ph__fig-note" href="#note-1-32">32</a></sup> Foucault warns that such places can watch and move people on;<sup><a class="ph__fig-note" href="#note-1-33">33</a></sup> Jacobs answers that safety comes from people being present.<sup><a class="ph__fig-note" href="#note-1-34">34</a></sup> <em>Backs 1.4 and 1.5.</em></p></div>
-                </div>
-                <p class="ph__fig-src">Sources: Brundtland (1987); McHarg (1969); Van der Ryn & Cowan (1996); Heidegger (1971); Norberg-Schulz (1980); Lefebvre (1991, 1996); Foucault (1977); Jacobs (1961) · Notes 27–34</p>
-              </figure>
             </div>
           </div>
         </div>
@@ -1904,6 +1392,61 @@ const mindmapBibs = rawBibs.map((b) => ({
                     <p class="ph__fig-src">Sources: NYC DOT; the cards above</p>
                   </figure>
                 </div>
+                </div>
+
+                <!-- Unit: the US network, before the three states -->
+                <div class="ph__read-unit ph__read-unit--full">
+                  <section id="usa" class="ph__slide" data-slide="0" aria-labelledby="usa-title">
+                    <!-- Full-Width Heading -->
+                    <div class="ph__heading ph__heading--full">
+                      <p class="ph__kicker">USA / road infrastructure and electrification, in numbers</p>
+                      <h2 id="usa-title" tabindex="-1">Where public charging is today</h2>
+                    </div>
+
+                    <!-- 2-Column Section Spread: Left = Text, Right = Map & State List -->
+                    <div class="ph__national-split">
+                      <!-- Left Column: Transport Narrative & Map Note -->
+                      <div class="ph__national-prose">
+                        <div class="ph__read-text">
+                                            <p class="ph__map-note-lead">Each dot on the map groups nearby charging locations, and its size grows with the number of charging points there. Public means open to any driver, even when the equipment is privately owned; private means workplaces, fleets and apartment blocks that report their chargers. Home chargers are not counted anywhere.</p>
+                        </div>
+                      </div>
+
+                      <!-- Right Column: Map & State List -->
+                      <div class="ph__national-visual">
+                        <div class="ph__fig-header">
+                          <span class="ph__fig-tag">US network</span>
+                          <span class="ph__fig-title">Where public charging is today · US network</span>
+                        </div>
+                        <div class="ph__map-bar">
+                          <p class="ph__solo-title">Where the US’s <b id="ph-map-ports" aria-live="polite">{fmt(allUsa.ports)}</b> charging points are · <span><span id="ph-map-stations">at {fmt(allUsa.stations)} stations · public and private</span></span></p>
+                          <select id="ph-access" class="ph__map-select" aria-label="Show public, private or all charging">
+                            <option value="all" selected>All charging points</option>
+                            <option value="public">Public</option>
+                            <option value="private">Private</option>
+                          </select>
+                        </div>
+                        <figure class="ph__map ph__national-map">
+                          <svg class="ph__svg ph__national-svg" viewBox="0 0 975 610" role="img" aria-labelledby="ph-us-svg-title ph-us-svg-desc">
+                            <title id="ph-us-svg-title">US charging infrastructure</title><desc id="ph-us-svg-desc">Operating charging ports across the fifty states and DC. Alaska and Hawaii are insets. Dots aggregate nearby locations; exact counts appear above and in the tables.</desc>
+                            <g class="ph__land">{data.usa.states.map(st=><path d={st.d}><title>{st.name}</title></path>)}</g>
+                            <g class="ph__focus-states">{focusStates.map((f)=><path d={f.d}><title>{f.rank}. {f.name}</title></path>)}</g>
+                            <g>{data.usa.dots.map(d=><circle cx={d.x} cy={d.y} r={size(d.l1+d.l2+d.dc)} data-us-access={d.access} class="ph__charging-dot"><title>{d.access} charging · {fmt(d.l1+d.l2+d.dc)} ports in this map cell</title></circle>)}</g>
+                            <g class="ph__focus-labels" aria-hidden="true">{focusStates.map((f)=><g><line x1={f.tx} y1={f.ty} x2={f.x} y2={f.y}/><g transform={`translate(${f.x} ${f.y})`}><circle class="ph__focus-mark" r="19"/><text dy="7">{f.rank}</text></g></g>)}</g>
+                          </svg>
+                        </figure>
+                        <div class="ph__ranklist">
+                          <div class="ph__ranklist-head"><span>All 50 states and DC</span><b>{fmt(pub.ports)} public charging points</b></div>
+                          <ol class="ph__top5" aria-label="States by public charging points, largest first" tabindex="0">
+                            {data.ranked.map((r, i) => (
+                              <li class:list={[{ 'is-focus': i < 3 }]}><span>{i + 1}</span><b>{stateName[r.code] ?? r.code} <small>{((r.ports / pub.ports) * 100).toFixed(1)}%</small></b><i style={`width:${(r.ports / data.ranked[0].ports) * 100}%`}></i><em>{fmt(r.ports)}</em></li>
+                            ))}
+                          </ol>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
                 </div>
 
                 <!-- Unit: Three States Comparison -->
@@ -2333,7 +1876,7 @@ const mindmapBibs = rawBibs.map((b) => ({
             <div class="ph__mm-side-head">
               <div>
                 <p class="ph__kicker">Master Bibliography</p>
-                <h3 class="ph__mm-side-title">58 Peer-Reviewed Sources</h3>
+                <h3 class="ph__mm-side-title">{bibliography.length} Sources</h3>
               </div>
               <span class="ph__mm-side-badge">Chicago 17th ed.</span>
             </div>
@@ -2428,6 +1971,10 @@ const mindmapBibs = rawBibs.map((b) => ({
   .ph__mm-trigger span {
     font-weight: 600;
   }
+  /* Mindmap + PDF sit on one line, sized like the chapter tab pills */
+  .ph__intro-pills { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 6px; }
+  .ph__intro-pills .ph__mm-trigger { gap: 5px; margin-top: 0; min-height: 25px; padding: 2px 9px; font-size: clamp(0.6875rem, 0.65rem + 0.1vw, 0.75rem); white-space: nowrap; }
+  a.ph__mm-trigger { text-decoration: none; }
   @media (hover: hover) {
     .ph__mm-trigger:hover {
       background-color: var(--_tokens---color--fg);
@@ -2854,6 +2401,12 @@ const mindmapBibs = rawBibs.map((b) => ({
     height: 100%;
     margin: 0;
   }
+  /* 1.5: the network around the charger, nested by length of stay, charger at the core */
+  .ph__rings { margin: 12px 0 10px; }
+  .ph__rings-ring { padding: 8px 10px 10px; border: 1px solid var(--ring); border-radius: 22px; background: color-mix(in srgb, var(--ring) 14%, transparent); }
+  .ph__rings-ring p { margin: 0 0 8px; font-size: var(--_tokens---type--micro); line-height: 1.3; text-align: center; color: var(--_tokens---color--muted); }
+  .ph__rings-ring p b { color: var(--_tokens---color--fg); font-weight: 600; }
+  .ph__rings-core { padding: 10px; border-radius: 999px; background: var(--ph-red); color: #fff; font-size: var(--_tokens---type--micro); font-weight: 600; text-align: center; }
   @media (max-width: 1023.98px) {
     .ph__figs-4col {
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3001,68 +2554,6 @@ const mindmapBibs = rawBibs.map((b) => ({
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
     gap: 12px;
   }
-  .ph__concept-card {
-    padding: 20px;
-    border: 1px solid var(--_tokens---color--line);
-    border-radius: 12px;
-    background: color-mix(in srgb, var(--_tokens---color--fg) 2.5%, var(--_tokens---color--bg));
-    display: grid;
-    gap: 14px;
-  }
-  .ph__concept-badge {
-    display: inline-block;
-    padding: 2px 10px;
-    border-radius: 999px;
-    background: var(--ph-red, #cc2b1d);
-    color: #fff;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    width: fit-content;
-  }
-  .ph__concept-title {
-    font-size: var(--_tokens---type--small);
-    font-weight: 600;
-    margin: 0;
-    letter-spacing: -0.01em;
-  }
-  .ph__concept-desc {
-    font-size: var(--_tokens---type--micro);
-    line-height: 1.55;
-    margin: 0;
-    color: var(--_tokens---color--fg);
-  }
-  .ph__concept-hypothesis {
-    padding: 24px;
-    border: 1px solid #111;
-    border-radius: 0;
-    background: #111;
-    color: #fff;
-    font-size: var(--_tokens---type--medium);
-    font-weight: 700;
-    line-height: 1.15;
-    letter-spacing: -.03em;
-  }
-  .ph__concept-points {
-    display: grid;
-    gap: 10px;
-    padding-top: 12px;
-    border-top: 1px solid var(--_tokens---color--line);
-    font-size: var(--_tokens---type--micro);
-  }
-  .ph__concept-points > div {
-    display: grid;
-    gap: 2px;
-  }
-  .ph__concept-points b {
-    font-weight: 600;
-    color: var(--_tokens---color--fg);
-  }
-  .ph__concept-points span {
-    color: var(--_tokens---color--muted);
-    line-height: 1.45;
-  }
   @media (max-width: 1023.98px) {
     .ph__read-unit {
       grid-template-columns: 1fr;
@@ -3070,100 +2561,93 @@ const mindmapBibs = rawBibs.map((b) => ({
     }
   }
 
-  /* Chapter 1 report: prose reads across two columns; evidence follows its passage. */
-  [data-chapter-group="ch1"] .ph__read-unit {
-    display: block;
-    padding-bottom: 32px;
-    border-bottom-style: solid;
-  }
+  /* Chapter 1 reads as a two-column book page. Prose always runs in two equal columns. Diagrams
+     sit in the flow, never stacked to one side: a single figure is set inside the text, one column
+     wide; a group is a row of 2, 3 or 4 equal cells above, between or below a passage. One gap. */
+  [data-chapter-group="ch1"] { --ph-col-gap: 32px; }
+  [data-chapter-group="ch1"] .ph__editorial { gap: 56px; }
+  [data-chapter-group="ch1"] .ph__read-unit { display: flex; flex-direction: column; gap: 40px; padding: 0; border: 0; }
   [data-chapter-group="ch1"] .ph__read-text {
     font-size: clamp(0.8125rem, 0.775rem + 0.15vw, 0.9375rem);
+    line-height: 1.68;
     column-count: 2;
-    column-gap: 44px;
+    column-gap: var(--ph-col-gap);
     column-fill: balance;
     orphans: 3;
     widows: 3;
   }
-  [data-chapter-group="ch1"] .ph__read-text p {
-    max-width: none;
+  [data-chapter-group="ch1"] .ph__read-text p { max-width: none; }
+  [data-chapter-group="ch1"] .ph__read-text .ph__book-lead { font-size: inherit; line-height: inherit; }
+  [data-chapter-group="ch1"] :is(.ph__book-running-head, .ph__book-running-foot) { border: 0; }
+
+  /* A figure inside the text columns */
+  [data-chapter-group="ch1"] .ph__infig { display: grid; gap: 14px; margin: 0 0 2em; break-inside: avoid; }
+  [data-chapter-group="ch1"] .ph__read-text > .ph__infig:last-child { margin: 2em 0 0; }
+
+  /* A row of figures */
+  [data-chapter-group="ch1"] .ph__figrow { display: grid; grid-template-columns: repeat(var(--cols, 1), minmax(0, 1fr)); gap: 24px var(--ph-col-gap); align-items: start; }
+  [data-chapter-group="ch1"] .ph__figrow > .ph__fig-header { grid-column: 1 / -1; }
+  [data-chapter-group="ch1"] .ph__figrow--2 { --cols: 2; }
+  [data-chapter-group="ch1"] .ph__figrow--3 { --cols: 3; }
+  [data-chapter-group="ch1"] .ph__figrow--4 { --cols: 4; }
+  @media (max-width: 1023.98px) {
+    [data-chapter-group="ch1"] :is(.ph__figrow--3, .ph__figrow--4) { --cols: 2; }
   }
-  [data-chapter-group="ch1"] .ph__read-text .ph__book-lead {
-    font-size: inherit;
-    line-height: inherit;
-  }
-  [data-chapter-group="ch1"] .ph__read-visual {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 20px 44px;
-    margin-top: 28px;
-    align-items: start;
-  }
-  [data-chapter-group="ch1"] .ph__read-visual > :is(.ph__fig-header, .ph__fig--wide, .ph__concept-card, .ph__subfigs-row) {
-    grid-column: 1 / -1;
-  }
-  [data-chapter-group="ch1"] .ph__read-visual > .ph__fig:first-of-type:last-of-type {
-    grid-column: 1 / -1;
-  }
-  [data-chapter-group="ch1"] :is(.ph__fig, .ph__concept-card) {
-    break-inside: avoid;
-  }
-  /* Quiet report furniture: hierarchy comes from type and spacing. */
-  [data-chapter-group="ch1"] :is(.ph__book-running-head, .ph__book-running-foot, .ph__read-unit) {
-    border: 0;
-  }
-  [data-section-panel="1-0"] .ph__concept-card {
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-    padding: 0;
-  }
-  [data-section-panel="1-0"] .ph__fig-header {
-    border: 0;
-    padding-bottom: 0;
-  }
-  [data-section-panel="1-0"] .ph__concept-points {
-    border: 0;
-    padding-top: 6px;
-  }
-  [data-section-panel="1-0"] .ph__concept-badge {
-    padding: 0;
-    border-radius: 0;
-    background: transparent;
-    color: var(--_tokens---color--muted);
+  @media (max-width: 699.98px) {
+    [data-chapter-group="ch1"] { --ph-col-gap: 24px; }
+    [data-chapter-group="ch1"] .ph__read-text { column-count: 1; }
+    [data-chapter-group="ch1"] .ph__figrow { --cols: 1; }
   }
 
-  /* Balance the introduction and its inline concept together across both columns. */
-  [data-section-panel="1-0"] .ph__read-unit {
-    display: block;
-    column-count: 2;
-    column-gap: 44px;
-    column-fill: balance;
-    font-size: clamp(0.8125rem, 0.775rem + 0.15vw, 0.9375rem);
-    line-height: 1.68;
-    orphans: 3;
-    widows: 3;
+  /* Chapter 1 figure system. No boxes: a label, one large number, a muted caption, the graphic,
+     then its key and source; space does the separating. Colour is kept for data (the Powerhouse
+     palette); everything around the data stays black, white and grey. */
+  [data-chapter-group="ch1"] .ph__fig-header {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font-size: var(--_tokens---type--micro);
   }
-  [data-section-panel="1-0"] .ph__read-text {
-    display: contents;
-    column-count: auto;
-    orphans: 2;
-    widows: 2;
+  [data-chapter-group="ch1"] .ph__fig-tag {
+    color: var(--_tokens---color--muted);
+    font-size: inherit;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+    font-variant-numeric: tabular-nums;
   }
-  [data-section-panel="1-0"] .ph__read-visual {
-    display: block;
-    margin-top: 20px;
-    break-inside: avoid;
+  [data-chapter-group="ch1"] .ph__fig-title { color: var(--_tokens---color--fg); font-weight: 500; }
+  [data-chapter-group="ch1"] .ph__fig { gap: 10px; padding: 0; border: 0; border-radius: 0; background: none; break-inside: avoid; }
+  [data-chapter-group="ch1"] .ph__fig > figcaption { margin-bottom: 4px; gap: 6px; }
+  [data-chapter-group="ch1"] .ph__fig-num {
+    font-size: clamp(1.75rem, 1.4rem + 0.9vw, 2.25rem);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
   }
-  [data-section-panel="1-0"] .ph__fig-header { margin-bottom: 14px; }
-  @media (max-width: 699.98px) {
-    [data-section-panel="1-0"] .ph__read-unit { column-count: 1; }
-    [data-chapter-group="ch1"] .ph__read-text { column-count: 1; }
-    [data-chapter-group="ch1"] .ph__read-visual {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 20px;
-      margin-top: 24px;
-    }
-  }
+  [data-chapter-group="ch1"] .ph__fig figcaption > span { font-size: var(--_tokens---type--micro); line-height: 1.45; }
+  [data-chapter-group="ch1"] .ph__fig-src { margin-top: 2px; padding-top: 0; border: 0; opacity: 0.8; }
+  [data-chapter-group="ch1"] .ph__fig-bar { border-radius: 3px; }
+  [data-chapter-group="ch1"] .ph__rings-ring { border: 0; border-radius: 20px; }
+  [data-chapter-group="ch1"] .ph__book-table figcaption { margin: 0 0 12px; padding: 0; border: 0; font-size: var(--_tokens---type--micro); font-weight: 500; line-height: 1.45; color: var(--_tokens---color--fg); }
+  [data-chapter-group="ch1"] .ph__book-tscroll { overflow-x: auto; }
+  [data-chapter-group="ch1"] .ph__book-table table { width: 100%; min-width: 36rem; table-layout: fixed; border-collapse: collapse; font-size: var(--_tokens---type--micro); line-height: 1.45; }
+  [data-chapter-group="ch1"] .ph__book-table :is(th, td) { padding: 8px 16px 8px 0; white-space: normal; text-align: left; vertical-align: top; font-weight: 400; border: 0; border-top: 1px solid var(--_tokens---color--line); }
+  [data-chapter-group="ch1"] .ph__book-table thead th { border-top: 0; color: var(--_tokens---color--muted); }
+  [data-chapter-group="ch1"] .ph__book-table :is(th, td):first-child { width: 22%; font-weight: 500; }
+  [data-chapter-group="ch1"] .ph__book-table :is(th, td):nth-child(2) { width: 22%; font-variant-numeric: tabular-nums; }
+  [data-chapter-group="ch1"] .ph__book-table tbody tr:last-child :is(th, td) { font-weight: 600; }
+  [data-chapter-group="ch1"] .ph__book-table figcaption b { font-weight: 500; color: var(--_tokens---color--muted); }
+
+  /* 1.0 the thesis in one line, and 1.7 the lenses: text cells, the lead set large. */
+  [data-chapter-group="ch1"] :is(.ph__statement, .ph__lens) { display: grid; align-content: start; gap: 6px; font-size: var(--_tokens---type--micro); line-height: 1.45; }
+  [data-chapter-group="ch1"] :is(.ph__statement, .ph__lens) b { font-weight: 600; color: var(--_tokens---color--fg); }
+  [data-chapter-group="ch1"] :is(.ph__statement, .ph__lens) span { color: var(--_tokens---color--muted); }
+  [data-chapter-group="ch1"] .ph__statement--lead b { font-size: clamp(1.25rem, 1.05rem + 0.6vw, 1.5rem); font-weight: 500; line-height: 1.2; letter-spacing: -0.02em; }
+  [data-chapter-group="ch1"] .ph__lens i { justify-self: start; padding: 3px 8px; border-radius: 4px; font-style: normal; font-size: 11px; color: #111; }
 
   .ph__intro-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 48px; align-items: start; margin-bottom: 56px; }
   .ph__intro-grid .ph__chapter-lead { margin-bottom: 0; }
@@ -3222,13 +2706,6 @@ const mindmapBibs = rawBibs.map((b) => ({
   .ph__tests b { font-weight: 600; }
   .ph__fig-loop--row { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .ph__fig-loop--row li { line-height: 1.3; }
-  .ph__flow { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
-  .ph__flow-step { display: grid; grid-template-columns: 130px 1fr; grid-template-rows: auto auto; column-gap: 12px; row-gap: 2px; align-items: start; padding: 10px; border: 1px solid var(--_tokens---color--line); border-radius: 8px; font-size: var(--_tokens---type--ultrathin); line-height: 1.4; }
-  .ph__flow-step i { grid-row: 1 / 3; font-style: normal; padding: 4px 8px; border-radius: 4px; font-size: 11px; color: #111; justify-self: start; }
-  .ph__flow-step b { font-weight: 600; font-size: var(--_tokens---type--micro); }
-  .ph__flow-step span { color: var(--_tokens---color--muted); }
-  .ph__flow-end { border-color: var(--_tokens---color--fg); }
-  .ph__flow-arrow { justify-self: center; color: var(--_tokens---color--muted); line-height: 1; }
   .ph__explain { display: grid; gap: 12px; }
   .ph__explain > div { display: grid; grid-template-columns: 130px 1fr; gap: 12px; align-items: start; }
   .ph__explain i { font-style: normal; padding: 4px 8px; border-radius: 4px; font-size: 11px; color: #111; }
