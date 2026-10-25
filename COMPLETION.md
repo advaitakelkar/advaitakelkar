@@ -390,3 +390,11 @@ Eleven supplied room views edited with the built-in image tool for a cohesive ph
 - Updated `src/content/projects/pet-park.yaml`: added slider, cover image, five scrub images, 12 gallery images with descriptive lead figures, and updated credits to Faizan Khatri, Devarsh Deth, Advaita Kelkar.
 - Added `pet-park` to `PUBLIC_PROJECT_SLUGS` in `src/lib/projectAccess.ts` and unlocked the project.
 
+
+
+### 2026-10-25 — Seven Gardens / Hari Bagh completed gallery
+
+- Added 18 edited views, grouped as House (5), Details (4), Construction (3), Site (1), Drawings (4) and Model (1). WIP remains visibly under construction; drawings and model keep their media.
+- Main cover is the courtyard with corrected left-wall and right-column perspective. Added a second text-free front-elevation cover and replaced the window view with the wall-clinging creeper revision.
+- Added the Hari Bagh visitor link and current farmstay context, verified against https://www.haribagh.com/home. Preserved the existing project account and credits; Advaita is last in the people data.
+- Unlocked `seven-gardens` for the requested publication. Production build (98 pages), style lints and browser checks of the 18-view gallery, six categories, drawing filter and visitor links pass. Deployment and live verification follow.
