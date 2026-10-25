@@ -26,6 +26,8 @@ import ImageLightbox from './ImageLightbox.astro';
 export interface Props {
   views: Array<{ room?: string; label?: string; note?: string; caption?: string; alt?: string; annotations?: Array<{ heading: string; lines: string[] }>; drawingSource?: string; image: string; variations?: string[] }>;
   name: string;
+  /** Keep an explicitly curated cover sequence when false. */
+  shuffle?: boolean;
   /* How the groups are chosen between. 'tabs' is a row of pills and suits a
      flat with eight rooms. 'chapters' is a column of dropdowns and suits a
      study that is read in order: twelve plateaus, each holding three panels,
@@ -36,7 +38,7 @@ export interface Props {
   /* What one group is called, for the labels and the count line. */
   groupNoun?: { one: string; many: string };
 }
-const { views, name, groups = 'tabs', groupNoun } = Astro.props;
+const { views, name, groups = 'tabs', groupNoun, shuffle = true } = Astro.props;
 const NOUN = groupNoun ?? (groups === 'chapters'
   ? { one: 'chapter', many: 'chapters' }
   : { one: 'room', many: 'rooms' });
@@ -188,7 +190,7 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
     <ImageLightbox />
   </section>
 ) : (
-<section class="rr" data-rr data-rr-rooms={hasRooms ? "true" : "false"} aria-label={hasRooms ? `${name} — rooms` : `${name} — views`}>
+<section class="rr" data-rr data-rr-rooms={hasRooms ? "true" : "false"} data-rr-shuffle={shuffle ? "true" : "false"} aria-label={hasRooms ? `${name} — ${NOUN.many}` : `${name} — views`}>
 
   <div class="rr__body">
     <!-- The work. -->
@@ -1034,7 +1036,7 @@ const totalTakes = indexed.reduce((a, v) => a + 1 + v.variations.length, 0);
     const rail = root.querySelector<HTMLElement>('[data-rr-rail]');
     const naturalOrder = covers.slice();
     const allOrder = covers.slice();
-    if (root.dataset.rrRooms === 'true') {
+    if (root.dataset.rrRooms === 'true' && root.dataset.rrShuffle !== 'false') {
       for (let i = allOrder.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [allOrder[i], allOrder[j]] = [allOrder[j], allOrder[i]];

@@ -398,3 +398,5 @@ Eleven supplied room views edited with the built-in image tool for a cohesive ph
 - Main cover is the courtyard with corrected left-wall and right-column perspective. Added a second text-free front-elevation cover and replaced the window view with the wall-clinging creeper revision.
 - Added the Hari Bagh visitor link and current farmstay context, verified against https://www.haribagh.com/home. Preserved the existing project account and credits; Advaita is last in the people data.
 - Unlocked `seven-gardens` for the requested publication. Production build (98 pages), style lints and browser checks of the 18-view gallery, six categories, drawing filter and visitor links pass. Deployment and live verification follow.
+
+- Live review follow-up: keep Seven Gardens in its curated order so the courtyard cover always opens first, followed by the text-free front cover. Other projects retain the existing shuffle default.
