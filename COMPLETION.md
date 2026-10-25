@@ -368,3 +368,5 @@ Eleven supplied room views edited with the built-in image tool for a cohesive ph
 - Set the food-counter view as cover, supplied five scrub images, and labelled each gallery view; retained the project copy and credits.
 - Public now: `mumbai-airport-foodcourt` added to the shared access list after asset review.
 - Validation: production build (98 pages) and all three style lints pass. Browser review confirms the unlocked five-view gallery and uncropped isometric. Live verification follows the deployment.
+
+- Deploy follow-up: the 15.34.1 CLI selected by `@latest` failed its Hosting API service-usage check with HTTP 403. Pinned Firebase CLI to 15.34.0, verified in the last successful production deployment (20 October), without changing credentials or IAM.
