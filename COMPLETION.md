@@ -8,6 +8,17 @@ Last surveyed: **2026-09-09** — HEAD `be65d53`, `pnpm build` = 80 pages.
 
 ---
 
+## SOCIAL Vashi — publication approved, 25 October 2026
+
+Adi reviewed the local gallery and subsequently requested publication, commit and push. This supersedes the earlier local-only restriction.
+
+- 18 edited images: Real (6), Details (7), Architectural illustration (5).
+- Two plans and three concept views were redone to match Adi's supplied textured architectural illustration references. Plans keep the kitchen wing schematic; construction details retain their work-in-progress state.
+- Project access enabled for the approved publication. Masters, source mapping and prompts: Codex `outputs/social-vashi`; source copies in Desktop/Vashi/Edit 1.
+- Validation passed: 98-page production build, breakpoint/glyph/icon lints, 18 unique images and original checksums, and local browser review of all three categories and both reference-style plans. Local preview: http://127.0.0.1:8767/projects/social-vashi/ . Commit and deployment follow Adi’s publication approval.
+
+---
+
 ## How this site defines "done"
 
 **A project is locked until its slug is added to `PUBLIC_PROJECT_SLUGS` in
