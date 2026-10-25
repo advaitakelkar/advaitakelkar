@@ -472,14 +472,14 @@ const book: { id: string; num: string; short: string; title: string; subtitle?: 
     ],
   },
   {
-    id: 'ch4', num: '4', short: 'The Framework', title: 'The Framework', subtitle: 'Typology, anatomy and architectural synthesis',
+    id: 'ch4', num: '4', short: 'Framework for the Pause', title: 'A Framework for the Pause', subtitle: 'From catalogue to building',
     sections: [
-      { id: '4-1', num: '4.1', title: 'What Does It Need?' },
-      { id: '4-2', num: '4.2', title: 'Right to the City' },
-      { id: '4-3', num: '4.3', title: 'Who the Space Is For' },
-      { id: '4-4', num: '4.4', title: 'Rent, Revenue, Running Costs' },
-      { id: '4-5', num: '4.5', title: 'Programme by Length of Stay' },
-      { id: '4-6', num: '4.6', title: 'The Civic Station Marvel: Architectural Synthesis' },
+      { id: '4-1', num: '4.1', title: 'Reading the Site' },
+      { id: '4-2', num: '4.2', title: 'Three Settings' },
+      { id: '4-3', num: '4.3', title: 'Arranging the Powerhouse' },
+      { id: '4-4', num: '4.4', title: 'Across the Day and Night' },
+      { id: '4-5', num: '4.5', title: 'Measuring the Pause' },
+      { id: '4-6', num: '4.6', title: 'From Framework to Building' },
     ],
   },
   {
@@ -493,7 +493,7 @@ const book: { id: string; num: string; short: string; title: string; subtitle?: 
     ],
   },
 ];
-const openingTitle = (c: typeof book[number]) => c.id === 'ch1' ? 'From charging time to civic life' : c.id === 'ch2' ? 'Reading the charging landscape' : c.id === 'ch3' ? 'A New Kind of Station' : c.title;
+const openingTitle = (c: typeof book[number]) => c.id === 'ch1' ? 'From charging time to civic life' : c.id === 'ch2' ? 'Reading the charging landscape' : c.id === 'ch3' ? 'A New Kind of Station' : c.id === 'ch4' ? 'From Catalogue to Building' : c.title;
 
 // The section that holds the five data slides below.
 const dataSection = '1-1';
@@ -1433,8 +1433,8 @@ const mindmapBibs = rawBibs.map((b) => ({
                   <li><span>01</span>Ground &amp; access</li><li><span>02</span>Time &amp; demand</li><li><span>03</span>Rules &amp; adaptation</li>
                 </ol>
                 <ChapterTwo blockId="ch2" text={bookText[c.id]} />
-              ) : c.id === 'ch3' && bookText[c.id] ? (
-                <ChapterTwo blockId="ch3" chapter="3" text={bookText[c.id]} />
+              ) : (c.id === 'ch3' || c.id === 'ch4') && bookText[c.id] ? (
+                <ChapterTwo blockId={c.id} chapter={c.num} text={bookText[c.id]} />
               ) : bookText[c.id] ? (
                 <BookText text={bookText[c.id]} chapter={c.num} />
               ) : (
@@ -1460,7 +1460,7 @@ const mindmapBibs = rawBibs.map((b) => ({
                   <span>The Powerhouse / {c.title}</span>
                   <span>{sec.num} {sec.title}</span>
                 </div>
-                {(c.id === 'ch2' || c.id === 'ch3') && bookText[sec.id] ? (
+                {(c.id === 'ch2' || c.id === 'ch3' || c.id === 'ch4') && bookText[sec.id] ? (
                   <ChapterTwo blockId={sec.id} chapter={c.num} text={bookText[sec.id]} />
                 ) : bookText[sec.id] ? (
                   <BookText text={bookText[sec.id]} chapter={c.num} />
@@ -3145,12 +3145,12 @@ const mindmapBibs = rawBibs.map((b) => ({
   }
 
   /* A shared, quiet reading surface for the two completed chapters. */
-  :is([data-chapter-group="ch1"], [data-chapter-group="ch2"], [data-chapter-group="ch3"]) .ph__fold {
+  :is([data-chapter-group="ch1"], [data-chapter-group="ch2"], [data-chapter-group="ch3"], [data-chapter-group="ch4"]) .ph__fold {
     background: transparent; box-shadow: none; padding-inline: 20px;
   }
-  :is([data-chapter-group="ch1"], [data-chapter-group="ch2"], [data-chapter-group="ch3"]) .ph__fold-meta,
-  :is([data-chapter-group="ch1"], [data-chapter-group="ch2"], [data-chapter-group="ch3"]) .ph__book-running-foot { display: none; }
-  :is([data-chapter-group="ch1"], [data-chapter-group="ch2"], [data-chapter-group="ch3"]) .ph__fold-title {
+  :is([data-chapter-group="ch1"], [data-chapter-group="ch2"], [data-chapter-group="ch3"], [data-chapter-group="ch4"]) .ph__fold-meta,
+  :is([data-chapter-group="ch1"], [data-chapter-group="ch2"], [data-chapter-group="ch3"], [data-chapter-group="ch4"]) .ph__book-running-foot { display: none; }
+  :is([data-chapter-group="ch1"], [data-chapter-group="ch2"], [data-chapter-group="ch3"], [data-chapter-group="ch4"]) .ph__fold-title {
     font-size: clamp(1.3rem, 1.05rem + .6vw, 1.7rem); line-height: 1.25; white-space: normal; overflow: visible;
   }
   .ph__chapter-number { font-size: 11px; font-weight: 400; line-height: 1; vertical-align: super; margin-left: 9px; letter-spacing: .02em; color: var(--_tokens---color--muted); }
@@ -3160,12 +3160,12 @@ const mindmapBibs = rawBibs.map((b) => ({
   .ph__argument-path li { position: relative; display: grid; align-content: start; gap: 8px; padding: 20px; border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 16%, var(--_tokens---color--bg)); border-radius: 6px; background: color-mix(in srgb, var(--_tokens---color--fg) 4%, var(--_tokens---color--bg)); font-size: 14px; line-height: 1.4; }
   .ph__argument-path li span { color: var(--_tokens---color--muted); font-size: 10px; }
   .ph__argument-path li:not(:last-child)::after { content: '→'; position: absolute; right: -25px; top: 50%; transform: translateY(-50%); font-size: 21px; color: var(--_tokens---color--muted); }
-  :is([data-chapter-group="ch1"], [data-chapter-group="ch2"], [data-chapter-group="ch3"]) .ph__book-running-head { border: 0; padding-top: 8px; margin-bottom: 26px; letter-spacing: .035em; font-size: 10px; }
-  :is([data-chapter-group="ch1"], [data-chapter-group="ch2"], [data-chapter-group="ch3"]) .ph__book-running-head span:last-child { display: none; }
+  :is([data-chapter-group="ch1"], [data-chapter-group="ch2"], [data-chapter-group="ch3"], [data-chapter-group="ch4"]) .ph__book-running-head { border: 0; padding-top: 8px; margin-bottom: 26px; letter-spacing: .035em; font-size: 10px; }
+  :is([data-chapter-group="ch1"], [data-chapter-group="ch2"], [data-chapter-group="ch3"], [data-chapter-group="ch4"]) .ph__book-running-head span:last-child { display: none; }
   @media (max-width: 699.98px) {
     .ph { --ph-reading-gap: 24px; }
     .ph__ch-title { font-size: 27px; }
-    :is([data-chapter-group="ch1"], [data-chapter-group="ch2"], [data-chapter-group="ch3"]) .ph__fold { padding-inline: 0; }
+    :is([data-chapter-group="ch1"], [data-chapter-group="ch2"], [data-chapter-group="ch3"], [data-chapter-group="ch4"]) .ph__fold { padding-inline: 0; }
     .ph__argument-path { grid-template-columns: minmax(0, 1fr); gap: 24px; }
     .ph__argument-path li { padding: 16px; font-size: 14px; }
     .ph__argument-path li:not(:last-child)::after { content: '↓'; right: auto; left: 50%; top: auto; bottom: -24px; transform: translateX(-50%); font-size: 17px; }
