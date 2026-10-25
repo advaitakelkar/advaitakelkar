@@ -95,7 +95,7 @@ No real content at all. Each needs intro + description + cover + 3 images from s
 Jev scores the writing finished (intro ≥2.2, description ≥2.6). Only images stand between these
 and unlocking. Fastest wins on the site.
 
-`dakughar` · `dhal-ni-pol` · `episode-kolkata` · `house-by-the-sea` · `mumbai-airport-foodcourt` ·
+`dakughar` · `dhal-ni-pol` · `episode-kolkata` · `house-by-the-sea` ·
 `saltwater-cafe-bandra` · `seven-gardens` · `social-vashi` · `social-wadala` ·
 `the-jude-bakery-project` · `under-the-tree-karjat` · `unplugged-jamshedpur`
 (+ `episodeone-powai`, Tier 0)
@@ -360,3 +360,11 @@ Eleven supplied room views edited with the built-in image tool for a cohesive ph
 
 - Enlarged the three comparison maps into square SVG viewports that open as close-ups filling the frame. Added drag pan, +/−, Full state and keyboard controls; retained monochrome charging dots. Moved proportional comparison charts, indexed growth and all three national outlook charts into one visible graphs section below the maps.
 - Validation: style lints and 99-page production build pass; browser verified zoom in/out, full-state framing, keyboard zoom, graph placement and phone overflow, with no JavaScript errors.
+
+
+### 2026-10-25 — Mumbai Airport T1 images and public gallery
+
+- Added exactly five user-supplied views: three photorealistic architectural visualisations, a coloured exploded isometric preserving the drawing layout and linework, and a retouched physical-model photograph with level alignment and continuous straight columns.
+- Set the food-counter view as cover, supplied five scrub images, and labelled each gallery view; retained the project copy and credits.
+- Public now: `mumbai-airport-foodcourt` added to the shared access list after asset review.
+- Validation: production build (98 pages) and all three style lints pass. Browser review confirms the unlocked five-view gallery and uncropped isometric. Live verification follows the deployment.
