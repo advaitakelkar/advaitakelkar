@@ -370,3 +370,11 @@ Eleven supplied room views edited with the built-in image tool for a cohesive ph
 - Validation: production build (98 pages) and all three style lints pass. Browser review confirms the unlocked five-view gallery and uncropped isometric. Live verification follows the deployment.
 
 - Deploy follow-up: the 15.34.1 CLI selected by `@latest` failed its Hosting API service-usage check with HTTP 403. Pinned Firebase CLI to 15.34.0, verified in the last successful production deployment (20 October), without changing credentials or IAM.
+
+
+### 2026-10-25 — SWC Barroom project gallery
+
+- Added nine evening image edits to SWC Barroom, using the approved bartender revisions for the bar elevation and lounge view. Detail views remain people-free.
+- Set the bar elevation as cover; configured nine labelled gallery views and listing scrub images; unlocked `saltwater-cafe-bandra` for the requested website update.
+- T1 Airport retains its five published edited images, including the coloured isometric and corrected physical model.
+- Validation: 98-page production build and style lints pass; browser review confirms nine labelled images, including both bartender revisions. Deployment and live verification follow.
