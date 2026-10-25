@@ -75,12 +75,13 @@ got a 0.4 draft flag with no draft text in it. Pages near the cut-offs can flip 
 Weakest public text (intro/description): `sups-in-the-hinterland` (2.3/2.3), `alt-verse`
 (2.2/2.5). Tighten these first.
 
-### Tier 0 — featured but locked (2)
+### Tier 0 — featured but locked (1)
 
 | slug | name | gap |
 |---|---|---|
-| `episodeone-powai` | EPISODE Powai | the Rockwell Group case. Text is top-scored (2.9/3.0) but there is **no `public/images/episodeone-powai/` at all**. Needs cover + ≥3 images, then unlock |
 | `scad-design-built` | SCAD Design Built | the thesis studio, uses `chapters`. Has cover + 11 images, text 3.0/2.6. Decide: finish and unlock, or drop `featured: true` |
+
+*(Note: `episodeone-powai` resolved 2026-10-25 with 14 curated images, cover, full gallery and unlocked.)*
 
 ### Tier 1 — hard placeholders (7)
 No real content at all. Each needs intro + description + cover + 3 images from scratch.
@@ -91,14 +92,14 @@ No real content at all. Each needs intro + description + cover + 3 images from s
 > `tower-of-the-quiet-witness` and `union-pier-charleston` are the active SCAD studios — their
 > source files carry the `TOQS_` / Union Pier working sets in `~/My Drive/HUB/1 Projects/`.
 
-### Tier 2 — text is done, images missing (13)
+### Tier 2 — text is done, images missing (11)
 Jev scores the writing finished (intro ≥2.2, description ≥2.6). Only images stand between these
 and unlocking. Fastest wins on the site.
 
-`dakughar` · `dhal-ni-pol` · `episode-kolkata` · `house-by-the-sea` ·
+`dakughar` · `dhal-ni-pol` · `house-by-the-sea` ·
 `saltwater-cafe-bandra` · `seven-gardens` · `social-vashi` · `social-wadala` ·
 `the-jude-bakery-project` · `under-the-tree-karjat` · `unplugged-jamshedpur`
-(+ `episodeone-powai`, Tier 0)
+*(Note: `episode-kolkata` resolved 2026-10-25 with 12 curated images, cover, full gallery and unlocked.)*
 
 ### Ready for visual review (1)
 
@@ -110,9 +111,11 @@ The project remains password-protected until the assembled page has been reviewe
 Weakest description first (intro/description):
 
 `pet-pod` (1.9/1.8) · `vndls` (1.6/1.9) · `goonj` (2.1/1.9) · `scarpin` (2.3/1.9) ·
-`the-4th-dimention` (2.5/2.0) · `gully` (1.7/2.0) · `pet-park` (2.4/2.0) ·
+`the-4th-dimention` (2.5/2.0) · `gully` (1.7/2.0) ·
 `open-source-design-library` (2.2/2.2) · `reflct` (2.8/2.2) · `virtual-gods` (2.6/2.3) ·
 `human-pods` (2.8/2.4) · `roberto-burle-marx-stickers` (2.1/2.4) · `tilak-nagar-cricket-park` (2.0/2.5)
+
+*(Note: `pet-park` resolved 2026-10-25 with 12 curated images, drawing, 3D visualisations, cover, full gallery and unlocked.)*
 
 Good description, weak intro line only (a one-line fix each):
 `habersham-hall` (0.1 — intro is a course code) · `union-pier-charleston` (0.0 — course code) ·
@@ -378,3 +381,12 @@ Eleven supplied room views edited with the built-in image tool for a cohesive ph
 - Set the bar elevation as cover; configured nine labelled gallery views and listing scrub images; unlocked `saltwater-cafe-bandra` for the requested website update.
 - T1 Airport retains its five published edited images, including the coloured isometric and corrected physical model.
 - Validation: 98-page production build and style lints pass; browser review confirms nine labelled images, including both bartender revisions. Deployment and live verification follow.
+
+
+### 2026-10-25 — Pet Park Borivali images and public gallery
+
+- Curated 12 distinct assets: hero grass agility mound with concrete crawl pipe tunnel, central lawn activity, aggregate dog run with foliage mural, agility training course, solid green marble cube benches under canopy trees, on-site construction earthworks, civic model presentation to Mayor Kishori Pednekar, municipal press conference, vector GA plan drawing, and 3D axonometric and perspective visualisations.
+- Exported web-optimized WebP images to `~/Desktop/Pet Park Select Web/` and deployed to `advaitakelkar-live/public/images/pet-park/`.
+- Updated `src/content/projects/pet-park.yaml`: added slider, cover image, five scrub images, 12 gallery images with descriptive lead figures, and updated credits to Faizan Khatri, Devarsh Deth, Advaita Kelkar.
+- Added `pet-park` to `PUBLIC_PROJECT_SLUGS` in `src/lib/projectAccess.ts` and unlocked the project.
+
