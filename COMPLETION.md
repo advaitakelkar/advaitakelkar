@@ -96,7 +96,7 @@ No real content at all. Each needs intro + description + cover + 3 images from s
 Jev scores the writing finished (intro ≥2.2, description ≥2.6). Only images stand between these
 and unlocking. Fastest wins on the site.
 
-`dakughar` · `dhal-ni-pol` · `house-by-the-sea` ·
+`dakughar` · `dhal-ni-pol` ·
 `saltwater-cafe-bandra` · `seven-gardens` · `social-vashi` · `social-wadala` ·
 `the-jude-bakery-project` · `under-the-tree-karjat` · `unplugged-jamshedpur`
 *(Note: `episode-kolkata` resolved 2026-10-25 with 12 curated images, cover, full gallery and unlocked.)*
@@ -400,3 +400,11 @@ Eleven supplied room views edited with the built-in image tool for a cohesive ph
 - Unlocked `seven-gardens` for the requested publication. Production build (98 pages), style lints and browser checks of the 18-view gallery, six categories, drawing filter and visitor links pass. Deployment and live verification follow.
 
 - Live review follow-up: keep Seven Gardens in its curated order so the courtyard cover always opens first, followed by the text-free front cover. Other projects retain the existing shuffle default.
+
+
+### 2026-10-25 — House By The Sea / Ben Hur gallery and unlock
+
+- Added 26 approved images in three categories: Execution (12 AI-retouched built photographs), Vision (13 populated concept visualizations using the built material palette) and Isometric (1 coloured architectural illustration). The empty-sofa revision and text/logo-free isometric are the active versions.
+- Set the built living-room screen photograph as cover; preserve curated execution-first gallery order and provide five listing scrub views. Captions distinguish built photographs, concepts and illustration. Existing project account, Completed status and credits retained; Advaita last in people data.
+- Added `house-by-the-sea` to the public-project list for Adi's requested publication. Image masters, originals, prompts and manifest remain in the Codex output set and Desktop project Edit 1.
+- Validation: all 26 unique assets verified; production build (98 pages), style lints and browser checks of the unlocked page and Vision/Isometric filters pass. Live deployment follows.
