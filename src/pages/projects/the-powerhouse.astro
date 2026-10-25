@@ -2,6 +2,7 @@
 import PageLayout from '../../layouts/PageLayout.astro';
 import Icon from '../../components/Icon.astro';
 import BookText from '../../components/PowerhouseBookText.astro';
+import ChapterTwo from '../../components/PowerhouseChapterTwo.astro';
 import Glance from '../../components/PowerhouseGlance.astro';
 import type { StackBar, Card } from '../../lib/powerhouse-glance';
 import data from '../../data/powerhouse-analysis.json';
@@ -437,7 +438,7 @@ const sources = {
 type BookSection = { id: string; num: string; title: string; page?: number; planned?: boolean };
 const book: { id: string; num: string; short: string; title: string; subtitle?: string; sections: BookSection[] }[] = [
   {
-    id: 'ch1', num: '1', short: 'Introduction', title: 'Introduction', subtitle: 'The Architecture of the Pause',
+    id: 'ch1', num: '1', short: 'Introduction', title: 'Introduction', subtitle: 'From charging time to civic life',
     sections: [
       { id: '1-1', num: '1.1', title: 'A New Road System', page: 7 },
       { id: '1-2', num: '1.2', title: 'The Pause Today', page: 8 },
@@ -449,14 +450,14 @@ const book: { id: string; num: string; short: string; title: string; subtitle?: 
     ],
   },
   {
-    id: 'ch2', num: '2', short: 'The Stop', title: 'The Stop', subtitle: 'Parking, travel and the time to charge',
+    id: 'ch2', num: '2', short: 'Conditions of the Pause', title: 'The Conditions of the Pause', subtitle: 'The ground, time and rules of an electric pause',
     sections: [
-      { id: '2-1', num: '2.1', title: 'A City Paved for Parking', page: 16 },
-      { id: '2-2', num: '2.2', title: 'The Infrastructure of Vehicle Travel', page: 17 },
-      { id: '2-3', num: '2.3', title: 'Stations, Airports and Service Areas', page: 18 },
-      { id: '2-4', num: '2.4', title: 'Vehicle Size and Charging Time', page: 18 },
-      { id: '2-5', num: '2.5', title: 'Regulation: Driving Breaks, Charger Standards and Zoning', page: 19 },
-      { id: '2-6', num: '2.6', title: 'Faster Charging and the Future of the Stop', page: 20 },
+      { id: '2-1', num: '2.1', title: 'The Ground of the Road' },
+      { id: '2-2', num: '2.2', title: 'Where and How We Charge' },
+      { id: '2-3', num: '2.3', title: 'An Architecture of Waiting' },
+      { id: '2-4', num: '2.4', title: 'Vehicles, Time and Demand' },
+      { id: '2-5', num: '2.5', title: 'The Rules of the Stop' },
+      { id: '2-6', num: '2.6', title: 'The Literal Powerhouse' },
     ],
   },
   {
@@ -492,6 +493,8 @@ const book: { id: string; num: string; short: string; title: string; subtitle?: 
     ],
   },
 ];
+const openingTitle = (c: typeof book[number]) => c.id === 'ch1' ? 'From charging time to civic life' : c.id === 'ch2' ? 'Reading the charging landscape' : c.title;
+
 // The section that holds the five data slides below.
 const dataSection = '1-1';
 // 1.1 in three numbers: transport's share of emissions, electric car sales, home charging.
@@ -643,12 +646,7 @@ const notesFor = (ch: string) =>
   Object.entries(bookText)
     .filter(([id]) => id === `ch${ch}` || id.startsWith(`${ch}-`))
     .flatMap(([id, t]) => t.notes.map((html, k) => ({ n: t.notesStart + k, html, from: id })));
-const notesSection: Record<string, { ch: string; notes: ReturnType<typeof notesFor> }> = {
-  '5-1': { ch: '1', notes: notesFor('1') },
-  '5-2': { ch: '2', notes: notesFor('2') },
-  '5-3': { ch: '3', notes: notesFor('3') },
-  '5-4': { ch: '4', notes: notesFor('4') },
-};
+
 
 const stripHtml = (html: string) =>
   html
@@ -658,8 +656,13 @@ const stripHtml = (html: string) =>
     .replace(/\s+/g, ' ')
     .trim();
 
-const linkNotes = (html: string, ch = '1') =>
-  html ? html.replace(/<sup>(\d+)<\/sup>/g, (_, n) => `<sup id="ref-${ch}-${n}"><a href="#note-${ch}-${n}" aria-label="Note ${n}">${n}</a></sup>`) : '';
+const noteOccurrences = new Map<string, number>();
+const linkNotes = (html: string, ch = '1') => html ? html.replace(/<sup>(\d+)<\/sup>/g, (_, n) => {
+  const key = `${ch}-${n}`;
+  const occurrence = (noteOccurrences.get(key) || 0) + 1;
+  noteOccurrences.set(key, occurrence);
+  return `<sup id="ref-${key}${occurrence > 1 ? `-${occurrence}` : ''}"><a href="#note-${key}" aria-label="Note ${n}">${n}</a></sup>`;
+}) : '';
 
 // Latest InDesign export, copied in by scripts/sync-powerhouse-pdf.mjs
 const pdfDateShort = new Date(bookPdf.exported).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'America/New_York' });
@@ -829,6 +832,26 @@ const mindmapNotes = (['1', '2', '3', '4'] as const).flatMap((ch) =>
   })
 );
 
+const referenceKey = (html: string) => stripHtml(html).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+const referenceSources = bibliography.map((html, i) => ({
+  html, id: `bib-${i + 1}`,
+  urls: [...html.matchAll(/href="([^"#]+)"/g)].map(m => m[1]),
+  titles: [...html.matchAll(/<(?:i|em)>([\s\S]*?)<\/(?:i|em)>/g)].map(m => referenceKey(m[1])).filter(t => t.length > 12),
+}));
+const seenReferences = new Set<string>();
+const referenceChapters = book.slice(0, 4).map(chapter => {
+  const notes = notesFor(chapter.num);
+  const sources = referenceSources.filter(source => notes.some(note =>
+    source.urls.some(url => note.html.includes(url)) || source.titles.some(title => referenceKey(note.html).includes(title))
+  )).map(source => {
+    const anchor = seenReferences.has(source.id) ? undefined : source.id;
+    seenReferences.add(source.id);
+    return {...source, anchor};
+  });
+  return {chapter, notes, sources};
+});
+const additionalReferences = referenceSources.filter(source => !seenReferences.has(source.id));
+
 const mindmapBibs = rawBibs.map((b) => ({
   id: b.id,
   idx: b.idx,
@@ -860,7 +883,7 @@ const mindmapBibs = rawBibs.map((b) => ({
     <section class="ph__intro" aria-labelledby="ph-intro-title">
       <div class="ph__intro-col">
         <p class="ph__kicker" id="ph-intro-title">Abstract</p>
-        <p>Road transport is going electric, and every electric vehicle has to stop to charge. Yet most charging sites are still car parks with a row of plugs, used by drivers and by no one else. This thesis proposes the Powerhouse, a new type of stop built on ground that parking already covers: chargers alongside a programme chosen for the neighbourhood, and public space open to everyone.</p>
+        <p>Road transport is going electric, changing where, when and how long people stop. This thesis asks how the time spent charging can support civic and community life. It proposes the Powerhouse: a network of neighbourhood programmes and public spaces organised around charging, open to people arriving by vehicle, on foot or by bicycle. The programme brings people in; the charge lets them stay. Through comparative studies of transport buildings and charging sites, the research examines how ground, access, vehicle needs, charging time and regulation shape each pause. These conditions inform an architectural framework for corridor, city and town settings, connecting charging infrastructure to everyday public life.</p>
         <div class="ph__intro-pills">
           <button type="button" class="ph__mm-trigger" data-mm-open aria-haspopup="dialog" aria-controls="ph-mindmap-lightbox">
             <span>Mindmap</span> Notes &amp; Bibliography Graph ↗
@@ -883,7 +906,7 @@ const mindmapBibs = rawBibs.map((b) => ({
       <span class="ph__row-label" aria-hidden="true">Chapters</span>
       {book.map((c, i) => (
         <button type="button" data-chapter={c.id} aria-pressed={i === 0 ? 'true' : 'false'}>
-          <span>{c.num.padStart(2, '0')}</span> {c.short}
+          {c.short}{c.id !== 'ch5' && <sup class="ph__chapter-number" aria-label={`Chapter ${c.num}`}>{c.num.padStart(2, '0')}</sup>}
         </button>
       ))}
     </nav>
@@ -892,11 +915,12 @@ const mindmapBibs = rawBibs.map((b) => ({
       <div class="ph__index-panel">
       {book.map((c, i) => (
         <div class="ph__index-ch" data-index-chapter={c.id} data-active={i === 0 ? 'true' : 'false'} data-open={i === 0 ? 'true' : 'false'}>
+          {c.id === 'ch5' ? <button type="button" class="ph__index-chtitle" data-chapter="ch5">Notes and Bibliography ↗</button> : <>
           <button type="button" class="ph__index-chtitle" data-index-toggle={c.id} aria-expanded={i === 0 ? 'true' : 'false'}><span>{c.num}.0</span> {c.title}<i class="ph__index-caret" aria-hidden="true"><Icon name="chevron" dir="e" /></i></button>
           <div class="ph__index-fold"><ol>
             <li>
               <button type="button" data-section={`${c.num}-0`} aria-pressed="false">
-                <span>{c.num}.0</span> {c.id === 'ch1' ? c.subtitle : c.title}
+                <span>{c.num}.0</span> {openingTitle(c)}
               </button>
             </li>
             {c.sections.map((s, j) => (
@@ -907,6 +931,7 @@ const mindmapBibs = rawBibs.map((b) => ({
               </li>
             ))}
           </ol></div>
+          </>}
         </div>
       ))}
       </div>
@@ -914,11 +939,11 @@ const mindmapBibs = rawBibs.map((b) => ({
     </div>
 
     <!-- Secondary tabs: the open chapter's sections -->
-    {book.map((c, i) => (
+    {book.filter(c => c.id !== 'ch5').map((c, i) => (
       <nav class="ph__subtabs" data-subtabs={c.id} aria-label={`Chapter ${c.num} sections`} hidden={i !== 0}>
         <span class="ph__row-label" aria-hidden="true">Chapter {c.num}</span>
-        <button type="button" data-section={`${c.num}-0`} aria-pressed="false" title={`${c.num}.0 ${c.id === 'ch1' ? c.subtitle : c.title}`}>
-          <span>{c.num}.0</span> {c.id === 'ch1' ? c.subtitle : c.title}
+        <button type="button" data-section={`${c.num}-0`} aria-pressed="false" title={`${c.num}.0 ${openingTitle(c)}`}>
+          <span>{c.num}.0</span> {openingTitle(c)}
         </button>
         {c.sections.map((s, j) => (
           <button type="button" data-section={s.id} aria-pressed={i === 0 && j === 0 ? 'true' : 'false'} data-planned={s.planned ? 'true' : undefined} title={`${s.num} ${s.title}`}>
@@ -936,7 +961,7 @@ const mindmapBibs = rawBibs.map((b) => ({
          Chapter 2 · The Stop, …) and inside each chapter are the card rows for N.0, N.1, N.2, … -->
     <details class="ph__ch-group" data-chapter-group="ch1" open>
       <summary class="ph__ch-sum">
-        <span class="ph__ch-title">Chapter {book[0].num} · {book[0].short}</span>
+        <span class="ph__ch-title">{book[0].title}<sup class="ph__chapter-number" aria-label="Chapter 1">01</sup></span>
         <span class="ph__ch-right">
           <span class="ph__ch-meta">{book[0].num}.0 – {book[0].sections[book[0].sections.length - 1].num}</span>
           <span class="ph__ch-arrow" aria-hidden="true"><Icon name="arrow" class="ph__ch-chevron" /></span>
@@ -945,7 +970,7 @@ const mindmapBibs = rawBibs.map((b) => ({
       <div class="ph__ch-body">
     <details class="ph__fold ph__fold--chapter" id="ch1" data-chapter-head="ch1" data-section-panel="1-0">
       <summary class="ph__fold-sum">
-        <span class="ph__fold-title">{book[0].num}.0 {book[0].subtitle}</span>
+        <span class="ph__fold-title"><span class="ph__section-number">{book[0].num}.0</span>{book[0].subtitle}</span>
         <span class="ph__fold-right">
           <span class="ph__fold-meta">Chapter {book[0].num} · Book page 7</span>
           <span class="ph__fold-ring" aria-hidden="true"><Icon name="arrow" class="ph__fold-chevron" /></span>
@@ -953,7 +978,7 @@ const mindmapBibs = rawBibs.map((b) => ({
       </summary>
       <div class="ph__fold-body">
         <div class="ph__book-running-head" aria-hidden="true">
-          <span>The Powerhouse / Chapter 1: {book[0].title}</span>
+          <span>The Powerhouse / {book[0].title}</span>
           <span>1.0 {book[0].subtitle}</span>
         </div>
         <div class="ph__editorial">
@@ -964,15 +989,15 @@ const mindmapBibs = rawBibs.map((b) => ({
               <p>{bookText.ch1.body[2]}</p>
               <p>{bookText.ch1.body[3]}</p>
             </div>
-            <div class="ph__figrow ph__figrow--4">
+            <ol class="ph__argument-path" aria-label="The argument in sequence" style="width:100%;margin:0">
+              <li><span>01</span>A public pause</li><li><span>02</span>A useful programme</li><li><span>03</span>A public place</li>
+            </ol>
+            <div class="ph__figrow ph__figrow--1" style="width:100%">
               <div class="ph__fig-header">
                 <span class="ph__fig-tag">The thesis</span>
                 <span class="ph__fig-title">In one line</span>
               </div>
               <div class="ph__statement ph__statement--lead"><b>The programme brings people in; the charge lets them stay.</b></div>
-              <div class="ph__statement"><b>The charger at the centre</b><span>Every electric vehicle has to stop; the charge sets how long people stay.</span></div>
-              <div class="ph__statement"><b>A network of programmes</b><span>Chosen for what the neighbourhood lacks, arranged around the charge.</span></div>
-              <div class="ph__statement"><b>Open to all</b><span>Everyone who drives, and anyone on foot, by bus or by bicycle.</span></div>
             </div>
           </div>
         </div>
@@ -986,7 +1011,7 @@ const mindmapBibs = rawBibs.map((b) => ({
 
     <details class="ph__fold ph__fold--section" id="s-1-1" data-section-panel="1-1" open>
       <summary class="ph__fold-sum">
-        <span class="ph__fold-title">{book[0].sections[0].num} {book[0].sections[0].title}</span>
+        <span class="ph__fold-title"><span class="ph__section-number">{book[0].sections[0].num}</span>{book[0].sections[0].title}</span>
         <span class="ph__fold-right">
           <span class="ph__fold-meta">Book page {book[0].sections[0].page}</span>
           <span class="ph__fold-ring" aria-hidden="true"><Icon name="arrow" class="ph__fold-chevron" /></span>
@@ -994,12 +1019,51 @@ const mindmapBibs = rawBibs.map((b) => ({
       </summary>
       <div class="ph__fold-body">
         <div class="ph__book-running-head" aria-hidden="true">
-          <span>The Powerhouse / Chapter 1: {book[0].title}</span>
+          <span>The Powerhouse / {book[0].title}</span>
           <span>{book[0].sections[0].num} {book[0].sections[0].title}</span>
         </div>
 
         <div class="ph__editorial">
           <div class="ph__read-unit">
+            <div class="ph__read-text">
+              <p set:html={linkNotes(bookText['1-1'].body[0], '1')} />
+
+              <p set:html={linkNotes(bookText['1-1'].body[1], '1')} />
+              <p set:html={linkNotes(bookText['1-1'].body[2], '1')} />
+            </div>
+<div class="ph__infig" id="usa" aria-labelledby="usa-title">
+                <div class="ph__fig-header">
+                  <span class="ph__fig-tag">Map 1.1</span>
+                  <span class="ph__fig-title" id="usa-title" tabindex="-1">Where public charging is today</span>
+                </div>
+                <div class="ph__map-bar">
+                  <p class="ph__solo-title">Where the US’s <b id="ph-map-ports" aria-live="polite">{fmt(allUsa.ports)}</b> charging points are · <span><span id="ph-map-stations">at {fmt(allUsa.stations)} stations · public and private</span></span></p>
+                  <select id="ph-access" class="ph__map-select" aria-label="Show public, private or all charging">
+                    <option value="all" selected>All charging points</option>
+                    <option value="public">Public</option>
+                    <option value="private">Private</option>
+                  </select>
+                </div>
+                <figure class="ph__map ph__national-map">
+                  <svg class="ph__svg ph__national-svg" viewBox="0 0 975 610" role="img" aria-labelledby="ph-us-svg-title ph-us-svg-desc">
+                    <title id="ph-us-svg-title">US charging infrastructure</title><desc id="ph-us-svg-desc">Operating charging ports across the fifty states and DC. Alaska and Hawaii are insets. Dots aggregate nearby locations; exact counts appear above and in the tables.</desc>
+                    <g class="ph__land">{data.usa.states.map(st=><path d={st.d}><title>{st.name}</title></path>)}</g>
+                    <g class="ph__focus-states">{focusStates.map((f)=><path d={f.d}><title>{f.rank}. {f.name}</title></path>)}</g>
+                    <g>{data.usa.dots.map(d=><circle cx={d.x} cy={d.y} r={size(d.l1+d.l2+d.dc)} data-us-access={d.access} class="ph__charging-dot"><title>{d.access} charging · {fmt(d.l1+d.l2+d.dc)} ports in this map cell</title></circle>)}</g>
+                    <g class="ph__focus-labels" aria-hidden="true">{focusStates.map((f)=><g><line x1={f.tx} y1={f.ty} x2={f.x} y2={f.y}/><g transform={`translate(${f.x} ${f.y})`}><circle class="ph__focus-mark" r="19"/><text dy="7">{f.rank}</text></g></g>)}</g>
+                  </svg>
+                </figure>
+                <div class="ph__ranklist">
+                  <div class="ph__ranklist-head"><span>All 50 states and DC</span><b>{fmt(pub.ports)} public charging points</b></div>
+                  <ol class="ph__top5" aria-label="States by public charging points, largest first" tabindex="0">
+                    {data.ranked.map((r, i) => (
+                      <li class:list={[{ 'is-focus': i < 3 }]}><span>{i + 1}</span><b>{stateName[r.code] ?? r.code} <small>{((r.ports / pub.ports) * 100).toFixed(1)}%</small></b><i style={`width:${(r.ports / data.ranked[0].ports) * 100}%`}></i><em>{fmt(r.ports)}</em></li>
+                    ))}
+                  </ol>
+                </div>
+                <p class="ph__fig-key">Each dot on the map groups nearby charging locations, and its size grows with the number of charging points there. Public means open to any driver, even when the equipment is privately owned; private means workplaces, fleets and apartment blocks that report their chargers. Home chargers are not counted anywhere.</p>
+                <p class="ph__fig-src">Source: US DOE, Alternative Fuels Data Center, station inventory, 18 Oct 2026</p>
+              </div>
             <div class="ph__figrow ph__figrow--3">
               <div class="ph__fig-header">
                 <span class="ph__fig-tag">Figure 1.1</span>
@@ -1026,11 +1090,6 @@ const mindmapBibs = rawBibs.map((b) => ({
                 <p class="ph__fig-src">Source: US DOE, National EV Charging Network · <a class="ph__fig-note" href="#note-1-7">Note 7</a></p>
               </figure>
             </div>
-            <div class="ph__read-text">
-              <p set:html={linkNotes(bookText['1-1'].body[0], '1')} />
-              <p set:html={linkNotes(bookText['1-1'].body[1], '1')} />
-              <p set:html={linkNotes(bookText['1-1'].body[2], '1')} />
-            </div>
           </div>
         </div>
 
@@ -1043,7 +1102,7 @@ const mindmapBibs = rawBibs.map((b) => ({
 
     <details class="ph__fold ph__fold--section" id="s-1-2" data-section-panel="1-2">
       <summary class="ph__fold-sum">
-        <span class="ph__fold-title">{book[0].sections[1].num} {book[0].sections[1].title}</span>
+        <span class="ph__fold-title"><span class="ph__section-number">{book[0].sections[1].num}</span>{book[0].sections[1].title}</span>
         <span class="ph__fold-right">
           <span class="ph__fold-meta">Book page 8–9</span>
           <span class="ph__fold-ring" aria-hidden="true"><Icon name="arrow" class="ph__fold-chevron" /></span>
@@ -1051,7 +1110,7 @@ const mindmapBibs = rawBibs.map((b) => ({
       </summary>
       <div class="ph__fold-body">
         <div class="ph__book-running-head" aria-hidden="true">
-          <span>The Powerhouse / Chapter 1: {book[0].title}</span>
+          <span>The Powerhouse / {book[0].title}</span>
           <span>{book[0].sections[1].num} {book[0].sections[1].title}</span>
         </div>
 
@@ -1084,9 +1143,11 @@ const mindmapBibs = rawBibs.map((b) => ({
             <div class="ph__read-text">
               <p set:html={linkNotes(bookText['1-2'].body[2], '1')} />
               <p set:html={linkNotes(bookText['1-2'].body[3], '1')} />
-              <div class="ph__infig">
+
+            </div>
+<div class="ph__infig">
                 <div class="ph__fig-header">
-                  <span class="ph__fig-tag">Figure 1.2</span>
+                  <span class="ph__fig-tag">Figure 1.3</span>
                   <span class="ph__fig-title">Civic road stations</span>
                 </div>
                 <figure class="ph__fig">
@@ -1096,7 +1157,6 @@ const mindmapBibs = rawBibs.map((b) => ({
                   <p class="ph__fig-src">Source: MLIT Japan, “Michi-no-Eki (Roadside Stations)” · <a class="ph__fig-note" href="#note-1-16">Note 16</a></p>
                 </figure>
               </div>
-            </div>
           </div>
         </div>
 
@@ -1109,7 +1169,7 @@ const mindmapBibs = rawBibs.map((b) => ({
 
     <details class="ph__fold ph__fold--section" id="s-1-3" data-section-panel="1-3">
       <summary class="ph__fold-sum">
-        <span class="ph__fold-title">{book[0].sections[2].num} {book[0].sections[2].title}</span>
+        <span class="ph__fold-title"><span class="ph__section-number">{book[0].sections[2].num}</span>{book[0].sections[2].title}</span>
         <span class="ph__fold-right">
           <span class="ph__fold-meta">Book page 9–10</span>
           <span class="ph__fold-ring" aria-hidden="true"><Icon name="arrow" class="ph__fold-chevron" /></span>
@@ -1117,16 +1177,21 @@ const mindmapBibs = rawBibs.map((b) => ({
       </summary>
       <div class="ph__fold-body">
         <div class="ph__book-running-head" aria-hidden="true">
-          <span>The Powerhouse / Chapter 1: {book[0].title}</span>
+          <span>The Powerhouse / {book[0].title}</span>
           <span>{book[0].sections[2].num} {book[0].sections[2].title}</span>
         </div>
 
         <div class="ph__editorial">
           <div class="ph__read-unit">
             <div class="ph__read-text">
-              <div class="ph__infig">
+
+              <p set:html={linkNotes(bookText['1-3'].body[0], '1')} />
+              <p set:html={linkNotes(bookText['1-3'].body[1], '1')} />
+              <p set:html={linkNotes(bookText['1-3'].body[2], '1')} />
+            </div>
+<div class="ph__infig">
                 <div class="ph__fig-header">
-                  <span class="ph__fig-tag">Figure 1.3</span>
+                  <span class="ph__fig-tag">Figure 1.4</span>
                   <span class="ph__fig-title">The length of a charge stop</span>
                 </div>
                 <figure class="ph__fig">
@@ -1137,10 +1202,6 @@ const mindmapBibs = rawBibs.map((b) => ({
                   <p class="ph__fig-src">Sources: US DOE, Alternative Fuels Data Center · <a class="ph__fig-note" href="#note-1-17">Note 17</a>; 49 C.F.R. § 395.3 · <a class="ph__fig-note" href="#note-1-18">Note 18</a></p>
                 </figure>
               </div>
-              <p set:html={linkNotes(bookText['1-3'].body[0], '1')} />
-              <p set:html={linkNotes(bookText['1-3'].body[1], '1')} />
-              <p set:html={linkNotes(bookText['1-3'].body[2], '1')} />
-            </div>
           </div>
         </div>
 
@@ -1153,7 +1214,7 @@ const mindmapBibs = rawBibs.map((b) => ({
 
     <details class="ph__fold ph__fold--section" id="s-1-4" data-section-panel="1-4">
       <summary class="ph__fold-sum">
-        <span class="ph__fold-title">{book[0].sections[3].num} {book[0].sections[3].title}</span>
+        <span class="ph__fold-title"><span class="ph__section-number">{book[0].sections[3].num}</span>{book[0].sections[3].title}</span>
         <span class="ph__fold-right">
           <span class="ph__fold-meta">Book page 10–11</span>
           <span class="ph__fold-ring" aria-hidden="true"><Icon name="arrow" class="ph__fold-chevron" /></span>
@@ -1161,7 +1222,7 @@ const mindmapBibs = rawBibs.map((b) => ({
       </summary>
       <div class="ph__fold-body">
         <div class="ph__book-running-head" aria-hidden="true">
-          <span>The Powerhouse / Chapter 1: {book[0].title}</span>
+          <span>The Powerhouse / {book[0].title}</span>
           <span>{book[0].sections[3].num} {book[0].sections[3].title}</span>
         </div>
 
@@ -1173,7 +1234,7 @@ const mindmapBibs = rawBibs.map((b) => ({
             </div>
             <div class="ph__figrow ph__figrow--2">
               <div class="ph__fig-header">
-                <span class="ph__fig-tag">Figure 1.4</span>
+                <span class="ph__fig-tag">Figure 1.5</span>
                 <span class="ph__fig-title">The limits of space alone</span>
               </div>
               <figure class="ph__fig">
@@ -1204,7 +1265,7 @@ const mindmapBibs = rawBibs.map((b) => ({
 
     <details class="ph__fold ph__fold--section" id="s-1-5" data-section-panel="1-5">
       <summary class="ph__fold-sum">
-        <span class="ph__fold-title">{book[0].sections[4].num} {book[0].sections[4].title}</span>
+        <span class="ph__fold-title"><span class="ph__section-number">{book[0].sections[4].num}</span>{book[0].sections[4].title}</span>
         <span class="ph__fold-right">
           <span class="ph__fold-meta">Book page 11–12</span>
           <span class="ph__fold-ring" aria-hidden="true"><Icon name="arrow" class="ph__fold-chevron" /></span>
@@ -1212,7 +1273,7 @@ const mindmapBibs = rawBibs.map((b) => ({
       </summary>
       <div class="ph__fold-body">
         <div class="ph__book-running-head" aria-hidden="true">
-          <span>The Powerhouse / Chapter 1: {book[0].title}</span>
+          <span>The Powerhouse / {book[0].title}</span>
           <span>{book[0].sections[4].num} {book[0].sections[4].title}</span>
         </div>
 
@@ -1222,9 +1283,11 @@ const mindmapBibs = rawBibs.map((b) => ({
               <p set:html={linkNotes(bookText['1-5'].body[0], '1')} />
               <p set:html={linkNotes(bookText['1-5'].body[1], '1')} />
               <p set:html={linkNotes(bookText['1-5'].body[2], '1')} />
-              <div class="ph__infig">
+
+            </div>
+<div class="ph__infig">
                 <div class="ph__fig-header">
-                  <span class="ph__fig-tag">Figure 1.5</span>
+                  <span class="ph__fig-tag">Figure 1.6</span>
                   <span class="ph__fig-title">The network around the charger</span>
                 </div>
                 <figure class="ph__fig">
@@ -1238,7 +1301,6 @@ const mindmapBibs = rawBibs.map((b) => ({
                   <p class="ph__fig-src">Sources: the thesis, section 1.5; Allen, “Infrastructural Urbanism” (1999) · <a class="ph__fig-note" href="#note-1-25">Note 25</a></p>
                 </figure>
               </div>
-            </div>
           </div>
         </div>
 
@@ -1251,7 +1313,7 @@ const mindmapBibs = rawBibs.map((b) => ({
 
     <details class="ph__fold ph__fold--section" id="s-1-6" data-section-panel="1-6">
       <summary class="ph__fold-sum">
-        <span class="ph__fold-title">{book[0].sections[5].num} {book[0].sections[5].title}</span>
+        <span class="ph__fold-title"><span class="ph__section-number">{book[0].sections[5].num}</span>{book[0].sections[5].title}</span>
         <span class="ph__fold-right">
           <span class="ph__fold-meta">Book page 12</span>
           <span class="ph__fold-ring" aria-hidden="true"><Icon name="arrow" class="ph__fold-chevron" /></span>
@@ -1259,7 +1321,7 @@ const mindmapBibs = rawBibs.map((b) => ({
       </summary>
       <div class="ph__fold-body">
         <div class="ph__book-running-head" aria-hidden="true">
-          <span>The Powerhouse / Chapter 1: {book[0].title}</span>
+          <span>The Powerhouse / {book[0].title}</span>
           <span>{book[0].sections[5].num} {book[0].sections[5].title}</span>
         </div>
 
@@ -1282,7 +1344,7 @@ const mindmapBibs = rawBibs.map((b) => ({
 
     <details class="ph__fold ph__fold--section" id="s-1-7" data-section-panel="1-7">
       <summary class="ph__fold-sum">
-        <span class="ph__fold-title">{book[0].sections[6].num} {book[0].sections[6].title}</span>
+        <span class="ph__fold-title"><span class="ph__section-number">{book[0].sections[6].num}</span>{book[0].sections[6].title}</span>
         <span class="ph__fold-right">
           <span class="ph__fold-meta">Book page 13</span>
           <span class="ph__fold-ring" aria-hidden="true"><Icon name="arrow" class="ph__fold-chevron" /></span>
@@ -1290,7 +1352,7 @@ const mindmapBibs = rawBibs.map((b) => ({
       </summary>
       <div class="ph__fold-body">
         <div class="ph__book-running-head" aria-hidden="true">
-          <span>The Powerhouse / Chapter 1: {book[0].title}</span>
+          <span>The Powerhouse / {book[0].title}</span>
           <span>{book[0].sections[6].num} {book[0].sections[6].title}</span>
         </div>
 
@@ -1298,7 +1360,7 @@ const mindmapBibs = rawBibs.map((b) => ({
           <div class="ph__read-unit">
             <div class="ph__figrow ph__figrow--4">
               <div class="ph__fig-header">
-                <span class="ph__fig-tag">Figure 1.6</span>
+                <span class="ph__fig-tag">Figure 1.7</span>
                 <span class="ph__fig-title">Three ways of reading the pause</span>
               </div>
               {lensFlow.map((l) => (
@@ -1324,10 +1386,29 @@ const mindmapBibs = rawBibs.map((b) => ({
       </div>
     </details>
 
-    {book.slice(1).map((c) => (
+    {book.slice(1).map((c) => c.id === 'ch5' ? (
+      <details class="ph__ch-group" data-chapter-group="ch5">
+        <summary class="ph__ch-sum"><span class="ph__ch-title">Notes and Bibliography</span><span class="ph__ch-arrow" aria-hidden="true"><Icon name="arrow" class="ph__ch-chevron" /></span></summary>
+        <section class="ph__references" id="ch5" data-chapter-head="ch5" data-section-panel="5-0" aria-label="Notes and bibliography by chapter">
+          <div id="s-5-5" class="ph__references-top"><p>Notes and sources, arranged by chapter.</p></div>
+          {referenceChapters.map(({chapter, notes, sources}) => (
+            <section class="ph__reference-chapter" id={`s-5-${chapter.num}`} aria-labelledby={`references-heading-${chapter.num}`}>
+              <h3 id={`references-heading-${chapter.num}`}>{chapter.title}<sup class="ph__chapter-number">{chapter.num.padStart(2,'0')}</sup></h3>
+              <div class="ph__reference-pair">
+                <div><h4>Notes</h4><ol class="ph__notes-list">
+                  {notes.map(note => <li id={`note-${chapter.num}-${note.n}`} value={note.n}><span set:html={note.html} /> <a class="ph__note-back" href={`#ref-${chapter.num}-${note.n}`} aria-label={`Back to Chapter ${chapter.num}, note ${note.n}`}>Back</a></li>)}
+                </ol></div>
+                <div><h4>Bibliography</h4><ul class="ph__bib-list">{sources.map(source => <li id={source.anchor} set:html={source.html} />)}</ul></div>
+              </div>
+            </section>
+          ))}
+          {additionalReferences.length > 0 && <section class="ph__reference-chapter ph__reference-additional"><h3>Further references</h3><ul class="ph__bib-list">{additionalReferences.map(source => <li id={source.id} set:html={source.html} />)}</ul></section>}
+        </section>
+      </details>
+    ) : (
       <details class="ph__ch-group" data-chapter-group={c.id}>
         <summary class="ph__ch-sum">
-          <span class="ph__ch-title">Chapter {c.num} · {c.short}</span>
+          <span class="ph__ch-title">{c.title}<sup class="ph__chapter-number" aria-label={`Chapter ${c.num}`}>{c.num.padStart(2, '0')}</sup></span>
           <span class="ph__ch-right">
             <span class="ph__ch-meta">{c.num}.0 – {c.sections[c.sections.length - 1].num}</span>
             <span class="ph__ch-arrow" aria-hidden="true"><Icon name="arrow" class="ph__ch-chevron" /></span>
@@ -1336,7 +1417,7 @@ const mindmapBibs = rawBibs.map((b) => ({
         <div class="ph__ch-body">
           <details class="ph__fold ph__fold--chapter" id={c.id} data-chapter-head={c.id} data-section-panel={`${c.num}-0`}>
             <summary class="ph__fold-sum">
-              <span class="ph__fold-title">{c.num}.0 {c.title}</span>
+              <span class="ph__fold-title"><span class="ph__section-number">{c.num}.0</span>{openingTitle(c)}</span>
               <span class="ph__fold-right">
                 <span class="ph__fold-meta">Chapter {c.num}</span>
                 <span class="ph__fold-ring" aria-hidden="true"><Icon name="arrow" class="ph__fold-chevron" /></span>
@@ -1344,248 +1425,14 @@ const mindmapBibs = rawBibs.map((b) => ({
             </summary>
             <div class="ph__fold-body">
               <div class="ph__book-running-head" aria-hidden="true">
-                <span>The Powerhouse / Chapter {c.num}: {c.title}</span>
+                <span>The Powerhouse / {c.title}</span>
                 <span>{c.num}.0 Introduction</span>
               </div>
               {c.id === 'ch2' && bookText[c.id] ? (
-                <>
-                <div class="ph__intro-grid">
-                  <div class="ph__chapter-lead"><BookText text={bookText[c.id]} chapter={c.num} /></div>
-                  <div class="ph__figs" aria-label="2.0 the stop in general">
-                  <figure class="ph__fig ph__fig--wide">
-                    <figcaption><b class="ph__fig-num">5–80 min</b><span>every trip has a stop, and each way of travelling builds its own place to wait</span></figcaption>
-                    <div class="ph__fig-bars">{modeStops.map((r) => <div><span>{r.name} · {r.label}</span><div class="ph__fig-bar"><i style={`width:${r.left}%`}></i><i class={r.cls} style={`width:${r.width}%`}></i></div></div>)}</div>
-                    <p class="ph__fig-key">Typical wait, on a 0–90 minute line · airport is the median dwell time at large US airports</p>
-                    <p class="ph__fig-src">Sources: Ohio State University, bus wait study (2020); Journal of Air Transport Management, passenger dwell time at US airports (2024); the thesis, Table 1.1</p>
-                  </figure>
-                  <figure class="ph__fig">
-                    <figcaption><b class="ph__fig-num">95%</b><span>of a typical day a household car stands parked; it is driven about 65 minutes</span></figcaption>
-                    <div class="ph__fig-bar"><i class="c-grey" style="width:95%">Parked</i><i class="c-red" style="width:5%"></i></div>
-                    <p class="ph__fig-key"><span class="ph__swatch c-grey"></span>Parked <span class="ph__swatch c-red"></span>Driven · cars, unlike buses or trains, mostly wait</p>
-                    <p class="ph__fig-src">Source: US DOE, Fact of the Week #1356, from the 2022 National Household Travel Survey</p>
-                  </figure>
-                  <figure class="ph__fig">
-                    <figcaption><b class="ph__fig-num">4 in 5</b><span>charges happen at home, mostly overnight while the owner sleeps: the private car’s daily routine</span></figcaption>
-                    <div class="ph__fig-bar"><i class="c-orange" style="width:80%">Home</i><i class="c-teal" style="width:20%">Away</i></div>
-                    <p class="ph__fig-key"><span class="ph__swatch c-orange"></span>Home <span class="ph__swatch c-teal"></span>Public and work · only for those with a driveway</p>
-                    <p class="ph__fig-src">Source: US DOE, “National EV Charging Network” (see 1.1)</p>
-                  </figure>
-                  <figure class="ph__fig ph__fig--wide">
-                    <figcaption><b class="ph__fig-num">185 mi</b><span>a full-time ride-hail car drives a day; fleets cannot wait for night and charge mid-shift</span></figcaption>
-                    <div class="ph__fig-bars">{dailyMiles.map((r) => <div><span>{r.name} · {r.label}</span><div class="ph__fig-bar"><i class={r.cls} style={`width:${(r.mi / 200) * 100}%`}></i></div></div>)}</div>
-                    <div class="ph__tests ph__tests--tight">{fleetsNY.map((f) => <div><i class={f.cls}>{f.k}</i><span>{f.v}</span></div>)}</div>
-                    <p class="ph__fig-key">Miles driven a day · New York’s public and hired fleets are going electric</p>
-                    <p class="ph__fig-src">Sources: US DOE, Fact of the Week #1332 (2024); ICCT, ride-hailing charging study (2020); Streetsblog NYC on the MTA audit (Aug 2026); NYC TLC, Charged Up! (2022) and Green Rides (2024); 49 C.F.R. § 395.3</p>
-                  </figure>
-                  <figure class="ph__fig">
-                    <figcaption><b class="ph__fig-num">49%</b><span>of New York workers drive to work alone, the lowest of any state (US: 69%)</span></figcaption>
-                    <div class="ph__fig-bars">
-                      <div><span>United States · 69.2%</span><div class="ph__fig-bar"><i class="c-grey" style="width:69.2%"></i></div></div>
-                      <div><span>New York · 49.1%</span><div class="ph__fig-bar"><i class="c-orange" style="width:49.1%"></i></div></div>
-                    </div>
-                    <p class="ph__fig-key">The rest go by transit, taxi, ride-hail, shared car, bike or on foot: more shared vehicles to charge</p>
-                    <p class="ph__fig-src">Source: US Census Bureau, American Community Survey 2023, via America’s Health Rankings</p>
-                  </figure>
-                  <figure class="ph__fig">
-                    <figcaption><b class="ph__fig-num">4 groups</b><span>the people a public charging stop is for</span></figcaption>
-                    <div class="ph__tests ph__tests--stack">{stopUsers.map((u) => <div><i class={u.cls}>{u.k}</i><span>{u.v}</span></div>)}</div>
-                    <p class="ph__fig-src">Sources: NYC DOT; the cards above</p>
-                  </figure>
-                </div>
-                </div>
-
-                <!-- Unit: the US network, before the three states -->
-                <div class="ph__read-unit ph__read-unit--full">
-                  <section id="usa" class="ph__slide" data-slide="0" aria-labelledby="usa-title">
-                    <!-- Full-Width Heading -->
-                    <div class="ph__heading ph__heading--full">
-                      <p class="ph__kicker">USA / road infrastructure and electrification, in numbers</p>
-                      <h2 id="usa-title" tabindex="-1">Where public charging is today</h2>
-                    </div>
-
-                    <!-- 2-Column Section Spread: Left = Text, Right = Map & State List -->
-                    <div class="ph__national-split">
-                      <!-- Left Column: Transport Narrative & Map Note -->
-                      <div class="ph__national-prose">
-                        <div class="ph__read-text">
-                                            <p class="ph__map-note-lead">Each dot on the map groups nearby charging locations, and its size grows with the number of charging points there. Public means open to any driver, even when the equipment is privately owned; private means workplaces, fleets and apartment blocks that report their chargers. Home chargers are not counted anywhere.</p>
-                        </div>
-                      </div>
-
-                      <!-- Right Column: Map & State List -->
-                      <div class="ph__national-visual">
-                        <div class="ph__fig-header">
-                          <span class="ph__fig-tag">US network</span>
-                          <span class="ph__fig-title">Where public charging is today · US network</span>
-                        </div>
-                        <div class="ph__map-bar">
-                          <p class="ph__solo-title">Where the US’s <b id="ph-map-ports" aria-live="polite">{fmt(allUsa.ports)}</b> charging points are · <span><span id="ph-map-stations">at {fmt(allUsa.stations)} stations · public and private</span></span></p>
-                          <select id="ph-access" class="ph__map-select" aria-label="Show public, private or all charging">
-                            <option value="all" selected>All charging points</option>
-                            <option value="public">Public</option>
-                            <option value="private">Private</option>
-                          </select>
-                        </div>
-                        <figure class="ph__map ph__national-map">
-                          <svg class="ph__svg ph__national-svg" viewBox="0 0 975 610" role="img" aria-labelledby="ph-us-svg-title ph-us-svg-desc">
-                            <title id="ph-us-svg-title">US charging infrastructure</title><desc id="ph-us-svg-desc">Operating charging ports across the fifty states and DC. Alaska and Hawaii are insets. Dots aggregate nearby locations; exact counts appear above and in the tables.</desc>
-                            <g class="ph__land">{data.usa.states.map(st=><path d={st.d}><title>{st.name}</title></path>)}</g>
-                            <g class="ph__focus-states">{focusStates.map((f)=><path d={f.d}><title>{f.rank}. {f.name}</title></path>)}</g>
-                            <g>{data.usa.dots.map(d=><circle cx={d.x} cy={d.y} r={size(d.l1+d.l2+d.dc)} data-us-access={d.access} class="ph__charging-dot"><title>{d.access} charging · {fmt(d.l1+d.l2+d.dc)} ports in this map cell</title></circle>)}</g>
-                            <g class="ph__focus-labels" aria-hidden="true">{focusStates.map((f)=><g><line x1={f.tx} y1={f.ty} x2={f.x} y2={f.y}/><g transform={`translate(${f.x} ${f.y})`}><circle class="ph__focus-mark" r="19"/><text dy="7">{f.rank}</text></g></g>)}</g>
-                          </svg>
-                        </figure>
-                        <div class="ph__ranklist">
-                          <div class="ph__ranklist-head"><span>All 50 states and DC</span><b>{fmt(pub.ports)} public charging points</b></div>
-                          <ol class="ph__top5" aria-label="States by public charging points, largest first" tabindex="0">
-                            {data.ranked.map((r, i) => (
-                              <li class:list={[{ 'is-focus': i < 3 }]}><span>{i + 1}</span><b>{stateName[r.code] ?? r.code} <small>{((r.ports / pub.ports) * 100).toFixed(1)}%</small></b><i style={`width:${(r.ports / data.ranked[0].ports) * 100}%`}></i><em>{fmt(r.ports)}</em></li>
-                            ))}
-                          </ol>
-                        </div>
-                      </div>
-                    </div>
-                  </section>
-
-                </div>
-
-                <!-- Unit: Three States Comparison -->
-                <div class="ph__read-unit ph__read-unit--full">
-                  <div class="ph__fig-header">
-                    <span class="ph__fig-tag">Spatial Comparison</span>
-                    <span class="ph__fig-title">Three states, three different conditions</span>
-                  </div>
-
-                  <section id="comparison" class="ph__essential" aria-labelledby="comparison-title">
-                    <h2 id="comparison-title" tabindex="-1">Three states, three different conditions</h2>
-                    <p>California, New York and Florida hold {pct(states.reduce((n,s)=>n+s.pubPorts,0),pub.ports)} of US public charging ports. Comparing these leading states shows three different conditions; it does not identify the country’s greatest unmet need.</p>
-                    <div class="ph__short-comparison">{states.map(s=><article class="ph__short-state">
-                      <h3>{s.name}</h3>
-                      <figure class="ph__state-overview-map"><div class="ph__overview-viewport" data-overview-map><svg class="ph__svg ph__state-overview-svg" viewBox="0 0 420 420" role="img" tabindex="0" aria-label={`${s.name}: zoomable public charging map. Use plus or minus to zoom and arrow keys to pan.`}><g data-overview-layer><path class="ph__land" d={s.map.outline}/><g class="ph__county">{s.map.counties.map(c=><path d={c.d}/>)}</g><g>{s.map.dots.filter(d=>d.access==='public').map(d=><circle cx={d.x} cy={d.y} r={Math.min(3, .5+Math.sqrt(d.l1+d.l2+d.dc)*.16)}><title>{fmt(d.l1+d.l2+d.dc)} public ports in this map cell</title></circle>)}</g></g></svg><div class="ph__overview-controls" role="group" aria-label={`${s.name} map controls`}><button type="button" data-overview-zoom="in" aria-label={`Zoom in on ${s.name}`}>+</button><button type="button" data-overview-zoom="out" aria-label={`Zoom out of ${s.name}`}>−</button><button type="button" data-overview-zoom="full">Full state</button></div></div><figcaption>Public charging locations · drag to pan · +/− to zoom</figcaption></figure>
-                      <div class="ph__dash">
-                        {(() => { const [road, y16, y25, y40, plugs] = stateBars[s.name]; return (
-                          <Fragment>
-                            <div class="ph__dash-card ph__dash-card--vbars">
-                              <div class="ph__dash-vhead"><span class="ph__dash-label">{road.label}</span><b>{road.big}</b></div>
-                              <div class="ph__stack100 ph__dash-stack" role="img" aria-label={`${road.label}: ${road.bar.segs.map((x) => `${x.label} ${share(x.value, road.bar.total)}`).join(', ')}`}>
-                                {road.bar.segs.map((x) => <i class={`c-${x.c}`} style={`flex-grow:${x.value}`} title={`${x.label}: ${share(x.value, road.bar.total)}`}></i>)}
-                              </div>
-                              <ul class="ph__stack100-key">{road.key.map((x) => <li><i class={`c-${x.c}`}></i>{x.label.replace(', incl. SUVs and pickups', ' (incl. SUVs, pickups)')} <b>{share(x.value, road.bar.total)}</b></li>)}</ul>
-                            </div>
-
-                            <div class="ph__dash-card ph__dash-card--years">
-                              <span class="ph__dash-label">Share of vehicles that are electric</span>
-                              <div class="ph__dash-years">
-                                {[y16, y25, y40].map((r) => (
-                                  <div class:list={['ph__dash-year', { 'is-outlook': r.dashed }]}>
-                                    <div class="ph__dash-ring ph__dash-ring--small" role="img" aria-label={`${r.label}: ${r.big}`}>
-                                      <svg viewBox="0 0 120 120"><circle class="ph__ring-track" cx="60" cy="60" r="48" pathLength="100" />{ring(r.bar).slice(0, 2).map((g) => <circle class={`ph__ring-seg r-${g.c}`} cx="60" cy="60" r="48" pathLength="100" stroke-dasharray={`${g.len} ${100 - g.len}`} stroke-dashoffset={g.off} />)}</svg>
-                                      <div class="ph__dash-center"><b>{r.big}</b></div>
-                                    </div>
-                                    <span>{r.bar.title}{r.dashed ? ' outlook' : ''}</span>
-                                  </div>
-                                ))}
-                              </div>
-                              <ul class="ph__stack100-key"><li><i class="c-green"></i>Battery-electric</li><li><i class="c-teal"></i>Plug-in hybrid</li></ul>
-                            </div>
-
-                            <div class="ph__dash-card ph__dash-card--vbars">
-                              <div class="ph__dash-vhead"><span class="ph__dash-label">{plugs.label}</span><b>{plugs.big}</b></div>
-                              <div class="ph__stack100 ph__dash-stack" role="img" aria-label={`${plugs.label}: ${plugs.bar.segs.map((x) => `${x.label} ${share(x.value, plugs.bar.total)}`).join(', ')}`}>
-                                {plugs.bar.segs.map((x) => <i class={`c-${x.c}`} style={`flex-grow:${x.value}`} title={`${x.label}: ${share(x.value, plugs.bar.total)}`}></i>)}
-                              </div>
-                              <ul class="ph__stack100-key">{plugs.key.map((x) => <li><i class={`c-${x.c}`}></i>{x.label.replace(', incl. SUVs and pickups', ' (incl. SUVs, pickups)')} <b>{share(x.value, plugs.bar.total)}</b></li>)}</ul>
-                            </div>
-
-                            <dl class="ph__dash-card ph__dash-figures">
-                              <div><dt>Electric vehicles · 2025</dt><dd>{fmt(s.plugins)}</dd></div>
-                              <div><dt>Public charging points · Oct 2026</dt><dd>{fmt(s.pubPorts)}</dd></div>
-                              <div class="ph__dash-figure-gauge">
-                                <dt>Electric vehicles per public charging point</dt><dd>{s.evsPerPort.toFixed(0)}</dd>
-                                <span class="ph__dash-gauge" aria-hidden="true"><i style={`width:${Math.min(100, (s.evsPerPort / 40) * 100)}%`}></i><em style={`left:${(evPerPortUS / 40) * 100}%`} title={`US average ${evPerPortUS.toFixed(0)}`}></em></span>
-                                <small>US average {evPerPortUS.toFixed(0)} (marker)</small>
-                              </div>
-                              <div><dt>Battery-electric growth · 2024–25</dt><dd>+{s.yoyPct.toFixed(1)}%</dd></div>
-                            </dl>
-                          </Fragment>
-                        ); })()}
-                      </div>
-                      <p class="ph__state-conclusion">{s.code==='CA'?'The largest existing market of the three. Investigate gaps within a substantial charging network.':s.code==='NY'?'A smaller EV market, with a city where access to home charging is a particular challenge.': 'The fastest recent percentage growth of the three. Test where new demand requires shared charging.'}</p>
-                    </article>)}</div>
-                    <p class="ph__note">Electric vehicles (EVs) here means battery-electric cars plus plug-in hybrids; ordinary hybrids that never plug in are counted as fuel vehicles. Growth measures battery EV registrations, not charger use. Vehicle and charger counts refer to different years.</p>
-                    <footer class="ph__sources">Sources: <a href={sources.regs}>AFDC registrations, 2016–25</a> · <a href={sources.afdc}>AFDC charging inventory, October 2026</a> · <a href={sources.outlook}>EIA AEO2026 national outlook, Table 39</a>.</footer>
-                  </section>
-
-                  <!-- The three states compared in one table -->
-                  <section class="ph__compare" aria-labelledby="ph-compare-title">
-                    <h2 id="ph-compare-title">California, New York and Florida compared</h2>
-                    <div class="ph__table-wrap" tabindex="0" role="region" aria-label="Three-state comparison">
-                      <table>
-                        <thead><tr><th scope="col">Measure</th>{states.map((st) => <th scope="col">{st.name}</th>)}</tr></thead>
-                        <tbody>
-                          {compareRows.map((r) => (
-                            <tr>
-                              <th scope="row">{r.label}{r.note && <small>{r.note}</small>}</th>
-                              {r.v.map((n, k) => (
-                                <td class:list={[{ 'is-top': k === r.top, 'is-flag': r.flag === states[k].code }]}>
-                                  {r.flag === states[k].code ? <span class="ph__flag">{r.show(n)}</span> : r.show(n)}
-                                  {r.extra && <small>{r.extra[k]}</small>}
-                                  {r.flag === states[k].code && <small class="ph__flag-note">{r.flagNote}</small>}
-                                </td>
-                              ))}
-                            </tr>
-                          ))}
-                          <tr class="ph__compare-role">
-                            <th scope="row">What it shows</th>
-                            {states.map((st) => <td>{roleOf[st.code].claim}</td>)}
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                    <p class="ph__note">Highest in each row in bold. Vehicle and charger counts come from different years; EVs per charging point is a ratio across them, not a measure of how busy the chargers are. Sources: FHWA Highway Statistics, Table MV-1; AFDC vehicle registrations 2016–2025; AFDC station inventory, 18 Oct 2026.</p>
-                  </section>
-
-                  <!-- The conclusion: why New York sets up the deep dive -->
-                  <div class="ph__takeaway">
-                    <h2>Why New York</h2>
-                    <p><b>New York is where the Powerhouse’s argument is sharpest.</b> California has the scale and Florida the fastest growth, but the Powerhouse is not about the biggest market. It is about people who have to stop to charge and could stay, and New York’s conditions make that stop most likely to happen and to last.</p>
-                    <ol class="ph__why-ny">
-                      <li><b>Charging away from home is not a choice.</b> Half of New York City’s car-owning households park on the street, with no driveway or garage to charge in. For them the one charge in five that most drivers make away from home is every charge.</li>
-                      <li><b>Its stops are long.</b> {(((ny_l) / ny_p) * 100).toFixed(0)}% of New York’s public charging points are slow chargers, the highest share of the three (California {(((ca_l) / ca_p) * 100).toFixed(0)}%, Florida {(((fl_l) / fl_p) * 100).toFixed(0)}%). A charge takes hours, not minutes: time the Powerhouse turns into a place.</li>
-                      <li><b>The shift is early, and fast.</b> Battery-electric cars grew {nyS.mult2025.toFixed(0)}× since 2016, yet only {((nyS.plugins / nyS.now.total) * 100).toFixed(1)}% of vehicles are electric. Most of the charging the city will need is still to be built, and the city is already planning curbside chargers, so what gets built next can be designed as a place, not only as parking.</li>
-                    </ol>
-                    <p class="ph__takeaway-next">New York City is the test site for the Powerhouse. Its deep dive follows: where street-parked drivers live, where chargers are planned, and what each neighbourhood lacks.</p>
-                    <p class="ph__takeaway-source">Street parking: <a href="https://www.nyc.gov/html/dot/html/pr2026/expansion-of-curbside-electric-vehicle-charging.shtml">NYC DOT, curbside charging expansion, Aug 2026</a>. Chargers: AFDC station inventory, 18 Oct 2026. Vehicles: AFDC registrations 2016–2025.</p>
-                  </div>
-                </div>
-
-                <section class="ph__zoom" aria-label="New York, from the state to Manhattan">
-                  <p class="ph__kicker ph__zoom-kicker">New York, closer: the state, the city, Manhattan</p>
-                  <div class="ph__zoom-grid">
-                    <figure class="ph__zoom-map"><div class="ph__nymap" set:html={nyStateMap} /><figcaption>New York State · public charging points by county</figcaption></figure>
-                    <figure class="ph__zoom-map"><div class="ph__nymap" set:html={nycMap} /><figcaption>New York City · by neighbourhood, Manhattan outlined</figcaption></figure>
-                    <figure class="ph__zoom-map"><div class="ph__nymap" set:html={manhattanMap} /><figcaption>Manhattan · by neighbourhood</figcaption></figure>
-                    <figure class="ph__fig">
-                      <figcaption><b class="ph__fig-num">{nyCounties.nyc.share}%</b><span>of the state’s public charging points are in New York City, home to {nyCounties.nyc.popShare}% of its people</span></figcaption>
-                      <div class="ph__fig-bars">{stateRates.map((r) => <div><span>{r.name} · {r.per10k} per 10,000 residents</span><div class="ph__fig-bar"><i class={r.cls} style={`width:${(r.per10k / nyCounties.rest.per10k) * 100}%`}></i></div></div>)}</div>
-                      <p class="ph__fig-key">Points per county · {stateLegend.map((l, i) => <><span class={`ph__swatch ph__nyq${i}`}></span>{l} </>)}</p>
-                      <p class="ph__fig-src">Sources: AFDC (Oct 2026), {nyCounties.totalPublicPorts.toLocaleString('en-US')} public points; US Census Bureau, county estimates (July 2024)</p>
-                    </figure>
-                    <figure class="ph__fig">
-                      <figcaption><b class="ph__fig-num">{nyc.withNone} of {nyc.neighbourhoods}</b><span>city neighbourhoods have no public charging point; ten hold {nyc.top10Share}% of the city’s {nyc.totalPorts.toLocaleString('en-US')}</span></figcaption>
-                      <div class="ph__fig-bars">{nycBoroughs.map((b) => <div><span>{b.name} · {b.per10k} per 10,000</span><div class="ph__fig-bar"><i class="c-orange" style={`width:${(b.per10k / nycPerMax) * 100}%`}></i></div></div>)}</div>
-                      <p class="ph__fig-key">Points per neighbourhood · {nycLegend.map((l, i) => <><span class={`ph__swatch ph__nyq${i}`}></span>{l} </>)}<span class="ph__swatch ph__nyqnp"></span>Park or airport</p>
-                      <p class="ph__fig-src">Sources: AFDC (Oct 2026); NYC Planning, 2020 NTAs; US Census Bureau (July 2024)</p>
-                    </figure>
-                    <figure class="ph__fig">
-                      <figcaption><b class="ph__fig-num">{nyc.manhattan.withNone} of {nyc.manhattan.neighbourhoods}</b><span>Manhattan neighbourhoods have none, all in the north and east; the Upper East Side has the most</span></figcaption>
-                      <div class="ph__fig-bars">{mhTop.map((n) => <div><span>{n.name} · {n.ports}</span><div class="ph__fig-bar"><i class="c-orange" style={`width:${(n.ports / mhTop[0].ports) * 100}%`}></i></div></div>)}</div>
-                      <p class="ph__fig-key">None: {nyc.manhattan.bottom.filter((n) => n.ports === 0).map((n) => n.name).join(', ')}</p>
-                      <p class="ph__fig-src">Source: AFDC station snapshot (Oct 2026), joined to 2020 NTAs</p>
-                    </figure>
-                  </div>
-                </section>
-                </>
+                <ol class="ph__argument-path" aria-label="Reading the conditions of the pause">
+                  <li><span>01</span>Ground &amp; access</li><li><span>02</span>Time &amp; demand</li><li><span>03</span>Rules &amp; adaptation</li>
+                </ol>
+                <ChapterTwo blockId="ch2" text={bookText[c.id]} />
               ) : bookText[c.id] ? (
                 <BookText text={bookText[c.id]} chapter={c.num} />
               ) : (
@@ -1600,7 +1447,7 @@ const mindmapBibs = rawBibs.map((b) => ({
           {c.sections.map((sec) => (
             <details class="ph__fold ph__fold--section" id={`s-${sec.id}`} data-section-panel={sec.id}>
               <summary class="ph__fold-sum">
-                <span class="ph__fold-title">{sec.num} {sec.title}</span>
+                <span class="ph__fold-title"><span class="ph__section-number">{sec.num}</span>{sec.title}</span>
                 <span class="ph__fold-right">
                   <span class="ph__fold-meta">{sec.planned ? 'In the framework, not yet written' : sec.page ? `Book page ${sec.page}` : 'From the thesis book'}</span>
                   <span class="ph__fold-ring" aria-hidden="true"><Icon name="arrow" class="ph__fold-chevron" /></span>
@@ -1608,182 +1455,11 @@ const mindmapBibs = rawBibs.map((b) => ({
               </summary>
               <div class="ph__fold-body">
                 <div class="ph__book-running-head" aria-hidden="true">
-                  <span>The Powerhouse / Chapter {c.num}: {c.title}</span>
+                  <span>The Powerhouse / {c.title}</span>
                   <span>{sec.num} {sec.title}</span>
                 </div>
-                {notesSection[sec.id] ? (
-                  <ol class="ph__notes-list">
-                    {notesSection[sec.id].notes.map((note) => (
-                      <li id={`note-${notesSection[sec.id].ch}-${note.n}`} value={note.n}>
-                        <span set:html={note.html} /> <a class="ph__note-back" href={`#ref-${notesSection[sec.id].ch}-${note.n}`} aria-label={`Back to the text of note ${note.n}`}>Back</a>
-                      </li>
-                    ))}
-                  </ol>
-                ) : sec.id === '5-5' ? (
-                  <ul class="ph__bib-list">{bibliography.map((b) => <li set:html={b} />)}</ul>
-                ) : sec.id === '2-2' && bookText[sec.id] ? (
-                  <div class="ph__intro-grid">
-                    <div class="ph__chapter-lead"><BookText text={bookText[sec.id]} chapter={c.num} /></div>
-                    <div class="ph__figs" aria-label="2.2 in numbers">
-                  <figure class="ph__fig ph__fig--wide">
-                    <figcaption><b class="ph__fig-num">5 kinds</b><span>of charging, from slowest to fastest; each makes a different stop</span></figcaption>
-                    <div class="ph__anatomy">{chargeAnatomy.map((r) => <div><i class={r.cls}>{r.k}</i><span>{r.sets}</span><span>{r.stay}</span></div>)}</div>
-                    <p class="ph__fig-key">Fast charging and freight are where the charge or the law makes the stop</p>
-                    <p class="ph__fig-src">Source: the thesis, section 2.2</p>
-                  </figure>
-                  <figure class="ph__fig">
-                    <figcaption><b class="ph__fig-num">{nycFastPct}%</b><span>of New York City’s {nyc.totalPorts.toLocaleString('en-US')} public charging points are fast chargers</span></figcaption>
-                    <div class="ph__fig-bar"><i class="c-red" style={`width:${nycFastPct}%`}></i><i class="c-blue" style={`width:${100 - nycFastPct}%`}>Level 2</i></div>
-                    <p class="ph__fig-key"><span class="ph__swatch c-red"></span>Fast ({nyc.totalDc}) <span class="ph__swatch c-blue"></span>Slower Level 2</p>
-                    <p class="ph__fig-src">Source: AFDC station snapshot (Oct 2026)</p>
-                  </figure>
-                  <figure class="ph__fig">
-                    <figcaption><b class="ph__fig-num">{nycFast[0].pct}%</b><span>of Manhattan’s public points are fast, where taxis and ride-hail cars work most</span></figcaption>
-                    <div class="ph__fig-bars">{nycFast.map((b) => <div><span>{b.name} · {b.pct}% ({b.dc} fast)</span><div class="ph__fig-bar"><i class="c-red" style={`width:${(b.pct / nycFast[nycFast.length - 1].pct) * 100}%`}></i></div></div>)}</div>
-                    <p class="ph__fig-src">Source: AFDC station snapshot (Oct 2026), by borough</p>
-                  </figure>
-                  <figure class="ph__fig ph__fig--wide">
-                    <figcaption><b class="ph__fig-num">Not everyone</b><span>the people at public chargers are a particular group, not a cross-section of drivers</span></figcaption>
-                    <div class="ph__fig-chips">{publicUsers.map((t, i) => <i class={i === publicUsers.length - 1 ? 'c-light' : 'c-orange'}>{t}</i>)}</div>
-                    <p class="ph__fig-key">Selection bias: the study asks each visitor why they are there, and counts people who arrive without a vehicle</p>
-                    <p class="ph__fig-src">Sources: the thesis, section 2.2; US DOE, “National EV Charging Network” · <a class="ph__fig-note" href="#note-2-19">Note 19</a></p>
-                  </figure>
-                </div>
-                  </div>
-                ) : sec.id === '2-1' && bookText[sec.id] ? (
-                  <div class="ph__intro-grid">
-                    <div class="ph__chapter-lead"><BookText text={bookText[sec.id]} chapter={c.num} /></div>
-                    <div class="ph__figs" aria-label="2.1 in numbers">
-                  <figure class="ph__fig ph__fig--wide">
-                    <figcaption><b class="ph__fig-num">2×</b><span>Manhattan’s population on a weekday, as people come in by car, bus, train, taxi and ride-hail</span></figcaption>
-                    <div class="ph__fig-bars">{dayNight.map((r) => <div><span>{r.name} · {r.label}</span><div class="ph__fig-bar"><i class={r.cls} style={`width:${(r.v / 3.1) * 100}%`}></i></div></div>)}</div>
-                    <p class="ph__fig-src">Source: NYU Rudin Center, The Dynamic Population of Manhattan (Census daytime definition) · <a class="ph__fig-note" href="#note-2-13">Note 13</a></p>
-                  </figure>
-                  <figure class="ph__fig">
-                    <figcaption><b class="ph__fig-num">490,000</b><span>vehicles a day enter Manhattan below 60th Street; about 785,000 people come in by private car</span></figcaption>
-                    <p class="ph__fig-src">Sources: MTA congestion relief zone counts, via ABC7 (Jan 2025) · <a class="ph__fig-note" href="#note-2-14">Note 14</a>; NYMTC, Hub Bound Travel Data 2024 · <a class="ph__fig-note" href="#note-2-15">Note 15</a></p>
-                  </figure>
-                  <figure class="ph__fig">
-                    <figcaption><b class="ph__fig-num">≈1 million</b><span>taxi and ride-hail trips a day across the city, by vehicles that work all day</span></figcaption>
-                    <p class="ph__fig-src">Source: NYC TLC (243 million high-volume ride-hail trips in 2025, plus yellow taxis) · <a class="ph__fig-note" href="#note-2-16">Note 16</a></p>
-                  </figure>
-                  <figure class="ph__fig">
-                    <figcaption><b class="ph__fig-num">103,000</b><span>off-street parking spaces in the Manhattan core, filled by the cars that come in each weekday</span></figcaption>
-                    <p class="ph__fig-src">Sources: NYC Planning, Manhattan Core Public Parking Study (2011) · <a class="ph__fig-note" href="#note-2-17">Note 17</a>; DCWP licenses 1,600+ garages and lots citywide</p>
-                  </figure>
-                  <figure class="ph__fig">
-                    <figcaption><b class="ph__fig-num">5 grounds</b><span>one kind of space: paved, sized to the vehicle, used minutes at a time</span></figcaption>
-                    <div class="ph__fig-chips">{parkingGrounds.map((t) => <i class="c-grey">{t}</i>)}</div>
-                    <p class="ph__fig-src">Sources: Shoup, The High Cost of Free Parking (2005) · <a class="ph__fig-note" href="#note-2-12">Note 12</a></p>
-                  </figure>
-                  <figure class="ph__fig ph__fig--wide">
-                    <figcaption><b class="ph__fig-num">Charge where it parks</b><span>the vehicles that fill the city by day could charge in it, during the stops they already make</span></figcaption>
-                    <div class="ph__tests ph__tests--tight">{chargeWhileParked.map((r) => <div><i class={r.cls}>{r.k}</i><span>{r.v}</span></div>)}</div>
-                    <p class="ph__fig-src">Sources: the cards above; US DOT, “Charger Types and Speeds”</p>
-                  </figure>
-                </div>
-                  </div>
-                ) : sec.id === '2-3' && bookText[sec.id] ? (
-                  <div class="ph__intro-grid">
-                    <div class="ph__chapter-lead"><BookText text={bookText[sec.id]} chapter={c.num} /></div>
-                    <div class="ph__figs" aria-label="2.3 in numbers">
-                      <figure class="ph__fig ph__fig--wide">
-                        <figcaption><b class="ph__fig-num">5–80 min</b><span>the geography of the wait: from transactional forecourts to civic railway cathedrals</span></figcaption>
-                        <div class="ph__fig-bars">
-                          {waitByMode.map((w) => (
-                            <div>
-                              <span>{w.name} · {w.wait}</span>
-                              <div class="ph__fig-bar"><i style={`width:${w.left}%`}></i><i class={w.cls} style={`width:${w.width}%`}></i></div>
-                            </div>
-                          ))}
-                        </div>
-                        <p class="ph__fig-key">Dwell time determines architectural programme · Gas station is transactional; Powerhouse is civic</p>
-                        <p class="ph__fig-src">Sources: Cooley (1894); Meeks, The Railroad Station (1956); Journal of Air Transport Management (2024)</p>
-                      </figure>
-                      <figure class="ph__fig ph__fig--wide">
-                        <figcaption><b class="ph__fig-num">Validity</b><span>measuring the person, not only the machine: construct &amp; internal validity checks</span></figcaption>
-                        <div class="ph__fig-compare">
-                          <div class="c-light"><b>Construct validity</b><span>A driver whose vehicle needs 40 min may leave after 20 or stay for 70; observation records people, not plugs</span></div>
-                          <div class="c-red"><b>Internal validity</b><span>Dwell time is grounded in battery physics, charger power and labor law before architecture begins</span></div>
-                        </div>
-                        <p class="ph__fig-src">Sources: the thesis, section 2.3; Whyte (1980); Gehl &amp; Svarre (2013)</p>
-                      </figure>
-                    </div>
-                  </div>
-                ) : sec.id === '2-4' && bookText[sec.id] ? (
-                  <div class="ph__intro-grid">
-                    <div class="ph__chapter-lead"><BookText text={bookText[sec.id]} chapter={c.num} /></div>
-                    <div class="ph__figs" aria-label="2.4 in numbers">
-                      <figure class="ph__fig ph__fig--wide">
-                        <figcaption><b class="ph__fig-num">4 stop lengths</b><span>matching architectural programme to vehicle dwell time</span></figcaption>
-                        <div class="ph__tests ph__tests--stack">
-                          {stopTiers.map((t) => (
-                            <div><i class={t.cls}>{t.k} · {t.range}</i><span>{t.v}</span></div>
-                          ))}
-                        </div>
-                        <p class="ph__fig-key">Architecture sized to dwell: short stops provide transit; long stops provide community rooms and civic space</p>
-                        <p class="ph__fig-src">Source: the thesis, section 2.4, Table 2.1; Anderson &amp; Kish (2025)</p>
-                      </figure>
-                      <figure class="ph__fig ph__fig--wide">
-                        <figcaption><b class="ph__fig-num">kW ÷ kWh</b><span>charge duration is physical: battery capacity divided by charger delivery rate</span></figcaption>
-                        <div class="ph__fig-bars">
-                          <div><span>e-Bike (0.5 kWh / 0.5 kW) · 1–2 h</span><div class="ph__fig-bar"><i class="c-teal" style="width:18%"></i></div></div>
-                          <div><span>Passenger EV (75 kWh / 150 kW) · 25–30 min</span><div class="ph__fig-bar"><i class="c-red" style="width:28%"></i></div></div>
-                          <div><span>Transit Bus (400 kWh / 350 kW) · 1–2 h</span><div class="ph__fig-bar"><i class="c-orange" style="width:65%"></i></div></div>
-                          <div><span>Heavy Truck (800 kWh / 1 MW) · 30–60 min fast</span><div class="ph__fig-bar"><i class="c-grey" style="width:50%"></i></div></div>
-                        </div>
-                        <p class="ph__fig-src">Sources: US DOT; Freightliner eCascadia spec; Tesla Semi claim</p>
-                      </figure>
-                    </div>
-                  </div>
-                ) : sec.id === '2-5' && bookText[sec.id] ? (
-                  <div class="ph__intro-grid">
-                    <div class="ph__chapter-lead"><BookText text={bookText[sec.id]} chapter={c.num} /></div>
-                    <div class="ph__figs" aria-label="2.5 in numbers">
-                      <figure class="ph__fig ph__fig--wide">
-                        <figcaption><b class="ph__fig-num">Mandated rests</b><span>driver breaks set by labor law rather than charger technology</span></figcaption>
-                        <div class="ph__tests ph__tests--stack">
-                          {regBreakRules.map((r) => (
-                            <div><i class={r.cls}>{r.k}</i><span>{r.rule}</span></div>
-                          ))}
-                        </div>
-                        <p class="ph__fig-key">A required legal rest that coincides with a charge creates guaranteed long dwell time</p>
-                        <p class="ph__fig-src">Sources: 49 C.F.R. § 395.3; EU Reg 561/2006; FHWA 23 C.F.R. pt. 680</p>
-                      </figure>
-                      <figure class="ph__fig ph__fig--wide">
-                        <figcaption><b class="ph__fig-num">Zoning &amp; Tariffs</b><span>overcoming 20th-century gas station zoning codes in New York</span></figcaption>
-                        <div class="ph__fig-compare">
-                          <div class="c-light"><b>Traditional zoning</b><span>Treats charging as industrial parking or automotive repair; bans civic and community programme</span></div>
-                          <div class="c-red"><b>Civic station zoning</b><span>Classified as public transit terminal &amp; civic portal; allows public halls, cafés, and community spaces</span></div>
-                        </div>
-                        <p class="ph__fig-src">Sources: NYC Zoning Resolution; Con Edison Commercial EV Program</p>
-                      </figure>
-                    </div>
-                  </div>
-                ) : sec.id === '2-6' && bookText[sec.id] ? (
-                  <div class="ph__intro-grid">
-                    <div class="ph__chapter-lead"><BookText text={bookText[sec.id]} chapter={c.num} /></div>
-                    <div class="ph__figs" aria-label="2.6 in numbers">
-                      <figure class="ph__fig ph__fig--wide">
-                        <figcaption><b class="ph__fig-num">The Civic Station Marvel</b><span>Santiago Calatrava-inspired railway cathedral typology for 21st-century fast charging</span></figcaption>
-                        <div class="ph__tests ph__tests--stack">
-                          {stationLevels.map((s) => (
-                            <div><i class={s.cls}>{s.lvl}</i><span>{s.desc}</span></div>
-                          ))}
-                        </div>
-                        <p class="ph__fig-key">A monumental portal: replacing parking garage conversions with heroic public transit architecture</p>
-                        <p class="ph__fig-src">Sources: Stan Allen (1999); Calatrava Complete Works; Meeks (1956); Table 2.3</p>
-                      </figure>
-                      <figure class="ph__fig ph__fig--wide">
-                        <figcaption><b class="ph__fig-num">Literal Powerhouse</b><span>generating and storing multi-megawatt energy for the municipal grid</span></figcaption>
-                        <div class="ph__fig-compare">
-                          <div class="c-green"><b>Solar Canopy &amp; BESS</b><span>Kinetic PV wings generate clean electricity; subterranean battery vault stores multi-megawatts</span></div>
-                          <div class="c-blue"><b>Grid Peak Shaving &amp; V2G</b><span>Bi-directional vehicle-to-grid integration cushions neighborhood grid against fast-charge spikes</span></div>
-                        </div>
-                        <p class="ph__fig-src">Sources: Zhang, Sun, Nehrir (2024), IEEE Trans Power Systems; Lyle (1994)</p>
-                      </figure>
-                    </div>
-                  </div>
+                {c.id === 'ch2' && bookText[sec.id] ? (
+                  <ChapterTwo blockId={sec.id} text={bookText[sec.id]} />
                 ) : bookText[sec.id] ? (
                   <BookText text={bookText[sec.id]} chapter={c.num} />
                 ) : (
@@ -1904,6 +1580,14 @@ const mindmapBibs = rawBibs.map((b) => ({
         </div>
       </div>
     </div>
+    <aside id="ph-citation" class="ph__citation" popover="auto" role="dialog" aria-labelledby="ph-citation-title">
+      <div class="ph__citation-head">
+        <h3 id="ph-citation-title" tabindex="-1">Reference</h3>
+        <button type="button" data-citation-close aria-label="Close reference">×</button>
+      </div>
+      <div class="ph__citation-body" data-citation-body></div>
+      <a class="ph__citation-bib" data-citation-bib href="#s-5-5">Go to bibliography ↗</a>
+    </aside>
   </article>
 
   <script
@@ -1923,10 +1607,37 @@ const mindmapBibs = rawBibs.map((b) => ({
 </PageLayout>
 
 <style>
+  .ph__citation {
+    position: fixed;
+    inset: auto;
+    margin: 0;
+    width: min(440px, calc(100vw - 32px));
+    max-height: min(65dvh, 560px);
+    box-sizing: border-box;
+    overflow-y: auto;
+    padding: 20px;
+    border: 1px solid var(--_tokens---color--line);
+    border-radius: 10px;
+    background: var(--_tokens---color--bg);
+    color: var(--_tokens---color--fg);
+    box-shadow: 0 12px 40px #0002;
+    font-size: var(--_tokens---type--micro);
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+  }
+  .ph__citation-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+  .ph__citation-head h3 { margin: 0; font: inherit; font-weight: 600; }
+  .ph__citation-head button { border: 0; background: none; color: inherit; font: inherit; font-size: 24px; line-height: 1; cursor: pointer; min-width: 32px; min-height: 32px; }
+  .ph__citation-body :global(a) { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+  .ph__citation-bib { display: inline-block; margin-top: 16px; color: inherit; font-weight: 600; text-underline-offset: 4px; }
+  .ph__bib-list li:target { outline: 1px solid var(--_tokens---color--line); outline-offset: 8px; }
   /* Powerhouse data palette. These pages always render in Void (Base.astro); the page itself
      stays black and white, and only data is drawn in colour, in this fixed order of
      categories, like a storage bar. Brighter values in dark mode keep contrast on #111. */
   .ph {
+    --ph-reading-size: clamp(.8125rem, .775rem + .15vw, .9375rem);
+    --ph-reading-leading: 1.74;
+    --ph-reading-gap: 40px;
     /* Dusty pastels: soft enough to sit quietly in a black-and-white page, distinct enough
        to tell apart, and each still reads as its colour name. */
     --ph-red: #e0806f; --ph-orange: #e9a467; --ph-yellow: #ddbd5c; --ph-green: #74b893;
@@ -1948,7 +1659,8 @@ const mindmapBibs = rawBibs.map((b) => ({
   .ph__brand span, .ph__stamp { color: var(--_tokens---color--muted); font-weight: 400; }
   .ph__intro { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: var(--_tokens---space--small); padding: var(--_tokens---space--small) 0; border-bottom: none; }
   .ph__intro-col { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
-  .ph__intro p:not(.ph__kicker) { font-size: var(--_tokens---type--small); line-height: 1.5; margin: 0; max-width: 64ch; }
+  /* The abstract reads at the chapters' body size, so the hypothesis beside it carries the weight. */
+  .ph__intro p:not(.ph__kicker) { font-size: var(--ph-reading-size); line-height: 1.6; margin: 0; max-width: 64ch; }
   .ph__intro p.ph__intro-claim { font-size: var(--_tokens---type--medium); line-height: 1.15; letter-spacing: -.03em; }
   /* Small pill button below Abstract (bottom-left) that opens the 90% screen Mindmap Lightbox */
   .ph__mm-trigger {
@@ -2361,7 +2073,7 @@ const mindmapBibs = rawBibs.map((b) => ({
     line-height: 1.4;
     color: var(--_tokens---color--muted);
   }
-  @media (max-width: 959.98px) {
+  @media (max-width: 1023.98px) {
     .ph__six-notes-grid {
       grid-template-columns: 1fr;
     }
@@ -2379,7 +2091,7 @@ const mindmapBibs = rawBibs.map((b) => ({
     height: 100%;
     margin: 0;
   }
-  @media (max-width: 899.98px) {
+  @media (max-width: 1023.98px) {
     .ph__figs-3col {
       grid-template-columns: 1fr;
     }
@@ -2413,7 +2125,7 @@ const mindmapBibs = rawBibs.map((b) => ({
       gap: 14px;
     }
   }
-  @media (max-width: 599.98px) {
+  @media (max-width: 699.98px) {
     .ph__figs-4col {
       grid-template-columns: 1fr;
     }
@@ -2564,12 +2276,12 @@ const mindmapBibs = rawBibs.map((b) => ({
   /* Chapter 1 reads as a two-column book page. Prose always runs in two equal columns. Diagrams
      sit in the flow, never stacked to one side: a single figure is set inside the text, one column
      wide; a group is a row of 2, 3 or 4 equal cells above, between or below a passage. One gap. */
-  [data-chapter-group="ch1"] { --ph-col-gap: 32px; }
+  [data-chapter-group="ch1"] { --ph-col-gap: var(--ph-reading-gap); }
   [data-chapter-group="ch1"] .ph__editorial { gap: 56px; }
   [data-chapter-group="ch1"] .ph__read-unit { display: flex; flex-direction: column; gap: 40px; padding: 0; border: 0; }
   [data-chapter-group="ch1"] .ph__read-text {
-    font-size: clamp(0.8125rem, 0.775rem + 0.15vw, 0.9375rem);
-    line-height: 1.68;
+    font-size: var(--ph-reading-size);
+    line-height: var(--ph-reading-leading);
     column-count: 2;
     column-gap: var(--ph-col-gap);
     column-fill: balance;
@@ -2791,7 +2503,7 @@ const mindmapBibs = rawBibs.map((b) => ({
     padding: 14px;
   }
   .ph__dash--us .ph__dash-hbar { grid-template-columns: 6.6em minmax(0, 1fr) 3.6em; }
-  @media (max-width: 959.98px) {
+  @media (max-width: 1023.98px) {
     .ph__dash--us {
       grid-template-columns: 1fr;
     }
@@ -3411,6 +3123,115 @@ const mindmapBibs = rawBibs.map((b) => ({
   .ph__mm-dot--social { background: var(--ph-blue); }
   .ph__mm-dot--fleets { background: var(--ph-orange); }
 
+
+  /* References are one continuous view: notes and sources paired by chapter. */
+  .ph__references { padding: 12px 20px 40px; scroll-margin-top: calc(var(--ph-toc-h, 140px) + 80px); }
+  .ph__references-top p { margin: 0 0 32px; font-size: 13px; color: var(--_tokens---color--muted); }
+  .ph__reference-chapter { padding: 28px 0 36px; border-top: 1px solid var(--_tokens---color--line); scroll-margin-top: calc(var(--ph-toc-h, 140px) + 80px); }
+  .ph__reference-chapter h3 { font-size: clamp(1.25rem, 1.1rem + .5vw, 1.6rem); font-weight: 500; line-height: 1.3; margin: 0 0 28px; }
+  .ph__reference-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ph-reading-gap); align-items: start; }
+  .ph__reference-pair > div { min-width: 0; }
+  .ph__reference-pair h4 { margin: 0 0 18px; font-size: 11px; font-weight: 500; color: var(--_tokens---color--muted); }
+  .ph__references :is(.ph__notes-list, .ph__bib-list) { columns: 1; font-size: 12px; line-height: 1.65; }
+  .ph__references :is(.ph__notes-list, .ph__bib-list) li { margin-bottom: 16px; }
+  .ph__reference-additional .ph__bib-list { columns: 2; column-gap: var(--ph-reading-gap); }
+  .ph__references :is([id^="bib-"], [id^="s-5-"]) { scroll-margin-top: calc(var(--ph-toc-h, 140px) + 80px); }
+  @media (max-width: 699.98px) {
+    .ph__references { padding-inline: 0; }
+    .ph__reference-pair { grid-template-columns: minmax(0, 1fr); gap: 28px; }
+    .ph__reference-additional .ph__bib-list { columns: 1; }
+  }
+
+  /* A shared, quiet reading surface for the two completed chapters. */
+  :is([data-chapter-group="ch1"], [data-chapter-group="ch2"]) .ph__fold {
+    background: transparent; box-shadow: none; padding-inline: 20px;
+  }
+  :is([data-chapter-group="ch1"], [data-chapter-group="ch2"]) .ph__fold-meta,
+  :is([data-chapter-group="ch1"], [data-chapter-group="ch2"]) .ph__book-running-foot { display: none; }
+  :is([data-chapter-group="ch1"], [data-chapter-group="ch2"]) .ph__fold-title {
+    font-size: clamp(1.3rem, 1.05rem + .6vw, 1.7rem); line-height: 1.25; white-space: normal; overflow: visible;
+  }
+  .ph__chapter-number { font-size: 11px; font-weight: 400; line-height: 1; vertical-align: super; margin-left: 9px; letter-spacing: .02em; color: var(--_tokens---color--muted); }
+  .ph__ch-title .ph__chapter-number { position: relative; top: -.5em; }
+  .ph__section-number { display: inline-block; margin-right: 14px; font-size: 12px; font-weight: 400; letter-spacing: .02em; color: var(--_tokens---color--muted); vertical-align: .18em; }
+  .ph__argument-path { list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; padding: 0; margin: 12px 0 36px; }
+  .ph__argument-path li { position: relative; display: grid; align-content: start; gap: 8px; padding: 20px; border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 16%, var(--_tokens---color--bg)); border-radius: 6px; background: color-mix(in srgb, var(--_tokens---color--fg) 4%, var(--_tokens---color--bg)); font-size: 14px; line-height: 1.4; }
+  .ph__argument-path li span { color: var(--_tokens---color--muted); font-size: 10px; }
+  .ph__argument-path li:not(:last-child)::after { content: '→'; position: absolute; right: -25px; top: 50%; transform: translateY(-50%); font-size: 21px; color: var(--_tokens---color--muted); }
+  :is([data-chapter-group="ch1"], [data-chapter-group="ch2"]) .ph__book-running-head { border: 0; padding-top: 8px; margin-bottom: 26px; letter-spacing: .035em; font-size: 10px; }
+  :is([data-chapter-group="ch1"], [data-chapter-group="ch2"]) .ph__book-running-head span:last-child { display: none; }
+  @media (max-width: 699.98px) {
+    .ph { --ph-reading-gap: 24px; }
+    .ph__ch-title { font-size: 27px; }
+    :is([data-chapter-group="ch1"], [data-chapter-group="ch2"]) .ph__fold { padding-inline: 0; }
+    .ph__argument-path { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+    .ph__argument-path li { padding: 16px; font-size: 14px; }
+    .ph__argument-path li:not(:last-child)::after { content: '↓'; right: auto; left: 50%; top: auto; bottom: -24px; transform: translateX(-50%); font-size: 17px; }
+  }
+
+
+  /* Prose owns the columns; single diagrams sit in compact rows between passages. */
+  [data-chapter-group="ch1"] .ph__read-unit > .ph__infig { width: 100%; margin: 0; }
+  [data-chapter-group="ch1"] .ph__infig:not(#usa) > .ph__fig { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--ph-col-gap); align-items: start; }
+  [data-chapter-group="ch1"] .ph__infig:not(#usa) .ph__fig > figcaption { grid-column: 1; grid-row: 1; }
+  [data-chapter-group="ch1"] .ph__infig:not(#usa) .ph__fig > :is(.ph__fig-bars, .ph__fig-chips, .ph__rings) { grid-column: 2; grid-row: 1 / span 3; }
+  [data-chapter-group="ch1"] .ph__infig:not(#usa) .ph__fig > p { grid-column: 1; }
+  [data-chapter-group="ch1"] #usa { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 20px var(--ph-col-gap); }
+  [data-chapter-group="ch1"] #usa > :is(.ph__fig-header, .ph__map-bar, .ph__fig-key, .ph__fig-src) { grid-column: 1 / -1; }
+  [data-chapter-group="ch1"] #usa .ph__map-bar { display: flex; justify-content: space-between; align-items: start; gap: 24px; }
+  [data-chapter-group="ch1"] #usa .ph__map-bar p { margin: 0; }
+  [data-chapter-group="ch1"] #usa .ph__national-map { grid-column: 1; margin: 0; }
+  [data-chapter-group="ch1"] #usa .ph__ranklist { grid-column: 2; min-width: 0; }
+  [data-chapter-group="ch1"] #usa .ph__top5 { max-height: 290px; }
+  [data-chapter-group="ch1"] .ph__read-text { orphans: 2; widows: 2; }
+  @media (max-width: 699.98px) {
+    [data-chapter-group="ch1"] #usa, [data-chapter-group="ch1"] .ph__infig:not(#usa) > .ph__fig { grid-template-columns: minmax(0, 1fr); }
+    [data-chapter-group="ch1"] #usa .ph__map-bar { flex-direction: column; gap: 12px; }
+    [data-chapter-group="ch1"] #usa > :is(.ph__national-map, .ph__ranklist) { grid-column: 1; grid-row: auto; }
+    [data-chapter-group="ch1"] .ph__infig:not(#usa) .ph__fig > :is(figcaption, .ph__fig-bars, .ph__fig-chips, .ph__rings, p) { grid-column: 1; grid-row: auto; }
+  }
+
+
+  /* Shared figure language: open paper surface, fine rule, readable data and quiet sources. */
+  [data-chapter-group="ch1"] :is(.ph__figrow, .ph__infig) { padding-top: 20px; border-top: 1px solid var(--_tokens---color--line-soft); background: transparent; }
+  [data-chapter-group="ch1"] .ph__fig-header { gap: 12px; align-items: baseline; }
+  [data-chapter-group="ch1"] .ph__fig-tag { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+  [data-chapter-group="ch1"] .ph__fig-title { font-size: var(--_tokens---type--micro); }
+  [data-chapter-group="ch1"] .ph__fig-num { font-weight: 600; }
+  [data-chapter-group="ch1"] .ph__fig figcaption > span { color: var(--_tokens---color--fg); }
+  [data-chapter-group="ch1"] .ph__fig-src { opacity: 1; line-height: 1.5; }
+  [data-chapter-group="ch1"] :is(.ph__fig-bar, .ph__waffle i, .ph__fig-units i) { border-radius: 1px; }
+  [data-chapter-group="ch1"] .ph__fig-bars { gap: 12px; }
+  [data-chapter-group="ch1"] .ph__fig-bars > div > span { margin-bottom: 5px; }
+  [data-chapter-group="ch1"] .ph__fig-chips { gap: 8px 16px; }
+  [data-chapter-group="ch1"] .ph__fig-chips i { border-radius: 0; padding: 4px 0 4px 9px; background: transparent; border-left: 3px solid var(--ph-grey); font-size: var(--_tokens---type--micro); color: var(--_tokens---color--fg); }
+  [data-chapter-group="ch1"] .ph__fig-chips .c-teal { border-color: var(--ph-teal); }
+  [data-chapter-group="ch1"] .ph__fig-chips .c-orange { border-color: var(--ph-orange); }
+  [data-chapter-group="ch1"] .ph__rings { margin: 0; }
+  [data-chapter-group="ch1"] .ph__rings-ring { border: 1px solid color-mix(in srgb, var(--ring) 65%, var(--_tokens---color--line-soft)); border-radius: 2px; background: transparent; padding: 10px; }
+  [data-chapter-group="ch1"] .ph__rings-ring p { color: var(--_tokens---color--fg); }
+  [data-chapter-group="ch1"] .ph__rings-core { border-radius: 1px; background: var(--_tokens---color--fg); color: var(--_tokens---color--bg, #fff); }
+  [data-chapter-group="ch1"] .ph__lens i { border-radius: 0; padding: 0; background: transparent; color: var(--_tokens---color--muted); letter-spacing: .04em; }
+  [data-chapter-group="ch1"] .ph__lens { border-left: 1px solid var(--_tokens---color--line-soft); padding-left: 14px; gap: 10px; }
+  [data-chapter-group="ch1"] .ph__fig-note:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+
+  /* One panel treatment for every figure, diagram and table in the reading chapters. */
+  [data-chapter-group="ch1"] :is(.ph__figrow, .ph__infig) {
+    box-sizing: border-box; width: 100%; padding: 24px;
+    border: 1px solid color-mix(in srgb, var(--_tokens---color--fg) 16%, var(--_tokens---color--bg));
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--_tokens---color--fg) 4%, var(--_tokens---color--bg));
+  }
+  @media (max-width: 699.98px) {
+    [data-chapter-group="ch1"] :is(.ph__figrow, .ph__infig) { padding: 16px; }
+  }
+
+  /* The introduction turns the column at a paragraph boundary. */
+  @media (min-width: 700px) {
+    [data-section-panel="1-0"] .ph__read-text p:nth-child(3) { break-before: column; }
+    [data-section-panel="1-0"] .ph__read-text p { break-inside: avoid-column; }
+  }
+
   /* InDesign Monograph Running Headers & Footers */
   .ph__book-running-head {
     display: flex;
@@ -3705,7 +3526,7 @@ const mindmapBibs = rawBibs.map((b) => ({
       sectionBtns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.section === id)));
       chapterBtns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.chapter === ch)));
       indexChapters.forEach((c) => (c.dataset.active = String(c.dataset.indexChapter === ch)));
-      if (!index?.open) openChapter(ch);
+      if (!index?.open) openChapter(ch === 'ch5' ? null : ch);
       book.querySelectorAll<HTMLElement>('[data-subtabs]').forEach((n) => (n.hidden = n.dataset.subtabs !== ch));
       syncTocHeight();
       const btn = sectionBtns.find((b) => b.dataset.section === id);
@@ -3739,7 +3560,7 @@ const mindmapBibs = rawBibs.map((b) => ({
       active.open = true;
       sectionPanels.forEach((el) => {
         const fold = el as HTMLDetailsElement;
-        if (fold !== active && fold.open) fold.open = false;
+        if (fold instanceof HTMLDetailsElement && fold !== active && fold.open) fold.open = false;
       });
     };
     const goTo = (target: HTMLElement | null, id: string) => {
@@ -3754,10 +3575,9 @@ const mindmapBibs = rawBibs.map((b) => ({
       const targetEl = book.querySelector<HTMLElement>(hash);
       onlyChapter(targetEl?.closest<HTMLDetailsElement>('details.ph__ch-group'));
       const fold = targetEl?.closest<HTMLDetailsElement>('details.ph__fold');
-      if (fold) {
-        onlySection(fold);
-        if (fold.dataset.sectionPanel) setCurrent(fold.dataset.sectionPanel);
-      }
+      if (fold) onlySection(fold);
+      const panel = targetEl?.closest<HTMLElement>('[data-section-panel]');
+      if (panel?.dataset.sectionPanel) setCurrent(panel.dataset.sectionPanel);
       let ancestor = targetEl?.parentElement;
       while (ancestor && ancestor !== book) {
         if (ancestor instanceof HTMLDetailsElement) ancestor.open = true;
@@ -3765,13 +3585,92 @@ const mindmapBibs = rawBibs.map((b) => ({
       }
       jump(targetEl);
     };
-    // Note numbers, "Back" links, and section anchor links jump smoothly.
+    // All chapter and figure note links show their full reference in place.
+    const citation = book.querySelector<HTMLElement>('#ph-citation')!;
+    const citationBody = citation.querySelector<HTMLElement>('[data-citation-body]')!;
+    const citationTitle = citation.querySelector<HTMLElement>('#ph-citation-title')!;
+    const citationBib = citation.querySelector<HTMLAnchorElement>('[data-citation-bib]')!;
+    let citationTrigger: HTMLAnchorElement | null = null;
+    const normaliseCitation = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    const bibliographyTarget = (reference: HTMLElement) => {
+      const urls = [...reference.querySelectorAll<HTMLAnchorElement>('a[href^="http"]')].map(a => a.href);
+      const titles = [...reference.querySelectorAll('i, em')].map(el => normaliseCitation(el.textContent || '')).filter(t => t.length > 12);
+      const entries = [...book.querySelectorAll<HTMLElement>('.ph__bib-list > li')];
+      // Exact source URLs or publication titles; an uncertain match opens the full list.
+      const entry = entries.find(el => urls.length && [...el.querySelectorAll<HTMLAnchorElement>('a[href^="http"]')].some(a => urls.includes(a.href)))
+        || entries.find(el => titles.some(title => normaliseCitation(el.textContent || '').includes(title)));
+      return entry ? `#${entry.id}` : '#s-5-5';
+    };
+    const positionCitation = () => {
+      if (!citation.matches(':popover-open') || !citationTrigger) return;
+      const anchor = citationTrigger.getBoundingClientRect();
+      const box = citation.getBoundingClientRect();
+      const left = Math.max(16, Math.min(anchor.left, innerWidth - box.width - 16));
+      let top = anchor.bottom + 10;
+      if (top + box.height > innerHeight - 16) top = anchor.top - box.height - 10;
+      citation.style.left = `${left}px`;
+      citation.style.top = `${Math.max(16, Math.min(top, innerHeight - box.height - 16))}px`;
+    };
+    const closeCitation = (restoreFocus = false) => {
+      if (citation.matches(':popover-open')) citation.hidePopover();
+      if (restoreFocus) citationTrigger?.focus({ preventScroll: true });
+    };
+    const showCitation = (trigger: HTMLAnchorElement, href = trigger.getAttribute('href') || '') => {
+      const note = book.querySelector<HTMLElement>(href);
+      const reference = note?.querySelector<HTMLElement>(':scope > span');
+      if (!reference) return false;
+      const match = href.match(/^#note-(\d+)-(\d+)$/);
+      if (!match) return false;
+      citationTrigger?.setAttribute('aria-expanded', 'false');
+      citationTrigger = trigger;
+      trigger.setAttribute('aria-haspopup', 'dialog');
+      trigger.setAttribute('aria-controls', 'ph-citation');
+      trigger.setAttribute('aria-expanded', 'true');
+      citationTitle.textContent = `Chapter ${match[1]} · Note ${match[2]}`;
+      citationBody.replaceChildren(...[...reference.childNodes].map(node => node.cloneNode(true)));
+      citationBib.href = bibliographyTarget(reference);
+      if (!citation.matches(':popover-open')) citation.showPopover();
+      positionCitation();
+      citationTitle.focus({ preventScroll: true });
+      return true;
+    };
+    book.querySelectorAll<HTMLAnchorElement>('a[href^="#note-"]').forEach(link => {
+      link.setAttribute('aria-haspopup', 'dialog');
+      link.setAttribute('aria-controls', 'ph-citation');
+      link.setAttribute('aria-expanded', 'false');
+    });
+    citation.querySelector('[data-citation-close]')?.addEventListener('click', () => closeCitation(true));
+    citation.addEventListener('toggle', () => {
+      if (!citation.matches(':popover-open')) citationTrigger?.setAttribute('aria-expanded', 'false');
+    });
+    citationBib.addEventListener('click', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      const href = citationBib.getAttribute('href')!;
+      closeCitation();
+      jumpToHashInBook(href);
+      const target = book.querySelector<HTMLElement>(href);
+      if (target) { target.tabIndex = -1; target.focus({ preventScroll: true }); }
+    });
+    addEventListener('resize', positionCitation);
+    addEventListener('scroll', positionCitation, { passive: true });
+    chapterBtns.forEach(button => button.addEventListener('click', () => closeCitation()));
+    sectionBtns.forEach(button => button.addEventListener('click', () => closeCitation()));
+
+    // Back links and section anchors keep their existing navigation.
     book.addEventListener('click', (e) => {
-      const a = (e.target as Element).closest<HTMLAnchorElement>('a[href^="#note-"], a[href^="#ref-"], a[href^="#s-"]');
+      const a = (e.target as Element).closest<HTMLAnchorElement>('a[href^="#note-"], a[href^="#ref-"], a[href^="#s-"], .ph2-source a[href^="http"], .ph__fig-src a[href^="http"]');
       if (!a) return;
       const href = a.getAttribute('href');
-      if (!href || !href.startsWith('#')) return;
+      if (!href) return;
+      if (!href.startsWith('#')) {
+        const matchingNote = [...book.querySelectorAll<HTMLElement>('.ph__notes-list > li')].find(note => [...note.querySelectorAll<HTMLAnchorElement>('a[href^="http"]')].some(link => link.href === a.href));
+        if (matchingNote && showCitation(a, `#${matchingNote.id}`)) e.preventDefault();
+        return;
+      }
       e.preventDefault();
+      if (href.startsWith('#note-') && showCitation(a)) return;
+      closeCitation();
       jumpToHashInBook(href);
     });
     chapterBtns.forEach((b) =>
@@ -3842,6 +3741,8 @@ const mindmapBibs = rawBibs.map((b) => ({
     };
     addEventListener('scroll', () => { if (!jumping && !ticking) { ticking = true; requestAnimationFrame(spy); } }, { passive: true });
     spy();
+    // Restore a linked chapter or section on refresh.
+    if (/^#(?:ch[1-5]|s-[1-5]-\d+|note-[1-4]-\d+|bib-\d+)$/.test(location.hash)) requestAnimationFrame(() => jumpToHashInBook(location.hash));
 
     // 90% Screen Mindmap Lightbox wiring
     const mmLightbox = book.querySelector<HTMLElement>('[data-mm-lightbox]');

@@ -1,0 +1,115 @@
+---
+import figures from '../data/powerhouse-chapter2-figures.json';
+interface Props { blockId: string; text: {body:string[]; notesStart:number; notes:string[]}; }
+const {blockId,text}=Astro.props;
+type Figure = {label:string;value:string;caption:string;source:string;url?:string;rows?:string[][];bars?:(string|number)[][]};
+type Group = {after:number;cols:number;flow?:boolean;items:Figure[]};
+const groups:Group[]=(figures as Record<string,Group[]>)[blockId]||[];
+const ends=[...new Set([...groups.map(g=>g.after),text.body.length])].sort((a,b)=>a-b);
+let previous=0;
+const units=ends.map(end=>{
+  const paragraphs=text.body.slice(previous,end);previous=end;
+  const segments:{table?:string;paragraphs?:string[]}[]=[];
+  for(const paragraph of paragraphs){
+    if(paragraph.startsWith('<figure'))segments.push({table:paragraph});
+    else {
+      const last=segments[segments.length-1];
+      if(last?.paragraphs)last.paragraphs.push(paragraph);
+      else segments.push({paragraphs:[paragraph]});
+    }
+  }
+  return {segments,groups:groups.filter(g=>g.after===end)};
+});
+const linked=(s:string)=>s.replace(/<sup>(\d+)<\/sup>/g,(_,n)=>`<sup id="ref-2-${n}"><a href="#note-2-${n}" aria-label="Note ${n}">${n}</a></sup>`);
+const isBlock=(s:string)=>/^<(figure|h3|p)\b/.test(s);
+---
+<div class="ph2-report" data-research-block={blockId}>
+  {units.map(unit=>(
+    <div class="ph2-unit">
+      {unit.segments.map(segment=>segment.table ? (
+        <Fragment set:html={linked(segment.table)} />
+      ) : (
+        <div class="ph2-text">
+          {segment.paragraphs?.map(p=>isBlock(p)?<Fragment set:html={linked(p)}/>:<p set:html={linked(p)}/>)}
+        </div>
+      ))}
+      {unit.groups.map(group=>(
+        <div class:list={["ph2-figrow", {"ph2-figrow--scenario":group.cols===1,"ph2-figrow--flow":group.flow}]} style={`--ph2-cols:${group.cols}`}>
+          {group.items.map(fig=>(
+            <figure class="ph2-fig">
+              <div class="ph2-label">{fig.label}</div>
+              <figcaption><b>{fig.value}</b><span>{fig.caption}</span></figcaption>
+              {fig.bars&&<div class="ph2-bars">{fig.bars.map(row=><div><span>{row[0]} · {row[1]}%</span><div class="ph2-track"><i style={`width:${row[1]}%;background:var(--ph-${row[2]})`}/></div></div>)}</div>}
+              {fig.rows&&<dl>{fig.rows.map(row=><div><dt>{row[0]}</dt><dd>{row[1].includes('→') ? <span class="ph2-sequence">{row[1].split('→').map((step, i) => <><span>{step.trim()}</span>{i < row[1].split('→').length - 1 && <span class="ph2-sequence-arrow" aria-hidden="true">→</span>}</>)}</span> : row[1]}</dd></div>)}</dl>}
+              <p class="ph2-source">Source: {fig.url?<a href={fig.url}>{fig.source}</a>:fig.source}</p>
+            </figure>
+          ))}
+        </div>
+      ))}
+    </div>
+  ))}
+</div>
+<style>
+  .ph2-report { display:grid;gap:40px;--ph2-gap:var(--ph-reading-gap, 40px); }
+  .ph2-unit { display:grid;gap:32px;min-width:0; }
+  .ph2-text { columns:2;column-gap:var(--ph2-gap);column-fill:balance;font-size:var(--ph-reading-size);line-height:var(--ph-reading-leading);orphans:2;widows:2; }
+  .ph2-text p { margin:0 0 1.25em;max-width:none; }
+  .ph2-text p:last-child { margin-bottom:0; }
+  .ph2-text :global(sup) { font-size:.72em;line-height:0;vertical-align:super; }
+  .ph2-text :global(sup a) { color:inherit;text-decoration:none;font-variant-numeric:tabular-nums; }
+  .ph2-figrow { display:grid;grid-template-columns:repeat(var(--ph2-cols),minmax(0,1fr));gap:24px var(--ph2-gap);align-items:start;padding-top:20px;border-top:1px solid var(--_tokens---color--line-soft); }
+  .ph2-fig { display:grid;gap:12px;min-width:0;margin:0;padding:0;border:0;background:none;break-inside:avoid; }
+  .ph2-figrow--flow .ph2-fig { position:relative; }
+  .ph2-figrow--flow .ph2-fig:not(:last-child)::after { content:'→';position:absolute;right:-26px;top:42px;font-size:22px;color:var(--_tokens---color--muted); }
+  @media (max-width: 1023.98px) { .ph2-figrow--flow .ph2-fig::after { display:none; } }
+  .ph2-label,.ph2-source { font-size:var(--_tokens---type--ultrathin);color:var(--_tokens---color--muted);line-height:1.5; }
+  .ph2-fig figcaption { display:grid;gap:8px; }
+  .ph2-fig figcaption b { font-size:clamp(1.75rem,1.4rem + .9vw,2.25rem);font-weight:600;letter-spacing:-.02em;line-height:1.12;overflow-wrap:anywhere; }
+  .ph2-fig figcaption span { font-size:var(--_tokens---type--micro);color:var(--_tokens---color--fg);line-height:1.5; }
+  .ph2-fig dl { display:grid;gap:14px;font-size:var(--_tokens---type--micro);line-height:1.5;margin:0; }
+  .ph2-fig dl>div { display:grid;gap:2px; }
+  .ph2-fig dt { font-size:11px;font-weight:600; }
+  .ph2-fig dd { margin:0;color:var(--_tokens---color--fg); }
+  .ph2-source { margin:0; }
+  .ph2-figrow--scenario .ph2-fig { grid-template-columns:minmax(0,1fr) minmax(0,2fr);column-gap:var(--ph2-gap); }
+  .ph2-figrow--scenario .ph2-label { grid-column:1 / -1; }
+  .ph2-figrow--scenario figcaption { grid-column:1;grid-row:2; }
+  .ph2-figrow--scenario dl { grid-column:2;grid-row:2;grid-template-columns:repeat(5,minmax(0,1fr));gap:16px; }
+  .ph2-figrow--scenario dt { font-size:18px;font-weight:500; }
+  .ph2-figrow--scenario .ph2-source { grid-column:1 / -1; }
+  @media (max-width: 1023.98px) { .ph2-figrow--scenario .ph2-fig { grid-template-columns:minmax(0,1fr); }.ph2-figrow--scenario dl { grid-column:1;grid-row:auto; } }
+  @media (max-width: 699.98px) { .ph2-figrow--scenario dl { grid-template-columns:repeat(2,minmax(0,1fr));gap:20px; } }
+
+  .ph2-source a { color:inherit;text-underline-offset:3px; }
+  .ph2-bars { display:grid;gap:10px;font-size:var(--_tokens---type--ultrathin); }
+  .ph2-track { height:12px;background:var(--ph-light);margin-top:4px; }
+  .ph2-track i { display:block;height:100%; }
+  .ph2-report :global(.ph__book-table) { margin:0;min-width:0;break-inside:avoid; }
+  .ph2-report :global(.ph__book-table figcaption) { font-size:var(--_tokens---type--micro);line-height:1.5;margin-bottom:16px; }
+  .ph2-report :global(.ph__book-tscroll) { overflow-x:auto;max-width:100%; }
+  .ph2-report :global(table) { width:100%;border-collapse:collapse;font-size:var(--_tokens---type--ultrathin);line-height:1.5; }
+  .ph2-report :global(th),.ph2-report :global(td) { text-align:left;vertical-align:top;padding:10px 16px 10px 0;border-bottom:1px solid var(--_tokens---color--line); }
+  .ph2-report :global(th) { font-weight:600; }
+  .ph2-report :global(.ph__book-tnote) { font-size:var(--_tokens---type--ultrathin);color:var(--_tokens---color--muted);line-height:1.5;margin:12px 0 0; }
+  @media (max-width: 1023.98px) { .ph2-figrow { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  @media (max-width: 699.98px) { .ph2-report { --ph2-gap:24px;gap:32px; }.ph2-text{columns:1}.ph2-figrow{grid-template-columns:minmax(0,1fr)}.ph2-unit{gap:24px}.ph2-report :global(table){min-width:640px} }
+
+  .ph2-label { font-size:10px;letter-spacing:.08em;text-transform:uppercase; }
+  .ph2-fig { background:transparent; }
+  .ph2-source { padding-top:4px; }
+  .ph2-source a:hover { color:var(--_tokens---color--fg); }
+  .ph2-source a:focus-visible { outline:2px solid currentColor;outline-offset:3px; }
+  .ph2-sequence { display:flex;align-items:baseline;flex-wrap:wrap;gap:6px; }
+  .ph2-sequence > span:not(.ph2-sequence-arrow) { padding-bottom:4px;border-bottom:1px solid var(--_tokens---color--line-soft); }
+  .ph2-sequence-arrow { color:var(--_tokens---color--muted); }
+
+  .ph2-figrow, .ph2-report :global(.ph__book-table) {
+    box-sizing:border-box;width:100%;padding:24px;
+    border:1px solid color-mix(in srgb, var(--_tokens---color--fg) 16%, var(--_tokens---color--bg));
+    border-radius:6px;
+    background:color-mix(in srgb, var(--_tokens---color--fg) 4%, var(--_tokens---color--bg));
+  }
+  @media (max-width: 699.98px) {
+    .ph2-figrow, .ph2-report :global(.ph__book-table) { padding:16px; }
+  }
+</style>

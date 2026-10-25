@@ -1,0 +1,22 @@
+---
+interface Step {id:string;num:string;title:string;}
+interface Props {previous?:Step;next?:Step;}
+const {previous,next}=Astro.props;
+---
+<nav class="reading-nav" aria-label="Continue reading">
+  <div>{previous&&<button type="button" data-section={previous.id}><span class="reading-arrow" aria-hidden="true">←</span><span><small>Previous · {previous.num}</small><b>{previous.title}</b></span></button>}</div>
+  <div>{next&&<button type="button" data-section={next.id}><span><small>Continue · {next.num}</small><b>{next.title}</b></span><span class="reading-arrow" aria-hidden="true">→</span></button>}</div>
+</nav>
+<style>
+.reading-nav{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px;padding:24px 0 8px;margin-top:40px;border-top:1px solid var(--_tokens---color--line);}
+.reading-nav>div:last-child{justify-self:end;text-align:right;}
+.reading-nav button{display:flex;align-items:center;gap:16px;padding:8px 0;border:0;background:none;color:var(--_tokens---color--fg);font:inherit;cursor:pointer;text-align:inherit;}
+.reading-nav button>span:not(.reading-arrow){display:grid;gap:5px;}
+.reading-nav small{font-size:11px;color:var(--_tokens---color--muted);font-weight:400;}
+.reading-nav b{font-size:14px;line-height:1.4;font-weight:500;}
+.reading-arrow{font-size:24px;line-height:1;transition:transform .2s ease;}
+.reading-nav button:hover .reading-arrow{transform:translateX(3px)}
+.reading-nav>div:first-child button:hover .reading-arrow{transform:translateX(-3px)}
+.reading-nav button:focus-visible{outline:2px solid currentColor;outline-offset:6px;}
+@media(max-width: 699.98px){.reading-nav{gap:20px;margin-top:32px}.reading-nav button{gap:8px}.reading-nav b{font-size:12px}.reading-arrow{font-size:20px}}
+</style>
