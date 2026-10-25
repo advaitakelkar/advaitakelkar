@@ -1,7 +1,10 @@
 ---
-import figures from '../data/powerhouse-chapter2-figures.json';
-interface Props { blockId: string; text: {body:string[]; notesStart:number; notes:string[]}; }
-const {blockId,text}=Astro.props;
+import figures2 from '../data/powerhouse-chapter2-figures.json';
+import figures3 from '../data/powerhouse-chapter3-figures.json';
+// Chapters 2 and 3 share this renderer; each chapter's figure groups are keyed by block id.
+const figures = { ...figures2, ...figures3 };
+interface Props { blockId: string; chapter?: string; text: {body:string[]; notesStart:number; notes:string[]}; }
+const {blockId,chapter='2',text}=Astro.props;
 type Figure = {label:string;value:string;caption:string;source:string;url?:string;rows?:string[][];bars?:(string|number)[][]};
 type Group = {after:number;cols:number;flow?:boolean;items:Figure[]};
 const groups:Group[]=(figures as Record<string,Group[]>)[blockId]||[];
@@ -20,7 +23,7 @@ const units=ends.map(end=>{
   }
   return {segments,groups:groups.filter(g=>g.after===end)};
 });
-const linked=(s:string)=>s.replace(/<sup>(\d+)<\/sup>/g,(_,n)=>`<sup id="ref-2-${n}"><a href="#note-2-${n}" aria-label="Note ${n}">${n}</a></sup>`);
+const linked=(s:string)=>s.replace(/<sup>(\d+)<\/sup>/g,(_,n)=>`<sup id="ref-${chapter}-${n}"><a href="#note-${chapter}-${n}" aria-label="Note ${n}">${n}</a></sup>`);
 const isBlock=(s:string)=>/^<(figure|h3|p)\b/.test(s);
 ---
 <div class="ph2-report" data-research-block={blockId}>
