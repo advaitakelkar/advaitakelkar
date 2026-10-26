@@ -12,6 +12,8 @@ import VGToolbar from '../../components/VGToolbar.astro';
 import RenderRooms from '../../components/RenderRooms.astro';
 import GongSlider from '../../components/GongSlider.astro';
 import GongDrawings from '../../components/GongDrawings.astro';
+import WorkArticle from '../../components/WorkArticle.astro';
+import { workMedia } from '../../lib/workMedia';
 import { isPlaceholder, realText, publicFileExists } from '../../lib/content';
 import Arrow from '../../components/Arrow.astro';
 
@@ -36,6 +38,16 @@ const gongDescription = gongParagraphs.length > 1 && gongIntroBreak > 0
 // Resolve tag and category references
 const tags = await Promise.all((data.tags ?? []).map(t => getEntry(t)));
 const category = data.category ? await getEntry(data.category) : null;
+const isWorkArticle = category?.id === 'work';
+const workFigures = isWorkArticle ? workMedia(project.id, data) : [];
+const mainFigures = workFigures.filter(f => f.role === 'main');
+// Main views appear only in the introduction and listing scrub. The story
+// below owns drawings, details and making, with no repeated hero gallery.
+const storyFigures = workFigures.filter(f => f.role !== 'main');
+// The Work intro — description left, slider right — is the house layout for
+// every slider page, Work or not. Outside Work the slider shows leadFigures.
+const introFigures = isWorkArticle ? mainFigures : (data as any).slider ? (data.leadFigures ?? []) : [];
+const hasWorkIntro = isWorkArticle || introFigures.length > 0;
 
 /* A project with `views` is renders, not photographs: the deck shows the one
    chosen image per view, and the alternates hang off it as variations rather
@@ -171,7 +183,7 @@ if (category) {
 
 dynamicCrumbs.push({ label: data.name });
 
-const template = projectTemplate(project.id, category?.id, data.template);
+const template = projectTemplate(project.id, category?.id, data.template, (data.multiImage ?? [])[0] ?? data.coverImage);
 const isOriginalCardPage = template.cards;
 /* A visualisation project draws its own middle — rooms, one image, the
    variations behind it. See RenderRooms.astro. */
@@ -219,6 +231,10 @@ const filterPills = [
 const renderViews = views.length ? views : allImages.map((image: string) => ({ image }));
 // Chapters read as tabs once there are two or more of them.
 const chapterTabs = (data.chapters?.length ?? 0) > 1;
+// A study tells its work in chapter cards, one chapter or many. Virtual Gods
+// is the one exhibition: its single chapter leads out to /virtual-gods.
+const isExhibition = project.id === 'virtual-gods';
+const isStudy = (data.chapters?.length ?? 0) > 0 && !isExhibition;
 
 // Derive a display name from an image filename (same rules as the client script)
 const isPortraits = template.namedSeries;
@@ -314,6 +330,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       data-project-name={data.name}
       data-is-card="true"
       data-slider={(data as any).slider ? "true" : undefined}
+      data-work-article={isWorkArticle ? "true" : undefined}
+      data-work-intro={hasWorkIntro ? "true" : undefined}
       data-gong={project.id === "gong-powai" ? "true" : undefined}
       data-renders={isRenders ? "true" : "false"}
       data-category={category ? category.id : ''}
@@ -469,7 +487,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                     paragraph. A sibling of the copy rows, not a child of one.
                     Decorative: it is one of the frames already in the rail
                     below, so an empty alt keeps it out of the way. */}
-                {(sideVideo || sideImage) && (
+                {introFigures.length > 0 && <div class="work-intro-slider"><GongSlider name={data.name} figures={introFigures} showCaption /></div>}
+                {!hasWorkIntro && (sideVideo || sideImage) && (
                   <figure class="renders-aside">
                     {project.id === "gong-powai" ? <GongSlider figures={(data.leadFigures ?? []).filter(f => !f.image.endsWith("05-bar-detail.webp"))} /> : sideVideo ? (
                       /* The video and its control are one object. The figure
@@ -728,7 +747,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
             const hasLead = words.length > 2;
             const lead = hasLead ? words.slice(0, 2).join(' ') : '';
             const rest = hasLead ? words.slice(2).join(' ') : words.join(' ');
-            return chapterTabs || project.id === 'vndls' ? (
+            return chapterTabs || isStudy ? (
             /* A tabbed chapter is a Journey card: its name, where it sits in
                the set, and the arrow in its circle; the body folds under it.
                All shows every card shut; a chapter tab shows its card open. */
@@ -778,7 +797,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
           one image. */}
       {/* A project told in chapter cards carries its pictures inside them;
           the stage and rail would be the same images a second time. */}
-      {project.id !== 'virtual-gods' && project.id !== 'vndls' && isRenders && renderViews.length > 0 && !chapterTabs && (
+      {isWorkArticle && <WorkArticle figures={storyFigures} name={data.name} slug={project.id} />}
+      {!hasWorkIntro && !isExhibition && !isStudy && isRenders && renderViews.length > 0 && !chapterTabs && (
         <section class="renders-section">
           {/* One picture shown whole above the room tabs — a drawing or a cut
               file wider than a room's tiles would crop it. Never cropped.
@@ -849,7 +869,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         );
       })()}
 
-      {isRenders && (data as any).slider && <footer class="project-bottom-credits" aria-label="Project credits">
+      {isRenders && ((data as any).slider || isWorkArticle) && <footer class="project-bottom-credits" aria-label="Project credits">
         <div id="project-bottom-people"></div>
         <div id="project-bottom-collection"></div>
       </footer>}
@@ -6021,6 +6041,26 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     .project-detail[data-slider="true"] .project-desc-clip :global(p:first-child) { margin-top: 0; }
     .project-detail[data-slider="true"] .project-desc-clip :global(p:last-child) { margin-bottom: 0; }
   }
+  /* Work: the existing copy stays left, main views occupy the right. The
+     reading panel may reparent on phones, so this stage is its own sibling. */
+  .work-intro-slider { width: 100%; min-width: 0; margin-top: 12px; }
+  .work-intro-slider :global(.gong-slider__stage) { aspect-ratio: 4 / 3; height: auto; }
+  .work-intro-slider :global(.gong-slider__stage img) { width: 100%; height: 100%; object-fit: contain; object-position: center top; }
+  .project-detail[data-work-intro="true"] #renders-people-slot { display: none !important; }
+  .project-detail[data-work-intro="true"] { padding-bottom: 140px; }
+  .project-detail[data-work-intro="true"][data-renders="true"] #project-readmore-btn:not([hidden]) { display: none !important; }
+  @media (min-width: 1024px) {
+    .project-detail[data-work-intro="true"][data-renders="true"] .project-card-info {
+      display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: auto !important; gap: 12px; align-items: start; min-height: 0 !important;
+    }
+    .project-detail[data-work-intro="true"] .project-card-info > .project-card__row2,
+    .project-detail[data-work-intro="true"] .project-card__text-block { display: block !important; grid-column: 1; grid-row: 1 !important; }
+    .project-detail[data-work-intro="true"] .project-card__intro { max-width: none; margin-bottom: 12px; }
+    .project-detail[data-work-intro="true"] .project-desc-readmore { display: block !important; }
+    .project-detail[data-work-intro="true"] .project-desc-clip { display: block !important; column-count: 1; max-height: none !important; overflow: visible !important; }
+    .project-detail[data-work-intro="true"] .project-card-info > .work-intro-slider { grid-column: 2 / span 2; grid-row: 1; margin: 0; max-width: none; }
+    .project-detail[data-work-intro="true"] .project-card-info > #project-people-panel { display: none !important; }
+  }
 </style>
 
 <script>
@@ -6111,7 +6151,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     // Slider pages reserve their second column for continued reading.
     // Hybrid Media uses the same disclosure even with its short assignment text.
     // Other short descriptions (including Barley and Bun) remain fully open.
-    if (detail?.dataset.slider === 'true') {
+    if (detail?.dataset.slider === 'true' && detail.dataset.workIntro !== 'true') {
       if (clip.dataset.readingWired) return;
       clip.dataset.readingWired = 'true';
       const blocks = Array.from(clip.children) as HTMLElement[];
@@ -7114,6 +7154,9 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   function buildProjectPhoneCard() {
     const detail = document.querySelector('.project-detail') as HTMLElement | null;
     if (!detail) return;
+    // The Work article is a continuous document; docking its description
+    // would cover the drawings while the visitor is trying to read them.
+    if (detail.dataset.workIntro === 'true') return;
     const phone = window.matchMedia('(max-width: 1023.98px)').matches;
     let card = detail.querySelector('.project-phone-card') as HTMLElement | null;
 

@@ -35,8 +35,7 @@ export default config({
         passcode: fields.text({ label: 'Passcode' }),
         template: fields.select({ label: 'Page template', options: [
           { label: 'Project 01 — copy, stage and rail of covers', value: 'project-01' },
-          { label: 'AI Portrait — named image series', value: 'ai-portrait' },
-          { label: 'AI Landscape — named image series', value: 'ai-landscape' },
+          { label: 'AI Series — named images, portrait or landscape from the pictures', value: 'ai-series' },
         ], defaultValue: 'project-01' }),
         design: fields.text({ label: 'Design (optional HTML)', multiline: true }),
         making: fields.text({ label: 'Making (optional HTML)', multiline: true }),

@@ -1023,19 +1023,25 @@ whole section instead of 404-ing.
 
 ## The template list
 
-**Three templates, and every project names one in its YAML.**
+**Five page layouts, from two YAML names.** `template:` accepts `project-01`
+(the default) and `ai-series`; the other layouts follow from the data.
 
-| write this | what it is | count |
+| layout | how a project gets it | projects |
 |---|---|---|
-| `project-01` | one full-width column: copy, then a stage and a rail of covers | 46 |
-| `ai-portrait` | an AI series of tall frames — deck, counter, timer ring, Prompt pill, the sitter's name beside the count | 6 |
-| `ai-landscape` | the same series page with wide frames | 1 |
+| Work intro | category `work`, or `slider: true` with `leadFigures` — description left, slider right; Work adds the drawings article (`WorkArticle`) below | 18 Work + Reflct, Carlo, Concrt, Shelf, Xbkc, Goonj, Gully, Pet Pod |
+| AI series | `template: "ai-series"` — **adaptive**: portrait or landscape frames from the series' first image (`src/lib/imageSize.ts`), so there is no second name to keep in step | Alt Verse, Hanma FAM, Indian Royals, Space Pirates, Sups' Portraits, Sups in the Hinterland (portrait); Architect x Architects (landscape) |
+| Study | any `chapters:` — the work told in chapter cards, one chapter or many (`isStudy`) | VNDLS, Scarpin', T4D, Open Source Design Library, Deleuze & Guattari, Dhal Ni Pol |
+| Exhibition | `virtual-gods` only (`isExhibition`) — its chapter leads out to `/virtual-gods` | Virtual Gods |
+| Project 01 | everything else: copy, then a stage and rail of covers | |
+
+`ai-portrait` and `ai-landscape` were merged into `ai-series` (Oct 2026); the
+schema no longer accepts the old names.
 
 `tabs`, `chapters` and `ai-works` were retired (Sept 2026): every `tabs` and
 `chapters` project moved to `project-01`, and `sups-in-the-hinterland` —
-one hero per frame, named in the filename — to `ai-portrait`. The schema and
-Keystatic accept only the three names; a YAML without the field gets
-`project-01`.
+one hero per frame, named in the filename — to the AI series. The schema and
+Keystatic accept only `ai-series` and `project-01`; a YAML without the field
+gets `project-01`.
 
 **A `project-01` project does not need `views`.** Without them the page
 builds one roomless view per image — cover first, then `multiImage` — the
@@ -1597,13 +1603,13 @@ Three systems hold this work. They **nest** rather than mirror — `Drive ⊂ We
 
 ```
 HUB/
-  00 Projects/          ← the archive: every project, heavy source files
-  00 Selected/          ← the curated set: what is worth publishing
-  01 Websites/          ← the GitHub repos (this one included)
+  1 Projects/           ← the archive: every project, heavy source files
+  2 Selected/           ← Academic sorting only: BArch/, MArch/, _Admin, _Unattributed
+  3 Portfolio/  4 Resume/  5 Websites/
 ```
 
-**`00 Projects` and `00 Selected` are the same tree.** Bucket, then studio,
-then project, with ARCHV going straight to projects because it has no studios:
+`1 Projects` is bucket, then studio, then project, with ARCHV going straight
+to projects because it has no studios:
 
 ```
 ARCHV/<Project>
@@ -1613,22 +1619,22 @@ Work/<823|ANLA|FKD>/<Project>
 ```
 
 Those are the three axes the Notion contract already uses, so a folder's path
-is its bucket and studio and nothing has to be kept in step by hand. An older
-version of this file described `Website/`, `ALL/` and `_DELETE/` under
-`00 Projects`; that split is gone — verified against the live mount
-20 Sep 2026.
+is its bucket and studio and nothing has to be kept in step by hand.
 
-`00 Selected` holds **only the folders that have something in it** — it is
-being built up, so a project with nothing chosen yet has no folder rather than
-an empty one. Two folders sit outside the project tree and keep their
-underscore so they sort first and read as staging: `_brand` (the logo files)
-and `_unattributed` (assets whose project is not yet known).
+**The curated picks live inside each project, in `<Project>/Selected/`.**
+`2 Selected` was a sorting tree that mirrored `1 Projects`; on 25 Oct 2026 its
+ARCHV, Freelancer and Work folders (23 projects, 529 files) were moved into
+their projects as `Selected/`, and the log is
+`2 Selected/_Admin/merge_log_2026-10-25.txt`. Only Academic is still being
+sorted, so `2 Selected` has no bucket level any more: `BArch/` and `MArch/`
+sit at its top. `_Admin` (logo, logs) and `_Unattributed` (assets whose
+project is not yet known) keep their underscore so they sort first.
 
-Eighteen of its folders carry a `SOURCE.csv` — `new_name, original_name, tool,
+Many `Selected/` folders carry a `SOURCE.csv` — `new_name, original_name, tool,
 source, sha256`. That is the provenance of a curated file, including which
 were pulled from a GPT library; carry it through whatever publishes them.
 
-Project folder *names* repeat between `00 Projects/` and `01 Websites/` — that's
+Project folder *names* repeat between `1 Projects/` and `5 Websites/` — that's
 expected: Drive holds the source files, the repo holds the web-sized images
 under `public/images/projects/<slug>/`.
 

@@ -1,0 +1,132 @@
+---
+import type { WorkFigure, MediaRole } from '../lib/workMedia';
+import { workStories } from '../data/work-stories';
+interface Props { figures: WorkFigure[]; name: string; slug: string }
+const { figures, name, slug } = Astro.props;
+const groups: Array<{ role: MediaRole; title: string }> = [
+  { role: 'plan', title: 'Plans' },
+  { role: 'illustration', title: 'Spatial studies' },
+  { role: 'section', title: 'Sections & elevations' },
+  { role: 'detail', title: 'Materials & details' },
+  { role: 'making', title: 'Making & site' },
+];
+const titleFor = (f: WorkFigure) => f.label ?? f.caption?.split(' — ').pop()?.split(';')[0] ?? f.image.split('/').pop()!.replace(/\.(webp|jpg|png)$/i, '').replace(/^\d+-/, '').replace(/-/g, ' ');
+interface Block { kind: 'figure' | 'text'; role: MediaRole; columns: number; rows: number; figure?: WorkFigure; title?: string; text?: string; anchor?: string }
+const blocks: Block[] = [];
+function span(f: WorkFigure, index: number, total: number): [number, number] {
+  if (f.role === 'plan' || f.role === 'section') return [2, 1];
+  if (f.role === 'illustration') {
+    // Axonometrics are large diagrams; inhabited perspective studies have
+    // the taller 2 × 3 render block Adi requested.
+    return /isometric|axonometric|exploded|cutaway/i.test(`${f.image} ${f.label}`) ? [2, 2] : [2, 3];
+  }
+  const ratio = (f.width ?? 1) / (f.height ?? 1);
+  if (total >= 5 && index === 0) return [2, 2];
+  if (ratio < 0.78) return [1, 2];
+  if (ratio > 1.45) return [2, 1];
+  return [1, 1];
+}
+for (const group of groups) {
+  const items = figures.filter(f => f.role === group.role);
+  if (!items.length) continue;
+  const story = group.role === 'main' ? undefined : workStories[slug]?.[group.role];
+  const sentences = story?.text.match(/[^.!?]+[.!?]+(?:\s|$)|[^.!?]+$/g)?.map(s => s.trim()) ?? [];
+  const splitStory = items.length >= 5 && sentences.length > 1;
+  items.forEach((figure, index) => {
+    const [columns, rows] = span(figure, index, items.length);
+    blocks.push({ kind: 'figure', role: group.role, figure, columns, rows, anchor: index === 0 ? `work-${group.role}` : undefined });
+    if (index === 0 && story) {
+      blocks.push({ kind: 'text', role: group.role, columns: 1, rows: 1, title: story.title, text: splitStory ? sentences[0] : story.text });
+    } else if (splitStory && index === Math.floor(items.length / 2)) {
+      blocks.push({ kind: 'text', role: group.role, columns: 1, rows: 1, text: sentences.slice(1).join(' ') });
+    } else if (group.role === 'plan' || group.role === 'section') {
+      const text = figure.note ?? figure.caption;
+      if (text) blocks.push({ kind: 'text', role: group.role, columns: 1, rows: 1, title: titleFor(figure), text });
+    }
+  });
+}
+---
+{figures.length > 0 && <div class="work-article" aria-label={`${name} drawings and details`}>
+  <nav class="work-article__index" aria-label="Project story">
+    {groups.filter(g => figures.some(f => f.role === g.role)).map(g => <a href={`#work-${g.role}`}>{g.title}</a>)}
+  </nav>
+  <div class="work-article__grid">
+    {blocks.map(block => block.kind === 'figure' && block.figure ? (
+      <figure id={block.anchor} data-image={block.figure.image} data-role={block.role} data-span={`${block.columns}x${block.rows}`} style={`--block-columns: ${block.columns}; --block-rows: ${block.rows}`}>
+        <button type="button" data-work-image={block.figure.image} data-caption={block.figure.alt ?? block.figure.caption ?? titleFor(block.figure)} aria-label={`Enlarge ${titleFor(block.figure)}`}>
+          <img src={block.figure.image} width={block.figure.width} height={block.figure.height} alt={block.figure.alt ?? block.figure.caption ?? titleFor(block.figure)} loading="lazy" decoding="async" />
+        </button>
+        <figcaption>{titleFor(block.figure)}</figcaption>
+        {(block.figure.annotations?.length || block.figure.drawingSource) && <details><summary>Drawing notes</summary>
+          {block.figure.annotations?.map(a => <section><h3>{a.heading}</h3><ul>{a.lines.map(line => <li>{line}</li>)}</ul></section>)}
+          {block.figure.drawingSource && <p>{block.figure.drawingSource}</p>}
+        </details>}
+      </figure>
+    ) : (
+      <section class="work-article__text" data-role={block.role} style="--block-columns: 1; --block-rows: 1">
+        {block.title && <h2>{block.title}</h2>}<p>{block.text}</p>
+      </section>
+    ))}
+  </div>
+  <dialog class="work-image-dialog" aria-label="Enlarged project image">
+    <form method="dialog"><button autofocus aria-label="Close enlarged image">Close ×</button></form>
+    <img alt="" /><p></p><a target="_blank" rel="noopener">Open full image</a>
+  </dialog>
+</div>}
+<style>
+  .work-article { width: 100%; min-width: 0; padding: 12px 0 60px; container-type: inline-size; }
+  .work-article__index { display: flex; flex-wrap: wrap; gap: 8px 16px; padding: 10px 0; margin-bottom: 16px; border-block: 1px solid var(--_tokens---color--line-soft); }
+  .work-article__index a { font-size: var(--_tokens---type--micro); color: inherit; text-underline-offset: 4px; }
+  .work-article__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: calc((100cqw - 24px) / 3); grid-auto-flow: row dense; gap: 12px; align-items: stretch; }
+  .work-article__grid > * { grid-column: span var(--block-columns); grid-row: span var(--block-rows); min-width: 0; min-height: 0; scroll-margin-top: 100px; }
+  figure { display: flex; flex-direction: column; margin: 0; }
+  figure button { display: block; width: 100%; flex: 1; min-height: 0; border: 0; padding: 0; background: transparent; cursor: zoom-in; color: inherit; }
+  figure img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: center; }
+  figcaption, details { flex-shrink: 0; margin-top: 6px; font-size: var(--_tokens---type--micro); line-height: 1.4; color: var(--_tokens---color--muted); }
+  details[open] { flex-shrink: 1; max-height: 45%; overflow: auto; }
+  summary { cursor: pointer; min-height: 36px; padding-top: 8px; }
+  .work-article__text { display: flex; flex-direction: column; justify-content: center; padding: 12px; border-top: 1px solid var(--_tokens---color--line-soft); }
+  .work-article__text h2 { margin: 0 0 12px; font-size: var(--_tokens---type--small); font-weight: var(--_tokens---weight--base); line-height: 1.3; }
+  .work-article__text p { margin: 0; font-size: var(--_tokens---type--micro); line-height: 1.6; }
+  h3 { font-size: inherit; margin: 12px 0 6px; }
+  ul { padding-left: 16px; }
+  .work-image-dialog { width: calc(100vw - 48px); max-width: 1500px; max-height: 92svh; padding: 20px; color: var(--_tokens---color--fg); background: var(--_tokens---color--bg); border: 1px solid var(--_tokens---color--line-soft); }
+  .work-image-dialog::backdrop { background: rgb(0 0 0 / 85%); }
+  .work-image-dialog form { display: flex; justify-content: end; }
+  .work-image-dialog button { min-height: 44px; padding: 8px; background: transparent; color: inherit; border: 0; cursor: pointer; }
+  .work-image-dialog img { display: block; width: 100%; height: 72svh; object-fit: contain; }
+  .work-image-dialog p, .work-image-dialog a { font-size: var(--_tokens---type--micro); color: inherit; }
+  @media (max-width: 1023.98px) {
+    .work-article__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: auto; grid-auto-flow: row; }
+    .work-article__grid > * { grid-row: auto; }
+    figure button { flex: none; height: 300px; }
+    figure[data-span="2x2"] button, figure[data-span="2x3"] button { height: 420px; }
+    .work-article__text { grid-column: 1 / -1; padding: 12px 0 20px; }
+  }
+  @media (max-width: 699.98px) {
+    .work-article__grid { grid-template-columns: 1fr; gap: 16px; }
+    .work-article__grid > * { grid-column: 1; }
+    figure button, figure[data-span="2x2"] button, figure[data-span="2x3"] button { height: auto; }
+    figure img { height: auto; }
+    .work-article__text { padding: 8px 0 16px; }
+  }
+</style>
+<script>
+  function initWorkArticle() {
+    document.querySelectorAll<HTMLElement>('.work-article:not([data-wired])').forEach(root => {
+      root.dataset.wired = 'true';
+      const dialog = root.querySelector<HTMLDialogElement>('dialog')!;
+      root.querySelectorAll<HTMLButtonElement>('[data-work-image]').forEach(button => button.addEventListener('click', () => {
+        const img = dialog.querySelector('img')!;
+        img.src = button.dataset.workImage!; img.alt = button.dataset.caption!;
+        dialog.querySelector('p')!.textContent = img.alt;
+        dialog.querySelector('a')!.href = img.src;
+        dialog.showModal();
+      }));
+      dialog.addEventListener('click', e => { if (e.target === dialog) { const r = dialog.getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) dialog.close(); } });
+      document.addEventListener('astro:before-swap', () => dialog.close(), { once: true });
+    });
+  }
+  initWorkArticle();
+  document.addEventListener('astro:after-swap', initWorkArticle);
+</script>

@@ -1,17 +1,18 @@
 ---
-interface Props { figures: Array<{ image: string; caption?: string }>; name?: string }
-const { figures, name = 'GONG' } = Astro.props;
+interface Props { figures: Array<{ image: string; caption?: string; alt?: string; label?: string }>; name?: string; showCaption?: boolean }
+const { figures, name = 'GONG', showCaption = false } = Astro.props;
 ---
-<div class="gong-slider" data-gong-slider aria-label={`${name} interior views`} aria-roledescription="carousel">
+<div class="gong-slider" data-gong-slider aria-label={`${name} views`} aria-roledescription="carousel">
   <div class="gong-slider__stage">
-    {figures.map((f, i) => <img src={f.image} alt={f.caption ?? `${name} interior ${i + 1}`} class:list={{'is-active': i === 0}} loading={i === 0 ? 'eager' : 'lazy'} />)}
+    {figures.map((f, i) => <img src={f.image} alt={f.alt ?? f.caption ?? f.label ?? `${name} view ${i + 1}`} data-caption={f.caption ?? f.label ?? `${name} view ${i + 1}`} class:list={{'is-active': i === 0}} loading={i === 0 ? 'eager' : 'lazy'} />)}
   </div>
   {figures.length > 1 && <div class="gong-slider__controls">
-    <button type="button" data-prev aria-label="Previous interior view">←</button>
+    <button type="button" data-prev aria-label="Previous view">←</button>
     <span data-count>1 / {figures.length}</span>
     <button type="button" data-pause aria-label="Pause slideshow">Pause</button>
-    <button type="button" data-next aria-label="Next interior view">→</button>
+    <button type="button" data-next aria-label="Next view">→</button>
   </div>}
+  {showCaption && <p class="gong-slider__caption" data-slide-caption>{figures[0]?.caption ?? figures[0]?.label}</p>}
 </div>
 <style>
   .gong-slider { width: 100%; }
@@ -20,6 +21,7 @@ const { figures, name = 'GONG' } = Astro.props;
   .gong-slider__stage img.is-active { display: block; opacity: 1; }
   .gong-slider__controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: var(--_tokens---type--micro); }
   .gong-slider__controls button { color: inherit; background: none; border: 0; cursor: pointer; min-height: 44px; min-width: 44px; font: inherit; }
+  .gong-slider__caption { margin-top: 8px; font-size: var(--_tokens---type--micro); line-height: 1.5; color: var(--_tokens---color--muted); }
   @media (prefers-reduced-motion: reduce) { .gong-slider__stage img { transition: none; } }
 </style>
 <script>
@@ -43,6 +45,8 @@ const { figures, name = 'GONG' } = Astro.props;
         current = (current + delta + images.length) % images.length;
         images[current].classList.add('is-active');
         count.textContent = `${current + 1} / ${images.length}`;
+        const caption = root.querySelector('[data-slide-caption]');
+        if (caption) caption.textContent = images[current].dataset.caption ?? '';
       };
       root.querySelector('[data-prev]')?.addEventListener('click', () => show(-1));
       root.querySelector('[data-next]')?.addEventListener('click', () => show(1));

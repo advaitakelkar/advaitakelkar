@@ -12,6 +12,7 @@ import Icon from './Icon.astro';
 import { isProjectLocked, visibleProjectImages } from '../lib/content';
 import fs from 'node:fs';
 import path from 'node:path';
+import { workMainImages } from '../lib/workMedia';
 
 export interface Props {
   project: any;
@@ -96,7 +97,10 @@ const scrubImgsRaw: string[] = hasCuratedPreview && curatedImgs?.length
   : allImgs;
 const isLocked = isProjectLocked(p.id, p.data?.passcode);
 // Curated ARCHV, GONG and Barley and Bun previews are visible in listings.
-const scrubImgs = hasCuratedPreview
+const workMain = p.data.category?.id === 'work' ? workMainImages(p.id) : undefined;
+const scrubImgs = workMain !== undefined
+  ? visibleProjectImages(p.id, p.data?.passcode, workMain)
+  : hasCuratedPreview
   ? [...new Set(scrubImgsRaw)].slice(0, 5)
   : visibleProjectImages(p.id, p.data?.passcode, scrubImgsRaw);
 ---

@@ -42,7 +42,6 @@ const manualMatches = {
   "37e365b8-0755-8157-bb91-ccc100452841": "bnb-khar.yaml",
   "37e365b8-0755-8162-9ccc-f0a1ae009f0a": "skadoogee.yaml",
   "37e365b8-0755-814e-b32b-f2171ffd161a": "union-pier-charleston.yaml",
-  "37e365b8-0755-81a2-ac41-c3407f5ed935": "tilak-nagar-cricket-park.yaml",
   "37e365b8-0755-8183-a9a3-f9212f4e3308": "vndls.yaml",
   "37e365b8-0755-81fe-9c68-e81d0e392860": "the-4th-dimention.yaml",
   "37e365b8-0755-81c5-a6af-c92b41745e74": "reflct.yaml",
@@ -351,6 +350,15 @@ async function run() {
     for (const page of response.results) {
       const pageId = page.id;
       const notionName = getPropValue(page.properties.Name);
+      // Removed from the website by Adi on 25 October 2026. Keep a future
+      // import from recreating the deleted project pages; Notion is retained.
+      const removedProjectIds = ['FREE-11', 'ADVT-01', 'FREE-06'];
+      const removedNames = ['play-pod', 'human-pods', 'roberto-burle-marx', 'roberto-burle-marx-stickers', 'tilak-nagar-park', 'tilak-nagar-cricket-park'];
+      const projectId = getPropValue(page.properties['Project ID']);
+      if (removedProjectIds.includes(projectId) || removedNames.includes(slugify(notionName)) || pageId === '37e365b8-0755-81a2-ac41-c3407f5ed935') {
+        console.log('Skipping project removed from website.');
+        continue;
+      }
       const notionYear = getPropValue(page.properties.Year);
       const notionShort = getPropValue(page.properties.Short);
       const notionShortName = getPropValue(page.properties['SHORT NAME']);

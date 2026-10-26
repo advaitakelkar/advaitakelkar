@@ -78,7 +78,7 @@ const projects = defineCollection({
     passcode: z.string().optional(),
     // 'ai-works' and 'project-01' are the written names for `cards` and
     // `renders`. See projectTemplates.ts.
-    template: z.enum(['ai-portrait', 'ai-landscape', 'project-01']).optional(),
+    template: z.enum(['ai-series', 'project-01']).optional(),
     design: z.string().optional(),
     making: z.string().optional(),
     smallIntro: z.string().optional(),
