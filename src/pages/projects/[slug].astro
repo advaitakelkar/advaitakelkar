@@ -13,6 +13,7 @@ import RenderRooms from '../../components/RenderRooms.astro';
 import GongSlider from '../../components/GongSlider.astro';
 import GongDrawings from '../../components/GongDrawings.astro';
 import WorkArticle from '../../components/WorkArticle.astro';
+import DesignProjectBrief from '../../components/DesignProjectBrief.astro';
 import { workMedia, imagePaths } from '../../lib/workMedia';
 import { isPlaceholder, realText, publicFileExists } from '../../lib/content';
 import Arrow from '../../components/Arrow.astro';
@@ -332,6 +333,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       data-slider={(data as any).slider ? "true" : undefined}
       data-work-article={isWorkArticle ? "true" : undefined}
       data-work-intro={hasWorkIntro ? "true" : undefined}
+      data-design-brief={data.designBrief ? "true" : undefined}
       data-gong={project.id === "gong-powai" ? "true" : undefined}
       data-renders={isRenders ? "true" : "false"}
       data-category={category ? category.id : ''}
@@ -703,6 +705,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
           )}
         </div>
       )}
+
+      {data.designBrief && <DesignProjectBrief {...data.designBrief} />}
 
       <!-- NON-ORIGINAL-CARD PAGES: chapter dropdowns (when defined) or Design & Making -->
       {project.id !== 'virtual-gods' && !isOriginalCardPage && (data.chapters?.length ?? 0) > 0 && (
@@ -6043,6 +6047,14 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     .project-detail[data-slider="true"] .project-desc-clip :global(p:first-child) { margin-top: 0; }
     .project-detail[data-slider="true"] .project-desc-clip :global(p:last-child) { margin-bottom: 0; }
   }
+  /* Design briefs read in the normal page flow at every screen size. */
+  .project-detail[data-design-brief="true"][data-renders="true"] .project-card-info {
+    display: block !important; min-height: 0 !important; margin-bottom: 24px;
+  }
+  .project-detail[data-design-brief="true"] .project-card__text-block { max-width: 68ch; }
+  .project-detail[data-design-brief="true"] .project-chapters--tabs { padding-bottom: 80px; }
+  .project-detail[data-design-brief="true"] #project-readmore-btn { display: none !important; }
+
   /* Work: the existing copy stays left, main views occupy the right. The
      reading panel may reparent on phones, so this stage is its own sibling. */
   .work-intro-slider { width: 100%; min-width: 0; margin-top: 12px; }
@@ -7174,7 +7186,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     if (!detail) return;
     // The Work article is a continuous document; docking its description
     // would cover the drawings while the visitor is trying to read them.
-    if (detail.dataset.workIntro === 'true') return;
+    if (detail.dataset.workIntro === 'true' || detail.dataset.designBrief === 'true') return;
     const phone = window.matchMedia('(max-width: 1023.98px)').matches;
     let card = detail.querySelector('.project-phone-card') as HTMLElement | null;
 
