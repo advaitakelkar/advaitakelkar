@@ -71,12 +71,21 @@ if (activeProject) {
   currentProjectShort = short && short.length < currentProjectName.length
     ? short
     : currentProjectName;
-  const idx = projects.findIndex(p => p.id === currentProjectId);
+  // The arrows walk one category at a time, A–Z inside it, then on into the
+  // next category in the order the Pages list shows them — so from the last
+  // Work project you arrive at the first project of the next category rather
+  // than at whatever sorts after it alphabetically across the whole site.
+  const catOf = (p: typeof projects[number]) => (p.data.category as { id?: string } | undefined)?.id;
+  const walk = [
+    ...categories.flatMap(c => projects.filter(p => catOf(p) === c.id)),
+    ...projects.filter(p => !categories.some(c => c.id === catOf(p))),
+  ];
+  const idx = walk.findIndex(p => p.id === currentProjectId);
   // Prev/next arrows only make sense on an actual project page — not on
   // Home / About / Projects / category pages, where there's no project context.
   if (idx !== -1 && isProjectPage) {
-    prevProjectUrl = `/projects/${projects[(idx - 1 + projects.length) % projects.length].id}`;
-    nextProjectUrl = `/projects/${projects[(idx + 1) % projects.length].id}`;
+    prevProjectUrl = `/projects/${walk[(idx - 1 + walk.length) % walk.length].id}`;
+    nextProjectUrl = `/projects/${walk[(idx + 1) % walk.length].id}`;
   }
 }
 ---

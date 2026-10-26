@@ -11,20 +11,42 @@ const groups: Array<{ role: MediaRole; title: string }> = [
   { role: 'making', title: 'Making & site' },
 ];
 const titleFor = (f: WorkFigure) => f.label ?? f.caption?.split(' — ').pop()?.split(';')[0] ?? f.image.split('/').pop()!.replace(/\.(webp|jpg|png)$/i, '').replace(/^\d+-/, '').replace(/-/g, ' ');
-interface Block { kind: 'figure' | 'text'; role: MediaRole; columns: number; rows: number; figure?: WorkFigure; title?: string; text?: string; anchor?: string }
+interface Block { kind: 'figure' | 'text'; role: MediaRole; columns: number; rows: number; fit?: 'cover' | 'contain'; figure?: WorkFigure; title?: string; text?: string; anchor?: string }
 const blocks: Block[] = [];
-function span(f: WorkFigure, index: number, total: number): [number, number] {
-  if (f.role === 'plan' || f.role === 'section') return [2, 1];
+/* A photograph gets the box that matches its own proportions and fills it
+   edge to edge, so it lines up with the grid and the text beside it. Each
+   shape is columns x rows of square cells; the one closest to the image's
+   ratio wins, and on a near tie the larger one. Drawings keep their own
+   sizing below and are always shown whole. */
+// Adi's set for photographs: 1 × 1, 1 × 2, 2 × 1 and 2 × 2, nothing larger.
+const PHOTO_SHAPES: Array<[number, number]> = [[1, 1], [1, 2], [2, 1], [2, 2]];
+// Construction details are often drawings (`architectural-…`, an elevation,
+// a section); those are never cropped, only photographs are.
+const isDrawing = (f: WorkFigure) => /architectural|elevation|section|plan|drawing|isometric/i.test(f.image);
+const isPhoto = (f: WorkFigure) => (f.role === 'detail' || f.role === 'making' || f.role === 'main') && !isDrawing(f);
+function span(f: WorkFigure): [number, number] {
+  const ratio = (f.width ?? 1) / (f.height ?? 1);
+  // A plan is the drawing the article is built around, so it takes two
+  // columns and as many rows as its own proportions need.
+  if (f.role === 'plan') return [2, Math.min(3, Math.max(1, Math.round(2 / ratio + 0.25)))];
+  if (f.role === 'section') return [2, 1];
   if (f.role === 'illustration') {
     // Axonometrics are large diagrams; inhabited perspective studies have
     // the taller 2 × 3 render block Adi requested.
     return /isometric|axonometric|exploded|cutaway/i.test(`${f.image} ${f.label}`) ? [2, 2] : [2, 3];
   }
-  const ratio = (f.width ?? 1) / (f.height ?? 1);
-  if (total >= 5 && index === 0) return [2, 2];
-  if (ratio < 0.78) return [1, 2];
-  if (ratio > 1.45) return [2, 1];
-  return [1, 1];
+  let best = PHOTO_SHAPES[0], bestScore = Infinity;
+  for (const shape of PHOTO_SHAPES) {
+    const score = Math.abs(Math.log((shape[0] / shape[1]) / ratio)) - 0.02 * shape[0] * shape[1];
+    if (score < bestScore) { best = shape; bestScore = score; }
+  }
+  return best;
+}
+// A photograph is cropped to its box only when the box nearly matches it;
+// an extreme strip that no shape suits is shown whole instead.
+function fills(f: WorkFigure, [c, r]: [number, number]) {
+  const box = c / r, img = (f.width ?? 1) / (f.height ?? 1);
+  return Math.min(box / img, img / box) >= 0.6;
 }
 for (const group of groups) {
   const items = figures.filter(f => f.role === group.role);
@@ -33,8 +55,8 @@ for (const group of groups) {
   const sentences = story?.text.match(/[^.!?]+[.!?]+(?:\s|$)|[^.!?]+$/g)?.map(s => s.trim()) ?? [];
   const splitStory = items.length >= 5 && sentences.length > 1;
   items.forEach((figure, index) => {
-    const [columns, rows] = span(figure, index, items.length);
-    blocks.push({ kind: 'figure', role: group.role, figure, columns, rows, anchor: index === 0 ? `work-${group.role}` : undefined });
+    const [columns, rows] = span(figure);
+    blocks.push({ kind: 'figure', role: group.role, figure, columns, rows, fit: isPhoto(figure) && fills(figure, [columns, rows]) ? 'cover' : 'contain', anchor: index === 0 ? `work-${group.role}` : undefined });
     if (index === 0 && story) {
       blocks.push({ kind: 'text', role: group.role, columns: 1, rows: 1, title: story.title, text: splitStory ? sentences[0] : story.text });
     } else if (splitStory && index === Math.floor(items.length / 2)) {
@@ -52,7 +74,7 @@ for (const group of groups) {
   </nav>
   <div class="work-article__grid">
     {blocks.map(block => block.kind === 'figure' && block.figure ? (
-      <figure id={block.anchor} data-image={block.figure.image} data-role={block.role} data-span={`${block.columns}x${block.rows}`} style={`--block-columns: ${block.columns}; --block-rows: ${block.rows}`}>
+      <figure id={block.anchor} data-image={block.figure.image} data-role={block.role} data-span={`${block.columns}x${block.rows}`} data-fit={block.fit} style={`--block-columns: ${block.columns}; --block-rows: ${block.rows}`}>
         <button type="button" data-work-image={block.figure.image} data-caption={block.figure.alt ?? block.figure.caption ?? titleFor(block.figure)} aria-label={`Enlarge ${titleFor(block.figure)}`}>
           <img src={block.figure.image} width={block.figure.width} height={block.figure.height} alt={block.figure.alt ?? block.figure.caption ?? titleFor(block.figure)} loading="lazy" decoding="async" />
         </button>
@@ -82,6 +104,7 @@ for (const group of groups) {
   figure { display: flex; flex-direction: column; margin: 0; }
   figure button { display: block; width: 100%; flex: 1; min-height: 0; border: 0; padding: 0; background: transparent; cursor: zoom-in; color: inherit; }
   figure img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: center; }
+  @media (min-width: 1024px) { figure[data-fit="cover"] img { object-fit: cover; } }
   figcaption, details { flex-shrink: 0; margin-top: 6px; font-size: var(--_tokens---type--micro); line-height: 1.4; color: var(--_tokens---color--muted); }
   details[open] { flex-shrink: 1; max-height: 45%; overflow: auto; }
   summary { cursor: pointer; min-height: 36px; padding-top: 8px; }
@@ -101,6 +124,8 @@ for (const group of groups) {
     .work-article__grid > * { grid-row: auto; }
     figure button { flex: none; height: 300px; }
     figure[data-span="2x2"] button, figure[data-span="2x3"] button { height: 420px; }
+    figure[data-role="plan"] button { height: auto; }
+    figure[data-role="plan"] img { height: auto; }
     .work-article__text { grid-column: 1 / -1; padding: 12px 0 20px; }
   }
   @media (max-width: 699.98px) {
