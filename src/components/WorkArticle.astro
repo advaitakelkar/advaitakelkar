@@ -122,17 +122,22 @@ for (const group of groups) {
   @media (max-width: 1023.98px) {
     .work-article__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: auto; grid-auto-flow: row; }
     .work-article__grid > * { grid-row: auto; }
-    figure button { flex: none; height: 300px; }
-    figure[data-span="2x2"] button, figure[data-span="2x3"] button { height: 420px; }
-    figure[data-role="plan"] button { height: auto; }
-    figure[data-role="plan"] img { height: auto; }
+    /* Photographs keep their desktop box shape and fill it; drawings run the
+       full width at their own proportions, never cropped and never shrunk
+       into a fixed-height box. */
+    figure button { flex: none; height: auto; }
+    figure img { height: auto; }
+    figure[data-fit="cover"] button { aspect-ratio: calc(var(--block-columns) / var(--block-rows)); }
+    figure[data-fit="cover"] img { height: 100%; object-fit: cover; }
+    figure:not([data-fit="cover"]) { grid-column: 1 / -1; }
+    figure:not([data-fit="cover"]) img { max-height: 80svh; object-fit: contain; }
     .work-article__text { grid-column: 1 / -1; padding: 12px 0 20px; }
   }
   @media (max-width: 699.98px) {
     .work-article__grid { grid-template-columns: 1fr; gap: 16px; }
     .work-article__grid > * { grid-column: 1; }
-    figure button, figure[data-span="2x2"] button, figure[data-span="2x3"] button { height: auto; }
-    figure img { height: auto; }
+    figure button, figure[data-fit="cover"] button { height: auto; aspect-ratio: auto; }
+    figure img, figure[data-fit="cover"] img { height: auto; }
     .work-article__text { padding: 8px 0 16px; }
   }
 </style>

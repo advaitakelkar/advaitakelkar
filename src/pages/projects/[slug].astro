@@ -6009,7 +6009,9 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   /* Persistent compact credits, clear of the fixed search/navigation dock. */
   .project-detail[data-slider="true"] { padding-bottom: 140px; }
   .project-bottom-credits {
-    position: fixed; bottom: var(--rc-bottom, 68px); z-index: 5;
+    /* Above the page copy (the description drew through it at 5), below the
+       bottom seal at 80 and the docked controls at 95. */
+    position: fixed; bottom: var(--rc-bottom, 68px); z-index: 60;
     left: var(--page-gutter, 24px); right: var(--page-gutter, 24px);
     width: auto; margin: 0; padding: 8px 0;
     background: var(--_tokens---color--bg);
@@ -6060,6 +6062,22 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     .project-detail[data-work-intro="true"] .project-desc-clip { display: block !important; column-count: 1; max-height: none !important; overflow: visible !important; }
     .project-detail[data-work-intro="true"] .project-card-info > .work-intro-slider { grid-column: 2 / span 2; grid-row: 1; margin: 0; max-width: none; }
     .project-detail[data-work-intro="true"] .project-card-info > #project-people-panel { display: none !important; }
+  }
+  /* Phone and tablet: the pictures come straight after the one-line intro,
+     not after the whole description. Four paragraphs of text before the
+     first image put the work a full screen below the fold. The two
+     wrappers dissolve so the intro, slider and description can be ordered
+     as siblings. */
+  @media (max-width: 1023.98px) {
+    .project-detail[data-work-intro="true"] .project-card-info { display: flex !important; flex-direction: column; }
+    .project-detail[data-work-intro="true"] .project-card-info > .project-card__row2,
+    .project-detail[data-work-intro="true"] .project-card__text-block { display: contents !important; }
+    .project-detail[data-work-intro="true"] .project-card__intro { order: 1; }
+    .project-detail[data-work-intro="true"] .project-card-info > .work-intro-slider { order: 2; margin: 4px 0 16px; }
+    .project-detail[data-work-intro="true"] .project-desc-readmore { order: 3; }
+    /* Centred, so a wide render in the 4:3 stage has even space above and
+       below rather than all of it under the picture. */
+    .work-intro-slider :global(.gong-slider__stage img) { object-position: center; }
   }
 </style>
 
