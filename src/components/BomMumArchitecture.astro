@@ -1,0 +1,92 @@
+---
+import { ARCHITECTURE } from '../data/bom-mum-architecture';
+import Icon from './Icon.astro';
+import BomMumPeriods from './BomMumPeriods.astro';
+---
+<section class="bma" data-architecture aria-labelledby="bma-title">
+  <header class="bma__header">
+    <div><p class="bma__kicker">Bombay / Built form</p><h2 id="bma-title">The city, built over time.</h2><p class="bma__intro">An architectural timeline of Mumbai: landmark buildings, changing styles and the urban spaces between them.</p></div>
+    <nav class="bma__nav" aria-label="Architectural timeline controls">
+      <button type="button" data-arch-step="-1" aria-label="Previous architecture milestone"><Icon name="chevron" dir="w" /></button>
+      <span>{ARCHITECTURE.length} milestones</span>
+      <button type="button" data-arch-step="1" aria-label="Next architecture milestone"><Icon name="chevron" dir="e" /></button>
+    </nav>
+  </header>
+  <BomMumPeriods />
+  <nav class="bma__overview" aria-label="Jump to an architecture milestone">
+    <div class="bma__overview-line">
+      {ARCHITECTURE.map((item,i)=><button type="button" class="bma__dot" data-arch-jump={i} aria-label={`${item.date}: ${item.title}`} aria-current={i===0?'step':undefined} title={`${item.date} · ${item.title}`}><span class="bma__dot-mark"></span><span class="bma__dot-date">{item.date}</span></button>)}
+    </div>
+  </nav>
+  <div class="bma__track" data-arch-track data-swipe-own tabindex="0" role="region" aria-label="Architecture milestones, scroll left to right">
+    <ol class="bma__line">
+      {ARCHITECTURE.map((item,i)=><li id={`architecture-${i}`} class:list={['bma__card',item.kind==='Period'&&'bma__card--period']}>
+        <div class="bma__date"><span>{item.date}</span><small>{String(i+1).padStart(2,'0')}</small></div>
+        <div class="bma__node" aria-hidden="true"></div>
+        <article><p class="bma__kind">{item.kind}</p><h3>{item.title}</h3><p class="bma__style">{item.style}</p><p class="bma__note">{item.note}</p>{item.detail&&<p class="bma__detail">{item.detail}</p>}<a class="bma__source" href={item.source} target="_blank" rel="noopener">Source <Icon name="arrow" /></a></article>
+      </li>)}
+    </ol>
+  </div>
+  <p class="bma__foot">Read left to right. Selected milestones through 1995; periods overlap. Dates distinguish construction, completion and opening where relevant. Equal spacing shows sequence, not elapsed time.</p>
+</section>
+<style>
+  .bma { min-width:0; border-top:1px solid var(--_tokens---color--line); padding-top:20px; font-family:var(--_tokens---font--body); }
+  .bma__header { display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end; justify-content:space-between; margin-bottom:24px; }
+  .bma__kicker { margin:0 0 8px; font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--_tokens---color--muted); }
+  h2 { margin:0 0 10px; font:inherit; font-size:clamp(24px,2.7vw,36px); font-weight:500; line-height:1.1; letter-spacing:-.035em; }
+  .bma__intro { margin:0; max-width:60ch; font-size:13px; line-height:1.5; }
+  .bma__nav { display:flex; gap:10px; align-items:center; font-size:10px; white-space:nowrap; }
+  button { display:grid; place-items:center; width:34px; height:34px; border:1px solid var(--_tokens---color--line); border-radius:50%; color:inherit; background:transparent; cursor:pointer; --icon-size:14px; }
+  button:disabled { opacity:.3; cursor:default; }
+  .bma__overview { margin:0 0 22px; padding:8px 0 0; }
+  .bma__overview-line { display:flex; position:relative; justify-content:space-between; }
+  .bma__overview-line::before { content:''; position:absolute; top:8px; left:8px; right:8px; height:1px; background:var(--_tokens---color--line); }
+  .bma__overview .bma__dot { display:flex; flex-direction:column; gap:8px; align-items:center; justify-content:flex-start; flex:1; min-width:0; width:auto; height:auto; padding:0 2px; border:0; border-radius:0; position:relative; background:transparent; }
+  .bma__dot-mark { display:block; width:16px; height:16px; border:1px solid var(--_tokens---color--line); border-radius:50%; background:var(--_tokens---color--bg); box-sizing:border-box; }
+  .bma__dot[aria-current="step"] .bma__dot-mark { background:var(--_tokens---color--fg); border-color:var(--_tokens---color--fg); }
+  .bma__dot:hover .bma__dot-mark { border-color:var(--_tokens---color--fg); }
+  .bma__dot-date { font-size:8px; line-height:1.3; font-variant-numeric:tabular-nums; max-width:55px; }
+  @media (max-width: 699.98px) { .bma__dot-date { display:none; } .bma__dot-mark { width:10px; height:10px; margin-top:3px; } }
+  .bma__track { overflow-x:auto; overscroll-behavior-x:contain; scroll-snap-type:x mandatory; scroll-padding-left:1px; scrollbar-width:thin; padding-bottom:14px; }
+  .bma__line { list-style:none; display:flex; width:max-content; margin:0; padding:0; }
+  .bma__line::after { content:''; display:block; flex:none; width:max(0px,calc(var(--bma-track-width,260px) - 260px)); }
+  .bma__card { width:260px; flex:none; scroll-snap-align:start; position:relative; }
+  .bma__date { display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:0 18px 14px 0; height:54px; box-sizing:border-box; }
+  .bma__date > span { font-size:25px; letter-spacing:-.04em; font-variant-numeric:tabular-nums; }
+  .bma__date small { font-size:10px; color:var(--_tokens---color--muted); }
+  .bma__node { height:1px; background:var(--_tokens---color--line); position:relative; }
+  .bma__node::before { content:''; position:absolute; top:-4px; left:0; width:9px; height:9px; border-radius:50%; background:var(--_tokens---color--fg); }
+  article { display:flex; flex-direction:column; min-height:310px; padding:20px 18px 12px 0; border-right:1px solid var(--_tokens---color--line-soft); margin-right:18px; }
+  .bma__card--period article { background:color-mix(in srgb,var(--_tokens---color--fg) 4%,transparent); padding-left:12px; }
+  .bma__kind { margin:0 0 10px; font-size:10px; color:var(--_tokens---color--muted); text-transform:uppercase; letter-spacing:.06em; }
+  h3 { margin:0 0 8px; font:inherit; font-size:18px; font-weight:500; line-height:1.2; letter-spacing:-.02em; }
+  .bma__style { margin:0 0 16px; font-size:11px; color:var(--_tokens---color--muted); line-height:1.4; }
+  .bma__note { margin:0 0 12px; font-size:12px; line-height:1.55; }
+  .bma__detail { margin:0 0 12px; font-size:10px; line-height:1.45; color:var(--_tokens---color--muted); }
+  .bma__source { display:inline-flex; align-items:center; align-self:flex-start; gap:4px; margin-top:auto; padding-top:10px; font-size:10px; color:inherit; --icon-size:10px; }
+  .bma__foot { font-size:10px; color:var(--_tokens---color--muted); line-height:1.5; max-width:90ch; margin:12px 0 0; }
+</style>
+<script>
+  function initArchitecture(){
+    document.querySelectorAll<HTMLElement>('[data-architecture]:not([data-wired])').forEach(root=>{
+      root.dataset.wired='true';
+      const track=root.querySelector<HTMLElement>('[data-arch-track]')!;
+      const buttons=[...root.querySelectorAll<HTMLButtonElement>('[data-arch-step]')];
+      const dots=[...root.querySelectorAll<HTMLButtonElement>('[data-arch-jump]')];
+      const cards=[...track.querySelectorAll<HTMLElement>('.bma__card')];
+      const update=()=>{
+        buttons.forEach(b=>b.disabled=+b.dataset.archStep!<0?track.scrollLeft<2:track.scrollLeft+track.clientWidth>=track.scrollWidth-2);
+        const selected=Math.min(cards.length-1,Math.round(track.scrollLeft/260));
+        dots.forEach((dot,i)=>{if(i===selected)dot.setAttribute('aria-current','step');else dot.removeAttribute('aria-current');});
+      };
+      dots.forEach(dot=>dot.addEventListener('click',()=>track.scrollTo({left:+dot.dataset.archJump!*260,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'})));
+      buttons.forEach(b=>b.addEventListener('click',()=>track.scrollBy({left:+b.dataset.archStep!*260,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'})));
+      track.addEventListener('scroll',update,{passive:true});
+      track.addEventListener('keydown',ev=>{if(ev.target!==track)return;if(ev.key==='ArrowRight'||ev.key==='ArrowLeft'){ev.preventDefault();ev.stopPropagation();track.scrollBy({left:ev.key==='ArrowRight'?260:-260,behavior:'instant'});}});
+      const resize=new ResizeObserver(()=>{track.style.setProperty('--bma-track-width',track.clientWidth+'px');update();});
+      resize.observe(track);update();
+      document.addEventListener('astro:before-swap',()=>resize.disconnect(),{once:true});
+    });
+  }
+  initArchitecture(); document.addEventListener('astro:after-swap',initArchitecture);
+</script>

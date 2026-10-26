@@ -13,6 +13,7 @@ import RenderRooms from '../../components/RenderRooms.astro';
 import GongSlider from '../../components/GongSlider.astro';
 import GongDrawings from '../../components/GongDrawings.astro';
 import WorkArticle from '../../components/WorkArticle.astro';
+import BomMumTimeline from '../../components/BomMumTimeline.astro';
 import DesignProjectBrief from '../../components/DesignProjectBrief.astro';
 import { workMedia, imagePaths } from '../../lib/workMedia';
 import { isPlaceholder, realText, publicFileExists } from '../../lib/content';
@@ -334,6 +335,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       data-work-article={isWorkArticle ? "true" : undefined}
       data-work-intro={hasWorkIntro ? "true" : undefined}
       data-design-brief={data.designBrief ? "true" : undefined}
+      data-interactive={(data as any).interactive}
       data-gong={project.id === "gong-powai" ? "true" : undefined}
       data-renders={isRenders ? "true" : "false"}
       data-category={category ? category.id : ''}
@@ -802,6 +804,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       {/* A project told in chapter cards carries its pictures inside them;
           the stage and rail would be the same images a second time. */}
       {isWorkArticle && <WorkArticle figures={storyFigures} name={data.name} slug={project.id} />}
+      {(data as any).interactive === 'bom-mum' && <BomMumTimeline />}
       {!hasWorkIntro && !isExhibition && !isStudy && isRenders && renderViews.length > 0 && !chapterTabs && (
         <section class="renders-section">
           {/* One picture shown whole above the room tabs — a drawing or a cut
@@ -7186,7 +7189,9 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     if (!detail) return;
     // The Work article is a continuous document; docking its description
     // would cover the drawings while the visitor is trying to read them.
-    if (detail.dataset.workIntro === 'true' || detail.dataset.designBrief === 'true') return;
+    // The same for a page carrying an interactive piece: a fixed card over
+    // it would cover the thing the page is for.
+    if (detail.dataset.workIntro === 'true' || detail.dataset.interactive || detail.dataset.designBrief === 'true') return;
     const phone = window.matchMedia('(max-width: 1023.98px)').matches;
     let card = detail.querySelector('.project-phone-card') as HTMLElement | null;
 

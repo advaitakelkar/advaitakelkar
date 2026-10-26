@@ -80,6 +80,9 @@ const projects = defineCollection({
     // 'ai-works' and 'project-01' are the written names for `cards` and
     // `renders`. See projectTemplates.ts.
     template: z.enum(['ai-series', 'project-01']).optional(),
+    // A one-off interactive piece rendered under the copy. 'bom-mum' is
+    // the B.Arch thesis timeline (BomMumTimeline.astro).
+    interactive: z.enum(['bom-mum']).optional(),
     design: z.string().optional(),
     making: z.string().optional(),
     smallIntro: z.string().optional(),

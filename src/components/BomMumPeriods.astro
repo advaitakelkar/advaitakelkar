@@ -1,0 +1,29 @@
+---
+import {STYLE_PERIODS, MILESTONE_YEARS} from '../data/bom-mum-architecture';
+// Bands follow the same milestone sequence as the dot navigator below.
+const bands=STYLE_PERIODS.map(period=>{
+  const indices=MILESTONE_YEARS.map((year,i)=>year>=period.start&&year<=period.end?i:-1).filter(i=>i>=0);
+  const first=indices[0]??0, last=indices.at(-1)??first;
+  return {...period,start:first/MILESTONE_YEARS.length*100,span:(last-first+1)/MILESTONE_YEARS.length*100};
+});
+---
+<div class="bmp" aria-label="Architectural style colour index and overlapping period bands">
+  <div class="bmp__key">
+    {bands.map(period=><span style={`--period:${period.color}`} title={period.label}><i aria-hidden="true"></i>{period.name}</span>)}
+  </div>
+  <div class="bmp__bands" role="img" aria-label="Coloured style periods aligned to the milestone navigation, with a vertical guide at each milestone year. Overlapping styles occupy separate bands.">
+    {bands.map(period=><div class="bmp__lane"><span class="bmp__band" style={`--period:${period.color};--start:${period.start}%;--span:${period.span}%`} title={`${period.name} · ${period.label}`}></span></div>)}
+    <div class="bmp__guides" aria-hidden="true">{MILESTONE_YEARS.map((_,i)=><i style={`left:${(i+.5)/MILESTONE_YEARS.length*100}%`}></i>)}</div>
+  </div>
+</div>
+<style>
+  .bmp { margin:0; }
+  .bmp__key { display:flex; flex-wrap:nowrap; overflow-x:auto; white-space:nowrap; gap:10px; margin:0 0 16px; }
+  .bmp__key > span { display:inline-flex; flex:none; align-items:center; gap:5px; font-size:10px; line-height:1.4; }
+  .bmp__key i { display:block; width:7px; height:7px; border-radius:50%; background:var(--period); }
+  .bmp__bands { display:grid; gap:3px; position:relative; }
+  .bmp__lane { height:10px; position:relative; }
+  .bmp__band { position:absolute; top:0; left:var(--start); width:var(--span); height:100%; background:var(--period); }
+  .bmp__guides { position:absolute; inset:0 0 -16px; pointer-events:none; }
+  .bmp__guides i { position:absolute; top:0; bottom:0; width:1px; background:color-mix(in srgb,var(--_tokens---color--fg) 24%,transparent); }
+</style>

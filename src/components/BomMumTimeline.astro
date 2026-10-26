@@ -1,0 +1,175 @@
+---
+/* Bombay Then, Mumbai Now — an editorial radial infographic.
+   Flat adjoining bands, fine year divisions, white-centred event marks,
+   monochrome portraits and map, and selected perimeter annotations.
+   Graphic reference: https://jnolin.com/infographic02 . */
+import { LANES, EVENTS, LEADERS, FIGURES, CREDITS, POPULATION, type BomEvent } from '../data/bom-mum';
+import BomMumArchitecture from './BomMumArchitecture.astro';
+import { ARCHITECTURE, MILESTONE_YEARS } from '../data/bom-mum-architecture';
+import { eventCopy } from '../data/bom-mum-context';
+import { LAND, RECLAIMED, MAP_HEIGHT } from '../data/bom-mum-map';
+
+// Reuse existing poster entries for shared landmarks; every architecture tile
+// contributes exactly one dated wheel event, including approximate periods.
+const existingArchitecture: Record<number,string> = {
+  4:'Rajabai Tower completed', 5:'Victoria Terminus completed',
+  7:'Taj Mahal Palace Hotel opens', 9:'Prince of Wales Museum opens',
+  10:'Gateway of India completed', 12:'Regal Cinema opens',
+  14:'Eros Cinema', 16:'Nehru Planetarium opens',
+};
+const architectureEvents = ARCHITECTURE.map((item,i) => {
+  const original=EVENTS.find(e=>e.title===existingArchitecture[i]);
+  return {...original, year:MILESTONE_YEARS[i],
+    lane:original?.lane ?? (i===3||i===18?'infrastructure':'culture'),
+    title:item.title, text:`${item.note}${item.detail?' '+item.detail:''}`,
+    circa:item.kind==='Period'||i===0||i===13, added:original?.added??!original,
+    architecture:i, source:item.source,
+  } as BomEvent & {architecture:number;source:string};
+});
+const reused=new Set(Object.values(existingArchitecture));
+const sorted = [...EVENTS.filter(e=>!reused.has(e.title)), ...architectureEvents].sort((a, b) => a.year - b.year || LANES.findIndex(l => l.id === a.lane) - LANES.findIndex(l => l.id === b.lane));
+const yearText = (e: BomEvent) => `${e.circa ? 'c. ' : ''}${e.year < 0 ? `${-e.year} BC` : e.year}`;
+const laneOf = (id: string) => LANES.find(l => l.id === id)!;
+
+const payload = {
+  lanes: LANES,
+  events: sorted.map(e => ({ year: e.year, y: yearText(e), l: e.lane, ln: laneOf(e.lane).name, t: e.title, x: eventCopy(e, sorted).text, context: eventCopy(e, sorted).context, source: ('source' in e ? e.source : eventCopy(e, sorted).source), a: ('architecture' in e ? e.architecture : null), w: e.was ?? '', ad: !!e.added, k: !!e.key })),
+
+  population: POPULATION,
+  map: { land: LAND, reclaimed: RECLAIMED, h: MAP_HEIGHT },
+};
+
+const people = [
+  ...LEADERS.map(p => ({id:p.id, name:`${p.first} ${p.last}`, years:p.years, text:p.text})),
+  ...FIGURES.map(p => ({id:p.id, name:p.name, years:p.years, text:p.role})),
+];
+const faceScale: Record<string, number> = {gandhi:1.5, frere:1.4, scott:1.3, stevens:1.3, tata:1.2, tilak:1.3, jrdtata:1.2, husain:1.25, seth:1.2, jeejeebhoy:1.15, aungier:1.05, begg:1.08, samant:1.05};
+---
+
+<section class="bm" data-bm>
+  <div class="bm__stage">
+    <header class="bm__poster-title"><p>BOMBAY · THE SEVEN ISLANDS · MUMBAI</p><h2>One city.<br />Many histories.</h2><span>600 BC — 1995 / Key events &amp; transformations</span></header>
+    <div class="bm__legend" role="group" aria-label="Show or hide a discipline">
+      {LANES.map(l => (
+        <button type="button" class="bm__chip" data-toggle={l.id} aria-pressed="true" style={`--lane: ${l.color}`}>
+          <span class="bm__swatch"></span>{l.name}
+        </button>
+      ))}
+      <button type="button" class="bm__chip" data-toggle="population" aria-pressed="true" style="--lane: #e78062">
+        <span class="bm__swatch"></span>Population
+      </button>
+    </div>
+
+    <article class="bm__info" aria-live="polite">
+      <p class="bm__info-meta"><span data-c-year>600 BC – 1995</span><span class="bm__info-lane" data-c-lane></span></p>
+      <h3 data-c-title>Bombay, before it was Mumbai</h3>
+      <p class="bm__info-text" data-c-text>Start with the grey city. The U-shaped timeline fills with colour as each event arrives, from the earliest settlements to the name Mumbai. Population sits in the innermost ring, growing inward from its outer edge; the map records the joining of the islands.</p>
+      <p class="bm__info-context" data-c-context></p>
+      <a class="bm__event-source" data-c-source hidden target="_blank" rel="noopener">Read the source</a>
+      <p class="bm__info-was" data-c-was hidden></p>
+    </article>
+
+    <p class="bm__nav">
+      <button type="button" data-step="-1" aria-label="Previous event">←</button>
+      <button type="button" data-play aria-label="Pause timeline" aria-pressed="true">Pause</button>
+      <span data-c-count>{sorted.length} events</span>
+      <button type="button" data-step="1" aria-label="Next event">→</button>
+    </p>
+    <div class="bm__playback">
+      <label class="bm__seek-label" for="bm-seek">Timeline <span data-progress-label>0 / {sorted.length}</span></label>
+      <input id="bm-seek" data-seek type="range" min="-1" max={sorted.length-1} value="-1" aria-label="Seek through events" />
+
+    </div>
+
+    <div class="bm__wheel" data-wheel role="group" aria-label={`A U-shaped timeline of Bombay from 600 BC to 1995, progressing from upper left around the base to upper right, in five bands: ${LANES.map(l => l.name).join(', ')}.`}></div>
+    <p class="bm__reclaim" data-reclaim aria-live="off">Schematic island reclamation · grey before playback</p>
+
+    <aside class="bm__people" aria-label="People who shaped Bombay">
+      <h2 class="bm__h">People</h2>
+      <ol class="bm__people-list" data-swipe-own>
+        {people.map(p => <li><details class="bm__person"><summary>
+          <span class="bm__face"><img src={`/images/bom-mum/people/${p.id}.webp`} alt={p.name} width="64" height="64" loading="lazy" style={`--face-scale:${faceScale[p.id] ?? 1.12}`} /></span>
+          <span><strong>{p.name}</strong><small>{p.years}</small></span>
+        </summary><p>{p.text}</p></details></li>)}
+      </ol>
+    </aside>
+  </div>
+
+  <details class="bm__credits">
+    <summary>Sources and graphic credits</summary>
+    <p>Event source links appear in the playback panel. Architectural periods use approximate study dates. The map is a schematic reading of reclamation, not a surveyed reconstruction.</p>
+    <p>Graphic reference: <a href="https://jnolin.com/infographic02" target="_blank" rel="noopener">Julien Nolin · History of Brazil</a>.</p>
+    <p>Portraits from Wikimedia Commons; public domain unless a licence is named. Jeejeebhoy, Aungier, Wittet, Begg and Samant are from the thesis poster.</p>
+    <ul>{CREDITS.filter(c => c.license !== 'Public domain').map(c => <li><a href={c.url} target="_blank" rel="noopener">{c.file}</a> — {c.license}</li>)}</ul>
+  </details>
+
+  <BomMumArchitecture />
+
+  <script type="application/json" data-bm-data set:html={JSON.stringify(payload)} />
+</section>
+
+<style is:global>
+  .bm { font-family: var(--_tokens---font--body); --bm-ink: var(--_tokens---color--fg); --bm-muted: var(--_tokens---color--muted); --bm-line: var(--_tokens---color--line); display:grid; gap:28px; min-width:0; margin:16px 0 100px; }
+  .bm__h { font-size:var(--_tokens---type--micro); font-weight:500; margin:0 0 12px; }
+  .bm__stage { display:grid; grid-template-columns:minmax(0,1fr); grid-template-areas:"title" "legend" "wheel" "reclaim" "info" "nav" "playback" "people"; gap:12px; min-width:0; scroll-margin-top:65px; }
+  .bm__poster-title { grid-area:title; }
+  .bm__poster-title p { font-size:10px; letter-spacing:.06em; margin:0 0 8px; }
+  .bm__poster-title h2 { font-family:inherit; font-size:clamp(28px,2.7vw,38px); font-weight:700; line-height:1.03; letter-spacing:-.04em; margin:0 0 8px; }
+  .bm__poster-title > span { font-size:10px; }
+  .bm__legend { grid-area:legend; display:flex; flex-wrap:nowrap; overflow-x:auto; white-space:nowrap; gap:4px 10px; }
+  .bm__chip { display:inline-flex; align-items:center; gap:5px; padding:3px 0; border:0; background:transparent; color:var(--bm-ink); font:inherit; font-size:11px; cursor:pointer; }
+  .bm__chip[aria-pressed="false"] { opacity:.4; }
+  .bm__swatch { width:8px; height:8px; flex:none; border-radius:50%; background:var(--lane); }
+  .bm__info { grid-area:info; border-top:1px solid var(--bm-line); padding-top:12px; min-width:0; }
+  .bm__info-meta { display:flex; flex-wrap:wrap; gap:6px; margin:0 0 10px; font-size:11px; color:var(--bm-muted); }
+  .bm__info-lane:not(:empty)::before { content:''; display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--lane); margin-right:5px; }
+  .bm__info h3 { font-size:22px; font-weight:500; line-height:1.15; margin:0 0 12px; }
+  .bm__info-text, .bm__info-context { font-size:12px; line-height:1.55; margin:0 0 10px; }
+  .bm__info-context { color:var(--bm-muted); }
+  .bm__event-source, .bm__info-was { font-size:10px; line-height:1.45; color:var(--bm-muted); }
+  .bm__info-was { margin:8px 0 0; }
+  .bm__nav { grid-area:nav; display:flex; flex-wrap:wrap; gap:7px; align-items:center; margin:0; font-size:11px; }
+  .bm__nav button, .bm__playback-options button { font:inherit; color:var(--bm-ink); background:transparent; border:1px solid var(--bm-line); border-radius:20px; padding:6px 10px; cursor:pointer; }
+  .bm__playback { grid-area:playback; }
+  .bm__seek-label { display:flex; justify-content:space-between; gap:12px; font-size:10px; color:var(--bm-muted); }
+  .bm__playback input { display:block; width:100%; margin:10px 0; accent-color:#222; }
+  .bm__playback-options { display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:10px; }
+  .bm__playback-options select { font:inherit; color:inherit; background:transparent; border:1px solid var(--bm-line); border-radius:4px; padding:4px; }
+  .bm__wheel { grid-area:wheel; min-width:0; width:100%; aspect-ratio:1140 / 1040; justify-self:center; }
+  .bm__wheel svg { display:block; width:100%; height:100%; overflow:visible; touch-action:manipulation; }
+  .bm__reclaim { grid-area:reclaim; margin:0; text-align:center; font-size:10px; line-height:1.4; color:var(--bm-muted); }
+  .bm__people { grid-area:people; min-width:0; border-left:1px solid var(--bm-line); padding-left:12px; }
+  .bm__people-list { list-style:none; padding:0; margin:0; overflow:auto; overscroll-behavior:contain; max-height:600px; }
+  .bm__people-list > li { padding:8px 0; border-top:1px solid var(--bm-line); }
+  .bm__person summary { list-style:none; cursor:pointer; display:grid; grid-template-columns:52px minmax(0,1fr); gap:8px; align-items:center; }
+  .bm__person summary::-webkit-details-marker { display:none; }
+  .bm__face { display:block; width:52px; height:52px; overflow:hidden; border-radius:50%; border:1px solid #aaa; background:#ddd; }
+  .bm__face img { display:block; width:100%; height:100%; object-fit:cover; object-position:50% 38%; transform:scale(var(--face-scale,1.12)); filter:grayscale(1) contrast(1.08); }
+  .bm__person strong { display:block; font-size:10px; font-weight:500; line-height:1.3; }
+  .bm__person small { display:block; font-size:9px; color:var(--bm-muted); margin-top:3px; }
+  .bm__person p { font-size:11px; line-height:1.5; margin:8px 0 0; }
+  @media (min-width: 1024px) {
+    .bm__stage { grid-template-columns:minmax(215px,.37fr) minmax(0,1fr) 165px; height:clamp(580px,calc(100svh - 160px),760px); grid-template-rows:auto auto minmax(0,1fr) auto auto auto; grid-template-areas:"title legend people" "title wheel people" "info wheel people" "nav wheel people" "playback wheel people" ". reclaim people"; gap:12px 16px; align-items:start; }
+    .bm__info { min-height:0; height:100%; box-sizing:border-box; overflow-y:auto; overscroll-behavior:contain; padding-right:5px; }
+    .bm__nav, .bm__playback { align-self:end; }
+    .bm__people { height:100%; min-height:0; display:flex; flex-direction:column; box-sizing:border-box; }
+    .bm__legend { flex-wrap:nowrap; justify-content:flex-start; gap:10px; overflow-x:auto; white-space:nowrap; min-width:0; }
+    .bm__legend .bm__chip { flex:none; font-size:10px; }
+    .bm__wheel { width:100%; height:100%; max-height:100%; aspect-ratio:auto; align-self:stretch; }
+    .bm__people-list { flex:1; min-height:0; max-height:none; }
+  }
+  @media (max-width: 1023.98px) {
+    .bm__people { border-left:0; padding-left:0; }
+    .bm__people-list { max-height:300px; }
+  }
+  .bm__credits { font-size: var(--_tokens---type--ultrathin); color: var(--bm-muted); }
+  .bm__credits summary { cursor: pointer; }
+  .bm__credits a { color: inherit; }
+
+</style>
+
+<script>
+  import { initBomMum } from '../lib/bom-mum-playback';
+  initBomMum();
+  document.addEventListener('astro:after-swap', initBomMum);
+</script>
