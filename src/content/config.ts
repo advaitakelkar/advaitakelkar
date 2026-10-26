@@ -1,4 +1,5 @@
 import { defineCollection, z, reference } from 'astro:content';
+import { MEDIA_ROLES } from '../lib/mediaRoles';
 
 // The discipline axis — WHAT a project is (Architecture, Interior, Research…).
 // Mirrors the `Type` property in the Notion Projects database, one per project.
@@ -86,7 +87,9 @@ const projects = defineCollection({
     collaborator: z.string().optional(),
     program: z.string().optional(),
     coverImage: z.string().optional(),
-    multiImage: z.array(z.string()).optional(),
+    // A path, or a path with its role on a Work page and a caption. The
+    // role lives here, beside the image, and nowhere else.
+    multiImage: z.array(z.union([z.string(), z.object({ image: z.string(), role: z.enum(MEDIA_ROLES).optional(), caption: z.string().optional() })])).optional(),
     // If set, the project-list scrub draws from these instead of all images
     // (e.g. renders only, no sketches). The project page still shows everything.
     scrubImages: z.array(z.string()).optional(),
@@ -100,7 +103,7 @@ const projects = defineCollection({
     leadImage: z.string().optional(),
     // Project Template 01: full-width pictures above the rooms or slider,
     // each with an optional line under it (the place, before the work).
-    leadFigures: z.array(z.object({ image: z.string(), caption: z.string().optional() })).optional(),
+    leadFigures: z.array(z.object({ image: z.string(), caption: z.string().optional(), role: z.enum(MEDIA_ROLES).optional() })).optional(),
     // Project Template 01: text on the left, pictures on the right as a
     // slider that advances by itself — shown instead of the rooms.
     // Project Template 01: the copy, then every leadFigure in one slider
@@ -183,6 +186,7 @@ const projects = defineCollection({
       // A text block set under this one picture (grid layout only).
       caption: z.string().optional(),
       image: z.string(),
+      role: z.enum(MEDIA_ROLES).optional(),
       variations: z.array(z.string()).optional(),
     })).optional(),
     // One line under the description: what the work set out to do.

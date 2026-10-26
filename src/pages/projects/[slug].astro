@@ -13,7 +13,7 @@ import RenderRooms from '../../components/RenderRooms.astro';
 import GongSlider from '../../components/GongSlider.astro';
 import GongDrawings from '../../components/GongDrawings.astro';
 import WorkArticle from '../../components/WorkArticle.astro';
-import { workMedia } from '../../lib/workMedia';
+import { workMedia, imagePaths } from '../../lib/workMedia';
 import { isPlaceholder, realText, publicFileExists } from '../../lib/content';
 import Arrow from '../../components/Arrow.astro';
 
@@ -39,7 +39,7 @@ const gongDescription = gongParagraphs.length > 1 && gongIntroBreak > 0
 const tags = await Promise.all((data.tags ?? []).map(t => getEntry(t)));
 const category = data.category ? await getEntry(data.category) : null;
 const isWorkArticle = category?.id === 'work';
-const workFigures = isWorkArticle ? workMedia(project.id, data) : [];
+const workFigures = isWorkArticle ? workMedia(data) : [];
 const mainFigures = workFigures.filter(f => f.role === 'main');
 // Main views appear only in the introduction and listing scrub. The story
 // below owns drawings, details and making, with no repeated hero gallery.
@@ -55,7 +55,7 @@ const hasWorkIntro = isWorkArticle || introFigures.length > 0;
 const views = (data.views ?? []).filter((v: any) => v?.image);
 const gallery = views.length
   ? views.map((v: any) => v.image)
-  : (data.multiImage ?? []).filter(Boolean);
+  : imagePaths(data.multiImage).filter(Boolean);
 let allImages = views.length ? gallery : [data.coverImage, ...gallery].filter(Boolean);
 let hasImages = project.id !== 'virtual-gods' && allImages.length > 0;
 /* Keyed by the image the deck shows, so the client can find a view's
@@ -183,7 +183,7 @@ if (category) {
 
 dynamicCrumbs.push({ label: data.name });
 
-const template = projectTemplate(project.id, category?.id, data.template, (data.multiImage ?? [])[0] ?? data.coverImage);
+const template = projectTemplate(project.id, category?.id, data.template, imagePaths(data.multiImage)[0] ?? data.coverImage);
 const isOriginalCardPage = template.cards;
 /* A visualisation project draws its own middle — rooms, one image, the
    variations behind it. See RenderRooms.astro. */

@@ -12,7 +12,7 @@ import Icon from './Icon.astro';
 import { isProjectLocked, visibleProjectImages } from '../lib/content';
 import fs from 'node:fs';
 import path from 'node:path';
-import { workMainImages } from '../lib/workMedia';
+import { workMainImages, imagePaths } from '../lib/workMedia';
 
 export interface Props {
   project: any;
@@ -65,7 +65,7 @@ if (p.id === 'ai-works') {
   }
 } else {
   if (p.data.coverImage) allImgs.push(p.data.coverImage);
-  if (p.data.multiImage) allImgs.push(...(p.data.multiImage as string[]));
+  if (p.data.multiImage) allImgs.push(...imagePaths(p.data.multiImage));
 }
 
 /* A project with `views` scrubs its VIEWS — one frame each, never the
@@ -97,7 +97,7 @@ const scrubImgsRaw: string[] = hasCuratedPreview && curatedImgs?.length
   : allImgs;
 const isLocked = isProjectLocked(p.id, p.data?.passcode);
 // Curated ARCHV, GONG and Barley and Bun previews are visible in listings.
-const workMain = p.data.category?.id === 'work' ? workMainImages(p.id) : undefined;
+const workMain = p.data.category?.id === 'work' ? workMainImages(p.data) : undefined;
 const scrubImgs = workMain !== undefined
   ? visibleProjectImages(p.id, p.data?.passcode, workMain)
   : hasCuratedPreview

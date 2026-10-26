@@ -916,6 +916,23 @@ Three global scripts are injected into every page via `Base.astro`:
 
 ---
 
+**Work images carry a role.** On a Work project, write each image as an
+object with its `role` — `main` (intro slider and listing scrub), `plan`,
+`section`, `illustration`, `detail` or `making` (the drawings article):
+
+```yaml
+multiImage:
+  - image: "/images/dakughar/04-side-elevation-view.webp"
+    role: main
+  - image: "/images/dakughar/01-architectural-floor-plans.webp"
+    role: plan
+```
+
+`role` may also sit on a `leadFigures` or `views` entry (Gong Powai). A plain
+path still works and counts as a detail. Sizes are read from the files at
+build (`src/lib/imageSize.ts`); there is no roles or dimensions file to keep
+in step.
+
 ## Content: Adding a Project
 
 1. Create `src/content/projects/my-project-slug.yaml`
