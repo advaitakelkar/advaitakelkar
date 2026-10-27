@@ -88,7 +88,8 @@ const projects = defineCollection({
     smallIntro: z.string().optional(),
     designBrief: z.object({
       abstract: z.string(),
-      hypothesis: z.string(),
+      hypothesis: z.string().optional(),
+      brief: z.string().optional(),
     }).optional(),
     description: z.any().optional(),
     collaborator: z.string().optional(),

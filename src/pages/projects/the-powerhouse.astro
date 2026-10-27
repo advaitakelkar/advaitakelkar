@@ -667,6 +667,7 @@ const linkNotes = (html: string, ch = '1') => html ? html.replace(/<sup>(\d+)<\/
 // Latest InDesign export, copied in by scripts/sync-powerhouse-pdf.mjs
 const pdfDateShort = new Date(bookPdf.exported).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'America/New_York' });
 const pdfSize = `${(bookPdf.bytes / 1e6).toFixed(1)} MB`;
+const pdfUrl = `${bookPdf.file}?v=${Date.parse(bookPdf.exported)}`;
 
 const mindmapSections = book.flatMap((c) =>
   c.sections.map((s) => {
@@ -838,19 +839,7 @@ const referenceSources = bibliography.map((html, i) => ({
   urls: [...html.matchAll(/href="([^"#]+)"/g)].map(m => m[1]),
   titles: [...html.matchAll(/<(?:i|em)>([\s\S]*?)<\/(?:i|em)>/g)].map(m => referenceKey(m[1])).filter(t => t.length > 12),
 }));
-const seenReferences = new Set<string>();
-const referenceChapters = book.slice(0, 4).map(chapter => {
-  const notes = notesFor(chapter.num);
-  const sources = referenceSources.filter(source => notes.some(note =>
-    source.urls.some(url => note.html.includes(url)) || source.titles.some(title => referenceKey(note.html).includes(title))
-  )).map(source => {
-    const anchor = seenReferences.has(source.id) ? undefined : source.id;
-    seenReferences.add(source.id);
-    return {...source, anchor};
-  });
-  return {chapter, notes, sources};
-});
-const additionalReferences = referenceSources.filter(source => !seenReferences.has(source.id));
+const referenceChapters = book.slice(0, 4).map(chapter => ({chapter, notes: notesFor(chapter.num)}));
 
 const mindmapBibs = rawBibs.map((b) => ({
   id: b.id,
@@ -888,7 +877,7 @@ const mindmapBibs = rawBibs.map((b) => ({
           <button type="button" class="ph__mm-trigger" data-mm-open aria-haspopup="dialog" aria-controls="ph-mindmap-lightbox">
             <span>Mindmap</span> Notes &amp; Bibliography Graph ↗
           </button>
-          <a class="ph__mm-trigger" href={bookPdf.file} target="_blank" rel="noopener" title={`${bookPdf.source} · ${bookPdf.pages} pages · ${pdfSize}`}>
+          <a class="ph__mm-trigger" href={pdfUrl} target="_blank" rel="noopener" title={`${bookPdf.source} · ${bookPdf.pages} pages · ${pdfSize}`}>
             <span>PDF</span> Book · {pdfDateShort} ↗
           </a>
         </div>
@@ -1145,7 +1134,7 @@ const mindmapBibs = rawBibs.map((b) => ({
               <p set:html={linkNotes(bookText['1-2'].body[3], '1')} />
 
             </div>
-<div class="ph__infig">
+<div class="ph__infig ph__infig--civic">
                 <div class="ph__fig-header">
                   <span class="ph__fig-tag">Figure 1.3</span>
                   <span class="ph__fig-title">Civic road stations</span>
@@ -1186,7 +1175,7 @@ const mindmapBibs = rawBibs.map((b) => ({
             <div class="ph__read-text">
 
               <p set:html={linkNotes(bookText['1-3'].body[0], '1')} />
-              <p set:html={linkNotes(bookText['1-3'].body[1], '1')} />
+              <p class="ph__column-turn" set:html={linkNotes(bookText['1-3'].body[1], '1')} />
               <p set:html={linkNotes(bookText['1-3'].body[2], '1')} />
             </div>
 <div class="ph__infig">
@@ -1371,7 +1360,7 @@ const mindmapBibs = rawBibs.map((b) => ({
             <div class="ph__read-text">
               <p set:html={linkNotes(bookText['1-7'].body[0], '1')} />
               <p set:html={linkNotes(bookText['1-7'].body[1], '1')} />
-              <p set:html={linkNotes(bookText['1-7'].body[2], '1')} />
+              <p class="ph__column-turn" set:html={linkNotes(bookText['1-7'].body[2], '1')} />
               <p set:html={linkNotes(bookText['1-7'].body[3], '1')} />
             </div>
           </div>
@@ -1390,19 +1379,19 @@ const mindmapBibs = rawBibs.map((b) => ({
       <details class="ph__ch-group" data-chapter-group="ch5">
         <summary class="ph__ch-sum"><span class="ph__ch-title">Notes and Bibliography</span><span class="ph__ch-arrow" aria-hidden="true"><Icon name="arrow" class="ph__ch-chevron" /></span></summary>
         <section class="ph__references" id="ch5" data-chapter-head="ch5" data-section-panel="5-0" aria-label="Notes and bibliography by chapter">
-          <div id="s-5-5" class="ph__references-top"><p>Notes and sources, arranged by chapter.</p></div>
-          {referenceChapters.map(({chapter, notes, sources}) => (
+          <div class="ph__references-top"><h2>Notes</h2><p>Notes to Chapters 1–4, followed by the complete bibliography.</p></div>
+          {referenceChapters.map(({chapter, notes}) => (
             <section class="ph__reference-chapter" id={`s-5-${chapter.num}`} aria-labelledby={`references-heading-${chapter.num}`}>
               <h3 id={`references-heading-${chapter.num}`}>{chapter.title}<sup class="ph__chapter-number">{chapter.num.padStart(2,'0')}</sup></h3>
-              <div class="ph__reference-pair">
-                <div><h4>Notes</h4><ol class="ph__notes-list">
-                  {notes.map(note => <li id={`note-${chapter.num}-${note.n}`} value={note.n}><span set:html={note.html} /> <a class="ph__note-back" href={`#ref-${chapter.num}-${note.n}`} aria-label={`Back to Chapter ${chapter.num}, note ${note.n}`}>Back</a></li>)}
-                </ol></div>
-                <div><h4>Bibliography</h4><ul class="ph__bib-list">{sources.map(source => <li id={source.anchor} set:html={source.html} />)}</ul></div>
-              </div>
+              <ol class="ph__notes-list">
+                {notes.map(note => <li id={`note-${chapter.num}-${note.n}`} value={note.n}><span set:html={note.html} /> <a class="ph__note-back" href={`#ref-${chapter.num}-${note.n}`} aria-label={`Back to Chapter ${chapter.num}, note ${note.n}`}>Back</a></li>)}
+              </ol>
             </section>
           ))}
-          {additionalReferences.length > 0 && <section class="ph__reference-chapter ph__reference-additional"><h3>Further references</h3><ul class="ph__bib-list">{additionalReferences.map(source => <li id={source.id} set:html={source.html} />)}</ul></section>}
+          <section class="ph__reference-chapter ph__reference-bibliography" id="s-5-5" aria-labelledby="references-bibliography-heading">
+            <h2 id="references-bibliography-heading">Bibliography</h2>
+            <ul class="ph__bib-list">{referenceSources.map(source => <li id={source.id} set:html={source.html} />)}</ul>
+          </section>
         </section>
       </details>
     ) : (
@@ -1638,8 +1627,8 @@ const mindmapBibs = rawBibs.map((b) => ({
      categories, like a storage bar. Brighter values in dark mode keep contrast on #111. */
   .ph {
     --ph-reading-size: clamp(.8125rem, .775rem + .15vw, .9375rem);
-    --ph-reading-leading: 1.74;
-    --ph-reading-gap: 40px;
+    --ph-reading-leading: 1.43;
+    --ph-reading-gap: clamp(28px, 4.5vw, 54px);
     /* Dusty pastels: soft enough to sit quietly in a black-and-white page, distinct enough
        to tell apart, and each still reads as its colour name. */
     --ph-red: #e0806f; --ph-orange: #e9a467; --ph-yellow: #ddbd5c; --ph-green: #74b893;
@@ -3185,7 +3174,7 @@ const mindmapBibs = rawBibs.map((b) => ({
   [data-chapter-group="ch1"] #usa .ph__national-map { grid-column: 1; margin: 0; }
   [data-chapter-group="ch1"] #usa .ph__ranklist { grid-column: 2; min-width: 0; }
   [data-chapter-group="ch1"] #usa .ph__top5 { max-height: 290px; }
-  [data-chapter-group="ch1"] .ph__read-text { orphans: 2; widows: 2; }
+  [data-chapter-group="ch1"] .ph__read-text { orphans: 3; widows: 3; }
   @media (max-width: 699.98px) {
     [data-chapter-group="ch1"] #usa, [data-chapter-group="ch1"] .ph__infig:not(#usa) > .ph__fig { grid-template-columns: minmax(0, 1fr); }
     [data-chapter-group="ch1"] #usa .ph__map-bar { flex-direction: column; gap: 12px; }
@@ -3477,6 +3466,42 @@ const mindmapBibs = rawBibs.map((b) => ({
     .ph__state-grid, .ph__growth-grid { grid-template-columns: repeat(3, 1fr); }
     .ph__slide:last-of-type { break-after: auto; }
   }
+  /* Match the current InDesign editorial report, while retaining responsive navigation. */
+  .ph { --ph-panel:color-mix(in srgb,var(--_tokens---color--fg) 3%,var(--_tokens---color--bg));
+    --ph-panel-line:color-mix(in srgb,var(--_tokens---color--fg) 12%,var(--_tokens---color--bg)); }
+  .ph :global(.ph__book-body),.ph .ph__chapter-lead :global(.ph__book-body) { font-size:var(--ph-reading-size); }
+  .ph :global(.ph__book-body p),.ph .ph__chapter-lead :global(.ph__book-body p) { font-size:inherit;line-height:var(--ph-reading-leading);margin-bottom:.65em;orphans:3;widows:3; }
+  .ph :global(.ph__book-body) { column-gap:var(--ph-reading-gap);column-fill:balance; }
+  [data-chapter-group="ch1"] .ph__read-unit { gap:24px; }
+  [data-chapter-group="ch1"] .ph__read-text p { font-size:inherit;line-height:var(--ph-reading-leading);margin-bottom:.65em;orphans:3;widows:3; }
+  [data-chapter-group="ch1"] .ph__figrow { padding:0;border:0;background:none;border-radius:0;gap:22px; }
+  [data-chapter-group="ch1"] .ph__figrow > :is(.ph__fig,.ph__lens),
+  [data-chapter-group="ch1"] .ph__infig { box-sizing:border-box;padding:12px;border:1px solid var(--ph-panel-line);border-radius:0;background:var(--ph-panel); }
+  [data-chapter-group="ch1"] .ph__figrow > .ph__book-table { padding:0;border:0;background:none; }
+  [data-chapter-group="ch1"] .ph__figrow:has(> .ph__statement) { padding:12px;border:1px solid var(--ph-panel-line);background:var(--ph-panel); }
+  [data-chapter-group="ch1"] .ph__lens { border-left:1px solid var(--ph-panel-line); }
+  [data-chapter-group="ch1"] .ph__fig-num { font-size:clamp(1.5rem,2.4vw,2rem);font-weight:700;line-height:1.12; }
+  [data-chapter-group="ch1"] .ph__fig-src { font-size:10px;line-height:1.35; }
+  [data-chapter-group="ch1"] .ph__lens > b { font-size:20px;line-height:1.25;font-weight:700; }
+  .ph__argument-path { gap:22px; }
+  .ph__argument-path li { padding:12px;border-radius:0;border-color:var(--ph-panel-line);background:var(--ph-panel); }
+  [data-chapter-group="ch1"] .ph__infig:not(#usa).ph__infig--civic > .ph__fig { grid-template-columns:minmax(0,1fr) minmax(0,2fr); }
+  [data-chapter-group="ch1"] .ph__infig:not(#usa).ph__infig--civic .ph__fig-chips { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 22px; }
+  [data-chapter-group="ch1"] .ph__infig:not(#usa).ph__infig--civic .ph__fig > .ph__fig-src { grid-column:1 / -1;grid-row:auto;padding-top:8px;border-top:1px solid var(--_tokens---color--line-soft); }
+  .ph__references :is(.ph__notes-list,.ph__bib-list) { columns:2;column-gap:var(--ph-reading-gap);font-size:12px;line-height:1.55; }
+  .ph__references h2 { font-size:clamp(1.75rem,3vw,2.625rem);font-weight:700;line-height:1.1;margin:0 0 24px; }
+  .ph__reference-chapter h3 { font-size:21px;font-weight:700;line-height:1.3;margin-bottom:20px; }
+  .ph__references :is(.ph__notes-list,.ph__bib-list) li { margin-bottom:12px; }
+  .ph__fold-title { font-weight:700; }
+  .ph__ch-title { font-size:clamp(1.75rem,3.2vw,2.625rem);font-weight:700;line-height:1.1;letter-spacing:-.025em; }
+  :is([data-chapter-group="ch1"],[data-chapter-group="ch2"],[data-chapter-group="ch3"],[data-chapter-group="ch4"]) .ph__fold-title { font-size:clamp(1.25rem,1.1rem + .3vw,1.375rem); }
+  @media (min-width: 700px) { .ph__column-turn { break-before:column; } }
+  @media (max-width: 699.98px) {
+    [data-chapter-group="ch1"] .ph__infig:not(#usa).ph__infig--civic > .ph__fig { grid-template-columns:minmax(0,1fr); }
+    [data-chapter-group="ch1"] .ph__infig:not(#usa).ph__infig--civic .ph__fig > :is(figcaption,.ph__fig-chips,.ph__fig-key,.ph__fig-src) { grid-column:1;grid-row:auto; }
+    .ph__references :is(.ph__notes-list,.ph__bib-list) { columns:1; }
+  }
+
 </style>
 
 <script>

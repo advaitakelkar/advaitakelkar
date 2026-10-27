@@ -1,0 +1,44 @@
+---
+import fs from 'node:fs';
+import { projectSites } from '../data/project-sites';
+interface Props { projectId: string }
+const { projectId } = Astro.props;
+const site = projectSites[projectId];
+const drawing = site ? fs.readFileSync(`public/maps/site-context/${projectId}.svg`, 'utf8') : '';
+---
+{site && <section class="site-map" aria-label={`Project location: ${site.place}`} data-project-site={projectId} data-center={JSON.stringify(site.center)}>
+  <div class="site-map__stage">
+    <div class="site-map__fallback" aria-hidden="true" set:html={drawing}></div>
+    <div class="site-map__canvas" role="region" aria-label={`Map of ${site.place}. The ring marks the project location. Drag to pan; pinch or use the keyboard to zoom.`} tabindex="0"></div>
+  </div>
+  <p class="site-map__credit"><a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a> · <a href="https://openmaptiles.org/">© OpenMapTiles</a></p>
+</section>}
+<style>
+  .site-map { width:100%; min-width:0; padding:0; color:var(--_tokens---color--fg); }
+  .site-map__stage { position:relative; width:100%; aspect-ratio:1; overflow:hidden; background:var(--_tokens---color--bg); }
+  .site-map__fallback, .site-map__canvas { position:absolute; inset:0; width:100%; height:100%; }
+  .site-map__fallback :global(svg) { display:block; width:100%; height:100%; }
+  .site-map__canvas { opacity:0; }
+  .site-map[data-ready="true"] .site-map__fallback { visibility:hidden; }
+  .site-map[data-ready="true"] .site-map__canvas { opacity:1; }
+  .site-map__canvas:focus-visible { outline:2px solid currentColor; outline-offset:-4px; }
+  .site-map__credit { margin:8px 0 0; font-size:var(--_tokens---type--ultrathin); color:var(--_tokens---color--muted); }
+  .site-map__credit a { color:inherit; text-decoration:none; }
+  .site-map__credit a:focus-visible { outline:2px solid currentColor; outline-offset:2px; }
+  .site-map__fallback :global(#paper) { fill:var(--_tokens---color--bg); }
+  .site-map__fallback :global(#green) { fill:currentColor; opacity:.08; }
+  .site-map__fallback :global(#water) { fill:currentColor; opacity:.2; }
+  .site-map__fallback :global(#waterway) { stroke:currentColor; opacity:.3; }
+  .site-map__fallback :global(#road) { stroke:currentColor; opacity:.28; }
+  .site-map__fallback :global(#path) { stroke:currentColor; opacity:.35; }
+  .site-map__fallback :global(#rail) { stroke:currentColor; opacity:.5; }
+  .site-map__fallback :global(#building) { fill:currentColor; opacity:.72; }
+  .site-map__fallback :global(#reference circle:first-child) { fill:var(--_tokens---color--bg); stroke:currentColor; }
+  .site-map__fallback :global(#reference circle:last-child) { fill:currentColor; }
+  .site-map :global(.maplibregl-cooperative-gesture-screen) { display:none; }
+</style>
+<script>
+  import { initProjectSiteMaps } from '../lib/project-site-map';
+  initProjectSiteMaps();
+  document.addEventListener('astro:page-load',initProjectSiteMaps);
+</script>

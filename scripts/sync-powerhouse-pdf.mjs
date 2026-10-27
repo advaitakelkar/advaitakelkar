@@ -7,7 +7,7 @@ import path from 'node:path';
 import os from 'node:os';
 
 const BOOK_DIR = path.join(os.homedir(), 'My Drive/HUB/1 Projects/Academic/MArch/Graduate Thesis/Graduate Seminar/Working/Book');
-const INDD = path.join(BOOK_DIR, 'The Powerhouse_Thesis Book_Ch1-2.indd');
+const INDD = path.join(BOOK_DIR, 'The Powerhouse_Editorial Report_Ch1-4.indd');
 const src = process.argv[2] || INDD.replace(/\.indd$/, '.pdf');
 const root = path.dirname(path.dirname(new URL(import.meta.url).pathname));
 const outPdf = path.join(root, 'public/powerhouse/the-powerhouse-book.pdf');

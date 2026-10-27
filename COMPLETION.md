@@ -8,6 +8,14 @@ Last surveyed: **2026-09-09** — HEAD `be65d53`, `pnpm build` = 80 pages.
 
 ---
 
+## Powerhouse — editable four-chapter book, 26 October 2026
+
+At Adi’s request, all four current website chapters were rebuilt as `The Powerhouse_Thesis Book_Ch1-4.indd` in the thesis Book folder. The preceding edition and a dated backup remain preserved. The 35-page book includes 29 sections, native diagram and map components, six native tables, 116 chapter notes, 117 bibliography entries and 117 linked note references. All 110 manuscript paragraphs match the website source; all 75 Chapter 2–4 figure panels are present. No placed image/PDF/SVG dependencies, missing fonts or overset text.
+
+Native INDD and IDML, the editing guide and verification record are beside the book. The matching PDF was exported from InDesign and copied to the local website; `pnpm book:pdf` now defaults to Ch1-4. PDF verified at 35 pages with selectable text and vectors, with no raster images. Local only; no commit, push or publication.
+
+---
+
 ## SOCIAL Vashi — publication approved, 25 October 2026
 
 Adi reviewed the local gallery and subsequently requested publication, commit and push. This supersedes the earlier local-only restriction.
@@ -483,3 +491,88 @@ Eleven supplied room views edited with the built-in image tool for a cohesive ph
 - Removed the population chart, textile section and essays below the architecture timeline. Moved compact source/portrait credits above it, preserving attribution. Integrated all 20 architectural milestones into the wheel and playback, reusing eight existing landmark entries rather than duplicating them; 175 total events, each architecture milestone has a source link. Browser confirms 20 architecture markers, no removed sections or desktop overflow. Lints, whitespace check and 95-page build pass. Local only.
 - Removed the curved Politics + Conflicts label from the wheel. Added BOM–MUM’s abstract/hypothesis using the existing DesignProjectBrief component, framing the Richardson & Cruddas site as a cultural-centre design thesis about public memory, performance, exhibition and the city’s struggles for change. Updated introduction; retained the interactive history and architecture timeline. Browser verified both brief columns and rendered content; whitespace check passes. Local only.
 - Publication preparation: consolidated the separate introduction into the abstract/hypothesis, renamed the project BOM → MUM and added `bom-mum` to the shared public-project allowlist. Verified the Academic listing is unlocked and opens the project. Adi explicitly requested commit and push to live; deployment is now authorised for the complete BOM → MUM implementation.
+
+### 2026-10-26 — M.Arch abstracts, briefs and unlocks (local)
+
+- Added Abstract + Brief to Union Pier, Skadoogee and Tower of Quiet Witness; replaced duplicate/placeholder descriptions. Existing course labels and collaborators retained. Unlocked all three in the shared access list at Adi’s request.
+- Union Pier draws from existing project copy and shared decisions about its straight Battery Wall, semi-basement parking, market quarter and pier deck. Skadoogee follows Adi’s recorded wellness / learning / Center for Resilience zoning triad. Tower follows its project brief’s museum, concrete massing, bridge, water, galleries, amphitheatre and tower. Source files disagree on Tower’s site (older shared memory: Lake Zwerner; project brief/site YAML: Atlanta), so the new abstract avoids a specific lake/address and leaves existing location metadata unchanged.
+- Added a Brief field to DesignProjectBrief; migrated the resort, hospital and masshousing to programme-led briefs. Hypothesis remains for BOM → MUM; Powerhouse content unchanged. This distinction is Adi’s current direction for design studies versus thesis projects.
+- Validation: style lints, whitespace check and 95-page build pass; built HTML confirms the correct Abstract/Brief headings on all six design projects and Abstract/Hypothesis on BOM → MUM. Browser confirms all three M.Arch listings unlocked and the Skadoogee brief rendered. Local only; not yet committed or published.
+- Prior BOM → MUM publication completed as fcb2d42, successful deployment run 40268996801; live page verified with 175 events and 20 architectural markers.
+- Typography follow-up: shared Abstract/Brief component now uses Powerhouse’s exact reading-size clamp (13–15px) for abstracts and medium claim token (26–40px), 1.15 line height and -.03em tracking for Brief/Hypothesis bodies. Browser confirms the hierarchy; style lints and whitespace checks pass. Local only.
+
+
+### 2026-10-26 — Powerhouse editorial report (local)
+
+- Created a separate 32-page native InDesign architectural report: continuous Chapters 1–4, all notes and bibliography in one final reference story, new cover and compact abstract/contents opening. Earlier 35-page book preserved.
+- All 110 manuscript paragraphs, 116 notes, 117 bibliography entries, six native tables (306 cells) and native graphic components retained; 117 citation links resolve, zero missing fonts/overset. All PDF pages visually reviewed.
+- Book/PDF bridge now points to `The Powerhouse_Editorial Report_Ch1-4`; local PDF refreshed. Website manuscript and graphics unchanged. No commit/push/publication.
+
+- Editorial screenshot follow-up (26 October): compact horizontal layouts for Figures 1.3 / 2.3c / 3.6; balanced closing Chapter 1 text blocks; three-line minimum at paragraph splits. Actual native prose-line audit passed; all 32 PDF pages reviewed. Native source text, figures and citations preserved. Updated matching INDD/IDML/PDF and local PDF copy.
+
+
+### 2026-10-26 — Powerhouse website matches editorial report (local)
+
+- Matched the current book’s 14/20 reading proportions, balanced two-column prose, 54 px maximum gutter, bold chapter/section hierarchy, individual light-grey rectangular figure panels and compact spacing. Desktop/tablet use two prose columns; phones use one.
+- Civic road-station amenities use a compact horizontal panel; the 2030 scenario uses five categories across the width; the pavement comparison uses two. Full-width diagrams retain full width on tablets. Narrow multi-panel figures use smaller headings, as in the book.
+- All 116 chapter notes now precede one complete 117-entry bibliography. Citation popups, exact bibliography jumps and back links retain their anchors. All 75 Chapter 2–4 figure panels and manuscript/figure JSON source files preserved.
+- Refreshed the full 32-page PDF from the canonical book folder; PDF link includes the export version to avoid stale cached copies. Served PDF checksum matches the canonical file.
+- Validation: all 29 reading sections checked at 1440, 834 and 390 px; correct columns and no horizontal page overflow. Phone citation popup fits viewport, bibliography jump works, no duplicate IDs/missing note targets/browser errors. 95-page build, breakpoint/glyph/icon lints and whitespace checks pass. Local only; no commit/push/publication.
+
+
+### 2026-10-26 — Larger M.Arch project briefs (local)
+
+- At Adi’s request, Skadoogee, Union Pier and Tower of Quiet Witness now use Powerhouse’s exact hypothesis typography for their Brief: shared medium token (26–40 px), 1.15 line height and -.03em tracking. Added an explicit prominent option to DesignProjectBrief for these three projects. Copy preserved.
+- Verified identical computed typography to Powerhouse at 1440 px and 26 px type at 390 px on all three; no page overflow. 95-page build and whitespace checks pass. Refreshed the local dev server after stale build styles affected the preview. Local only; no commit/push/publication.
+
+### 2026-10-26 — Concise M.Arch briefs and mapping direction (local)
+
+- Shortened only the Brief copy for Skadoogee (69 to 35 words), Union Pier (68 to 28) and Tower of Quiet Witness (70 to 35). Retained large typography and full abstracts. All three updated pages verified in-browser with no horizontal overflow.
+- Adi selected project site and surroundings for proposed 2D web mapping. Research reference: archiMap by MassLabs; recommended direction is a reusable MapLibre viewer with curated project GeoJSON and figure-ground, access, landscape and proposal layers. No map implementation or dependency added yet. Tower site discrepancy still needs resolution before locating its map.
+- Local only; no commit/push/publication.
+
+### 2026-10-26 — Interactive M.Arch site-context maps (local)
+
+- Added a reusable 2D site atlas after the brief on Tower, Union Pier and Skadoogee: Context, Figure–ground, Access and Landscape views; six layer switches; pan, zoom/reset, metric scale and feature inspection. Lazy MapLibre loading, local vector data and a static SVG fallback. Each map offers layered SVG and GeoJSON downloads with source attribution.
+- Adi resolved Tower’s site as the former Chattahoochee Brick Company beside the Chattahoochee River in Atlanta. Updated its abstract; used the 3195 Brick Plant Road address-geocoder point with an explicit vicinity note. Union Pier is Charleston. Skadoogee uses Adi’s exact Dahlonega/Lumpkin County pin, 34.55047325623666, -83.97303499793635. Existing mapped context and reference pins are distinguished from parcel boundaries/proposal footprints.
+- Checked-in OSM/OpenMapTiles context via 21 bounded OpenFreeMap tiles; runtime maps need no external basemap service or key. Named layers and editable SVGs generated by scripts/build-site-context.mjs; docs/project-site-maps.md records data provenance, accuracy and refresh commands.
+- Validation: all three maps ready and view switches working on desktop and at 390px, correct stacked phone layout and no page overflow; layer toggles, zoom/reset and actual SVG rendering checked. Browser logs clean after loader correction. House lints and 95-page production build pass. Local only; no commit/push/publication.
+
+### 2026-10-26 — Simplified square location maps (local)
+
+- Adi simplified the atlas to one square map per project, all layers on, location marker only. Removed view tabs, layer switches, map labels/titles, sidebar, scale, inspection text and download UI. Required source attribution remains below the frame.
+- Map foreground/background now follow the selected website theme, including dark mode. Opacity distinguishes buildings, water, landscape and routes. Static SVG fallback is inline and also theme-aware.
+- Clipped vector geometry to exact tile extents to remove buffer overlaps visible under transparency; regenerated all three data extracts and square fallback SVGs. docs/project-site-maps.md describes the final implementation.
+- Local only; no publication.
+- Final validation: all three maps ready at 390 px, each exactly 366 × 366 px, zero map text/controls/download links and no horizontal overflow. Theme and dark/light changes verified; no browser errors. Lints, targeted strict TypeScript checks, whitespace checks and the 95-page production build pass.
+
+### 2026-10-26 — Abstract / map / brief layout (local)
+
+- Skadoogee, Union Pier and Tower now place Abstract on the left and the square map on the right, with Brief spanning the full width below. Shared DesignProjectBrief accepts an optional siteProjectId; other project layouts retain their existing two-column propositions. Map labels, controls and downloads remain absent; theme behaviour retained.
+- All three verified on desktop: aligned abstract/map top, square right-hand map, brief below and full-width. At 390 px all three stack Abstract → map → Brief with no horizontal overflow. Lints, whitespace check and 95-page build pass. Refreshed dev server to clear an older cached stylesheet. Local only.
+
+### 2026-10-26 — More academic briefs and unlocks (local)
+
+- Unlocked Habersham Hall and SCAD Design Built in the shared access allowlist. Academic listing confirms both are unlocked.
+- Added a source-grounded Abstract / concise Brief to Habersham Hall; retained existing chapters and credits. Verified its location at 235 Habersham Street against SCAD’s official page and the OSM building point; added its square themed context map to the right, brief full width below.
+- Shortened Karshid Beach Resort, Siddharth Nagar Hospital and Mumbai Masshousing briefs to the same prominent full-width style. Their current files identify neighbourhoods but no plots. Asked Adi for the three map pins; maps remain pending those exact locations. No approximate project pins invented.
+- Map embedding now follows the project-site registry rather than a hardcoded three-project list. Added --only=project-id to the context builder so new site data can be generated independently. Full-width prominent briefs also work while a location remains pending.
+- House lints and 95-page production build pass. Local only; no publication.
+
+- Pins received from Adi: resort 18.44055106031501, 72.9061639969247; hospital and masshousing both 19.15943318972379, 72.84020363855329. Generated all three local context extracts and square SVG fallbacks, completing the requested four-page layout. All four verified on desktop and at 390 px: correct map-right/full-width-brief layout, stacked phone order, square maps, exact pin values, no controls/downloads and no horizontal overflow.
+
+### 2026-10-26 — SCAD Design Built editorial report (local)
+
+- At Adi’s request, moved SCAD Design Built to a dedicated report page using Powerhouse’s editorial hierarchy: abstract / research question, compact PDF links and credits, sticky numbered chapter navigation, section links and a full intervention index. Existing four topics and all twelve interventions retained.
+- Reading text uses the Powerhouse 14/20 proportions, two columns on desktop/tablet and one on phones. Bold chapter/section headings, compact individual figure and programme panels, natural image proportions and rectangular low-contrast backgrounds replace the gallery/card treatment. Existing theme colours remain available.
+- Content audit against the previous generated page confirms all four chapter texts and all 39 chapter images preserved in order; all twelve programme lists and both PDF links remain. No source chapter copy or PDFs changed.
+- Browser verified all chapter switches, cross-chapter index jumps, direct section hashes, keyboard tab navigation, Escape close, and phone index bounds. Four chapters checked on desktop and 390 px with no horizontal overflow and images fitting the viewport. The dedicated route is excluded from the generic project route. Local only; no publication.
+
+- Design Built follow-ups: each intervention now has one full-column 4:5 slideshow alternating its sketch and render every 4.5 seconds, with manual next and pause/play. Slides stop offscreen, in hidden tabs, on hover/focus and under reduced motion; both images retain their proportions. All twelve sliders verified, including actual automatic advancement, pause/manual next and 366px phone frames with no overflow.
+- Removed the Summary/Book download links and downloads metadata at Adi’s request. Restored all five original circular team portraits (professor separated from collaborators), with accessible names and hover/focus labels. All five files load; zero PDF links remain on the report. Source PDF files were not modified.
+- Chapter, section and Index navigation now use Powerhouse’s exact pill geometry, typography, spacing and active foreground/background treatment. Active section pills follow clicks and deep links. Original chapter text, 39 graphics and twelve programmes remain intact.
+
+### 2026-10-26 — Publication authorised
+
+- Adi requested commit and push for the Powerhouse PDF/editorial updates, academic abstracts/briefs, seven site maps, project unlocks and SCAD Design Built report/slideshows/portraits/pills. Final 95-page production build, house lints and whitespace checks pass.
+- Separate pre-existing BOM → MUM playback changes in BomMumTimeline.astro and bom-mum-playback.ts are excluded from this publication and remain local.

@@ -1,7 +1,9 @@
 # Powerhouse book bridge — InDesign ↔ website
 
-Status: **set up, not yet run.** The workflow and data contract are fixed here; the live
-InDesign side is wired up the first time Adi asks for a sync (InDesign must be open).
+Status: **32-page editorial report edition completed on 26 October 2026, at Adi’s request.**
+The current book is `The Powerhouse_Editorial Report_Ch1-4.indd` in the Book folder below.
+It contains the current website text, six native tables and native editable diagram and map
+objects. The preceding 35-page four-chapter edition and earlier two-chapter edition are preserved. Chapters share one continuous manuscript story; all chapter notes and the bibliography share a separate reference story at the end. Nothing syncs automatically.
 
 ## What it is
 
@@ -23,11 +25,11 @@ the `.indd` is always the latest export; the site only ever copies it, never edi
 
 | File | Holds |
 |---|---|
-| `src/data/powerhouse-book.json` | The book text as the website reads it. One entry per block: `ch1`, `ch2` (chapter openings), `1-1` … `2-6` (sections), `bibliography`. |
+| `src/data/powerhouse-book.json` | The book text as the website reads it. Chapter openings `ch1` … `ch4`, sections `1-1` … `4-6`, and `bibliography`. |
 | `src/components/PowerhouseBookText.astro` | Renders one block; links each `<sup>` to its note. |
-| `src/pages/powerhouse.astro` | The `book` array: chapter and section titles, numbers, book pages. |
-| InDesign | `HUB/1 Projects/Academic/MArch/Graduate Thesis/Graduate Seminar/Working/Book/The Powerhouse_Thesis Book_Ch1-2.indd` (current). |
-| PDF | `The Powerhouse_Thesis Book_Ch1-2.pdf` beside the `.indd`; copied by `scripts/sync-powerhouse-pdf.mjs` (`pnpm book:pdf`). |
+| `src/pages/projects/the-powerhouse.astro` | The `book` array: chapter and section titles, numbers, book pages. |
+| InDesign | `HUB/1 Projects/Academic/MArch/Graduate Thesis/Graduate Seminar/Working/Book/The Powerhouse_Editorial Report_Ch1-4.indd` (current). |
+| PDF | `The Powerhouse_Editorial Report_Ch1-4.pdf` beside the `.indd`; copied by `scripts/sync-powerhouse-pdf.mjs` (`pnpm book:pdf`). |
 
 ## Data contract (what must survive a round trip)
 
@@ -45,7 +47,7 @@ Mapping to InDesign:
 
 | Web | InDesign |
 |---|---|
-| Section id `1-2` | Heading paragraph "II. The Architecture of the Stop" (Chapter 1 uses roman numerals) / "2.2 …" (Chapter 2) |
+| Section id `1-2` | Heading paragraph "1.2 The Pause Today" / "2.2 Where and How We Charge" |
 | Paragraph | Body paragraph after that heading, until the next heading |
 | `<sup>n</sup>` | Endnote / footnote reference n |
 | `notes[]` | That chapter's Endnotes list |
@@ -68,5 +70,12 @@ layout changes.
 
 ## Not covered (yet)
 
-- Chapters 3 and 4 are placeholders on the web until they exist in the book.
-- The map slides in 1.1 are web-only; they do not go back into InDesign.
+- Interactive web controls do not become interactive InDesign controls. The current national
+  map is rebuilt as editable native paths and dots at the web page’s all-charging snapshot.
+- Chart marks are native editable geometry; changing a label does not recalculate a bar or map.
+- Note markers link to chapter endnotes; renumbering requires updating both lists and markers.
+
+
+## 26 October 2026 — Editorial web layout
+
+The website now follows the current editorial book’s reading proportions, compact horizontal diagrams, separate figure cards and three-line orphan/widow rules. Two columns are used from 700 px; phones use one. All chapter notes are followed by one complete bibliography. The manuscript and figure JSON remain unchanged. The current full-book PDF pill has an export-version query to refresh cached copies. Chapter navigation, interactive map and citation popups remain part of the web edition.

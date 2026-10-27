@@ -15,13 +15,14 @@ import GongDrawings from '../../components/GongDrawings.astro';
 import WorkArticle from '../../components/WorkArticle.astro';
 import BomMumTimeline from '../../components/BomMumTimeline.astro';
 import DesignProjectBrief from '../../components/DesignProjectBrief.astro';
+import { projectSites } from '../../data/project-sites';
 import { workMedia, imagePaths } from '../../lib/workMedia';
 import { isPlaceholder, realText, publicFileExists } from '../../lib/content';
 import Arrow from '../../components/Arrow.astro';
 
 export async function getStaticPaths() {
   const projects = await getCollection('projects');
-  return projects.filter(p => p.id !== 'virtual-gods' && p.id !== 'the-powerhouse').map(p => ({
+  return projects.filter(p => p.id !== 'virtual-gods' && p.id !== 'the-powerhouse' && p.id !== 'scad-design-built').map(p => ({
     params: { slug: p.id },
     props: { project: p },
   }));
@@ -708,7 +709,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         </div>
       )}
 
-      {data.designBrief && <DesignProjectBrief {...data.designBrief} />}
+      {data.designBrief && <DesignProjectBrief {...data.designBrief} prominent={['skadoogee', 'union-pier-charleston', 'tower-of-the-quiet-witness', 'karshid-resort-and-homestay', 'siddharth-municipal-general-hospital', 'mumbai-masshousing', 'habersham-hall'].includes(project.id)} siteProjectId={projectSites[project.id] ? project.id : undefined} />}
 
       <!-- NON-ORIGINAL-CARD PAGES: chapter dropdowns (when defined) or Design & Making -->
       {project.id !== 'virtual-gods' && !isOriginalCardPage && (data.chapters?.length ?? 0) > 0 && (
