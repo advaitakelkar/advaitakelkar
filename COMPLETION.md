@@ -251,7 +251,7 @@ of world selection, pair selection, and the matching world passed.
 
 ### 2026-10-07 — Mac website folder cleanup
 
-- Kept `/Users/adi/Dev/advaitakelkar-live` as the only active local working copy; the live copy is hosted at advaitakelkar.com. `dist/` remains the generated deployment output.
+- Kept `/Users/adi/Dev/Website/advaitakelkar-live` as the only active local working copy; the live copy is hosted at advaitakelkar.com. `dist/` remains the generated deployment output.
 - Moved the obsolete `Dev/_archive/advaitakelkar-website` and cache-only `Dev/advaitakelkar-website` to Mac Trash. Old archive was clean; its files and separate Git history remain recoverable in Trash. Its only extra assets were the superseded CONCRT cover and a generated thumbnail.
 - Moved historical local audits into `docs/archive/` and clarified folder roles in README. CONCRT commit ed17125 is still awaiting a successful GitHub push after repeated remote server errors.
 
@@ -686,3 +686,40 @@ Eleven supplied room views edited with the built-in image tool for a cohesive ph
 
 - Adi requested commit and push of the current portfolio changes: shared project headers/navigation, academic proposition layouts and people, Work abstracts/briefs, and complete responsive AI contact sheets/viewers/pills.
 - Final house lints, whitespace check and 95-page production build pass. Generated audit verifies exactly one shared header on all 57 project pages, public-only previous/next links, 18 Work introductions with original stories retained, and complete matching pill/card counts across seven AI series.
+
+### 2026-10-27 — Desktop breadcrumb category pills (local)
+
+- Added a round disclosure arrow immediately after Projects in the shared desktop breadcrumb. It expands Academic, ARCHV, Freelancer and Work as matching inline pills, sourced from the category collection.
+- Toggle exposes expanded state and Escape closes it with focus returned to the arrow. Mobile navigation remains unchanged. Browser confirms four correct category links, working disclosure and no desktop overflow; house lints and whitespace check pass.
+- Category pages now start with the desktop category pills expanded, highlighting the current category; the disclosure remains collapsible.
+
+### 2026-10-27 — Category portrait registry correction (local)
+
+- CategoryLayout now imports the shared people registry instead of maintaining an outdated duplicate. Manuel and Susan Falls now use Adi's supplied photos, matching project pages; removed the incorrect Advaita-photo fallback for other names.
+- Freelancer category: Varun Mehta now sits with Nayan and Sneha before the divider, with Advaita after it. Other category groupings are unchanged.
+
+### 2026-10-27 — Compact category studio pills (local)
+
+- Shared category studio tabs now use breadcrumb-scale micro type, 4px × 12px padding and 14px arrows across desktop and phone, replacing display-sized labels. Round All control matches the smaller pills.
+
+### 2026-10-27 — Compact desktop category project grids (local)
+
+- Category project cards use 20–24px names, 28px arrow controls, tighter internal padding and 8px grid gaps. Two columns from 1024px; three from 1366px. Tightened people/tab/list spacing while retaining the introduction and existing phone layout.
+- Browser verifies all 18 Work projects visible in the wide desktop viewport, three columns and no horizontal overflow.
+- Adi requested larger category project names: restored the shared medium title token (Academic scale) while retaining compact spacing, arrow controls and two/three-column grid.
+- Projects listing now shares the category cards' medium name-size cap and 28px arrow controls on desktop; descriptions and image strips retained.
+- Three-column wide layout applies only to All/ungrouped category lists. Individual studio tabs always retain two desktop columns.
+
+### 2026-10-27 — Project category breadcrumb and random navigation (local)
+
+- Individual project pages start with category pills expanded and highlight their parent category. Added a shared infinity icon in a circular Random project link after the right-side previous/next arrows.
+- Random choices use only the public project registry and exclude the current project. Browser verifies CARLO category highlight, 51 eligible destinations, working random navigation and no overflow. House lints pass.
+- Random project control now uses the existing plain circle icon instead of infinity, per Adi. Random navigation behavior retained.
+
+### 2026-10-27 — Website audit and cleanup authorised for publication
+
+- Audited 144 generated/copied HTML documents: no broken local href/src references or duplicate IDs. All random-project candidates are public and exclude the current project. Main-site images carry alt attributes; empty fullscreen/preview image slots and original ARCHV lazy-load markup are intentional.
+- Browser checks cover 13 primary routes/templates at 390, 1024 and 1600px (39 cases), with no horizontal overflow or loaded-image failures. Checked studio filtering (two columns) versus All (three columns), and runtime console (no errors).
+- Cleaned repeated category-pill CSS, kept the shared portrait registry, added visible keyboard focus to project arrows, used the shared icon sizing token, and allowed long category titles to wrap instead of truncating.
+- Existing limitation: public read of live Featured configuration returns 403; the verified saved 20-project fallback works. No security rules or Featured selection changed. Historical ARCHV replica markup retained.
+- Adi authorised cleanup, commit and push. Final production build and house checks required before publishing.

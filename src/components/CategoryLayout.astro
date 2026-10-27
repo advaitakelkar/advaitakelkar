@@ -1,5 +1,6 @@
 ---
 import Icon from './Icon.astro';
+import { PEOPLE } from '../data/people';
 import { getCollection } from 'astro:content';
 import PageLayout from '../layouts/PageLayout.astro';
 import ProjectStackCard from './ProjectStackCard.astro';
@@ -82,28 +83,6 @@ const introCols = (intro && intro.length) ? intro : [
 const introTagline = tagline ?? "A curated collection of work in this space.";
 const editable = Boolean(categoryId && intro && intro.length);
 
-const PEOPLE: Record<string, string> = {
-  'Advaita Kelkar':  '/images/people/advaita-kelkar.jpg',
-  'Nayan Mote':      '/images/people/nayan-mote.png',
-  'Varun Mehta':     '/images/people/varun-mehta.jpeg',
-  'Sneha Desai':     '/images/people/sneha-desai.jpeg',
-  'Casimir Esbach':  '/images/people/casimir-esbach.jpeg',
-  'Nicole Hammond':  '/images/people/nicole-hammond.png',
-  'Ben Cho':         '/images/people/ben-cho.jpeg',
-  'Pankti Thakkar':  '/images/people/pankti-thakkar.jpeg',
-  'Faizan Khatri':   '/images/people/faizan-khatri.jpeg',
-  'Samir Raut':      '/images/people/samir-raut.jpeg',
-  'Siddhesh Kadam':  '/images/people/Siddhesh Kadam_823.jpeg',
-  'Aaron Wilner':    '/images/people/Aaron-Wilner.webp',
-  'Michael Hill':    '/images/people/Architecture-Michael-Hill-Fall-2019-HS_003_JJ_v1.webp',
-  'Catalina Pesea-Ogletree': '/images/people/Catalina-Pesea-Ogletree.webp',
-  'Hsu-Jen Huang':   '/images/people/hsu-jen-huang.webp',
-  'Huy Ngo':         '/images/people/huy-ngo.webp',
-  'Sheila Edwards':  '/images/people/sheila-edwards.webp',
-  'David Gobel':     '/images/people/david-gobel.webp',
-  'Brunella Angeli': '/images/people/brunella-angeli.webp',
-};
-
 const uniquePeople = new Set<string>();
 projects.forEach(p => {
   if (p.data.people) {
@@ -138,7 +117,8 @@ if (categoryId === 'archv') {
 const PROFESSOR_NAMES = ['Samir Raut', 'Faizan Khatri', 'Siddhesh Kadam', 'Casimir Esbach', 'Aaron Wilner', 'Michael Hill', 'Catalina Pesea-Ogletree'];
 const perProjectProfessors = new Set<string>();
 projects.forEach(p => (p.data.professors ?? []).forEach((n: string) => perProjectProfessors.add(n)));
-const isProfessor = (p: string) => PROFESSOR_NAMES.includes(p) || perProjectProfessors.has(p);
+const isProfessor = (p: string) => PROFESSOR_NAMES.includes(p) || perProjectProfessors.has(p)
+  || (categoryId === 'freelancer' && p === 'Varun Mehta');
 /* Advaita sits last among the collaborators — the collective's other members
    read first, and the owner of the site closes the row. Professors keep their
    place ahead of the divider regardless. */
@@ -214,7 +194,7 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
             <>
               <div class="category-people__person" data-person={person}>
                 <div class="category-people__avatar">
-                  <img src={PEOPLE[person] ?? PEOPLE['Advaita Kelkar']} alt={person} loading="lazy" />
+                  <img src={PEOPLE[person]} alt={person} loading="lazy" />
                 </div>
                 <span class="category-people__name">{person}</span>
               </div>
@@ -264,7 +244,7 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
       <section class="cat-tabs-content">
         {tabGroups.map((g, i) => (
           <div class:list={["cat-tab-panel", i === 0 && "is-active"]} id={`cat-panel-${g.id}`} role="tabpanel" style={i === 0 ? undefined : 'display:none;'}>
-            <div class="cat-card-list project-cards-container">
+            <div class:list={["cat-card-list", "project-cards-container", !g.isAll && "cat-card-list--studio"]}>
               {g.projects.map(p => (
                 <ProjectStackCard project={p} tagMap={tagMap} catMap={catMap} studioMap={studioMap} />
               ))}
@@ -487,7 +467,7 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
       }
     }
 
-    /* ── Project group tabs (same look as the About page tabs) ── */
+    /* ── Compact project group tabs ── */
     .cat-tabs__bar {
       display: flex;
       flex-direction: row;
@@ -506,16 +486,16 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
       flex: 0 0 auto;
       display: inline-flex;
       align-items: center;
-      gap: var(--_tokens---pill-gap--lg);
-      font-size: var(--_tokens---type--medium);
-      font-family: inherit;
+      gap: 6px;
+      font-size: var(--_tokens---type--micro);
+      font-family: var(--_tokens---font--mono);
       font-weight: var(--_tokens---weight--base);
-      letter-spacing: -0.03em;
-      line-height: 1;
+      letter-spacing: 0.05em;
+      line-height: 1.25;
       background-color: color-mix(in srgb, var(--_tokens---color--fg) 6%, transparent);
       border: var(--_tokens---pill-border);
       color: var(--_tokens---color--muted);
-      padding: var(--_tokens---pill-pad--lg);
+      padding: 4px 12px;
       cursor: pointer;
       border-radius: var(--_tokens---radius--pill);
       white-space: nowrap;
@@ -524,12 +504,11 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
     /* An outbound link drawn as a tab: same pill, no underline. */
     .cat-tab-link { text-decoration: none; }
     .cat-tab-btn .pill-arrow {
-    --icon-size: 20px;
+      --icon-size: 14px;
       flex-shrink: 0;
       opacity: 0.55;
       transition: opacity var(--_tokens---motion--base) ease, transform var(--_tokens---motion--base) cubic-bezier(0.16, 1, 0.3, 1);
-      /* Deliberately fixed, not on the em scale: the tab label is
-         display-sized, and an arrow that tracked it would dwarf the pill. */
+
       
   }
     @media (hover: hover) {
@@ -549,22 +528,10 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
     }
     .cat-tab-btn.is-active .pill-arrow { opacity: 0.7; }
 
-    /* All is a mark, not a word: a round pill carrying only the arrow, so the
-       one tab that is not a studio does not read as another studio.
-
-       Its width is built from the same numbers that give a pill its height,
-       not from aspect-ratio and not from stretch: a flex item's width is
-       resolved from its content before the stretched cross size is known, so
-       the ratio never applies — the trap the breadcrumb's round Back button
-       documents in tokens.css.
-
-       A pill is as tall as whichever is taller, its line box or its arrow,
-       plus 14px of padding top and bottom and a 1px border. Above 700 the
-       display-sized label wins; below it the fixed 20px arrow does. max()
-       covers both, so the circle never has to be re-derived per band. */
+    /* Round All control matches the compact label pills. */
     .cat-tab-btn--all {
       padding-inline: 0;
-      width: calc(max(1lh, 20px) + 30px);
+      width: calc(max(1lh, 14px) + 10px);
       border-radius: 50%;
       justify-content: center;
       gap: 0;
@@ -577,28 +544,7 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
     @media (max-width: 1023.98px) {
       .tab-label-full { display: none; }
       .tab-label-short { display: inline; }
-      /* Sized so the whole row fits the screen rather than scrolling off it.
-         Freelancer carries the most — All plus three studios — and at the
-         previous size those four measured 373px against 351px of room, so the
-         last one was always half off the edge. At this size they come to 279
-         and every category's row is visible at once. */
-      .cat-tab-btn {
-        padding: 8px 12px;
-        font-size: var(--_tokens---type--micro);
-        gap: 6px;
-      }
-      .cat-tab-btn .pill-arrow {
-        --icon-size: 14px;
-      }
-      /* Here the 14px arrow is the taller of the two, not the 12.5px line
-         box, and the padding is 8px a side. */
-      .cat-tab-btn--all {
-        padding-inline: 0;
-        width: calc(max(1lh, 14px) + 18px);
-      }
-      .cat-tabs__bar {
-        gap: 6px;
-      }
+
     }
 
     .cat-tab-empty { padding: 2rem 24px; }
@@ -780,7 +726,7 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
         --card-name: var(--_tokens---type--medium);
         grid-template-rows: auto auto;
         row-gap: 4px;
-        padding-block: 8px 10px;
+        padding-block: 6px;
       }
       .cat-card-list.project-cards-container :global(.project-card__description-col),
       .cat-card-list.project-cards-container :global(.project-card__image-col) {
@@ -808,7 +754,7 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
       .cat-card-list.project-cards-container {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 16px;
+        gap: 8px;
         align-items: stretch;
       }
       .cat-card-list.project-cards-container :global(.project-card) {
@@ -817,6 +763,33 @@ const peopleDividerAfter = professorCount > 0 && professorCount < categoryPeople
       .cat-card-list.project-cards-container :global(.cat-tab-empty) {
         grid-column: 1 / -1;
       }
+    }
+
+    @media (min-width: 1024px) {
+      .category-intro__tagline { margin-bottom: 6px; }
+      .category-intro__actions { margin-top: 8px; }
+      .category-people { margin-block: 16px 8px; }
+      .cat-tabs { margin-top: 12px !important; }
+      .cat-tabs__bar { margin-bottom: 8px; padding-bottom: 8px; }
+      .cat-tabs-content { margin-top: 0; }
+      .cat-card-list.project-cards-container { margin-top: 0; }
+      .cat-card-list.project-cards-container :global(.project-card__header) { padding: 2px 12px; gap: 8px; }
+      .cat-card-list.project-cards-container :global(.project-card__stack-name) {
+        max-width: calc(100% - 36px);
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        overflow-wrap: anywhere;
+      }
+      .cat-card-list.project-cards-container :global(.project-card__bottom-bar) { padding: 2px 12px; }
+      .cat-card-list.project-cards-container :global(.project-card__pill) {
+        width: 28px;
+        height: 28px;
+        --icon-size: 14px;
+      }
+    }
+    @media (min-width: 1366px) {
+      .cat-card-list.project-cards-container:not(.cat-card-list--studio) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
 
     /* ══ Phone: the projects-page chassis ═══════════════════════════════

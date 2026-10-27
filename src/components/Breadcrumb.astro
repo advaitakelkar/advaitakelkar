@@ -38,6 +38,9 @@ const isAbout         = normalizedPath === '/about';
 const isProjectsIndex = normalizedPath === '/projects';
 const isProjectPage   = normalizedPath.startsWith('/projects/') && !isProjectsIndex;
 const isAdmin         = normalizedPath === '/admin';
+const isCategoryPage  = categories.some(c => normalizedPath === `/${c.id}`);
+const categoriesExpanded = isCategoryPage || isProjectPage;
+const randomProjectUrls = projects.filter(p => isPublicProject(p.id) && `/projects/${p.id}` !== normalizedPath).map(p => `/projects/${p.id}`);
 
 let currentProjectId    = '';
 let currentProjectName  = '';
@@ -59,6 +62,7 @@ const markPage = isAbout ? 'about' : isProjectsIndex ? 'projects' : 'home';
 const activeProject = isProjectPage
   ? projects.find(p => p.id === normalizedPath.split('/').filter(Boolean)[1])
   : null;
+const currentCategoryId = activeProject?.data.category?.id ?? categories.find(c => normalizedPath === `/${c.id}`)?.id;
 
 if (activeProject) {
   currentProjectId   = activeProject.id;
@@ -134,6 +138,18 @@ if (activeProject) {
       <Icon name="circle" class="crumb-icon" />
       <span class="crumb-full">Projects</span>
     </a>
+    <button class="breadcrumb__category-toggle breadcrumb__link" id="breadcrumb-category-toggle" type="button"
+      aria-label={categoriesExpanded ? 'Hide categories' : 'Show categories'} aria-expanded={String(categoriesExpanded)} aria-controls="breadcrumb-categories">
+      <Icon name="chevron" dir="e" />
+    </button>
+    <div class="breadcrumb__categories" id="breadcrumb-categories" aria-label="Project categories" hidden={!categoriesExpanded}>
+      {categories.map(c => (
+        <a href={`/${c.id}`} class:list={["breadcrumb__link", currentCategoryId === c.id && "is-active"]}
+          aria-current={currentCategoryId === c.id ? (isCategoryPage ? 'page' : 'true') : undefined}>
+          {c.data.displayName}
+        </a>
+      ))}
+    </div>
   </div>
 
   <!-- Right: prev / dropdown / next -->
@@ -231,6 +247,12 @@ if (activeProject) {
         <Icon name="chevron" dir="e" />
       </a>
     )}
+    {isProjectPage && randomProjectUrls.length > 0 && (
+      <a href={randomProjectUrls[0]} class="breadcrumb__arrow breadcrumb__arrow--random" id="breadcrumb-random"
+        aria-label="Open a random project" title="Random project" data-projects={JSON.stringify(randomProjectUrls)}>
+        <Icon name="circle" />
+      </a>
+    )}
   </div>
 
   <div class="breadcrumb__backdrop" id="breadcrumb-backdrop"></div>
@@ -256,6 +278,27 @@ if (activeProject) {
   }
 
   .breadcrumb__sep { display: none; }
+
+  .breadcrumb__category-toggle,
+  .breadcrumb__categories { display: none; }
+
+  @media (min-width: 1024px) {
+    .breadcrumb__category-toggle {
+      display: inline-flex;
+      padding: 0;
+      width: calc(1lh + 10px);
+      height: calc(1lh + 10px);
+      flex: 0 0 auto;
+      cursor: pointer;
+      line-height: 1.25;
+    }
+    .breadcrumb__category-toggle :global(svg) {
+      --icon-size: 1em;
+      transition: transform var(--_tokens---motion--fast);
+    }
+    .breadcrumb__category-toggle[aria-expanded="true"] :global(svg) { transform: rotate(180deg); }
+    .breadcrumb__categories:not([hidden]) { display: flex; align-items: center; gap: 8px; }
+  }
 
   /* One line-height for every control in the bar.
      The round buttons derive their size from `1lh`, and with `line-height:
@@ -699,6 +742,10 @@ if (activeProject) {
     }
   }
   .breadcrumb__arrow:active { transform: scale(0.9); }
+  .breadcrumb__arrow:focus-visible {
+    outline: 2px solid var(--_tokens---color--fg);
+    outline-offset: 2px;
+  }
   /* --icon-size, not a raw width — same reason as the back button above. The
      icon linter's rule 3 cannot see this: it matches classes handed to
      <Icon>, and this styles the icon through its parent's class. */
@@ -709,7 +756,8 @@ if (activeProject) {
 
   @media (max-width: 1023.98px) {
     .breadcrumb__arrow--prev,
-    .breadcrumb__arrow--next { display: none; }
+    .breadcrumb__arrow--next,
+    .breadcrumb__arrow--random { display: none; }
   }
 
   /* ── Pages search (desktop only) ─────────────────────────────
@@ -1172,6 +1220,34 @@ if (activeProject) {
 
 <script>
   import { initAudio, playTick } from '../lib/tick';
+  function setupCategoryPills() {
+    const random = document.getElementById('breadcrumb-random') as HTMLAnchorElement | null;
+    if (random && !random.dataset.ready) {
+      random.dataset.ready = 'true';
+      const urls: string[] = JSON.parse(random.dataset.projects ?? '[]');
+      const pick = () => { if (urls.length) random.href = urls[Math.floor(Math.random() * urls.length)]; };
+      pick();
+      random.addEventListener('click', pick);
+    }
+    const toggle = document.getElementById('breadcrumb-category-toggle');
+    const group = document.getElementById('breadcrumb-categories');
+    if (!toggle || !group || toggle.dataset.ready) return;
+    toggle.dataset.ready = 'true';
+    const setOpen = (open: boolean) => {
+      group.hidden = !open;
+      toggle.setAttribute('aria-expanded', String(open));
+      toggle.setAttribute('aria-label', open ? 'Hide categories' : 'Show categories');
+    };
+    toggle.addEventListener('click', () => setOpen(group.hidden));
+    toggle.parentElement?.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && !group.hidden) {
+        e.preventDefault();
+        e.stopPropagation();
+        setOpen(false);
+        toggle.focus();
+      }
+    });
+  }
   function setupDropdown() {
     const trigger  = document.getElementById('breadcrumb-dropdown-trigger') as HTMLButtonElement | null;
     const panel    = document.getElementById('breadcrumb-dropdown-panel');
@@ -1514,9 +1590,11 @@ if (activeProject) {
   }
 
   setupBackButton();
+  setupCategoryPills();
   setupDropdown();
   document.addEventListener('astro:after-swap', () => {
     (window as any).hasKbGlobalNav = false;
+    setupCategoryPills();
     setupDropdown();
   });
 </script>

@@ -29,7 +29,7 @@ Everything an AI agent needs to work on this repo cold.
 ## Working Directory
 
 ```
-~/Dev/advaitakelkar-live
+~/Dev/Website/advaitakelkar-live
 ```
 
 **Never move this repo into `~/My Drive` or the CloudStorage mount.** Drive mirror mode created
