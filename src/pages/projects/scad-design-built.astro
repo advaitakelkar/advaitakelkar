@@ -1,17 +1,12 @@
 ---
 import { getEntry } from 'astro:content';
 import PageLayout from '../../layouts/PageLayout.astro';
+import ProjectHeader from '../../components/ProjectHeader.astro';
+import ProjectPeople from '../../components/ProjectPeople.astro';
 import Icon from '../../components/Icon.astro';
 const project = await getEntry('projects','scad-design-built');
 if (!project) throw new Error('SCAD Design Built content is missing');
 const {data}=project;
-const portraits:Record<string,string>={
-  'Casimir Esbach':'/images/people/casimir-esbach.jpeg',
-  'Nicole Hammond':'/images/people/nicole-hammond.png',
-  'Ben Cho':'/images/people/ben-cho.jpeg',
-  'Pankti Thakkar':'/images/people/pankti-thakkar.jpeg',
-  'Advaita Kelkar':'/images/people/advaita-kelkar.jpg',
-};
 const chapters=(data.chapters??[]).map((chapter,index)=>{
   const id=`db-${index+1}`;
   const sections=[...chapter.body.matchAll(/<h4>([\s\S]*?)<\/h4>/g)].map((match,i)=>({id:`${id}-${i+1}`,title:match[1].replace(/<[^>]*>/g,'')}));
@@ -22,26 +17,15 @@ const chapters=(data.chapters??[]).map((chapter,index)=>{
 ---
 <PageLayout title="SCAD Design Built" description={data.smallIntro} showFooter={false}>
   <article class="db" data-design-report>
-    <header class="db__header">
-      <h1>{data.name}</h1>
-      <p>SCAD / Design research & buildable interventions / {data.year}</p>
-    </header>
+    <ProjectHeader projectId="scad-design-built" subtitle="Design research & buildable interventions" />
     <section class="db__intro" aria-label="Project introduction">
       <div>
         <h2 class="db__kicker">Abstract</h2>
         <div class="db__abstract" set:html={data.description} />
+        <ProjectPeople people={data.people ?? []} faculty={['Casimir Esbach']} />
       </div>
       <div><h2 class="db__kicker">Research question</h2><p class="db__claim">{data.smallIntro}</p></div>
     </section>
-    <div class="db__people" role="group" aria-label="Project team">
-      {data.people?.map((person,i)=><>
-        <span class="db__person" tabindex="0">
-          <img src={portraits[person]} alt={person} width="40" height="40" />
-          <span class="db__person-name" aria-hidden="true">{person}{person==='Casimir Esbach'?' (Professor)':''}</span>
-        </span>
-        {i===0 && <span class="db__people-divider" aria-hidden="true"></span>}
-      </>)}
-    </div>
     <div class="db__toc">
       <div class="db__tabbar">
         <div class="db__chapters" role="tablist" aria-label="Chapters">
@@ -62,10 +46,10 @@ const chapters=(data.chapters??[]).map((chapter,index)=>{
 </PageLayout>
 <style>
   .db { --db-gap:clamp(28px,4vw,54px); --db-reading:clamp(.8125rem,.775rem + .15vw,.9375rem); color:var(--_tokens---color--fg); padding-top:64px; padding-bottom:80px; }
-  .db__header { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:baseline; gap:12px 24px; padding:24px 0; border-bottom:1px solid var(--_tokens---color--line); }
+  .db__header { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:baseline; gap:12px 24px; padding:0; border-bottom:none; }
   .db__header h1 { margin:0; font-size:var(--_tokens---type--medium); line-height:1.1; letter-spacing:-.03em; font-weight:500; }
-  .db__header p { margin:0; font-size:var(--_tokens---type--ultrathin); line-height:1.5; color:var(--_tokens---color--muted); }
-  .db__intro { display:grid; gap:28px; padding:32px 0 24px; }
+  .db__header p { flex-basis:100%; margin:0; font-size:var(--_tokens---type--ultrathin); line-height:1.5; color:var(--_tokens---color--muted); }
+  .db__intro { display:grid; gap:28px; padding:24px 0; }
   .db__kicker { margin:0 0 12px; font-size:var(--_tokens---type--micro); font-weight:500; color:var(--_tokens---color--muted); }
   .db__abstract :global(p) { margin:0 0 .65em; font-size:var(--db-reading); line-height:1.43; orphans:3; widows:3; }
   .db__claim { margin:0; font-size:var(--_tokens---type--medium); line-height:1.15; letter-spacing:-.03em; font-weight:400; }

@@ -1,0 +1,36 @@
+---
+import { getEntry } from 'astro:content';
+import Icon from './Icon.astro';
+interface Props { projectId: string; subtitle?: string; collaboration?: string }
+const { projectId, subtitle, collaboration } = Astro.props;
+const project = await getEntry('projects', projectId);
+if (!project) throw new Error(`Missing project: ${projectId}`);
+const { data } = project;
+const studio = data.studio ? await getEntry(data.studio) : null;
+const tags = await Promise.all((data.tags ?? []).map(tag=>getEntry(tag)));
+const category = data.category ? await getEntry(data.category) : null;
+const pills = [...new Set([data.year, data.status, data.location, studio?.data.displayName, category?.data.displayName, ...tags.map(t=>t?.data.name)].filter(Boolean).map(String))];
+const credit = collaboration ?? (studio?.id === 'scad' ? 'In collaboration with SCAD' : '');
+const line = subtitle ?? data.smallIntro;
+const pipeline = data.pipeline ?? [];
+const prefix = [credit, pipeline.map(run => [run.model, run.caption].filter(Boolean).join(' · ')).join('; ')].filter(Boolean).join(' · ');
+---
+<div class="project-masthead">
+  <div class="project-masthead__title-row" id="project-name-header"><h1 class="project-masthead__title">{data.name}</h1><slot name="actions" /></div>
+  <div class="project-masthead__pills" aria-label="Project details">
+    {pills.map(label=><a href={`/projects?q=${encodeURIComponent(label)}`} class="project-masthead__pill">{label}<Icon name="arrow" /></a>)}
+  </div>
+  {(prefix || line) && <p class="project-masthead__subtitle">{prefix}{prefix && line ? ' · ' : ''}{line}</p>}
+</div>
+<style>
+.project-masthead { width:100%; min-width:0; padding:0 0 20px; }
+.project-masthead__title-row { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.project-masthead .project-masthead__title { margin:0; font-size:var(--_tokens---type--medium); font-weight:var(--_tokens---weight--base); line-height:1.1; letter-spacing:-.02em; }
+.project-masthead__pills { display:flex; flex-wrap:wrap; align-items:center; gap:5px 6px; margin-top:12px; }
+.project-masthead__pill { display:inline-flex; align-items:center; gap:5px; min-height:25px; padding:2px 9px; border:var(--_tokens---pill-border); border-radius:var(--_tokens---radius--pill); font-size:clamp(.6875rem,.65rem + .1vw,.75rem); line-height:1.2; text-decoration:none; color:var(--_tokens---color--muted); background:color-mix(in srgb,var(--_tokens---color--fg) 6%,transparent); }
+.project-masthead__pill :global(svg) { --icon-size:.8em; opacity:.55; }
+.project-masthead .project-masthead__subtitle { margin:12px 0 0; max-width:none; font-size:var(--_tokens---type--ultrathin); font-weight:400; line-height:1.5; letter-spacing:normal; color:var(--_tokens---color--muted); }
+.project-masthead__pill:hover { color:var(--_tokens---color--fg); background:color-mix(in srgb,var(--_tokens---color--fg) 12%,transparent); }
+.project-masthead__pill:focus-visible { outline:2px solid currentColor; outline-offset:2px; }
+@media (pointer:coarse) { .project-masthead__pill { min-height:32px; } }
+</style>

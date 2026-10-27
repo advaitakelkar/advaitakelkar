@@ -1,0 +1,34 @@
+---
+import Icon from './Icon.astro';
+import { imageSize } from '../lib/imageSize';
+import { projectThumbnail } from '../lib/projectImages';
+interface Props { images: string[]; names: string[] }
+const { images, names } = Astro.props;
+const size = images[0] ? imageSize(images[0]) : null;
+const ratio = size ? `${size.width} / ${size.height}` : '2 / 3';
+---
+<section class="portrait-sheet" aria-label="Complete portrait collection">
+  <div class="portrait-sheet__grid" style={`--sheet-ratio:${ratio}`}>
+    {images.map((src,index)=><button type="button" class="portrait-sheet__card" data-portrait-index={index} aria-label={`View ${names[index]}`} title={names[index]}><img src={projectThumbnail(src)} alt={names[index]} loading="lazy" decoding="async" /></button>)}
+  </div>
+  <dialog class="portrait-sheet__viewer" id="portrait-sheet-viewer" aria-label="Portrait viewer">
+    <div class="portrait-sheet__viewer-bar"><button type="button" data-portrait-step="-1" aria-label="Previous portrait"><Icon name="chevron" dir="w" /></button><span id="portrait-sheet-viewer-name"></span><button type="button" data-portrait-step="1" aria-label="Next portrait"><Icon name="chevron" dir="e" /></button><button type="button" data-portrait-close aria-label="Close portrait"><Icon name="close" /></button></div>
+    <img id="portrait-sheet-viewer-image" alt="" />
+  </dialog>
+</section>
+<style>
+.portrait-sheet { width:100%; min-width:0; grid-column:1 / -1; padding:24px 0 48px; }
+.portrait-sheet__grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+.portrait-sheet__card { display:block; padding:0; border:0; background:transparent; min-width:0; width:100%; aspect-ratio:var(--sheet-ratio); overflow:hidden; cursor:pointer; }
+.portrait-sheet__card img { display:block; width:100%; height:100%; object-fit:cover; object-position:center top; opacity:1; filter:none; }
+.portrait-sheet__card[aria-current="true"] { outline:2px solid var(--_tokens---color--fg); outline-offset:2px; }
+.portrait-sheet button:focus-visible { outline:2px solid var(--_tokens---color--fg); outline-offset:3px; }
+.portrait-sheet__viewer { padding:12px; border:1px solid var(--_tokens---color--line-soft); color:var(--_tokens---color--fg); background:var(--_tokens---color--bg); width:min(90vw,800px); max-height:94dvh; }
+.portrait-sheet__viewer::backdrop { background:rgba(0,0,0,.75); }
+.portrait-sheet__viewer-bar { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+.portrait-sheet__viewer-bar span { flex:1; font-size:var(--_tokens---type--micro); }
+.portrait-sheet__viewer-bar button { display:grid; place-items:center; border:0; background:transparent; color:inherit; padding:8px; cursor:pointer; }
+.portrait-sheet__viewer > img { display:block; max-width:100%; width:auto; max-height:80dvh; margin:auto; }
+@media (min-width: 700px) { .portrait-sheet__grid { grid-template-columns:repeat(4,minmax(0,1fr)); } }
+@media (min-width: 1024px) { .portrait-sheet__grid { grid-template-columns:repeat(6,minmax(0,1fr)); } }
+</style>

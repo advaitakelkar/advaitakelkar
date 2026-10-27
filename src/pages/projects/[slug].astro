@@ -1,5 +1,6 @@
 ---
 import { projectThumbnail } from '../../lib/projectImages';
+import { imageSize } from '../../lib/imageSize';
 import { projectTemplate } from "../../lib/projectTemplates";
 import Icon from '../../components/Icon.astro';
 import ReadMore from '../../components/ReadMore.astro';
@@ -7,6 +8,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { getCollection, getEntry } from 'astro:content';
 import PageLayout from '../../layouts/PageLayout.astro';
+import ProjectHeader from '../../components/ProjectHeader.astro';
+import PortraitContactSheet from '../../components/PortraitContactSheet.astro';
+import PortraitCharacterPills from '../../components/PortraitCharacterPills.astro';
+import WorkProjectProposition from '../../components/WorkProjectProposition.astro';
 import VGHub from '../../components/VGHub.astro';
 import VGToolbar from '../../components/VGToolbar.astro';
 import RenderRooms from '../../components/RenderRooms.astro';
@@ -15,6 +20,8 @@ import GongDrawings from '../../components/GongDrawings.astro';
 import WorkArticle from '../../components/WorkArticle.astro';
 import BomMumTimeline from '../../components/BomMumTimeline.astro';
 import DesignProjectBrief from '../../components/DesignProjectBrief.astro';
+import ProjectPeople from '../../components/ProjectPeople.astro';
+import { PEOPLE } from '../../data/people';
 import { projectSites } from '../../data/project-sites';
 import { workMedia, imagePaths } from '../../lib/workMedia';
 import { isPlaceholder, realText, publicFileExists } from '../../lib/content';
@@ -86,29 +93,7 @@ const axisLabels = new Set(
   [categoryLabel, studioLabel, studioEntry?.data.name, ...tagNames].filter(Boolean).map(v => pillKey(String(v)))
 );
 // People registry — avatar portrait per collaborator (files in /images/people/)
-const PEOPLE: Record<string, string> = {
-  'Advaita Kelkar':  '/images/people/advaita-kelkar.jpg',
-  'Nayan Mote':      '/images/people/nayan-mote.png',
-  'Varun Mehta':     '/images/people/varun-mehta.jpeg',
-  'Sneha Desai':     '/images/people/sneha-desai.jpeg',
-  'Casimir Esbach':  '/images/people/casimir-esbach.jpeg',
-  'Nicole Hammond':  '/images/people/nicole-hammond.png',
-  'Ben Cho':         '/images/people/ben-cho.jpeg',
-  'Pankti Thakkar':  '/images/people/pankti-thakkar.jpeg',
-  'Faizan Khatri':   '/images/people/faizan-khatri.jpeg',
-  'Samir Raut':      '/images/people/samir-raut.jpeg',
-  'Siddhesh Kadam':  '/images/people/Siddhesh Kadam_823.jpeg',
-  'Aaron Wilner':    '/images/people/Aaron-Wilner.webp',
-  'Michael Hill':    '/images/people/Architecture-Michael-Hill-Fall-2019-HS_003_JJ_v1.webp',
-  'Catalina Pesea-Ogletree': '/images/people/Catalina-Pesea-Ogletree.webp',
-  'Devarsh Deth':    '/images/people/devarsh-deth.jpeg',
-  'Dhruv Chavan':    '/images/people/dhruv-chavan.png',
-  'Hsu-Jen Huang':   '/images/people/hsu-jen-huang.webp',
-  'Huy Ngo':         '/images/people/huy-ngo.webp',
-  'Sheila Edwards':  '/images/people/sheila-edwards.webp',
-  'David Gobel':     '/images/people/david-gobel.webp',
-  'Brunella Angeli': '/images/people/brunella-angeli.webp',
-};
+
 // Samir Raut is Studio 823-only; Faizan Khatri appears on both his own tab and
 // Studio 823's — never default Samir onto an FKD-tagged (or untagged) work page.
 const isStudio823Tag = tags.some(t => t?.id === 'studio-823');
@@ -164,6 +149,7 @@ const collabNames =
    who else was on the project. */
 const collabWith = collaborators.length ? (studioFullName || collabNames) : '';
 const collabCredit = collabWith ? `In collaboration with ${collabWith}` : '';
+const academicIntroCredit = category?.id === 'academic' ? (studioEntry?.id === 'scad' ? 'In collaboration with SCAD' : collabCredit) : '';
 
 // Build dynamic breadcrumbs based on category structure
 const dynamicCrumbs = [ { label: 'Home', href: '/' } ];
@@ -242,6 +228,9 @@ const isStudy = (data.chapters?.length ?? 0) > 0 && !isExhibition;
 // Derive a display name from an image filename (same rules as the client script)
 const isPortraits = template.namedSeries;
 const frameShape = template.frame;
+if (isPortraits) allImages = [...new Set(allImages)];
+const portraitSize = isPortraits && allImages[0] ? imageSize(allImages[0]) : null;
+const portraitRatio = portraitSize ? portraitSize.width / portraitSize.height : 2 / 3;
 
 /* The name under a frame, derived from its filename — so the filenames are the
    contract. Three copies of this exist (here, the deck markup below, and the
@@ -328,7 +317,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
   showFooter={true}
   activeIds={[project.id]}
 >
-    <article class="project-detail"
+    <article class="project-detail" style={isPortraits ? `--portrait-ratio:${portraitRatio}` : undefined}
       data-project-id={project.id}
       data-project-name={data.name}
       data-is-card="true"
@@ -352,82 +341,33 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         /* CARD PAGES: Wrapped in Sticky Dashboard wrapper */
         <div class:list={["project-dashboard-wrap", isOriginalCardPage && "is-expanded"]} id="project-dashboard">
           <header class="project-top-header" id="project-top-header">
-            <div class="project-header-title-row" id="project-name-header">
-              <h1 class="project-name-title" id="project-name-click">
-                <span class="project-name-main">{data.name}</span>
-              </h1>
-              {isRenders && (
-                /* Phone: the faces land here, on the name's line. Above 700
-                   they go to the slot beside the subtitle instead — see
-                   initRendersPeople. */
-                <div class="renders-people renders-people--title" id="renders-people-title"></div>
-              )}
-
-              {isOriginalCardPage && !isPortraits && (
-                <button class="page-toggle-btn project-detail-collapse-btn" id="project-name-toggle" type="button" aria-expanded="true" aria-label="Toggle project details">
-                  <Arrow />
-                </button>
-              )}
-            </div>
-
-            {/* Cancels whichever section the card has grown to show. Rendered
-                here rather than built in script so it carries this file's
-                scope attribute and uses the icon family; the phone card moves
-                it in like every other piece. */}
-            <button class="project-phone-close" type="button" aria-label="Close this section" hidden>
-              <Icon name="close" />
-            </button>
-
-            <div class="project-card__metaline">
-              {/* every template carries the filter pills */}
-              {(
-                <div class="project-meta-row project-meta-row--pills">
-                  {filterPills.map(v => (
-                    <a
-                      class="project-card__filter-pill"
-                      href={`/projects?q=${encodeURIComponent(v)}`}
-                      title={`Show only ${v}`}
-                    >
-                      <span>{v}</span>
-                      <Icon name="arrow" />
-                    </a>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {pipeline.length > 0 && (
-              <p class="project-pipeline" data-pipeline>
-                {pipeline.map((run, i) => (
-                  <>
-                    {i > 0 && '; '}
-                    <strong>{run.model}</strong>
-                    {run.caption && <span> · {run.caption}</span>}
-                  </>
-                ))}
-              </p>
-            )}
+            <ProjectHeader projectId={project.id} collaboration={academicIntroCredit || collabCredit}>
+              {isOriginalCardPage && !isPortraits && <button slot="actions" class="page-toggle-btn project-detail-collapse-btn" id="project-name-toggle" type="button" aria-expanded="true" aria-label="Toggle project details"><Arrow /></button>}
+            </ProjectHeader>
+            <button class="project-phone-close" type="button" aria-label="Close this section" hidden><Icon name="close" /></button>
           </header>
 
           <div class="project-content-grid project-content-grid--card">
             <!-- Left Column: Description Text & Name/Pagination Alignment Row -->
             <div class="project-col-left">
               <div class="project-card-info">
+                {isWorkArticle && <WorkProjectProposition projectId={project.id} />}
                 {isRenders && (
                   /* A line of its own above the subtitle: the faces, then who
                      they are and whose studio this was made in. The panel is
                      moved in here by initRendersPeople; the credit is markup,
                      so it renders even before that script runs. */
                   <div class="renders-people" id="renders-people-slot">
-                    {collabCredit && <p class="renders-credit">{collabCredit}</p>}
+
                   </div>
                 )}
                 <div class="project-card__row project-card__row2">
                   <div class="project-card__text-block">
-                    {data.smallIntro && <p class="project-card__intro">{data.smallIntro}</p>}
-                    {data.description && (
+
+                    {isPortraits && <h2 class="portrait-intro-label">Introduction</h2>}
+                    {!isWorkArticle && data.description && (
                       <div class="project-desc-readmore" id="project-desc-readmore">
-                        <div class="project-card__desc project-desc-clip" id="project-desc-clip" set:html={project.id === "gong-powai" && !(data as any).slider ? gongDescription : data.description} />
+                        <div class="project-card__desc project-desc-clip" id="project-desc-clip" set:html={isPortraits ? data.description.replace(/<em>(?:DC \(|Kings \(|Characters in this study:|Architects in this study:|Tier S|The Godfather)[\s\S]*?<\/em>/g, '').replace(/(class="prompt-header-title">)[^<]+/, '$1Prompt') : project.id === "gong-powai" && !(data as any).slider ? gongDescription : data.description} />
                         <ReadMore class="project-readmore-btn" id="project-readmore-btn" />
                       </div>
                     )}
@@ -470,7 +410,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                     {/* "Prompt" pill / dropdown tab — reveals the Midjourney prompt box
                         (hidden behind the pill on small screens and portrait deck pages; JS hides the pill
                         when the description has no prompt box). */}
-                    {!isRenders && data.description?.includes('prompt-box') && (
+                    {!isRenders && !isPortraits && data.description?.includes('prompt-box') && (
                       <div class="project-prompt-wrap" id="project-prompt-wrap">
                         <button class="project-prompt-btn" id="project-prompt-btn" type="button" aria-expanded="false">
                           <span>Prompt</span>
@@ -481,6 +421,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                         </button>
                       </div>
                     )}
+
+                    {isPortraits && <PortraitCharacterPills names={allImages.map(cardNameFromUrl)} />}
 
                   </div>
 
@@ -562,7 +504,8 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
 
                 {/* People row — shown for freelancer/work (non-original) card pages.
                     Work pages hide it behind a "Credits" pill instead of always showing it. */}
-                {!isOriginalCardPage && (
+                {!data.designBrief && (data.category as { id?: string })?.id === 'academic' && <ProjectPeople people={people} faculty={people.filter(isProfessor)} />}
+                {!isOriginalCardPage && !data.designBrief && (data.category as { id?: string })?.id !== 'academic' && (
                   <>
                     <div class="project-people" id="project-people-panel" style="margin-top: 40px;">
                     {people.map((person, idx) => {
@@ -591,7 +534,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
                      keeps #deck-grid and this becomes the parallel-wired
                      #deck-grid-mobile-scrub (desktop column layout). -->
                 {hasImages && !isRenders && (
-                  <div class="deck-grid deck-grid--mobile-scrub" id={isPortraits ? "deck-grid" : "deck-grid-mobile-scrub"} data-images={JSON.stringify(allImages)} data-variations={Object.keys(variationsByImage).length ? JSON.stringify(variationsByImage) : undefined}>
+                  <div class="deck-grid deck-grid--mobile-scrub" style={isPortraits ? 'display:none !important' : undefined} id={isPortraits ? "deck-grid" : "deck-grid-mobile-scrub"} data-images={JSON.stringify(allImages)} data-variations={Object.keys(variationsByImage).length ? JSON.stringify(variationsByImage) : undefined}>
                     {allImages.map((img, idx) => (
                       <button
                         type="button"
@@ -709,11 +652,13 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         </div>
       )}
 
-      {data.designBrief && <DesignProjectBrief {...data.designBrief} prominent={['skadoogee', 'union-pier-charleston', 'tower-of-the-quiet-witness', 'karshid-resort-and-homestay', 'siddharth-municipal-general-hospital', 'mumbai-masshousing', 'habersham-hall'].includes(project.id)} siteProjectId={projectSites[project.id] ? project.id : undefined} />}
+      {isPortraits && hasImages && <PortraitContactSheet images={allImages} names={allImages.map(cardNameFromUrl)} />}
+
+      {data.designBrief && <DesignProjectBrief {...data.designBrief} prominent={['skadoogee', 'union-pier-charleston', 'tower-of-the-quiet-witness', 'karshid-resort-and-homestay', 'siddharth-municipal-general-hospital', 'mumbai-masshousing', 'habersham-hall'].includes(project.id)} siteProjectId={projectSites[project.id] ? project.id : undefined} people={people} faculty={people.filter(isProfessor)} />}
 
       <!-- NON-ORIGINAL-CARD PAGES: chapter dropdowns (when defined) or Design & Making -->
       {project.id !== 'virtual-gods' && !isOriginalCardPage && (data.chapters?.length ?? 0) > 0 && (
-        <div class:list={["project-chapters", chapterTabs && "project-chapters--tabs is-all", chapterTabs && (data as any).chapterNav === 'scroll' && "project-chapters--scroll"]}>
+        <div class:list={["project-chapters", (data.category as { id?: string })?.id === 'academic' && "project-chapters--academic", chapterTabs && "project-chapters--tabs is-all", chapterTabs && (data as any).chapterNav === 'scroll' && "project-chapters--scroll"]}>
           {/* Two or more chapters read as tabs: a numbered row, one chapter
               on screen. A single chapter keeps its dropdown. */}
           {chapterTabs && (
@@ -804,6 +749,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
           one image. */}
       {/* A project told in chapter cards carries its pictures inside them;
           the stage and rail would be the same images a second time. */}
+      {isWorkArticle && data.description && <details class="work-project-story"><summary>Project story</summary><div set:html={data.description} /></details>}
       {isWorkArticle && <WorkArticle figures={storyFigures} name={data.name} slug={project.id} />}
       {(data as any).interactive === 'bom-mum' && <BomMumTimeline />}
       {!hasWorkIntro && !isExhibition && !isStudy && isRenders && renderViews.length > 0 && !chapterTabs && (
@@ -2413,6 +2359,12 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     color: var(--_tokens---color--bg);
     border-color: var(--_tokens---color--fg);
   }
+  /* Academic reports share the Powerhouse's compact, wrapping pill row. */
+  .project-chapters--academic.project-chapters--tabs .project-chapter-tabs__list { flex-wrap: wrap; overflow: visible; gap: 5px 6px; }
+  .project-chapters--academic.project-chapters--tabs .project-chapter-tab { min-height: 25px; padding: 2px 9px; font-size: clamp(0.6875rem, 0.65rem + 0.1vw, 0.75rem); line-height: 1.2; gap: 5px; }
+  .project-chapters--academic.project-chapters--tabs .project-chapter-tab--all { width: auto; height: auto; border-radius: var(--_tokens---radius--pill); }
+  .project-chapters--academic.project-chapters--tabs .project-chapter-tab__n { font-size: inherit; }
+  @media (pointer: coarse) { .project-chapters--academic.project-chapters--tabs .project-chapter-tab { min-height: 32px; } }
   .project-chapter-tabs__nav { display: flex; gap: 6px; flex-shrink: 0; }
   .project-chapter-tabs__step {
     display: inline-flex;
@@ -6095,6 +6047,84 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
        below rather than all of it under the picture. */
     .work-intro-slider :global(.gong-slider__stage img) { object-position: center; }
   }
+  /* A compact, quiet masthead for academic projects. One full-width rule
+     introduces the proposition; course/partner credits need no extra rules. */
+  .project-detail[data-category="academic"] .project-top-header { grid-column:1 / -1; width:100%; max-width:none; padding:64px 0 0; margin:0; }
+  .project-detail[data-category="academic"] .project-card__metaline { border:0; margin-top:12px; padding-top:0; }
+  .project-detail[data-category="academic"] .project-col-left { margin:0; padding:0; }
+  .project-detail[data-category="academic"] .project-card-info { padding:12px 0 16px; margin:0; min-height:0; }
+  .project-detail[data-category="academic"][data-design-brief="true"] .project-card-info { margin-bottom:0; }
+  .project-detail[data-category="academic"] .project-card__text-block { max-width:none; gap:6px; }
+  .project-detail[data-category="academic"] .project-card__intro { border:0; padding:0; margin:0; font-size:var(--_tokens---type--ultrathin) !important; line-height:1.5 !important; color:var(--_tokens---color--muted); }
+  .project-detail[data-category="academic"] .renders-people:empty { display:none; }
+  .project-detail[data-category="academic"] .renders-people { margin:0; }
+  .project-detail[data-category="academic"] .renders-credit { opacity:1; margin:0; font-size:var(--_tokens---type--ultrathin); line-height:1.5; color:var(--_tokens---color--muted); }
+  @media (max-width: 1023.98px) {
+    .project-detail[data-category="academic"] .project-top-header { padding-top:12px; }
+  }
+  /* Shared project masthead, independent of the content template below. */
+  .project-detail #project-top-header { grid-column:1 / -1; width:100%; max-width:none; padding:64px 0 0; margin:0; }
+  .project-detail .renders-people:empty { display:none; }
+  @media (max-width: 1023.98px) { .project-detail #project-top-header { padding-top:12px; } }
+  .work-project-story { width:100%; max-width:none; grid-column:1 / -1; box-sizing:border-box; margin:24px 0; padding:16px 0; border-block:1px solid var(--_tokens---color--line-soft); }
+  .work-project-story summary { cursor:pointer; font-size:var(--_tokens---type--micro); color:var(--_tokens---color--muted); }
+  .work-project-story > div { margin-top:16px; max-width:80ch; font-size:var(--_tokens---type--micro); line-height:1.6; }
+  @media (min-width: 1024px) {
+    .project-detail[data-work-article="true"][data-work-intro="true"][data-renders="true"] .project-card-info { grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important; gap:48px; }
+    .project-detail[data-work-article="true"] :global(.work-proposition) { grid-column:1; grid-row:1; }
+    .project-detail[data-work-article="true"] .project-card-info > .work-intro-slider { grid-column:2; grid-row:1; }
+  }
+  .project-detail[data-portraits="true"] #deck-grid { display:none !important; }
+  .project-detail[data-portraits="true"][data-is-card="true"]:not([data-tab-layout="true"]) { height:auto !important; overflow:visible; grid-template-rows:auto auto auto auto !important; }
+  .project-detail[data-portraits="true"] #project-desc-clip,
+  .project-detail[data-portraits="true"] #project-desc-readmore { display:block !important; height:auto !important; min-height:0 !important; max-height:none !important; flex:none !important; overflow:visible !important; }
+  .project-detail[data-portraits="true"] #project-desc-clip :global(.desc-scroll) { height:auto !important; max-height:none !important; overflow:visible !important; mask-image:none !important; }
+  .project-detail[data-portraits="true"] #project-desc-clip :global(.prompt-box) { display:block !important; position:static !important; height:auto !important; max-height:none !important; overflow:visible !important; opacity:1 !important; margin:20px 0 0; }
+  .project-detail[data-portraits="true"] #project-readmore-btn { display:none !important; }
+  .project-detail[data-portraits="true"] .project-card__text-block { display:block !important; height:auto !important; max-height:none !important; }
+  .project-detail[data-portraits="true"] .project-content-grid--card,
+  .project-detail[data-portraits="true"] .project-col-left,
+  .project-detail[data-portraits="true"] .project-card-info,
+  .project-detail[data-portraits="true"] .project-card__row2 { height:auto !important; max-height:none !important; min-height:0 !important; align-items:start !important; overflow:visible !important; }
+  .project-detail[data-portraits="true"][data-is-card="true"] { display:block !important; height:auto !important; }
+  .project-detail[data-portraits="true"][data-is-card="true"] .project-content-grid--card { display:grid !important; grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important; gap:48px !important; }
+  .project-detail[data-portraits="true"][data-is-card="true"] .project-col-left { display:block !important; grid-column:1 !important; grid-row:1 !important; }
+  .project-detail[data-portraits="true"][data-is-card="true"] .project-col-right { grid-column:2 !important; grid-row:1 !important; position:static !important; }
+  .project-detail[data-portraits="true"][data-is-card="true"] .project-card-info { display:block !important; }
+  @media (max-width: 1023.98px) { .project-detail[data-portraits="true"][data-is-card="true"] .project-content-grid--card { display:block !important; } }
+  .project-detail[data-portraits="true"] #page-slider-wrapper,
+  .project-detail[data-portraits="true"] #page-active-wrap { width:100% !important; max-width:100% !important; height:auto !important; max-height:none !important; margin:0 !important; aspect-ratio:auto !important; }
+  .project-detail[data-portraits="true"] #page-active-img { width:100% !important; height:auto !important; max-height:none !important; object-fit:contain; }
+  .portrait-intro-label { margin:0 0 10px; font-size:var(--_tokens---type--micro); line-height:1.4; font-weight:400; color:var(--_tokens---color--muted); }
+  .project-detail[data-portraits="true"] #project-desc-clip :global(.desc-scroll p) { font-size:13px !important; line-height:1.5 !important; margin:0 0 12px; }
+  .project-detail[data-portraits="true"] #project-desc-clip :global(.desc-scroll p:empty) { display:none; }
+  .project-detail[data-portraits="true"] #project-desc-clip :global(.prompt-box) { margin-top:16px; padding:10px 12px; }
+  .project-detail[data-portraits="true"] #project-desc-clip :global(.prompt-header) { margin-bottom:8px; padding-bottom:6px; }
+  .project-detail[data-portraits="true"] #project-desc-clip :global(.prompt-header-title) { font-size:var(--_tokens---type--micro); font-weight:400; }
+  .project-detail[data-portraits="true"] #project-desc-clip :global(.prompt-body),
+  .project-detail[data-portraits="true"] #project-desc-clip :global(.prompt-text) { font-size:12px; line-height:1.5; }
+  @media (min-width: 1024px) {
+    .project-detail[data-portraits="true"] #page-slider-wrapper,
+    .project-detail[data-portraits="true"] #page-active-wrap { width:100% !important; max-width:100% !important; height:auto !important; max-height:none !important; margin-inline:auto !important; }
+    .project-detail[data-portraits="true"] #page-active-img { width:100% !important; max-width:100% !important; height:max(320px,calc(100dvh - 280px)) !important; max-height:none !important; object-fit:contain; }
+  }
+  .project-detail[data-portraits="true"] .project-card__text-block,
+  .project-detail[data-portraits="true"] #project-desc-clip,
+  .project-detail[data-portraits="true"] #project-desc-clip :global(.desc-scroll) { width:100% !important; max-width:none !important; }
+  .project-detail[data-portraits="true"] #page-active-wrap { background:transparent !important; box-shadow:none !important; border:0 !important; }
+  /* A lighter introduction and a plain, legible prompt leave room for names. */
+  .project-detail[data-portraits="true"] #project-desc-clip :global(.desc-scroll p) { font-size:12px !important; line-height:1.45 !important; margin-bottom:10px; }
+  .project-detail[data-portraits="true"] #project-desc-clip :global(.prompt-box) { border:0 !important; background:transparent !important; padding:0 !important; margin-top:14px; box-shadow:none; }
+  .project-detail[data-portraits="true"] #project-desc-clip :global(.prompt-header) { border:0 !important; padding:0 !important; margin:0 0 8px; }
+  .project-detail[data-portraits="true"] #project-desc-clip :global(.prompt-header-title) { font-size:12px; color:var(--_tokens---color--muted); }
+  .project-detail[data-portraits="true"] #project-desc-clip :global(.prompt-body),
+  .project-detail[data-portraits="true"] #project-desc-clip :global(.prompt-text) { font-size:14px !important; font-style:normal !important; line-height:1.45; color:var(--_tokens---color--fg); }
+  .project-detail[data-portraits="true"] #project-desc-clip :global(.copy-prompt-btn) { border:0 !important; background:transparent !important; padding:0 2px; font-size:11px; }
+  @media (min-width: 1024px) {
+    .project-detail[data-portraits="true"] #page-slider-wrapper { width:min(100%,calc(var(--portrait-copy-height,max(320px,100dvh - 280px)) * var(--portrait-ratio))) !important; }
+    .project-detail[data-portraits="true"] #page-active-wrap { width:100% !important; height:auto !important; aspect-ratio:var(--portrait-ratio) !important; overflow:hidden; }
+    .project-detail[data-portraits="true"] #page-active-img { width:100% !important; height:100% !important; max-height:none !important; object-fit:cover !important; object-position:center top; }
+  }
 </style>
 
 <script>
@@ -6328,10 +6358,12 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     // Randomise the navigation sequence once per load; the scrub grid and the
     // fullscreen deck are both reordered to match it, so next/prev always
     // lands on the visually-adjacent card, and it stays fixed until reload.
-    const order = shuffle(Array.from({ length: images.length }, (_, i) => i));
+    const indices = Array.from({ length: images.length }, (_, i) => i);
+    const order = detailEl?.getAttribute('data-portraits') === 'true' ? indices : shuffle(indices);
     let currentPos = 0;
     let currentIdx = order[0] ?? 0;
     let isOpen = false;
+    let ignoreDeckScroll = false;
     let autoplayInterval: number | null = null;
 
     reorderChildrenByIndex(deck, order);
@@ -6440,6 +6472,19 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       mobileScrub?.querySelectorAll('.deck-card-item').forEach(btn => {
         btn.classList.toggle('is-active', parseInt(btn.getAttribute('data-index') || '-1', 10) === currentIdx);
       });
+      document.querySelectorAll<HTMLElement>('[data-portrait-index]').forEach(button => {
+        const active = Number(button.dataset.portraitIndex) === currentIdx;
+        if (button.classList.contains('portrait-sheet__pill')) button.setAttribute('aria-pressed', String(active));
+        else button.setAttribute('aria-current', String(active));
+      });
+      const names = document.querySelector<HTMLElement>('.portrait-sheet__names');
+      const activeName = names?.querySelector<HTMLElement>('[aria-pressed="true"]');
+      if (names && activeName && names.scrollHeight > names.clientHeight + 1) {
+        const viewport = names.getBoundingClientRect();
+        const item = activeName.getBoundingClientRect();
+        if (item.top < viewport.top) names.scrollTo({top:names.scrollTop + item.top - viewport.top - 3, behavior:'smooth'});
+        else if (item.bottom > viewport.bottom) names.scrollTo({top:names.scrollTop + item.bottom - viewport.bottom + 3, behavior:'smooth'});
+      }
       /* A portrait page re-centres its 3x3 window on the new active frame.
          Installed by initPortraitWindow; absent everywhere else. */
       (deck as any)._paintWindow?.();
@@ -6533,6 +6578,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     const openLightbox = (index: number) => {
       goToPos(order.indexOf(index));
       isOpen = true;
+      ignoreDeckScroll = true;
       lightbox.style.display = 'flex';
       lightbox.setAttribute('aria-hidden', 'false');
       focus.open();
@@ -6541,6 +6587,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       requestAnimationFrame(() => {
         scrollDeckTo(currentPos, 'instant' as ScrollBehavior);
         updateDeckTransforms();
+        requestAnimationFrame(() => { ignoreDeckScroll = false; });
         startAutoplay();
       });
     };
@@ -6557,6 +6604,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     // ── Deck scroll listener ─────────────────────────────────────────────────
     if (lightboxDeck) {
       lightboxDeck.addEventListener('scroll', () => {
+        if (!isOpen || ignoreDeckScroll) return;
         const centerPos = updateDeckTransforms();
         if (centerPos !== undefined && centerPos !== currentPos) {
           goToPos(centerPos);
@@ -6575,6 +6623,70 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
         }
       }, { passive: true });
     }
+
+    const sheet = document.querySelector('.portrait-sheet');
+    const namesViewport = document.querySelector<HTMLElement>('.portrait-sheet__names');
+    const fitNamesViewport = () => {
+      if (!namesViewport || !window.matchMedia('(min-width: 1024px)').matches) { namesViewport?.style.removeProperty('--portrait-list-room'); return; }
+      const top = namesViewport.getBoundingClientRect().top + window.scrollY;
+      namesViewport.style.setProperty('--portrait-list-room', `${Math.max(80, innerHeight - top - 120)}px`);
+    };
+    const fitPortraitToCopy = () => {
+      if (!detailEl || detailEl.getAttribute('data-portraits') !== 'true') return;
+      const left = detailEl.querySelector<HTMLElement>('.project-col-left');
+      if (!left || !window.matchMedia('(min-width: 1024px)').matches) {
+        (detailEl as HTMLElement).style.removeProperty('--portrait-copy-height'); return;
+      }
+      const height = left.getBoundingClientRect().height;
+      if (height > 0) (detailEl as HTMLElement).style.setProperty('--portrait-copy-height', `${height}px`);
+    };
+    requestAnimationFrame(() => { fitNamesViewport(); fitPortraitToCopy(); });
+    if (detailEl?.getAttribute('data-portraits') === 'true' && 'ResizeObserver' in window) {
+      const left = detailEl.querySelector('.project-col-left');
+      const observer = new ResizeObserver(fitPortraitToCopy);
+      if (left) observer.observe(left);
+      window.addEventListener('resize', fitPortraitToCopy, {passive:true});
+      document.addEventListener('astro:before-swap', () => observer.disconnect(), {once:true});
+    }
+    window.addEventListener('resize', fitNamesViewport, {passive:true});
+    if (namesViewport && 'ResizeObserver' in window) {
+      const observer = new ResizeObserver(fitNamesViewport);
+      const intro = document.getElementById('project-desc-clip');
+      if (intro) observer.observe(intro);
+      document.addEventListener('astro:before-swap', () => observer.disconnect(), {once:true});
+    }
+
+    const sheetViewer = document.getElementById('portrait-sheet-viewer') as HTMLDialogElement | null;
+    const paintSheetViewer = () => {
+      const image = document.getElementById('portrait-sheet-viewer-image') as HTMLImageElement | null;
+      const name = getCardName(images[currentIdx]);
+      if (image) { image.src = images[currentIdx]; image.alt = name; }
+      const label = document.getElementById('portrait-sheet-viewer-name');
+      if (label) label.textContent = name;
+    };
+    sheetViewer?.querySelector('[data-portrait-close]')?.addEventListener('click', () => sheetViewer.close());
+    sheetViewer?.querySelectorAll<HTMLElement>('[data-portrait-step]').forEach(button => button.addEventListener('click', () => {
+      goToPos(currentPos + Number(button.dataset.portraitStep)); updateDisplay(true); stopAutoplay(); paintSheetViewer();
+    }));
+    document.querySelectorAll<HTMLElement>('[data-portrait-index]').forEach(button => {
+      button.addEventListener('click', () => {
+        goToPos(order.indexOf(Number(button.dataset.portraitIndex)));
+        updateDisplay(true);
+        stopAutoplay();
+        if (button.classList.contains('portrait-sheet__card')) { paintSheetViewer(); sheetViewer?.showModal(); }
+      });
+    });
+    const navigatePortraits = (event: Event) => {
+      const e = event as KeyboardEvent;
+      if (!['ArrowLeft', 'ArrowRight'].includes(e.key)) return;
+      e.preventDefault(); e.stopImmediatePropagation();
+      goToPos(currentPos + (e.key === 'ArrowRight' ? 1 : -1));
+      updateDisplay(true); stopAutoplay();
+      if (sheetViewer?.open) { paintSheetViewer(); return; }
+      (document.querySelector(`.portrait-sheet__pill[data-portrait-index="${currentIdx}"]`) as HTMLElement | null)?.focus({preventScroll:true});
+    };
+    sheet?.addEventListener('keydown', navigatePortraits);
+    document.querySelector('.portrait-sheet__names')?.addEventListener('keydown', navigatePortraits);
 
     // ── Scrub grid listeners ─────────────────────────────────────────────────
     const cardButtons = Array.from(deck.querySelectorAll('.deck-card-item'))
@@ -7192,7 +7304,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
     // would cover the drawings while the visitor is trying to read them.
     // The same for a page carrying an interactive piece: a fixed card over
     // it would cover the thing the page is for.
-    if (detail.dataset.workIntro === 'true' || detail.dataset.interactive || detail.dataset.designBrief === 'true') return;
+    if (detail.dataset.workIntro === 'true' || detail.dataset.interactive || detail.dataset.designBrief === 'true' || detail.dataset.portraits === 'true') return;
     const phone = window.matchMedia('(max-width: 1023.98px)').matches;
     let card = detail.querySelector('.project-phone-card') as HTMLElement | null;
 

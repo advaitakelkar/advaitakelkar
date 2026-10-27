@@ -1,5 +1,6 @@
 ---
 import Icon from './Icon.astro';
+import { isPublicProject } from '../lib/projectAccess';
 import { getCollection } from 'astro:content';
 
 export interface Props {
@@ -84,8 +85,17 @@ if (activeProject) {
   // Prev/next arrows only make sense on an actual project page — not on
   // Home / About / Projects / category pages, where there's no project context.
   if (idx !== -1 && isProjectPage) {
-    prevProjectUrl = `/projects/${walk[(idx - 1 + walk.length) % walk.length].id}`;
-    nextProjectUrl = `/projects/${walk[(idx + 1) % walk.length].id}`;
+    // Scan from the current position so even a directly opened locked page
+    // leads back into the public collection. Never link a project to itself.
+    const neighbour = (direction: number) => {
+      for (let step = 1; step < walk.length; step++) {
+        const candidate = walk[(idx + direction * step + walk.length) % walk.length];
+        if (isPublicProject(candidate.id)) return `/projects/${candidate.id}`;
+      }
+      return '';
+    };
+    prevProjectUrl = neighbour(-1);
+    nextProjectUrl = neighbour(1);
   }
 }
 ---

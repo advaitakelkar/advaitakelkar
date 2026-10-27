@@ -1,0 +1,17 @@
+---
+import Icon from './Icon.astro';
+interface Props { names: string[] }
+const { names } = Astro.props;
+const displayName = (name: string) => name.toLowerCase().replace(/\b[a-z]/g, c => c.toUpperCase());
+---
+<nav class="portrait-sheet__names" aria-label="Choose a character">
+  {names.map((name,index)=><button type="button" class="portrait-sheet__pill" data-portrait-index={index} aria-pressed="false">{displayName(name)}<Icon name="arrow" /></button>)}
+</nav>
+<style>
+.portrait-sheet__names { display:flex; flex-wrap:wrap; align-content:flex-start; gap:4px; margin:16px 0 0; width:100%; max-height:min(25dvh,var(--portrait-list-room,25dvh)); overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; padding:3px 3px 3px 0; }
+.portrait-sheet__pill { display:inline-flex; align-items:center; gap:3px; font:inherit; font-size:10px; line-height:1.2; min-height:20px; padding:2px 6px; border:var(--_tokens---pill-border); border-radius:var(--_tokens---radius--pill); background:color-mix(in srgb,var(--_tokens---color--fg) 6%,transparent); color:var(--_tokens---color--muted); cursor:pointer; }
+.portrait-sheet__pill :global(svg) { --icon-size:.75em; opacity:.55; }
+.portrait-sheet__pill[aria-pressed="true"] { color:var(--_tokens---color--fg); background:color-mix(in srgb,var(--_tokens---color--fg) 14%,transparent); border-color:color-mix(in srgb,var(--_tokens---color--fg) 30%,transparent); }
+.portrait-sheet__pill:hover { background:color-mix(in srgb,var(--_tokens---color--fg) 10%,transparent); color:var(--_tokens---color--fg); }
+.portrait-sheet__pill:focus-visible { outline:2px solid var(--_tokens---color--fg); outline-offset:2px; }
+</style>

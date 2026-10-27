@@ -1,31 +1,39 @@
 ---
+import ProjectPeople from './ProjectPeople.astro';
 import ProjectSiteMap from './ProjectSiteMap.astro';
-interface Props { abstract: string; hypothesis?: string; brief?: string; prominent?: boolean; siteProjectId?: string }
-const { abstract, hypothesis, brief, prominent = false, siteProjectId } = Astro.props;
+interface Props { abstract: string; hypothesis?: string; brief?: string; prominent?: boolean; siteProjectId?: string; people?: string[]; faculty?: string[] }
+const { abstract, hypothesis, brief, prominent = false, siteProjectId, people = [], faculty = [] } = Astro.props;
 ---
 
 <section class:list={["design-brief", {"design-brief--mapped": siteProjectId, "design-brief--fullwidth": prominent}]} aria-label="Design proposition">
+  <div class="design-brief__left">
   <div class="design-brief__abstract">
     <h2>Abstract</h2>
     <p>{abstract}</p>
   </div>
-  {siteProjectId && <ProjectSiteMap projectId={siteProjectId} />}
   <div class="design-brief__claim-block">
     <h2>{brief ? 'Brief' : 'Hypothesis'}</h2>
-    <p class:list={["design-brief__claim", {"design-brief__claim--prominent": prominent}]}>{brief ?? hypothesis}</p>
+    <p class:list={["design-brief__claim", {"design-brief__claim--prominent": prominent && !brief, "design-brief__claim--brief": !!brief}]}>{brief ?? hypothesis}</p>
   </div>
+  {people.length > 0 && <ProjectPeople people={people} faculty={faculty} />}
+  </div>
+  {siteProjectId && <ProjectSiteMap projectId={siteProjectId} />}
 </section>
 
 <style>
   .design-brief { display: grid; gap: 24px; padding: 24px 0; border-top: 1px solid var(--_tokens---color--line-soft); }
   h2 { margin: 0 0 12px; font-size: var(--_tokens---type--micro); font-weight: var(--_tokens---weight--base); color: var(--_tokens---color--muted); }
   p { margin: 0; max-width: 64ch; font-size: clamp(.8125rem, .775rem + .15vw, .9375rem); line-height: 1.6; color: var(--_tokens---color--fg); overflow-wrap: anywhere; }
-  .design-brief--fullwidth .design-brief__claim-block { grid-column: 1 / -1; }
+  .design-brief__left { min-width:0; }
+  .design-brief__claim-block { margin-top:24px; }
+  .design-brief__claim.design-brief__claim--brief { font-size:clamp(1.125rem, 1rem + .4vw, 1.375rem); line-height:1.4; letter-spacing:-.01em; font-weight:600; }
   .design-brief--fullwidth .design-brief__claim { max-width: none; }
   .design-brief--fullwidth:not(.design-brief--mapped) .design-brief__abstract { grid-column: 1 / -1; }
   .design-brief__claim { font-size: inherit; line-height: inherit; letter-spacing: normal; font-weight: 400; }
   .design-brief__claim--prominent { font-size: var(--_tokens---type--medium); line-height: 1.15; letter-spacing: -.03em; }
   @media (min-width: 1024px) {
+    .design-brief--mapped :global(.site-map) { display:flex; flex-direction:column; min-height:0; }
+    .design-brief--mapped :global(.site-map__stage) { flex:1; aspect-ratio:auto; min-height:0; }
     .design-brief { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 48px; }
   }
 </style>

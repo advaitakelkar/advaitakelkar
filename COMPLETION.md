@@ -578,3 +578,111 @@ Eleven supplied room views edited with the built-in image tool for a cohesive ph
 - Separate pre-existing BOM → MUM playback changes in BomMumTimeline.astro and bom-mum-playback.ts are excluded from this publication and remain local.
 
 - Publication follow-up: Adi explicitly requested adding the pending BOM → MUM playback changes as well. This follow-up includes perimeter portraits and lane labels, white-centred event markers with halos and the current-event callout. Both coupled payload/renderer files are included; the latest local 95-page build already covered them.
+
+
+### 2026-10-27 — Consistent project controls (local)
+
+- Standardised the desktop project control cluster: colour choices, mode toggle and adjacent previous/next arrows. Reports without a footer place their Pages menu beside the left navigation; arrow positions match regular project pages. Fixed-palette pages hide colour choices and the divider, retaining light/dark mode.
+- Previous/next and keyboard Left/Right skip locked projects using the shared public allowlist, retaining category order and circular navigation. Directly opened locked pages also lead back to public projects.
+- Verified all 114 generated arrow links across 57 project pages point to unlocked neighbours. Browser checks confirm identical arrow coordinates on Skadoogee, Powerhouse and Design Built; five swatches on themed pages, zero on Powerhouse; keyboard next navigation works. At 390 px the existing bottom navigation restores with no overflow. House lints, whitespace check and 95-page build pass. Local only.
+- Both authorised publication runs from 26 Oct, including BOM → MUM, completed successfully.
+
+
+### 2026-10-27 — Academic introduction template (local)
+
+- Mapped design briefs now stack Abstract and Brief in the left column, with the right map spanning their combined height. Maps no longer impose a square desktop frame; phones stack Abstract, Brief, then a square map. Shared component applies consistently to the seven mapped academic projects.
+- Academic chapter tabs use Powerhouse's compact, wrapping pill geometry. Powerhouse has a proper project-size title; removed the infrastructure research/data visualiser subtitle at Adi's request. Existing abstract/hypothesis and book remain intact.
+- Browser checked Tower and Skadoogee column bottoms match exactly; phone layout at 390px has no horizontal overflow. Lints and 95-page build pass; subsequent title-only removal verified in browser. Local only.
+
+
+### 2026-10-27 — People below academic introductions (local)
+
+- Shared ProjectPeople component renders one full-width row of 32px circular portraits below Abstract/Brief, with hover/focus names. Applied to mapped academic briefs, Powerhouse and Design Built. Removed the previous above-brief row on design-brief pages; other project templates retain their existing placement.
+- Powerhouse team confirmed by Adi: Casimir Esbach, Advaita Kelkar, Hsu-Jen Huang and Manuel. Copied Adi's supplied Manuel portrait to public/images/people/manuel.jpeg. No surname supplied, so displayed as Manuel. Centralised the existing image registry in src/data/people.ts.
+- Browser verified all four Powerhouse portraits load at 32px; Skadoogee has one team row immediately below the brief and no legacy row. House lints, 95-page production build and whitespace checks pass. Local only.
+
+
+### 2026-10-27 — Brief size and faculty credits refinement (local)
+
+- Reduced Brief text to 16–20px while retaining Hypothesis display size (Powerhouse verified at 40px). Abstract/Brief/people now live together in the left column; map stretches to match that column, producing a near-square desktop map (Tower: 572 × 598px including attribution). Phones retain a square map below the left content.
+- Shared academic portraits remain 32px, now with the established grayscale/0.6 opacity treatment, full opacity on hover/focus, 32px space below and a faculty/student divider where both groups exist. All academic project intros use the shared component.
+- Powerhouse left column: Hsu-Jen Huang, Casimir Esbach, Manuel, Susan Falls, divider, Advaita Kelkar. Susan's supplied photo copied into the people registry. All five images load.
+- BOM → MUM, Karshid, Masshousing and Siddharth Hospital explicitly credit only Advaita Kelkar; no faculty added. BOM browser check confirms one portrait and no divider/legacy row.
+- House lints, whitespace checks and 95-page build pass. Desktop column alignment and phone overflow checked; Powerhouse Hypothesis unchanged. Local only.
+
+
+### 2026-10-27 — Compact academic mastheads (local)
+
+- Removed the short metadata rule and course-credit underline on academic project pages, leaving the proposition's single soft full-width separator. Metadata sits closer to the title; course and collaboration text are small muted credits with reduced surrounding space. Collaboration text is now visible rather than occupying an invisible reserved line.
+- Powerhouse and Design Built headers lose the extra title rule, share the 64px desktop title baseline and use 24px introductory padding. Their book/report navigation remains unchanged.
+- Shared portrait refinement: 4px circle spacing, soft 1px borders and a closer faculty divider; location retained.
+- Browser verified Union Pier's header reduction (proposition begins at y207 instead of y298 at 1560px), absence of short rules, 390px layout without overflow, and clean 64px title baseline on both reports. House lints and 95-page build pass; final small credit-size specificity adjustment checked in browser. Local only.
+
+
+### 2026-10-27 — One academic header and pill system (local)
+
+- Added AcademicProjectHeader, shared by all 17 academic pages including Powerhouse and Design Built. Stable metadata order: year, status, location, degree/studio, category, tags; Powerhouse-style compact pills with the same geometry and typography. Academic metadata no longer enters the generic shuffled pill row.
+- A single full-width subtitle sits below the pills and above content columns. SCAD projects combine the collaboration credit and source course line; B.Arch project descriptions retain their own source text. Removed duplicate in-column course lines. Powerhouse receives its metadata pills; Design Built uses the same title/metadata treatment.
+- Verified shared header/pills in all 17 generated academic pages. Browser checks cover visualisation, Masshousing, Powerhouse, Design Built; titles sit at y64 on desktop, keyboard navigation preserves the header geometry, mobile at 390px has no overflow. House lints, 95-page build and whitespace checks pass. Local only.
+- Brief follow-up retained: bold 600, responsive 18–22px; Hypothesis unchanged.
+
+
+### 2026-10-27 — Shared headers across categories and Work propositions (local)
+
+- Promoted AcademicProjectHeader to ProjectHeader and applied it to every project category (57 generated project pages). Same title baseline, stable metadata order, pill geometry and full-width muted subtitle; collaboration credits are included where established in source. Existing pipeline details and original-card controls retained.
+- Added source-grounded Abstract and Brief copy for all 18 Work projects in src/data/work-propositions.ts. WorkProjectProposition places the abstract and bold brief in an equal-width left column, existing image slider on the right; phone order is text then slider. Full original description and links remain in the Project story disclosure before the existing drawings/details article. No existing source descriptions or media changed.
+- Academic credit name tooltips now match Work: inverted pill above the portrait, same grayscale/opacity treatment; faculty/student separation and left-column placement retained.
+- Browser verified shared headers on Work, Freelancer and ARCHV with y64 desktop/y24 phone title positions; no phone overflow. Seven Gardens and Under the Tree have equal, top-aligned text/image columns; original story disclosure opens, slider operates, phone stacks correctly. Powerhouse confirms faculty order, divider and Work-style tooltip. Generated-page audit confirms all 57 headers and all 18 Work propositions/stories. House lints, production build and whitespace checks pass. Local only.
+
+
+### 2026-10-27 — AI series full contact sheets (local)
+
+- Added PortraitContactSheet to all seven AI-series pages: complete always-visible grid below the viewer, six columns from 1024px, four from 700px and three on phones. All images retain their proportions, full opacity and natural colour. Replaced the old overlapping mobile thumbnail window; retained its hidden data/selection engine.
+- Every portrait has a compact wrapping character-name pill. Pill selection, focused Left/Right keys, the main portrait and contact-sheet highlight share one stable sequence. A direct accessible dialog opens the exact card clicked and supports next/previous, arrow keys and Escape. The full collection remains in the page.
+- Sups and Royals prose rosters are replaced visually by the complete named pills; source YAML descriptions remain intact. Exact duplicate cover entries removed from the displayed sequence.
+- Generated-page audit checks one pill and one card per unique source image across all seven series: Sups 132, Royals 50, Hinterland 26, Architect x Architects 48, Space Pirates 64, Alt Verse 50, Hanma FAM 29. Browser verifies 6 desktop/3 phone columns, no 390px overflow, correct pill/keyboard selection and exact Deathstroke → Doomsday dialog navigation. House lints, 95-page build and whitespace check pass. Local only.
+
+
+### 2026-10-27 — Portrait sidebar pills and open prompt (local)
+
+- Moved all character-name pills into the left column after the introduction and permanently visible prompt. Pills now use 10px type, 20px minimum height and an arrow after every name. The full contact sheet remains below the two-column introduction, with no duplicated full-width name cloud.
+- Removed the portrait prompt toggle and mobile dock reparenting. Portrait introductions now use normal-height flow instead of the former viewport-limited grid, avoiding clipping/overlap as the prompt and complete name roster grow. Viewer is constrained to its right column. Source prompt text and Copy remain.
+- Navigation wiring covers the relocated pills, full deck and viewer; focused Left/Right continues to select the adjacent name. Sups browser check confirms 132 pills/132 arrows, visible prompt, no left/right overlap and full deck below the complete sidebar; phone at 390px has no overflow and no old dock. House lints, 95-page build and whitespace checks pass. Local only.
+
+
+### 2026-10-27 — Consistent portrait contact-sheet frames (local)
+
+- Lobo and Cable source files are 896×1152, wider than the standard Sups 536×960 frame. Contact-sheet cards now use the series' first-image aspect ratio and fill that frame with a top-centred crop, preventing unequal-height thumbnails and white gaps. Original image files and full-image dialog remain unchanged.
+- Model/settings metadata moved into the shared subtitle before the introduction sentence for all projects with pipeline data; removed its standalone row.
+
+
+### 2026-10-27 — Compact viewport portrait introduction (local)
+
+- Character pills now use title case and a light active/hover treatment. Lists naturally expand until they reach a 25dvh maximum; desktop additionally limits them to remaining room above the footer. Active selection scrolls only this list into view, including first/last wrap. Short lists do not gain an unnecessary scrollbar.
+- Introduction and Prompt have separate labels and tighter text/spacing. Intro uses the full left-column width. Main portrait is bounded by the available desktop viewport height, preserving aspect ratio, with the oversized empty frame removed. The full contact sheet remains in normal page flow below the top section.
+- Browser verified normal-case labels/light selection, viewport-bounded portrait, list scroll tracking on Batman → X-23 wrap and no horizontal overflow. Production build and whitespace checks pass; house lints passed before the final fit-to-footer refinement. Local only.
+
+
+### 2026-10-27 — Simplified portrait text and fixed main crops (local)
+
+- Portrait introduction is 12px/1.45, prompt 14px/1.45 with plain text; removed prompt card border, background and header rule while retaining Copy. This brings the name list upward and frees room for more names.
+- Main portrait viewer now uses the series' first-frame aspect ratio and cover crop, not each selected image's intrinsic width. Verified Lobo and Cable both render at 340 × 609px on the same desktop viewport, with no horizontal overflow. Full-image dialog and originals remain unchanged.
+- Production build and whitespace check pass; house lint corrected a previous raw breakpoint comparison to matchMedia. Browser verified intro/prompt hierarchy, removed border and matching right-side crops. Local only.
+
+
+### 2026-10-27 — Main portrait matches left column (local)
+
+- Desktop portrait height now follows the complete left column (introduction, prompt, bounded pills and name/counter) through ResizeObserver, preserving the series crop ratio. Resizes and text changes update the measurement; phone layout remains unaffected.
+- Browser measured left and poster at 616.5px, sharing the same top and bottom to subpixel rounding. Original files and full deck unchanged. Local only.
+
+
+### 2026-10-27 — Remove duplicate AI-series prose rosters (local)
+
+- Space Pirates, Architect x Architects and Alt Verse now omit their long italic tier/architect/film character lists from the rendered introduction. Names remain only in the existing selectable pills and full deck. Source descriptions remain intact.
+- Browser confirms zero prose roster emphasis blocks, 12px introductory text and retained pill counts (64 / 48 / 50); no Alt Verse overflow. Whitespace check passes. Local only.
+
+
+### 2026-10-27 — Publication authorised
+
+- Adi requested commit and push of the current portfolio changes: shared project headers/navigation, academic proposition layouts and people, Work abstracts/briefs, and complete responsive AI contact sheets/viewers/pills.
+- Final house lints, whitespace check and 95-page production build pass. Generated audit verifies exactly one shared header on all 57 project pages, public-only previous/next links, 18 Work introductions with original stories retained, and complete matching pill/card counts across seven AI series.
