@@ -576,3 +576,5 @@ Eleven supplied room views edited with the built-in image tool for a cohesive ph
 
 - Adi requested commit and push for the Powerhouse PDF/editorial updates, academic abstracts/briefs, seven site maps, project unlocks and SCAD Design Built report/slideshows/portraits/pills. Final 95-page production build, house lints and whitespace checks pass.
 - Separate pre-existing BOM → MUM playback changes in BomMumTimeline.astro and bom-mum-playback.ts are excluded from this publication and remain local.
+
+- Publication follow-up: Adi explicitly requested adding the pending BOM → MUM playback changes as well. This follow-up includes perimeter portraits and lane labels, white-centred event markers with halos and the current-event callout. Both coupled payload/renderer files are included; the latest local 95-page build already covered them.

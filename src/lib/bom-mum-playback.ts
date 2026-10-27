@@ -2,7 +2,8 @@ import * as d3 from 'd3';
 
 type Lane = {id:string; name:string; color:string};
 type Ev = {a:number|null;year:number; y:string; l:string; ln:string; t:string; x:string; context:string; source:string; w:string; ad:boolean; k:boolean};
-type Data = {lanes:Lane[]; events:Ev[]; population:Array<[number,number]>; map:{land:string[]; reclaimed:string[]; h:number}};
+type Fig = {id:string; name:string; years:string; year:number};
+type Data = {lanes:Lane[]; events:Ev[]; figures:Fig[]; population:Array<[number,number]>; map:{land:string[]; reclaimed:string[]; h:number}};
 const toFrac = d3.scaleLinear().domain([-600,1200,1500,1650,1800,1850,1900,1950,1995]).range([0,.07,.13,.19,.33,.45,.61,.8,1]).clamp(true);
 // Clockwise in the page's reading sense: upper left → base → upper right.
 const A0 = -Math.PI*.3, A1 = -Math.PI*1.7;
@@ -13,7 +14,7 @@ const arc=(r0:number,r1:number,a0:number,a1:number) => d3.arc()({innerRadius:r0,
 
 function draw(root:HTMLElement,data:Data,onPick:(i:number)=>void) {
   const mount=root.querySelector<HTMLElement>('[data-wheel]')!;
-  const svg=d3.select(mount).append('svg').attr('viewBox','-570 -470 1140 1040').attr('aria-label','Five historical disciplines with population in the innermost ring, measured inward from its outer edge');
+  const svg=d3.select(mount).append('svg').attr('viewBox','-680 -660 1360 1340').attr('aria-label','Five historical disciplines with population in the innermost ring, measured inward from its outer edge');
   const defs=svg.append('defs');
   const lanes=data.lanes.map((l,i)=>({...l,mid:R1-(i+.5)*BAND}));
   const byLane=new Map(lanes.map(l=>[l.id,l]));
@@ -23,6 +24,10 @@ function draw(root:HTMLElement,data:Data,onPick:(i:number)=>void) {
     g.append('path').attr('d',arc(l.mid-BAND/2,l.mid+BAND/2,A0,A1)).attr('fill','#e4e4e1').attr('stroke','#fff').attr('stroke-width',1);
     g.append('path').attr('class','bm-color').attr('fill',l.color);
   });
+  // Lane names in the open wedge at the top, each against its own band, set
+  // flush to where the band begins — the reference's spaced capitals.
+  const nameG=svg.append('g').attr('class','bm-lane-names').style('pointer-events','none');
+  lanes.forEach(l=>{const [x,y]=polar(A0,l.mid);nameG.append('text').attr('x',x+14).attr('y',y).attr('dominant-baseline','middle').attr('font-size',12).attr('letter-spacing','.14em').attr('fill','#222').text(l.name.toUpperCase());});
   const years=[-600,-300,0,600,1200,1500,1650];
   for(let y=1700;y<=1995;y+=5)years.push(y);
   svg.append('g').selectAll('line').data(years).join('line').each(function(y){const a=angle(y),[x0,y0]=polar(a,R0),[x1,y1]=polar(a,R1);d3.select(this).attr('x1',x0).attr('y1',y0).attr('x2',x1).attr('y2',y1);}).attr('stroke','#fff').attr('stroke-opacity',.35).attr('stroke-width',.65);
@@ -33,7 +38,31 @@ function draw(root:HTMLElement,data:Data,onPick:(i:number)=>void) {
   popG.append('path').attr('d',arc(236,268,A0,A1)).attr('fill','#eeeeeb');
   const popYears=d3.range(1661,1992,2);
   const popBars=popG.selectAll('path.bm-pop-bar').data(popYears).join('path').attr('class','bm-pop-bar').attr('d',y=>arc(268-popDepth(popAt(y)),268,angle(y),angle(Math.min(y+2,1991)))).attr('fill','#bdbdb8').attr('stroke','#fff').attr('stroke-width',.5);
-  [-600,1500,1650,1800,1850,1900,1950,1995].forEach(y=>{const [x,yy]=polar(angle(y),540);svg.append('text').attr('x',x).attr('y',yy).attr('text-anchor','middle').attr('dominant-baseline','middle').attr('font-size',13).attr('fill','#666').text(y<0?`${-y} BC`:y);});
+  [-600,1500,1650,1800,1850,1900,1950,1995].forEach(y=>{const [x,yy]=polar(angle(y),R1+30);svg.append('text').attr('x',x).attr('y',yy).attr('text-anchor','middle').attr('dominant-baseline','middle').attr('font-size',13).attr('fill','#666').text(y<0?`${-y} BC`:y);});
+  // Portraits round the outside at their year; a portrait that would touch
+  // its neighbour steps along, and a hairline leads back to the exact year.
+  // Two rows: a portrait goes on the inner row if it fits at its year,
+  // otherwise on the outer row, and only steps along if both are taken.
+  const ROWS=[566,632], FIG_R=29;
+  const last=[Infinity,Infinity];
+  const figG=svg.append('g').attr('class','bm-figures');
+  [...data.figures].sort((a,b)=>a.year-b.year).forEach(f=>{
+    const exact=angle(f.year);
+    const sep=(r:number)=>(2*FIG_R+6)/r;
+    let row=ROWS.findIndex((r,k)=>exact<=last[k]-sep(r));
+    let a=exact;
+    if(row<0){row=last[0]-sep(ROWS[0])>=last[1]-sep(ROWS[1])?0:1;a=last[row]-sep(ROWS[row]);}
+    last[row]=a;
+    const R_FIG=ROWS[row];
+    const [x,y]=polar(a,R_FIG), [lx0,ly0]=polar(a,R_FIG-FIG_R), [lx1,ly1]=polar(exact,R1+4);
+    figG.append('line').attr('x1',lx0).attr('y1',ly0).attr('x2',lx1).attr('y2',ly1).attr('stroke','#111').attr('stroke-opacity',.45).attr('stroke-width',.75).attr('vector-effect','non-scaling-stroke');
+    defs.append('clipPath').attr('id',`bm-fig-${f.id}`).append('circle').attr('r',FIG_R);
+    const g=figG.append('g').attr('transform',`translate(${x},${y})`);
+    g.append('circle').attr('r',FIG_R).attr('fill','#fff');
+    g.append('image').attr('href',`/images/bom-mum/people/${f.id}.webp`).attr('x',-FIG_R).attr('y',-FIG_R).attr('width',FIG_R*2).attr('height',FIG_R*2).attr('clip-path',`url(#bm-fig-${f.id})`).attr('preserveAspectRatio','xMidYMid slice').style('filter','grayscale(1) contrast(1.05)');
+    g.append('circle').attr('r',FIG_R).attr('fill','none').attr('stroke','#111').attr('stroke-width',1).attr('vector-effect','non-scaling-stroke');
+    g.append('title').text(`${f.name} (${f.years}), ${f.year}`);
+  });
   // Larger, uncluttered city map. The original vector geography is retained.
   const scale=580/data.map.h, mapY=-350, mapX=-500*scale;
   const map=svg.append('g').attr('class','bm-city').attr('transform',`translate(${mapX},${mapY}) scale(${scale})`);
@@ -51,8 +80,31 @@ function draw(root:HTMLElement,data:Data,onPick:(i:number)=>void) {
   const caption=root.querySelector<HTMLElement>('[data-reclaim]')!;
   const seen=new Map<string,number>();
   const points=data.events.map((e,i)=>{const l=byLane.get(e.l)!;const key=e.l+e.year;const n=seen.get(key)??0;seen.set(key,n+1);const [x,y]=polar(angle(e.year),l.mid+[0,-1,1,-2,2][n%5]*6);return {e,i,x,y};});
-  const marks=svg.append('g').selectAll('circle').data(points).join('circle').attr('class','bm-mark').attr('data-architecture',p=>p.e.a).attr('cx',p=>p.x).attr('cy',p=>p.y).attr('r',p=>p.e.k?8:5).attr('fill','#aaa').attr('stroke','#fff').attr('stroke-width',1).style('cursor','pointer').on('click',(_ev,p)=>onPick(p.i));
+  // Each event is a white dot inside a translucent dark disc, the reference's
+  // mark; a turning point carries a larger, darker disc.
+  const markG=svg.append('g');
+  const halos=markG.selectAll('circle.bm-halo').data(points).join('circle').attr('class','bm-halo').attr('cx',p=>p.x).attr('cy',p=>p.y).attr('r',p=>p.e.k?17:12).attr('fill','#111').style('pointer-events','none');
+  const marks=markG.selectAll('circle.bm-mark').data(points).join('circle').attr('class','bm-mark').attr('data-architecture',p=>p.e.a).attr('cx',p=>p.x).attr('cy',p=>p.y).attr('r',p=>p.e.k?5.5:4).attr('fill','#fff').style('cursor','pointer').on('click',(_ev,p)=>onPick(p.i));
   marks.append('title').text(p=>`${p.e.y}: ${p.e.t}`);
+  // The callout: the current event in a hairline bubble just inside the
+  // ring, clear of the portraits, with a tail out to its marker.
+  const bubble=svg.append('g').attr('class','bm-bubble').style('pointer-events','none').attr('opacity',0);
+  const bTail=bubble.append('path').attr('fill','none').attr('stroke','#111').attr('stroke-width',.75).attr('vector-effect','non-scaling-stroke');
+  const bCirc=bubble.append('circle').attr('r',62).attr('fill','#fff').attr('stroke','#111').attr('stroke-width',1).attr('vector-effect','non-scaling-stroke');
+  const bText=bubble.append('text').attr('text-anchor','middle').attr('font-size',11.5).attr('fill','#111');
+  function callout(p:{e:Ev;x:number;y:number}|undefined){
+    if(!p){bubble.attr('opacity',0);return;}
+    const a=angle(p.e.year), [bx,by]=polar(a,R0-74);
+    bCirc.attr('cx',bx).attr('cy',by);
+    const [tx,ty]=polar(a,R0-74+62);
+    bTail.attr('d',`M${p.x},${p.y}L${tx},${ty}`);
+    const words=p.e.t.split(' '), lines:string[]=[]; let line='';
+    words.forEach(w=>{if((line+' '+w).trim().length>13){lines.push(line.trim());line=w;}else line+=' '+w;}); if(line.trim())lines.push(line.trim());
+    const all=[p.e.y,...lines.slice(0,4)];
+    bText.selectAll('tspan').remove();
+    all.forEach((t,k)=>bText.append('tspan').attr('x',bx).attr('y',by+(k-(all.length-1)/2)*14).attr('font-weight',k===0?700:400).text(t));
+    bubble.raise().attr('opacity',1);
+  }
   const cursor=svg.append('path').attr('class','bm-time-cursor').attr('fill','none').attr('stroke','#111').attr('stroke-width',1.5).style('pointer-events','none');
   let off=new Set<string>(), current=-1;
   function paint(i:number,animate=true){
@@ -68,7 +120,9 @@ function draw(root:HTMLElement,data:Data,onPick:(i:number)=>void) {
         path.transition().duration(550).attrTween('d',()=>t=>{node.bmEnd=lerp(t);return arc(l.mid-BAND/2,l.mid+BAND/2,A0,node.bmEnd);});
       }else{node.bmEnd=end;path.attr('d',arc(l.mid-BAND/2,l.mid+BAND/2,A0,end));}
     });
-    marks.attr('fill',p=>p.i<=i?'#222':'#aaa').attr('opacity',p=>p.i<=i?1:.45).attr('r',p=>p.i===i?11:p.e.k?8:5);
+    halos.attr('opacity',p=>p.i===i?.85:p.i<=i?(p.e.k?.62:.34):.07).attr('r',p=>p.i===i?20:p.e.k?17:12);
+    marks.attr('opacity',p=>p.i<=i?1:.55).attr('r',p=>p.i===i?6.5:p.e.k?5.5:4);
+    callout(i>=0?points[i]:undefined);
     popBars.attr('fill',y=>e&&y<=e.year?'#e78062':'#bdbdb8');
     const year=e?.year??-601;
     islands.interrupt().attr('opacity',i<0?0:Math.min(1,.4+.6*(i/(data.events.length-1))));
@@ -80,7 +134,7 @@ function draw(root:HTMLElement,data:Data,onPick:(i:number)=>void) {
     if(e){const [x0,y0]=polar(end,R0-5),[x1,y1]=polar(end,525);cursor.attr('d',`M${x0},${y0}L${x1},${y1}`);}else cursor.attr('d','');
     setOff(off);
   }
-  function setOff(next:Set<string>){off=next;svg.selectAll<SVGGElement,unknown>('.bm-ring').attr('opacity',function(){return off.has(this.dataset.lane!) ? .12 : 1;});marks.attr('display',p=>off.has(p.e.l)?'none':null);}
+  function setOff(next:Set<string>){off=next;svg.selectAll<SVGGElement,unknown>('.bm-ring').attr('opacity',function(){return off.has(this.dataset.lane!) ? .12 : 1;});marks.attr('display',p=>off.has(p.e.l)?'none':null);halos.attr('display',p=>off.has(p.e.l)?'none':null);}
   paint(-1,false);
   return {paint,setOff,destroy:()=>svg.selectAll('*').interrupt()};
 }
