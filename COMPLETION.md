@@ -729,3 +729,10 @@ Eleven supplied room views edited with the built-in image tool for a cohesive ph
 - Figure 2.4a–h in Chapter 2 section 2.3 now includes the eight architectural section studies, retaining numbers, dates, captions, spatial readings and research links.
 - Optimised WebP images open at full size; labelled AI-generated interpretive sections, with research references distinguished from image provenance.
 - Production build (95 pages), house lints and diff checks pass. Browser verified all eight assets loaded, two-column layout at 1018px and no horizontal overflow.
+
+### 2026-10-28 — Version 2 chapter imagery
+
+- Applied the approved coordinated family to all 25 generated narrative images across Chapters 1–2: ten architectural sketches and fifteen realistic studies. New optimised assets live in images/version2; original assets and five archival references remain available.
+- Updated time-of-day captions, distinguished architectural-study credits, and added full-size image links. Single-image sketches retain their full 3:2 composition with contain sizing. Existing maps, data graphics and eight typology studies retain their established precise rendering.
+- Production build (95 pages), house lints, diff checks and 25-asset manifest validation passed. Browser verified the three-image programme row, no horizontal overflow and computed 3:2/contain rules for the vehicle study after refreshing the dev server.
+- Source artwork, generation audit and both versions are preserved in the Desktop Powerhouse Visuals — Two Versions folder and the originating Codex output folder.
