@@ -723,3 +723,9 @@ Eleven supplied room views edited with the built-in image tool for a cohesive ph
 - Cleaned repeated category-pill CSS, kept the shared portrait registry, added visible keyboard focus to project arrows, used the shared icon sizing token, and allowed long category titles to wrap instead of truncating.
 - Existing limitation: public read of live Featured configuration returns 403; the verified saved 20-project fallback works. No security rules or Featured selection changed. Historical ARCHV replica markup retained.
 - Adi authorised cleanup, commit and push. Final production build and house checks required before publishing.
+
+### 2026-10-28 — Illustrated Powerhouse typology studies
+
+- Figure 2.4a–h in Chapter 2 section 2.3 now includes the eight architectural section studies, retaining numbers, dates, captions, spatial readings and research links.
+- Optimised WebP images open at full size; labelled AI-generated interpretive sections, with research references distinguished from image provenance.
+- Production build (95 pages), house lints and diff checks pass. Browser verified all eight assets loaded, two-column layout at 1018px and no horizontal overflow.
