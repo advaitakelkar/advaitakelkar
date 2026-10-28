@@ -7,7 +7,7 @@ const figures = { ...figures2, ...figures3, ...figures4 };
 interface Props { blockId: string; chapter?: string; text: {body:string[]; notesStart:number; notes:string[]}; }
 const {blockId,chapter='2',text}=Astro.props;
 type Figure = {label:string;value:string;caption:string;source:string;url?:string;rows?:string[][];bars?:(string|number)[][]};
-type Group = {after:number;cols:number;flow?:boolean;items:Figure[]};
+type Group = {after:number;cols:number;flow?:boolean;compact?:boolean;items:Figure[]};
 const groups:Group[]=(figures as Record<string,Group[]>)[blockId]||[];
 const ends=[...new Set([...groups.map(g=>g.after),text.body.length])].sort((a,b)=>a-b);
 let previous=0;
@@ -38,7 +38,7 @@ const isBlock=(s:string)=>/^<(figure|h3|p)\b/.test(s);
         </div>
       ))}
       {unit.groups.map(group=>(
-        <div class:list={["ph2-figrow", {"ph2-figrow--wide":group.cols===1,"ph2-figrow--flow":group.flow}]} style={`--ph2-cols:${group.cols};--ph2-stat-size:${group.cols>3?'1.25rem':'2rem'}`}>
+        <div class:list={["ph2-figrow", {"ph2-figrow--wide":group.cols===1,"ph2-figrow--flow":group.flow,"ph2-figrow--compact":group.compact}]} style={`--ph2-cols:${group.cols};--ph2-stat-size:${group.cols>3?'1.25rem':'2rem'}`}>
           {group.items.map(fig=>(
             <figure class:list={["ph2-fig", {"ph2-fig--wide":group.cols===1}]} data-figure={fig.label} style={`--ph2-row-count:${fig.rows?.length || 1}`}>
               <div class="ph2-label">{fig.label}</div>
@@ -120,6 +120,10 @@ const isBlock=(s:string)=>/^<(figure|h3|p)\b/.test(s);
   .ph2-figrow--flow .ph2-fig:not(:last-child)::after { right:-18px;top:42px;font-size:17px; }
   .ph2-report :global(.ph__book-table) { box-sizing:border-box;width:100%;padding:0;border:0;border-radius:0;background:none; }
   .ph2-text p { orphans:3;widows:3; }
+  /* Demoted stat rows: numbers stay as small supporting facts; bars are dropped. */
+  .ph2-figrow--compact .ph2-fig { padding:10px 12px;gap:6px; }
+  .ph2-figrow--compact .ph2-fig figcaption b { font-size:1.125rem; }
+  .ph2-figrow--compact :is(.ph2-bars,dl) { display:none; }
   @media (max-width: 699.98px) {
     .ph2-report,.ph2-unit { gap:24px; }
     .ph2-figrow { gap:16px; }

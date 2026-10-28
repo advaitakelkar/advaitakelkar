@@ -1,0 +1,51 @@
+---
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import slots from '../data/powerhouse-image-slots.json';
+// Narrative images for Chapters 1–2. A slot shows its image once a file named after
+// its id is in public/powerhouse/images/; until then it shows a placeholder.
+interface Props { section: string; }
+type Slot = { id: string; family: 'today' | 'proposal' | 'archival'; title: string; caption: string };
+const { section } = Astro.props;
+const items = ((slots as Record<string, Slot[]>)[section] || []).map((s) => {
+  const ext = ['webp', 'jpg', 'png'].find((e) => existsSync(join(process.cwd(), 'public/powerhouse/images', `${s.id}.${e}`)));
+  return { ...s, src: ext ? `/powerhouse/images/${s.id}.${ext}` : undefined };
+});
+const credit = { today: 'AI-generated illustration', proposal: 'AI-generated illustration, speculative', archival: 'Archival photograph' };
+const kind = { today: 'Today', proposal: 'The Powerhouse', archival: 'Archive' };
+---
+{items.length > 0 && (
+  <div class:list={['phi', { 'phi--single': items.length === 1 }]} style={`--phi-cols:${items.length}`}>
+    {items.map((s) => (
+      <figure class:list={['phi__fig', `phi__fig--${s.family}`]} data-image-slot={s.id}>
+        {s.src ? (
+          <img src={s.src} alt={s.caption} loading="lazy" decoding="async" />
+        ) : (
+          <div class="phi__ph" role="img" aria-label={`Image to come: ${s.title}`}>
+            <span class="phi__ph-kind">{kind[s.family]}</span>
+            <b>{s.title}</b>
+            <code>public/powerhouse/images/{s.id}.webp</code>
+          </div>
+        )}
+        <figcaption><b>{s.title}.</b>{' '}{s.caption}<span>{credit[s.family]}</span></figcaption>
+      </figure>
+    ))}
+  </div>
+)}
+<style>
+  .phi { display:grid;grid-template-columns:repeat(var(--phi-cols),minmax(0,1fr));gap:16px var(--ph-reading-gap, 40px);margin:0 0 32px; }
+  .phi__fig { margin:0;display:grid;gap:10px;min-width:0; }
+  .phi__fig img,.phi__ph { width:100%;aspect-ratio:3 / 2;object-fit:cover;display:block; }
+  /* A single image opens its section as a wide band rather than a tall 3:2 block. */
+  .phi--single :is(img,.phi__ph) { aspect-ratio:21 / 9; }
+  .phi__ph { box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-end;gap:6px;padding:16px;
+    border:1px dashed color-mix(in srgb,var(--_tokens---color--fg) 28%,var(--_tokens---color--bg));
+    background:color-mix(in srgb,var(--_tokens---color--fg) 5%,var(--_tokens---color--bg));color:var(--_tokens---color--fg); }
+  .phi__fig--proposal .phi__ph { background:color-mix(in srgb,var(--_tokens---color--fg) 10%,var(--_tokens---color--bg)); }
+  .phi__ph-kind { font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--_tokens---color--muted); }
+  .phi__ph b { font-size:clamp(1rem,.9rem + .4vw,1.25rem);font-weight:600;line-height:1.2; }
+  .phi__ph code { font-size:10px;color:var(--_tokens---color--muted);overflow-wrap:anywhere; }
+  .phi figcaption { font-size:12px;line-height:1.45;color:var(--_tokens---color--fg); }
+  .phi figcaption span { display:block;margin-top:2px;font-size:10px;color:var(--_tokens---color--muted); }
+  @media (max-width: 699.98px) { .phi { grid-template-columns:minmax(0,1fr);gap:20px; } }
+</style>
