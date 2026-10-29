@@ -747,3 +747,12 @@ Eleven supplied room views edited with the built-in image tool for a cohesive ph
 
 - Redrew the proposed 1.4 parking-lot study using the existing lot as the fixed camera/base. Foreground cars, parking lines, lamps, walking figure and site extent align; programme additions occupy the rear edge.
 - New aligned asset has its own versioned URL; previous proposed study and original versions preserved. Source PNG pair and prompt saved in the Aligned Site Comparison output folder and Desktop version package.
+
+### 2026-10-28 — Two-storey programme comparison
+
+- Reframed both 1.4 studies at the same closer oblique camera. Proposal is a substantial occupied two-storey civic building: market/clinic below and shared workspace/community rooms above. Generated the empty-lot counterpart from this composition, retaining foreground cars, chargers, lamps and walking figure.
+- Updated both versioned image URLs and captions. Previous site studies remain preserved; full-resolution pair and prompts copied to the Desktop visual package.
+
+### 2026-10-28 — Unresolved proposition image
+
+- Replaced only the 1.6 proposition asset with a soft circular blurred concept field, removing readable building/landscape detail so the proposal does not imply a resolved architectural design. Caption explicitly states that form remains to be designed. Other detailed images retain their treatment. Source and prompt saved separately; previous asset retained.
