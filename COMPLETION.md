@@ -762,3 +762,8 @@ Eleven supplied room views edited with the built-in image tool for a cohesive ph
 - Figure 2.3c now contains a proportional five-setting port-share bar, architectural vector illustrations and the five source counts, with derived total and single-family share. Reads directly from the existing figure rows; no manuscript/data values changed.
 - Verified numbers against DOE's 2023 NREL study summary. Distinguishes port counts from electricity share, and retains conditional-scenario/source wording. Registers this actual data graphic in the existing non-UI SVG lint exemption list.
 - Build (95 pages), house lints, XML validation of the standalone SVG and diff checks passed. Browser confirmed five settings/segments, exact count labels and no horizontal overflow. Standalone editable SVG and website preview saved in the originating Codex outputs; SVG copied to Desktop visual package/Data Graphics.
+
+### 2026-10-28 — Corrected programme-study proportions
+
+- Rebuilt the 1.4 pair with a straighter parallel-projection architectural view, a more compact two-storey frame, thinner roof and clearer scale relationships. Removed foreground tree obstructions and reduced planting to reveal both occupied levels.
+- Derived the empty-lot counterpart from the corrected proposal, keeping foreground cars, charging corner, lamps, perimeter and walking figure aligned. Versioned new assets preserve previous studies; PNGs and prompts copied to Desktop visual package.
