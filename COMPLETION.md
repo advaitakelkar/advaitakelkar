@@ -736,3 +736,9 @@ Eleven supplied room views edited with the built-in image tool for a cohesive ph
 - Updated time-of-day captions, distinguished architectural-study credits, and added full-size image links. Single-image sketches retain their full 3:2 composition with contain sizing. Existing maps, data graphics and eight typology studies retain their established precise rendering.
 - Production build (95 pages), house lints, diff checks and 25-asset manifest validation passed. Browser verified the three-image programme row, no horizontal overflow and computed 3:2/contain rules for the vehicle study after refreshing the dev server.
 - Source artwork, generation audit and both versions are preserved in the Desktop Powerhouse Visuals — Two Versions folder and the originating Codex output folder.
+
+### 2026-10-28 — Civic room / forecourt comparison redrawn
+
+- Replaced the mixed archival/sketch row in 1.2 with three matching frontal architectural studies: an occupied enclosed railway hall, a minimal fuel canopy/pay booth, and the inherited charging forecourt where people wait in cars or on the kerb.
+- Revised captions around the spatial argument. Railway illustration is explicitly interpretive; the archival source and previous asset versions are retained. All three carry AI-generated architectural study credits and full-size links.
+- Build, house lints and diff checks pass. Browser confirmed three loaded replacement assets and no horizontal overflow; source PNGs and prompts saved in the Civic Room Comparison output folder and Desktop version package.
