@@ -784,3 +784,24 @@ Eleven supplied room views edited with the built-in image tool for a cohesive ph
 - Added matching 32px black transport badges to the sixteen restored book studies. Complete 44-symbol SVG badge library and its provenance file available in public/powerhouse/symbols; house UI icons unchanged.
 - Build (95 pages), house lints and diff checks pass. Restarted the local dev server to clear stale component CSS; browser verified panorama at 3:1, electrical image at 3:2, 32px badges and no horizontal overflow. Saved local previews in the originating Codex outputs.
 - Local only. No commit, push, deployment or InDesign/PDF edit.
+
+### 2026-10-29 — LOCAL ONLY: Powerhouse subsection headings and two-section reading
+
+- Increased subsection titles to responsive 26–32px and reduced weight to 600 at Adi's request.
+- Up to two subsections remain open; opening a third closes the oldest. Chapter navigation and citation jumps use the same limit.
+- Production build passed (95 pages). Browser confirmed two open sections, oldest closure on the third opening, computed 32px/600 headings, and no desktop horizontal overflow.
+- Local preview at http://127.0.0.1:4322/projects/the-powerhouse. No commit, push or deployment.
+
+### 2026-10-29 — LOCAL ONLY: compact timeline and accumulated reader headings
+
+- Timeline uses two rows of three large studies, with the Powerhouse at matching image size below. Narrow screens retain chronological vertical reading.
+- Removed repeated book running headers. Subsection titles use regular weight at 26–32px with trailing superscript numbers; Architecture of the pause is a 20–24px subheading.
+- Desktop chapter heading stays pinned; preceding subsection headings accumulate above the current subsection. Browser verified 1.0–1.3 stacked above 1.4.
+- Local production build and diff checks pass. No publication.
+
+
+### 2026-10-29 — Reader updates approved for local commit
+
+- Final subsection titles use regular weight, trailing superscript section numbers, and responsive 26–32px sizing. Desktop accumulates preceding headings above the active subsection, hides their original duplicates, and uses 90%-opaque pinned backgrounds.
+- Compact three-per-row timeline retained; simple argument boxes restored after Adi stopped the architectural image exploration. Generated options remain saved separately and are not part of this commit.
+- Adi requested a commit only; no push or deployment.
