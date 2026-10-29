@@ -805,3 +805,12 @@ Eleven supplied room views edited with the built-in image tool for a cohesive ph
 - Final subsection titles use regular weight, trailing superscript section numbers, and responsive 26–32px sizing. Desktop accumulates preceding headings above the active subsection, hides their original duplicates, and uses 90%-opaque pinned backgrounds.
 - Compact three-per-row timeline retained; simple argument boxes restored after Adi stopped the architectural image exploration. Generated options remain saved separately and are not part of this commit.
 - Adi requested a commit only; no push or deployment.
+
+### 2026-10-29 — LOCAL ONLY: VANDLS habitat renders
+
+- Re-rendered all 16 habitats with a coordinated elevated three-quarter view, muted sage/cream palette and genuine transparent backgrounds. Optimised WebP files live under public/images/vndls/rerenders; source renders are retained in the originating Codex outputs.
+- Four-column desktop / two-column mobile gallery with transparent tile backgrounds. Removed prototype/sketch sections and vector-sketch link. Subsequently restored 26 technical drawing sheets behind the matching renders at Adi's request.
+- Each card opens only its own render/drawing set in a larger lightbox, with a top-right close button. Both cards and lightbox use manual circular left/right arrows; no autoplay or Pause control. Names and controls share one caption row.
+- Selected family product shot sits beside the introductory text, aligned at the top. Browser verified card navigation, lightbox navigation and closing; production build, lint and diff checks pass.
+- Original artwork remains available in the existing asset folders. Production build passes; alpha channels checked across all 16 outputs. Local preview restarted after production build cleared Astro's development content cache.
+- Adi approved committing and publishing this VANDLS update on 29 October; deployment verification follows below.

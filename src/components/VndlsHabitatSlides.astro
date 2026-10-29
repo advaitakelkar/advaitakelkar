@@ -1,0 +1,76 @@
+---
+import Icon from './Icon.astro';
+---
+<template data-vndls-left><Icon name="arrow" dir="w" /></template>
+<template data-vndls-right><Icon name="arrow" dir="e" /></template>
+<dialog class="vndls-lightbox" data-vndls-lightbox aria-label="Habitat render and technical drawings">
+ <button class="vndls-lightbox__close" type="button" data-vndls-close aria-label="Close habitat viewer"><Icon name="close" /></button>
+ <img data-vndls-full alt="" />
+ <div class="vndls-lightbox__footer"><strong data-vndls-title></strong><div class="vndls-slide-controls"><button type="button" data-modal-prev aria-label="Previous view"><Icon name="arrow" dir="w" /></button><span data-modal-count aria-live="polite"></span><button type="button" data-modal-next aria-label="Next view"><Icon name="arrow" dir="e" /></button></div></div>
+</dialog>
+<style is:global>
+ .project-chapter__body .vndls-slide-track { display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none; }
+ .project-chapter__body .vndls-slide-track::-webkit-scrollbar { display:none; }
+ .project-chapter__body .vndls-slide-track > a { display:block;flex:0 0 100%;min-width:0;scroll-snap-align:start; }
+ .project-chapter__body .vndls-slide-track img { width:100%;aspect-ratio:1;object-fit:contain; }
+ .project-chapter__body .vndls-card-footer { display:flex;align-items:center;justify-content:space-between;gap:8px; }
+ .project-chapter__body .vndls-card-footer > strong { min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+ .vndls-slide-controls { display:flex;justify-content:space-between;align-items:center;gap:8px;flex-shrink:0;font-size:10px;color:var(--_tokens---color--muted); }
+ .vndls-slide-controls button { display:grid;place-items:center;width:28px;height:28px;flex:none;border:1px solid var(--_tokens---color--line);border-radius:50%;background:transparent;color:inherit;font:inherit;cursor:pointer;padding:0;--icon-size:14px; }
+ .vndls-slide-controls button:hover { background:var(--_tokens---color--fg);color:var(--_tokens---color--bg); }
+ .vndls-sr-only { position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap; }
+ [data-vndls-slider]:focus-visible { outline:1px solid currentColor;outline-offset:4px; }
+ .vndls-lightbox { position:fixed;inset:0;width:min(94vw,1400px);max-width:none;height:94vh;max-height:none;margin:auto;padding:48px 24px 16px;border:0;background:var(--_tokens---color--bg);color:var(--_tokens---color--fg); }
+ .vndls-lightbox::backdrop { background:rgb(0 0 0 / .65); }
+ .vndls-lightbox[open] { display:flex;flex-direction:column; }
+ .vndls-lightbox > img { display:block;width:100%;height:0;flex:1;min-height:0;object-fit:contain; }
+ .vndls-lightbox__close { position:absolute;right:16px;top:12px;display:grid;place-items:center;width:32px;height:32px;border:0;background:transparent;color:inherit;cursor:pointer;--icon-size:20px; }
+ .vndls-lightbox__footer { display:flex;align-items:center;justify-content:space-between;gap:16px;padding-top:12px;font-size:14px; }
+ .vndls-lightbox__footer .vndls-slide-controls { font-size:12px;gap:16px; }
+ body:has(.vndls-lightbox[open]) { overflow:hidden; }
+ @media (min-width: 1024px) {
+  .project-detail[data-project-id="vndls"][data-work-intro="true"] .project-card-info { grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;gap:48px;align-items:start; }
+  .project-detail[data-project-id="vndls"] .project-card-info > .work-intro-slider { grid-column:2;grid-row:1;align-self:start; }
+  .project-detail[data-project-id="vndls"] .work-intro-slider .gong-slider__stage { aspect-ratio:auto; }
+  .project-detail[data-project-id="vndls"] .work-intro-slider .gong-slider__stage img { height:auto;object-position:center top; }
+ }
+</style>
+<script>
+ function initVndlsSlides() {
+  const dialog=document.querySelector<HTMLDialogElement>('[data-vndls-lightbox]');
+  if(!dialog || dialog.dataset.wired) return;
+  dialog.dataset.wired='true';
+  const full=dialog.querySelector<HTMLImageElement>('[data-vndls-full]')!;
+  let active: {show:(delta:number)=>void;reflect:()=>void}|null=null;
+  let trigger:HTMLElement|null=null;
+  dialog.querySelector('[data-vndls-close]')?.addEventListener('click',()=>dialog.close());
+  dialog.addEventListener('close',()=>{active=null;trigger?.focus();});
+  dialog.querySelector('[data-modal-prev]')?.addEventListener('click',()=>active?.show(-1));
+  dialog.querySelector('[data-modal-next]')?.addEventListener('click',()=>active?.show(1));
+  dialog.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();active?.show(e.key==='ArrowLeft'?-1:1);}});
+  document.querySelectorAll<HTMLElement>('[data-vndls-slider]:not([data-wired])').forEach(root=>{
+   root.dataset.wired='true';
+   const track=root.querySelector<HTMLElement>('.vndls-slide-track')!;
+   const slides=[...track.querySelectorAll<HTMLAnchorElement>('a')];
+   const left=document.querySelector<HTMLTemplateElement>('[data-vndls-left]')!;
+   const right=document.querySelector<HTMLTemplateElement>('[data-vndls-right]')!;
+   root.querySelector('[data-vndls-prev]')!.replaceChildren(left.content.cloneNode(true));
+   root.querySelector('[data-vndls-next]')!.replaceChildren(right.content.cloneNode(true));
+   const count=root.querySelector<HTMLElement>('[data-vndls-count]')!;
+   const name=root.querySelector('figcaption strong')?.textContent || 'Habitat';
+   let index=0;
+   const reflect=()=>{
+    count.textContent=`${index+1} / ${slides.length}`;
+    if(active===controller && dialog.open){const image=slides[index].querySelector('img')!;full.src=slides[index].href;full.alt=image.alt;dialog.querySelector('[data-vndls-title]')!.textContent=name;dialog.querySelector('[data-modal-count]')!.textContent=`${index+1} / ${slides.length}`;}
+   };
+   const show=(delta:number)=>{index=(index+delta+slides.length)%slides.length;track.scrollTo({left:index*track.clientWidth,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});reflect();};
+   const controller={show,reflect};
+   root.querySelector('[data-vndls-prev]')?.addEventListener('click',()=>show(-1));root.querySelector('[data-vndls-next]')?.addEventListener('click',()=>show(1));
+   slides.forEach((slide,i)=>slide.addEventListener('click',e=>{e.preventDefault();index=i;trigger=slide;active=controller;dialog.showModal();reflect();}));
+   root.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();show(e.key==='ArrowLeft'?-1:1);}});
+   track.addEventListener('scroll',()=>{const next=Math.round(track.scrollLeft/Math.max(1,track.clientWidth));if(next!==index){index=next;reflect();}},{passive:true});
+   new ResizeObserver(()=>{track.scrollLeft=index*track.clientWidth;}).observe(track);reflect();
+  });
+ }
+ initVndlsSlides();document.addEventListener('astro:after-swap',initVndlsSlides);
+</script>
