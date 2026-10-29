@@ -742,3 +742,8 @@ Eleven supplied room views edited with the built-in image tool for a cohesive ph
 - Replaced the mixed archival/sketch row in 1.2 with three matching frontal architectural studies: an occupied enclosed railway hall, a minimal fuel canopy/pay booth, and the inherited charging forecourt where people wait in cars or on the kerb.
 - Revised captions around the spatial argument. Railway illustration is explicitly interpretive; the archival source and previous asset versions are retained. All three carry AI-generated architectural study credits and full-size links.
 - Build, house lints and diff checks pass. Browser confirmed three loaded replacement assets and no horizontal overflow; source PNGs and prompts saved in the Civic Room Comparison output folder and Desktop version package.
+
+### 2026-10-28 — Matched site comparison camera
+
+- Redrew the proposed 1.4 parking-lot study using the existing lot as the fixed camera/base. Foreground cars, parking lines, lamps, walking figure and site extent align; programme additions occupy the rear edge.
+- New aligned asset has its own versioned URL; previous proposed study and original versions preserved. Source PNG pair and prompt saved in the Aligned Site Comparison output folder and Desktop version package.
