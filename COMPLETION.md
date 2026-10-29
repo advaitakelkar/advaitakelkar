@@ -756,3 +756,9 @@ Eleven supplied room views edited with the built-in image tool for a cohesive ph
 ### 2026-10-28 — Unresolved proposition image
 
 - Replaced only the 1.6 proposition asset with a soft circular blurred concept field, removing readable building/landscape detail so the proposal does not imply a resolved architectural design. Caption explicitly states that form remains to be designed. Other detailed images retain their treatment. Source and prompt saved separately; previous asset retained.
+
+### 2026-10-28 — Illustrated 2030 scenario data graphic
+
+- Figure 2.3c now contains a proportional five-setting port-share bar, architectural vector illustrations and the five source counts, with derived total and single-family share. Reads directly from the existing figure rows; no manuscript/data values changed.
+- Verified numbers against DOE's 2023 NREL study summary. Distinguishes port counts from electricity share, and retains conditional-scenario/source wording. Registers this actual data graphic in the existing non-UI SVG lint exemption list.
+- Build (95 pages), house lints, XML validation of the standalone SVG and diff checks passed. Browser confirmed five settings/segments, exact count labels and no horizontal overflow. Standalone editable SVG and website preview saved in the originating Codex outputs; SVG copied to Desktop visual package/Data Graphics.

@@ -51,7 +51,9 @@ const FILLS_PARENT = ['sn-lock__icon'];
  * their own stroke. Exempt wholesale — a per-shape class check is fragile
  * when the geometry is generated.
  */
-const GRAPHIC_FILES = ['VGWheel.astro', 'admin.astro', 'powerhouse.astro', 'BomMumTimeline.astro'];
+const GRAPHIC_FILES = ['VGWheel.astro', 'admin.astro', 'powerhouse.astro', 'BomMumTimeline.astro',
+  'Powerhouse2030Scenario.astro', // charging-setting illustrations inside a data graphic, not UI symbols
+];
 
 /**
  * Every class handed to an <Icon> anywhere in src. Built first, because rule 3

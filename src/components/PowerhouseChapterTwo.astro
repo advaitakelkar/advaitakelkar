@@ -2,11 +2,12 @@
 import figures2 from '../data/powerhouse-chapter2-figures.json';
 import figures3 from '../data/powerhouse-chapter3-figures.json';
 import figures4 from '../data/powerhouse-chapter4-figures.json';
+import Powerhouse2030Scenario from './Powerhouse2030Scenario.astro';
 // Chapters 2–4 share this renderer; each chapter's figure groups are keyed by block id.
 const figures = { ...figures2, ...figures3, ...figures4 };
 interface Props { blockId: string; chapter?: string; text: {body:string[]; notesStart:number; notes:string[]}; }
 const {blockId,chapter='2',text}=Astro.props;
-type Figure = {label:string;value:string;caption:string;source:string;url?:string;image?:{src:string;alt:string};rows?:string[][];bars?:(string|number)[][]};
+type Figure = {label:string;value:string;caption:string;source:string;url?:string;graphic?:string;image?:{src:string;alt:string};rows?:string[][];bars?:(string|number)[][]};
 type Group = {after:number;cols:number;flow?:boolean;compact?:boolean;items:Figure[]};
 const groups:Group[]=(figures as Record<string,Group[]>)[blockId]||[];
 const ends=[...new Set([...groups.map(g=>g.after),text.body.length])].sort((a,b)=>a-b);
@@ -45,7 +46,7 @@ const isBlock=(s:string)=>/^<(figure|h3|p)\b/.test(s);
               {fig.image&&<a class="ph2-study" href={fig.image.src} target="_blank" rel="noopener" aria-label={`Open full-size study: ${fig.caption}`}><img src={fig.image.src} alt={fig.image.alt} width="1536" height="1024" loading="lazy" decoding="async" /></a>}
               <figcaption><b>{fig.value}</b><span>{fig.caption}</span></figcaption>
               {fig.bars&&<div class="ph2-bars">{fig.bars.map(row=><div><span>{row[0]} · {row[1]}%</span><div class="ph2-track"><i style={`width:${row[1]}%;background:var(--ph-${row[2]})`}/></div></div>)}</div>}
-              {fig.rows&&<dl>{fig.rows.map(row=><div><dt>{row[0]}</dt><dd>{row[1].includes('→') ? <span class="ph2-sequence">{row[1].split('→').map((step, i) => <><span>{step.trim()}</span>{i < row[1].split('→').length - 1 && <span class="ph2-sequence-arrow" aria-hidden="true">→</span>}</>)}</span> : row[1]}</dd></div>)}</dl>}
+              {fig.graphic === 'charging2030' && fig.rows ? <Powerhouse2030Scenario rows={fig.rows} /> : fig.rows&&<dl>{fig.rows.map(row=><div><dt>{row[0]}</dt><dd>{row[1].includes('→') ? <span class="ph2-sequence">{row[1].split('→').map((step, i) => <><span>{step.trim()}</span>{i < row[1].split('→').length - 1 && <span class="ph2-sequence-arrow" aria-hidden="true">→</span>}</>)}</span> : row[1]}</dd></div>)}</dl>}
               {fig.image&&<p class="ph2-study-credit">AI-generated interpretive section</p>}
               <p class="ph2-source">{fig.image?'Research context: ':'Source: '}{fig.url?<a href={fig.url}>{fig.source}</a>:fig.source}</p>
             </figure>

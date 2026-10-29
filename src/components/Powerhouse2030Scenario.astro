@@ -1,0 +1,92 @@
+---
+interface Props { rows: string[][]; }
+const { rows } = Astro.props;
+const values = rows.map(([value, label], index) => ({
+  value, label, ports: Number.parseFloat(value) * 1_000_000,
+  colour: index < 3 ? 'blue' : index === 3 ? 'orange' : 'red',
+  opacity: [1, .65, .4, 1, 1][index],
+  type: ['Private · Level 1 / 2', 'Private · Level 2', 'Private · Level 2', 'Public · Level 2', 'Public · DC fast'][index],
+}));
+const total = values.reduce((sum, item) => sum + item.ports, 0);
+const homeShare = Math.round(values[0].ports / total * 100);
+---
+<div class="scenario2030">
+  <div class="scenario2030__reading">
+    <p><strong>≈{(total / 1_000_000).toFixed(0)} million ports</strong><span>across five charging settings</span></p>
+    <p><strong>≈{homeShare}% at single-family homes</strong><span>share of modelled ports, not electricity delivered</span></p>
+  </div>
+  <div class="scenario2030__share" role="img" aria-label={`Share of modelled charging ports: ${values.map(item => `${item.label}, ${(item.ports / total * 100).toFixed(1)} percent`).join('; ')}`}>
+    {values.map(item => <span style={`flex:${item.ports};background:var(--ph-${item.colour});opacity:${item.opacity}`} />)}
+  </div>
+  <div class="scenario2030__settings">
+    {values.map((item, index) => (
+      <div class="scenario2030__setting">
+        <svg viewBox="0 0 180 110" aria-hidden="true" focusable="false">
+          <path class="ground" d="M7 95H174M15 100H158" />
+          {index === 0 && <>
+            <path class="stone" d="M19 53L66 20L110 53V94H19Z" />
+            <path class="timber" d="M13 54L66 15L117 54L110 60L66 28L19 61Z" />
+            <path d="M32 94V64H53V94M72 58H96V78H72ZM84 58V78M72 68H96" />
+            <path class="glass" d="M109 78L119 67H146L157 78Z" />
+            <path d="M105 79H161V90H105ZM118 89V94M150 89V94M164 94V65H174V94M167 69H171M164 76C156 75 159 82 155 82" />
+          </>}
+          {index === 1 && <>
+            <path class="stone" d="M25 17H119V94H25ZM20 17H124V23H20Z" />
+            {[34, 58, 82].map(x => [31, 52, 73].map(y => <path class="glass" d={`M${x} ${y}h16v13h-16Z`} />))}
+            <path d="M104 94V73H114M23 48H120M23 69H120M131 94V61H141V94M134 66H138M141 74C152 74 146 85 155 85" />
+            <path class="glass" d="M146 85L151 76H165L172 85Z" /><path d="M145 85H174V93H145" />
+          </>}
+          {index === 2 && <>
+            <path class="stone" d="M16 29H128V94H16Z" />
+            <path class="timber" d="M11 24H133V31H11Z" />
+            {[27, 51, 75, 99].map(x => [39, 60].map(y => <path class="glass" d={`M${x} ${y}h15v13h-15Z`} />))}
+            <path d="M66 94V79H84V94M23 83H56M136 94V65H146V94M139 70H143M146 76C155 76 149 88 158 88" />
+            <path class="glass" d="M151 85L157 77H169L175 85Z" /><path d="M150 85H177V93H150" />
+          </>}
+          {index === 3 && <>
+            <path class="stone" d="M12 91H174V96H12Z" />
+            <path class="glass" d="M26 77L42 59H88L107 77Z" />
+            <path d="M20 77H113V89H20ZM46 60V76M81 60L90 76M32 89V94M99 89V94" />
+            <path class="stone" d="M126 93V40H142V93Z" /><path class="glass" d="M130 46H138V58H130Z" />
+            <path d="M142 61C158 60 154 82 145 82C135 82 127 77 112 79M16 40H65M21 34H72M162 93V61M154 61H170" />
+          </>}
+          {index === 4 && <>
+            <path class="timber" d="M9 24H173V32H9Z" /><path d="M25 32V94M157 32V94M12 37H170" />
+            <path class="stone" d="M31 91V46H53V91Z" /><path class="glass" d="M36 52H48V65H36Z" />
+            <path d="M53 60C72 58 73 79 88 79M36 72H48M39 77L45 81L39 85" />
+            <path class="glass" d="M81 75L95 60H129L147 75Z" /><path d="M75 75H153V89H75ZM106 61V75M88 89V94M141 89V94" />
+          </>}
+        </svg>
+        <div class="scenario2030__key"><i style={`background:var(--ph-${item.colour});opacity:${item.opacity}`} /><span>{item.type}</span></div>
+        <strong class="scenario2030__value">{item.value}</strong>
+        <span class="scenario2030__label">{item.label}</span>
+        <span class="scenario2030__percent">{(item.ports / total * 100).toFixed(1)}% of ports</span>
+      </div>
+    ))}
+  </div>
+  <p class="scenario2030__note">Bar widths show port share. Drawings identify settings and are not to scale. Counts are rounded in the source.</p>
+</div>
+<style>
+  .scenario2030 { display:grid;gap:16px;min-width:0;color:var(--_tokens---color--fg); }
+  .scenario2030__reading { display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap; }
+  .scenario2030__reading p { display:grid;gap:3px;margin:0;font-size:13px;line-height:1.4; }
+  .scenario2030__reading strong { font-size:18px;font-weight:600;letter-spacing:-.02em; }
+  .scenario2030__reading span,.scenario2030__percent,.scenario2030__note { font-size:11px;color:var(--_tokens---color--muted); }
+  .scenario2030__share { display:flex;height:24px;gap:1px;overflow:hidden;background:var(--_tokens---color--bg); }
+  .scenario2030__share span { min-width:0; }
+  .scenario2030__settings { display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:20px; }
+  .scenario2030__setting { display:flex;flex-direction:column;gap:5px;min-width:0; }
+  .scenario2030__setting svg { width:100%;height:auto;fill:none;stroke:currentColor;stroke-width:1.15;stroke-linecap:round;stroke-linejoin:round; }
+  .scenario2030__setting .ground { opacity:.35;stroke-width:.7; }
+  .scenario2030__setting .stone { fill:var(--ph-light);fill-opacity:.4; }
+  .scenario2030__setting .timber { fill:var(--ph-lamp,#D49963);fill-opacity:.2; }
+  .scenario2030__setting .glass { fill:var(--ph-blue);fill-opacity:.14; }
+  .scenario2030__key { display:flex;align-items:center;gap:5px;font-size:10px;line-height:1.35;min-height:27px; }
+  .scenario2030__key i { flex:none;width:7px;height:7px;border-radius:50%; }
+  .scenario2030__value { font-size:26px;font-weight:600;letter-spacing:-.03em;line-height:1.1;font-variant-numeric:tabular-nums; }
+  .scenario2030__label { font-size:12px;line-height:1.35; }
+  .scenario2030__percent { margin-top:auto; }
+  .scenario2030__note { margin:0;line-height:1.4; }
+  @media (max-width: 1023.98px) { .scenario2030__settings { gap:12px; }.scenario2030__value{font-size:22px} }
+  @media (max-width: 699.98px) { .scenario2030__settings { grid-template-columns:repeat(2,minmax(0,1fr));gap:24px; }.scenario2030__reading{display:grid}.scenario2030__reading strong{font-size:16px} }
+</style>
