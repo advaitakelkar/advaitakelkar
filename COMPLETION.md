@@ -767,3 +767,20 @@ Eleven supplied room views edited with the built-in image tool for a cohesive ph
 
 - Rebuilt the 1.4 pair with a straighter parallel-projection architectural view, a more compact two-storey frame, thinner roof and clearer scale relationships. Removed foreground tree obstructions and reduced planting to reveal both occupied levels.
 - Derived the empty-lot counterpart from the corrected proposal, keeping foreground cars, charging corner, lamps, perimeter and walking figure aligned. Versioned new assets preserve previous studies; PNGs and prompts copied to Desktop visual package.
+
+
+### 2026-10-28 — LOCAL REVIEW ONLY: book diagrams and symbol family
+
+- Compared the open 42-page editorial report with the website: restored the six linked Architecture of the pause studies in 1.0 and the eight waiting / two civic-room-canopy studies in 1.2. Uses exact current book links, including frontal coaching-inn and filling-station revisions. Eight numbered Chapter 2 section studies already present and retained.
+- Rebuilt Figure 1.6 as a black circular SVG programme network with a full-width presentation. Conceptual duration bands retain the original programmes and source credit.
+- Separate local deliverable: 44 original vector symbols in two variants with individual SVG/PNG files, contact sheet, credits and ZIP. No change to the house UI icon system.
+- Local production build (95 pages), house lints, SVG validation and diff checks pass. Browser verified eight waiting assets loaded, Figure 1.6 loaded at 760px, and no horizontal overflow at desktop and medium review widths.
+- Adi requested LOCAL ONLY. No commit, push, deploy, InDesign edit or PDF replacement. Deliverables/audit are in the originating Codex outputs/Powerhouse — Symbols and Diagram Match and copied to the Desktop visual package.
+
+
+### 2026-10-28 — LOCAL ONLY: latest opening images and transport badges
+
+- Added charging-to-civic panorama to 1.0 below the introductory prose, and the white-sky transmission-pylon revision to 1.1. Versioned URLs preserve previous images. Both opt into full natural aspect ratios so pylons, cables and the panorama are not cropped.
+- Added matching 32px black transport badges to the sixteen restored book studies. Complete 44-symbol SVG badge library and its provenance file available in public/powerhouse/symbols; house UI icons unchanged.
+- Build (95 pages), house lints and diff checks pass. Restarted the local dev server to clear stale component CSS; browser verified panorama at 3:1, electrical image at 3:2, 32px badges and no horizontal overflow. Saved local previews in the originating Codex outputs.
+- Local only. No commit, push, deployment or InDesign/PDF edit.

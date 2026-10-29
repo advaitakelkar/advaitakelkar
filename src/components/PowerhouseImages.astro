@@ -5,7 +5,7 @@ import slots from '../data/powerhouse-image-slots.json';
 // Narrative images for Chapters 1–2. A slot shows its image once a file named after
 // its id is in public/powerhouse/images/; until then it shows a placeholder.
 interface Props { section: string; }
-type Slot = { id: string; family: 'today' | 'proposal' | 'archival'; title: string; caption: string; src?: string; medium?: 'sketch' | 'realistic' };
+type Slot = { id: string; family: 'today' | 'proposal' | 'archival'; title: string; caption: string; src?: string; medium?: 'sketch' | 'realistic'; fit?: 'full' };
 const { section } = Astro.props;
 const items = ((slots as Record<string, Slot[]>)[section] || []).map((s) => {
   if (s.src) return s;
@@ -18,7 +18,7 @@ const kind = { today: 'Today', proposal: 'The Powerhouse', archival: 'Archive' }
 {items.length > 0 && (
   <div class:list={['phi', { 'phi--single': items.length === 1 }]} style={`--phi-cols:${items.length}`}>
     {items.map((s) => (
-      <figure class:list={['phi__fig', `phi__fig--${s.family}`, { 'phi__fig--sketch': s.medium === 'sketch' }]} data-image-slot={s.id}>
+      <figure class:list={['phi__fig', `phi__fig--${s.family}`, { 'phi__fig--sketch': s.medium === 'sketch', 'phi__fig--full': s.fit === 'full' }]} data-image-slot={s.id}>
         {s.src ? (
           <a class="phi__image-link" href={s.src} target="_blank" rel="noopener" aria-label={`Open full-size image: ${s.title}`}><img src={s.src} alt={s.caption} loading="lazy" decoding="async" /></a>
         ) : (
@@ -43,6 +43,7 @@ const kind = { today: 'Today', proposal: 'The Powerhouse', archival: 'Archive' }
   .phi__image-link:focus-visible { outline:2px solid currentColor;outline-offset:3px; }
   .phi__fig--sketch img { object-fit:contain;background:#fff; }
   .phi--single .phi__fig--sketch img { aspect-ratio:3 / 2; }
+  .phi--single .phi__fig--full img { aspect-ratio:auto;height:auto;object-fit:contain;background:#fff; }
   .phi__ph { box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-end;gap:6px;padding:16px;
     border:1px dashed color-mix(in srgb,var(--_tokens---color--fg) 28%,var(--_tokens---color--bg));
     background:color-mix(in srgb,var(--_tokens---color--fg) 5%,var(--_tokens---color--bg));color:var(--_tokens---color--fg); }

@@ -5,6 +5,7 @@ import ProjectPeople from '../../components/ProjectPeople.astro';
 import Icon from '../../components/Icon.astro';
 import BookText from '../../components/PowerhouseBookText.astro';
 import PowerhouseImages from '../../components/PowerhouseImages.astro';
+import PowerhouseBookStudies from '../../components/PowerhouseBookStudies.astro';
 import ChapterTwo from '../../components/PowerhouseChapterTwo.astro';
 import Glance from '../../components/PowerhouseGlance.astro';
 import type { StackBar, Card } from '../../lib/powerhouse-glance';
@@ -511,12 +512,6 @@ const studyRows = [
   { name: 'US truck rest', label: '10 h off duty', from: 0, to: 600, cls: 'c-teal' },
 ].map((r) => ({ ...r, left: (r.from / 600) * 100, width: ((r.to - r.from) / 600) * 100 }));
 // 1.4 and 1.5 in numbers.
-// 1.5: the network around the charger, innermost ring first; every ring is open to people not charging.
-const networkRings = [
-  { stay: '20 min', items: 'seats, food, washrooms, play', c: 'teal' },
-  { stay: '1–2 h', items: 'gym, clinic, reading room, workspace', c: 'yellow' },
-  { stay: 'A night', items: 'rooms, showers, a drivers’ kitchen', c: 'blue' },
-];
 const popsRated = [true, true, false, false, false]; // about two in five rated marginal (note 21)
 // Kept for Chapter 4 (the matrix left 1.5 in the Chapter 1 rewrite). Forty architectural programmes the Powerhouse could hold, rooms and grounds rather than
 // services. Jev (TypeSafe) judged each: free or paid, and whether it stays busy all day without
@@ -971,7 +966,6 @@ const mindmapBibs = rawBibs.map((b) => ({
           <span>The Powerhouse / {book[0].title}</span>
           <span>1.0 {book[0].subtitle}</span>
         </div>
-        <PowerhouseImages section="ch1" />
         <div class="ph__editorial">
           <div class="ph__read-unit">
             <div class="ph__read-text">
@@ -980,6 +974,8 @@ const mindmapBibs = rawBibs.map((b) => ({
               <p>{bookText.ch1.body[2]}</p>
               <p>{bookText.ch1.body[3]}</p>
             </div>
+            <PowerhouseImages section="ch1" />
+            <PowerhouseBookStudies group="pause" />
             <ol class="ph__argument-path" aria-label="The argument in sequence" style="width:100%;margin:0">
               <li><span>01</span>A public pause</li><li><span>02</span>A useful programme</li><li><span>03</span>A public place</li>
             </ol>
@@ -1133,6 +1129,7 @@ const mindmapBibs = rawBibs.map((b) => ({
                 </div>
               </figure>
             </div>
+            <PowerhouseBookStudies group="waiting" />
             <div class="ph__read-text">
               <p set:html={linkNotes(bookText['1-2'].body[2], '1')} />
               <p set:html={linkNotes(bookText['1-2'].body[3], '1')} />
@@ -1281,18 +1278,14 @@ const mindmapBibs = rawBibs.map((b) => ({
               <p set:html={linkNotes(bookText['1-5'].body[2], '1')} />
 
             </div>
-<div class="ph__infig">
+<div class="ph__infig ph__infig--network">
                 <div class="ph__fig-header">
                   <span class="ph__fig-tag">Figure 1.6</span>
                   <span class="ph__fig-title">The network around the charger</span>
                 </div>
                 <figure class="ph__fig">
                   <figcaption><b class="ph__fig-num">1 charger</b><span>at the centre, with programmes around it arranged by how long people stay</span></figcaption>
-                  <div class="ph__rings" role="img" aria-label={`The charger at the centre; around it, ${networkRings.map((r) => `${r.stay}: ${r.items}`).join('; ')}; public space at the edge`}>
-                    {networkRings.reduce((inner, r) => (
-                      <div class="ph__rings-ring" style={`--ring: var(--ph-${r.c})`}><p><b>{r.stay}</b> {r.items}</p>{inner}</div>
-                    ), <div class="ph__rings-core">Charger</div>)}
-                  </div>
+                  <a class="ph__programme-rings" href="/powerhouse/diagrams/figure-1-6-programme-rings.svg" target="_blank" rel="noopener" aria-label="Open full-size Figure 1.6 programme rings"><img src="/powerhouse/diagrams/figure-1-6-programme-rings.svg" alt="The charger at the centre; 20-minute seats, food, washrooms and play; one-to-two-hour gym, clinic, reading room and workspace; overnight rooms, showers and drivers’ kitchen; public ground open to everyone." width="920" height="980" loading="lazy" /></a>
                   <p class="ph__fig-key">Each ring serves people charging and is open to people who are not · public space at the edge</p>
                   <p class="ph__fig-src">Sources: the thesis, section 1.5; Allen, “Infrastructural Urbanism” (1999) · <a class="ph__fig-note" href="#note-1-27">Note 27</a></p>
                 </figure>
@@ -2116,12 +2109,9 @@ const mindmapBibs = rawBibs.map((b) => ({
     height: 100%;
     margin: 0;
   }
-  /* 1.5: the network around the charger, nested by length of stay, charger at the core */
-  .ph__rings { margin: 12px 0 10px; }
-  .ph__rings-ring { padding: 8px 10px 10px; border: 1px solid var(--ring); border-radius: 22px; background: color-mix(in srgb, var(--ring) 14%, transparent); }
-  .ph__rings-ring p { margin: 0 0 8px; font-size: var(--_tokens---type--micro); line-height: 1.3; text-align: center; color: var(--_tokens---color--muted); }
-  .ph__rings-ring p b { color: var(--_tokens---color--fg); font-weight: 600; }
-  .ph__rings-core { padding: 10px; border-radius: 999px; background: var(--ph-red); color: #fff; font-size: var(--_tokens---type--micro); font-weight: 600; text-align: center; }
+  [data-chapter-group="ch1"] .ph__infig:not(#usa).ph__infig--network > .ph__fig { display:flex;flex-direction:column; }
+  .ph__programme-rings { display:block;width:100%;max-width:760px;margin:12px auto; }
+  .ph__programme-rings img { display:block;width:100%;height:auto; }
   @media (max-width: 1023.98px) {
     .ph__figs-4col {
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2300,7 +2290,7 @@ const mindmapBibs = rawBibs.map((b) => ({
   [data-chapter-group="ch1"] .ph__read-text > .ph__infig:last-child { margin: 2em 0 0; }
 
   /* A row of figures */
-  [data-chapter-group="ch1"] .ph__figrow { display: grid; grid-template-columns: repeat(var(--cols, 1), minmax(0, 1fr)); gap: 24px var(--ph-col-gap); align-items: start; }
+  [data-chapter-group="ch1"] .ph__figrow { display: grid; grid-template-columns: repeat(var(--cols, 1), minmax(0, 1fr)); gap: 24px var(--ph-col-gap); align-items: stretch; }
   [data-chapter-group="ch1"] .ph__figrow > .ph__fig-header { grid-column: 1 / -1; }
   [data-chapter-group="ch1"] .ph__figrow--2 { --cols: 2; }
   [data-chapter-group="ch1"] .ph__figrow--3 { --cols: 3; }
