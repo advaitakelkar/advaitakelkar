@@ -1,0 +1,41 @@
+---
+import type { WorkFigure } from '../lib/workMedia';
+interface Props {
+  figure: WorkFigure; label: string; number: number; shape: '2x2' | '2x1' | '1x2' | '1x1';
+}
+const { figure, label, number, shape } = Astro.props;
+const source = figure.caption?.match(/AI-(?:assisted|retouched)[^.;]*(?:[.;]|$)/i)?.[0]?.replace(/[.;]$/, '');
+---
+<figure class="work-figure" data-image={figure.image} data-role={figure.role} data-span={shape}>
+  <button class="work-figure__image" type="button" data-work-image={figure.image} data-caption={figure.alt ?? figure.caption ?? label} data-label={label} aria-label={`Enlarge ${label}`}>
+    <img src={figure.image} width={figure.width} height={figure.height} alt={figure.alt ?? figure.caption ?? label} loading="lazy" decoding="async" />
+    <span class="work-figure__enlarge" aria-hidden="true">Enlarge ↗</span>
+  </button>
+  <figcaption><span class="work-figure__number">{String(number).padStart(2, '0')}</span><span>{label}{source && <small>{source}</small>}</span></figcaption>
+  {(figure.annotations?.length || figure.drawingSource) && <details class="work-figure__notes"><summary>Drawing notes & source</summary>
+    {figure.annotations?.map(a => <section><h3>{a.heading}</h3><ul>{a.lines.map(line => <li>{line}</li>)}</ul></section>)}
+    {figure.drawingSource && <p>{figure.drawingSource}</p>}
+  </details>}
+</figure>
+<style>
+  .work-figure { margin: 0; min-width: 0; }
+  .work-figure__image { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; border: 0; padding: 0; background: transparent; color: inherit; cursor: zoom-in; aspect-ratio: 1; }
+  [data-span="2x1"] .work-figure__image { aspect-ratio: 2; }
+  [data-span="1x2"] .work-figure__image { aspect-ratio: 0.5; }
+  .work-figure__image img { display: block; width: 100%; height: 100%; object-fit: contain; }
+  .work-figure__enlarge { position: absolute; right: 8px; bottom: 8px; padding: 6px 8px; border: 1px solid var(--_tokens---color--line-soft); background: var(--_tokens---color--bg); color: var(--_tokens---color--fg); font-size: var(--_tokens---type--micro); opacity: 0; transition: opacity 150ms; }
+  .work-figure__image:hover .work-figure__enlarge, .work-figure__image:focus-visible .work-figure__enlarge { opacity: 1; }
+  figcaption { display: flex; align-items: baseline; gap: 12px; border-top: 1px solid var(--_tokens---color--line-soft); padding-top: 10px; margin-top: 10px; font-size: var(--_tokens---type--micro); line-height: 1.5; }
+  .work-figure__number { color: var(--_tokens---color--muted); font-variant-numeric: tabular-nums; }
+  small { display: block; margin-top: 3px; color: var(--_tokens---color--muted); font-size: inherit; }
+  .work-figure__notes { margin-top: 8px; font-size: var(--_tokens---type--micro); line-height: 1.6; }
+  summary { display: flex; align-items: center; min-height: 44px; cursor: pointer; text-decoration: underline; text-underline-offset: 4px; }
+  h3 { font-size: inherit; margin: 12px 0 6px; }
+  ul { padding-left: 18px; }
+  @media (max-width: 1023.98px) {
+    .work-figure__image, [data-span] .work-figure__image { aspect-ratio: auto; }
+    .work-figure__image img { height: auto; }
+    .work-figure__enlarge { opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) { .work-figure__enlarge { transition: none; } }
+</style>

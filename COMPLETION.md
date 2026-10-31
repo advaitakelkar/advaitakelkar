@@ -8,6 +8,14 @@ Last surveyed: **2026-09-09** — HEAD `be65d53`, `pnpm build` = 80 pages.
 
 ---
 
+## Work articles — editorial redesign, 31 October 2026
+
+Reviewed all 18 Work projects and 231 referenced images. Preserved the top two-column introduction and all main-slide selections. Lower pages now use a three-column editorial system with 2×2 plans/isometrics, 2×1 sections, smaller 1×2/1×1 details, numbered captions and reading notes. All 120 existing lower figures remain; Jude Bakery adds a four-view photo essay. See `docs/work-articles.md`.
+
+All 198 Work-route/width combinations passed local browser geometry and reading checks. The shared contract now covers all 18 Work routes (363 full-site cases). Drawing viewer interaction review found and fixed global arrow navigation intercepting image scrolling. Artwork remains unchanged; low-resolution Wadala imagery and the 748px-wide Karjat plan need better original exports for high-detail viewing. Publication is authorised in the website chat and runs through the existing GitHub deployment gates.
+
+---
+
 ## Powerhouse — editable four-chapter book, 26 October 2026
 
 At Adi’s request, all four current website chapters were rebuilt as `The Powerhouse_Thesis Book_Ch1-4.indd` in the thesis Book folder. The preceding edition and a dated backup remain preserved. The 35-page book includes 29 sections, native diagram and map components, six native tables, 116 chapter notes, 117 bibliography entries and 117 linked note references. All 110 manuscript paragraphs match the website source; all 75 Chapter 2–4 figure panels are present. No placed image/PDF/SVG dependencies, missing fonts or overset text.

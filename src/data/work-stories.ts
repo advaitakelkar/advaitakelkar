@@ -1,6 +1,9 @@
 // Editorial explanations condensed from each project's existing account and
 // image captions. These accompany the work; the original introduction stays.
 export const workStories: Record<string, Partial<Record<'plan' | 'section' | 'illustration' | 'detail' | 'making', { title: string; text: string }>>> = {
+  'the-jude-bakery-project': {
+    illustration: { title: 'A light room above the old bakery', text: 'The proposal keeps the working bakery below and gives the upper floor a new life around shared dinners. A translucent roof, an open bar and a long communal table turn the existing building into an intimate place to gather.' },
+  },
   'bnb-khar': {
     detail: { title: 'One palette, inside and out', text: 'Pale surfaces, green metal framing and timber furniture connect the café counter to the dining room and planted frontage. The counter detail carries the same material language into the smallest part of the interior.' },
   },

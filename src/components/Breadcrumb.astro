@@ -1527,6 +1527,8 @@ if (activeProject) {
     if (!(window as any).hasKbGlobalNav) {
       (window as any).hasKbGlobalNav = true;
       window.addEventListener('keydown', (e: KeyboardEvent) => {
+        // Native image dialogs own their keyboard and scrolling interaction.
+        if (e.defaultPrevented || document.querySelector('dialog[open]')) return;
         const el = document.activeElement as HTMLElement | null;
         if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
         if (panel?.classList.contains('is-open')) return;

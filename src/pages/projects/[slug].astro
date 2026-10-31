@@ -52,9 +52,7 @@ const category = data.category ? await getEntry(data.category) : null;
 const isWorkArticle = category?.id === 'work';
 const workFigures = isWorkArticle ? workMedia(data) : [];
 const mainFigures = workFigures.filter(f => f.role === 'main');
-// Main views appear only in the introduction and listing scrub. The story
-// below owns drawings, details and making, with no repeated hero gallery.
-const storyFigures = workFigures.filter(f => f.role !== 'main');
+// The article curates its own figures; the intro and listing retain their main views.
 // The Work intro — description left, slider right — is the house layout for
 // every slider page, Work or not. Outside Work the slider shows leadFigures.
 const introFigures = isWorkArticle ? mainFigures : (data as any).slider ? (data.leadFigures ?? []) : [];
@@ -751,7 +749,7 @@ const logoFor = (url: string): { src: string; mono: boolean } | null => {
       {/* A project told in chapter cards carries its pictures inside them;
           the stage and rail would be the same images a second time. */}
       {isWorkArticle && data.description && <details class="work-project-story"><summary>Project story</summary><div set:html={data.description} /></details>}
-      {isWorkArticle && <WorkArticle figures={storyFigures} name={data.name} slug={project.id} />}
+      {isWorkArticle && <WorkArticle figures={workFigures} name={data.name} slug={project.id} />}
       {(data as any).interactive === 'bom-mum' && <BomMumTimeline />}
       {!hasWorkIntro && !isExhibition && !isStudy && isRenders && renderViews.length > 0 && !chapterTabs && (
         <section class="renders-section">
