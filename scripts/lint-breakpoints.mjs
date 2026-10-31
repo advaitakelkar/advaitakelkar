@@ -15,14 +15,8 @@ import path from 'node:path';
 
 const SRC = path.resolve('src');
 
-const ALLOWED = new Set([
-  '(max-width: 699.98px)',
-  '(min-width: 700px)',
-  '(max-width: 1023.98px)',
-  '(min-width: 1024px)',
-  '(max-width: 1365.98px)',
-  '(min-width: 1366px)',
-]);
+const contract = JSON.parse(await readFile(new URL('../src/data/responsive-contract.json', import.meta.url), 'utf8'));
+const ALLOWED = new Set(Object.values(contract.queries));
 
 async function* walk(dir) {
   for (const e of await readdir(dir, { withFileTypes: true })) {

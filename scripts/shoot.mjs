@@ -21,39 +21,20 @@
  * Output lands in review/ (gitignored). Needs a dev server on :4321.
  */
 
-import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
+import { inspectPage, qualityFailures } from './site-quality.mjs';
+
+const contract = JSON.parse(await readFile(new URL('../src/data/responsive-contract.json', import.meta.url), 'utf8'));
+const CHECK = process.argv.includes('--check');
 
 const BASE = process.env.SHOOT_BASE ?? 'http://127.0.0.1:4321';
 const OUT = path.resolve('review');
 
-/* 700 / 1024 / 1366 are the ladder stops. 699 and 1023 sit one pixel below
-   two of them, which is how the old 767/768/769 dead zone would have been
-   caught. 390 and 1600 are the extremes. */
-const WIDTHS = [390, 699, 700, 834, 1023, 1024, 1280, 1366, 1600];
-
-/* One route per template. Add a row when a new template lands. */
-const ROUTES = [
-  ['home', '/'],
-  ['about', '/about'],
-  ['projects', '/projects'],
-  ['work-article', '/projects/social-malad'],
-  ['work-drawings', '/projects/dakughar'],
-  ['work-intro', '/projects/carlo'],
-  ['work-intro-shelf', '/projects/shelf'],
-  ['ai-portrait', '/projects/alt-verse'],
-  ['ai-landscape', '/projects/architect-x-architects'],
-  ['study', '/projects/vndls'],
-  ['study-chapters', '/projects/the-4th-dimention'],
-  ['exhibition', '/projects/virtual-gods'],
-  ['category', '/academic'],
-  ['tag', '/tags/architecture'],
-  ['virtual-gods', '/virtual-gods'],
-  ['notfound', '/this-route-does-not-exist'],
-];
-
-const round = (n) => Math.round(n * 10) / 10;
+/* One matrix shared by the breakpoint lint, browser checks and documentation. */
+const WIDTHS = contract.widths;
+const ROUTES = contract.routes;
 
 /* Runs in the page. Keep it dependency-free and deterministic. */
 function fingerprint() {
@@ -197,6 +178,8 @@ async function capture(label) {
   const browser = await chromium.launch();
   const prints = {};
   let shots = 0;
+  const failures = [];
+  const quality = {};
 
   for (const width of WIDTHS) {
     const ctx = await browser.newContext({
@@ -213,20 +196,34 @@ async function capture(label) {
     const page = await ctx.newPage();
 
     for (const [name, route] of ROUTES) {
+      const errors = [];
+      const onError = error => errors.push(error.message);
+      page.on('pageerror', onError);
       try {
-        await page.goto(BASE + route, { waitUntil: 'networkidle', timeout: 25000 });
+        const response = await page.goto(BASE + route, { waitUntil: 'domcontentloaded', timeout: 25000 });
+        const expectedStatus = name === 'notfound' ? 404 : 200;
+        if (response?.status() !== expectedStatus) failures.push(`${name}@${width}: HTTP ${response?.status()}, expected ${expectedStatus}`);
+        if (contract.readySelectors[name]) await page.locator(contract.readySelectors[name]).first().waitFor({ state: 'visible', timeout: 10000 });
         await page.evaluate(() => document.fonts && document.fonts.ready);
-        await page.waitForTimeout(200);
+        await page.waitForTimeout(500);
+        await page.waitForFunction(() => [...document.images].filter(img => { const r = img.getBoundingClientRect(); return r.top < innerHeight && r.bottom > 0 && img.currentSrc; }).every(img => img.complete), null, { timeout: 10000 }).catch(() => failures.push(`${name}@${width}: visible images did not finish loading`));
+        const result = await page.evaluate(inspectPage, contract);
+        quality[`${name}@${width}`] = result;
+        const minimumSamples = contract.minimumReadingSamples[name] ?? 0;
+        if (result.readingCount < minimumSamples) failures.push(`${name}@${width}: reading content was not visible (${result.readingCount}/${minimumSamples})`);
+        failures.push(...qualityFailures(result).map(issue => `${name}@${width}: ${issue}`), ...errors.map(error => `${name}@${width}: ${error}`));
 
         prints[`${name}@${width}`] = await page.evaluate(fingerprint);
 
-        await page.screenshot({
+        if (!CHECK) await page.screenshot({
           path: path.join(dir, `${name}@${width}.png`),
           fullPage: true,
         });
         shots++;
       } catch (err) {
-        console.warn(`  ! ${name}@${width}: ${String(err.message).split('\n')[0]}`);
+        failures.push(`${name}@${width}: ${String(err.message).split('\n')[0]}`);
+      } finally {
+        page.off('pageerror', onError);
       }
     }
 
@@ -236,9 +233,16 @@ async function capture(label) {
 
   await browser.close();
   await writeFile(path.join(OUT, `${label}.json`), JSON.stringify(prints, null, 1));
-  console.log(`\n${shots} shots → ${dir}\nfingerprint → ${path.join(OUT, label + '.json')}`);
+  console.log(`\n${shots} cases checked${CHECK ? '' : `; screenshots → ${dir}`}\nfingerprint → ${path.join(OUT, label + '.json')}`);
 
   report(prints);
+  const expected = WIDTHS.length * ROUTES.length;
+  if (shots !== expected) failures.push(`Incomplete matrix: ${shots}/${expected}`);
+  await writeFile(path.join(OUT, `${label}-quality.json`), JSON.stringify({ expected, completed: shots, failures, cases: quality }, null, 2));
+  if (failures.length) {
+    console.error(`\n${failures.length} quality failures:\n${failures.slice(0, 30).join('\n')}`);
+    process.exitCode = 1;
+  } else console.log(`✓ ${expected} responsive cases passed`);
 }
 
 /* Standing problems in the current set, regardless of any comparison. */
@@ -313,4 +317,4 @@ async function diff(a, b) {
 
 const args = process.argv.slice(2);
 if (args[0] === '--diff') diff(args[1], args[2]);
-else capture(args[0] ?? 'shot');
+else capture(args.find(arg => !arg.startsWith('--')) ?? (CHECK ? 'quality' : 'shot')).catch(error => { console.error(error); process.exitCode = 1; });

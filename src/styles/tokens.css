@@ -41,6 +41,13 @@
   --_tokens---type--micro:     clamp(0.78rem, 0.735rem + 0.15vw, 0.875rem);
   --_tokens---type--ultrathin: clamp(0.625rem, 0.59rem + 0.115vw, 0.6875rem);
 
+  /* Reading is a semantic role, separate from compact captions and metadata.
+     Keep prose at 16–18px; components share this floor at every viewport. */
+  --_tokens---type--reading: var(--_tokens---type--small);
+  --_tokens---leading--reading: 1.6;
+  --_tokens---measure--reading: 68ch;
+  --_tokens---target--touch: 44px;
+
   /* ── Weight scale — 3 levels, 200 apart ─────────────────────
      Inter was being asked for five weights (300/400/500/600/700) and the
      steps between them were invisible: 400 next to 500, or 500 next to 600,
@@ -120,6 +127,9 @@
      the medium band and above. Pages used to hard-code 48/56/68px guesses for
      this, which is how the About heading ended up under the bar on tablets. */
   --_tokens---layout--bar: 52px;
+  /* Bottom dock fallback; PageLayout measures its actual height, including
+     safe-area padding and any wrapped controls, with ResizeObserver. */
+  --_tokens---layout--dock: 80px;
 
   /* ── Arrow sizes ────────────────────────────────────────────────────────
      Three steps, all in em so an arrow always tracks the text it sits with.
@@ -435,14 +445,30 @@ img {
   border-radius: 2px;
 }
 
+/* Keep the compact visual language, but give primary touch controls room.
+   Inline prose links and dense chart marks keep their text-sized geometry. */
+@media (max-width: 1023.98px), (pointer: coarse) {
+  .read-more,
+  .page-breadcrumb :is(button, a),
+  .filter-bar button,
+  .vg-toolbar > a,
+  .vg-toolbar .vg-dropdown > summary {
+    /* A minimum must win over compact component overrides to be a guarantee. */
+    min-height: var(--_tokens---target--touch) !important;
+    min-width: var(--_tokens---target--touch) !important;
+  }
+}
+
 /* Respect the OS "reduce motion" setting: collapse every CSS transition,
    animation and smooth-scroll. JS-driven effects (text scramble, logo spin,
    slider autoplay) are gated separately in their own scripts. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
+    animation-delay: 0ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
+    transition-delay: 0ms !important;
     scroll-behavior: auto !important;
   }
 }

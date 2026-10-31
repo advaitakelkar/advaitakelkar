@@ -1,5 +1,7 @@
 # advaitakelkar-website
 
+Design and responsive checks: [Portfolio quality system](docs/responsive-system.md). Run `pnpm check` before review and `pnpm audit:responsive` against the production preview before publication.
+
 Portfolio site for **Advaita Kelkar** — multidisciplinary designer based in Mumbai / Savannah.
 
 Live: [advaitakelkar-site.web.app](https://advaitakelkar-site.web.app)
@@ -22,7 +24,7 @@ The obsolete clone and leftover caches were moved to Mac Trash on 7 October 2026
 
 | Layer | Tool |
 |---|---|
-| Framework | Astro 5 (static site generation) |
+| Framework | Astro 7 (static site generation), Node ≥22.23.4 |
 | Package manager | pnpm (required — npm has a version-parsing bug with this repo) |
 | Hosting | Firebase Hosting (`advaitakelkar-site` project) |
 | CI/CD | GitHub Actions (auto-deploy on push to `main`) |
@@ -35,7 +37,7 @@ The obsolete clone and leftover caches were moved to Mac Trash on 7 October 2026
 
 ```bash
 # 1. Install dependencies
-pnpm install --no-frozen-lockfile
+pnpm install --frozen-lockfile
 
 # 2. Start dev server
 pnpm dev
@@ -231,13 +233,15 @@ category: studio-823         # single category slug (optional)
 Push to `main` → GitHub Actions runs automatically:
 
 ```yaml
-pnpm install --no-frozen-lockfile
-pnpm build          # → dist/
+pnpm install --frozen-lockfile
+pnpm audit:deps
+pnpm check          # lints + build + local reference audit
+pnpm audit:responsive # against the production preview
 firebase deploy     # → advaitakelkar-site.web.app
 ```
 
 **Required GitHub Secrets:**
-- `FIREBASE_SERVICE_ACCOUNT` — Firebase service account JSON (from Firebase Console → Project Settings → Service Accounts)
+- `FIREBASE_SERVICE_ACCOUNT_ADVAITAKELKAR_SITE` — Firebase service account JSON (from Firebase Console → Project Settings → Service Accounts)
 
 **Manual deploy:**
 ```bash

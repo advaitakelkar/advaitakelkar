@@ -1,5 +1,15 @@
 import { config, collection, fields } from '@keystatic/core';
 
+// These structured presentation fields are authored in YAML. Preserve their exact
+// values when saving the simpler editorial form; do not coerce mixed galleries
+// or chapter/pipeline data into a different storage format.
+const presentationFields = Object.fromEntries([
+  'shortName', 'interactive', 'designBrief', 'scrubImages', 'sideImage', 'leadImage',
+  'leadFigures', 'slider', 'leadSlides', 'sideVideo', 'pipeline', 'groups',
+  'collectionCredit', 'views', 'aim', 'participants', 'pillRows', 'people',
+  'professors', 'chapterNav', 'chapters', 'downloads', 'studio',
+].map(name => [name, fields.ignored()]));
+
 export default config({
   storage: {
     kind: 'local',
@@ -16,6 +26,7 @@ export default config({
       path: 'src/content/projects/*',
       format: { data: 'yaml' },
       schema: {
+        ...presentationFields,
         name: fields.slug({ name: { label: 'Project Name' } }),
         numbr: fields.number({ label: 'Number' }),
         year: fields.text({ label: 'Year' }),
@@ -28,6 +39,9 @@ export default config({
             { label: 'Completed', value: 'Completed' },
             { label: 'Ongoing', value: 'Ongoing' },
             { label: 'Unbuilt', value: 'Unbuilt' },
+            { label: 'Proposed', value: 'Proposed' },
+            { label: 'Rejected proposal', value: 'Rejected proposal' },
+            { label: 'Design study', value: 'Design study' },
           ],
           defaultValue: 'Completed',
         }),
@@ -40,11 +54,7 @@ export default config({
         design: fields.text({ label: 'Design (optional HTML)', multiline: true }),
         making: fields.text({ label: 'Making (optional HTML)', multiline: true }),
         smallIntro: fields.text({ label: 'Short Intro', multiline: true }),
-        description: fields.document({
-          label: 'Description',
-          formatting: true,
-          links: true,
-        }),
+        description: fields.text({ label: 'Description (HTML)', multiline: true }),
         collaborator: fields.text({ label: 'Collaborator' }),
         program: fields.text({ label: 'Program' }),
         coverImage: fields.image({
@@ -52,14 +62,7 @@ export default config({
           directory: 'public/images/projects',
           publicPath: '/images/projects/',
         }),
-        multiImage: fields.array(
-          fields.image({
-            label: 'Image',
-            directory: 'public/images/projects',
-            publicPath: '/images/projects/',
-          }),
-          { label: 'Gallery Images', itemLabel: () => 'Image' }
-        ),
+        multiImage: fields.ignored(),
         tags: fields.array(
           fields.relationship({ label: 'Tag', collection: 'tags' }),
           { label: 'Tags', itemLabel: (props) => props.value ?? 'Tag' }
@@ -89,6 +92,8 @@ export default config({
       schema: {
         name: fields.slug({ name: { label: 'Category Name' } }),
         displayName: fields.text({ label: 'Display Name' }),
+        shareImage: fields.text({ label: 'Share image path' }),
+        links: fields.ignored(),
         tagline: fields.text({ label: 'Tagline' }),
         intro: fields.array(
           fields.text({ label: 'Paragraph', multiline: true }),

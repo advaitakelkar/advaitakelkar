@@ -4,6 +4,16 @@ Everything an AI agent needs to work on this repo cold.
 
 ---
 
+## Responsive quality system (31 October 2026)
+
+Read `docs/responsive-system.md` before layout or type changes. The shared contract is
+`src/data/responsive-contract.json`; prose uses the reading tokens and primary touch controls
+use the 44px floor. Bottom-docked controls follow PageLayout's measured dock height.
+
+Before publishing: `pnpm check`, then `pnpm audit:responsive` against a production preview.
+The deploy workflow enforces both. Preserve the current visual identity and extend the route
+matrix when adding a template. Browser tests do not replace expanded-state/keyboard review.
+
 ## Identity
 
 **What it is:** Advaita Kelkar's personal portfolio site.  
@@ -70,12 +80,12 @@ from the raw AFDC exports in `source-files/powerhouse/` (gitignored).
 ```
 git push origin main
   → GitHub Actions runs
-  → pnpm install --no-frozen-lockfile
-  → pnpm build        (output: dist/)
+  → pnpm install --frozen-lockfile
+  → pnpm audit + pnpm check + responsive browser checks (output: dist/)
   → firebase deploy   (→ advaitakelkar-site.web.app)
 ```
 
-**Required GitHub Secret:** `FIREBASE_SERVICE_ACCOUNT` (Firebase service account JSON from Firebase Console → Project Settings → Service Accounts → Generate new private key).
+**Required GitHub Secret:** `FIREBASE_SERVICE_ACCOUNT_ADVAITAKELKAR_SITE` (Firebase service account JSON from Firebase Console → Project Settings → Service Accounts → Generate new private key).
 
 **Manual deploy (skip CI):**
 ```bash
@@ -123,7 +133,7 @@ src/
     tokens.css          ← All design tokens + color schemes + base reset + utilities
 
   content/
-    config.ts           ← Astro content collection schemas
+    ../content.config.ts ← Astro content collection schemas and YAML loaders
     projects/           ← 72 YAML files (one per project)
     categories/         ← 4 YAML files: archv, faizan-khatri, scad, studio-823
     tags/               ← 18 YAML files

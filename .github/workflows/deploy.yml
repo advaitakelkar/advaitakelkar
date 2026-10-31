@@ -19,10 +19,38 @@ jobs:
           node-version: '22'
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
-      - name: Build Astro site
-        run: pnpm build
+      - name: Check dependency advisories
+        run: |
+          mkdir -p review
+          pnpm audit --json > review/dependencies.json
+
+      - name: Check design rules and build integrity
+        run: pnpm check
+
+      - name: Install browser for responsive checks
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Check responsive layouts before deployment
+        timeout-minutes: 10
+        run: |
+          pnpm preview --ignore-lock --host 127.0.0.1 --port 4331 > /tmp/portfolio-preview.log 2>&1 &
+          preview_pid=$!
+          trap 'kill "$preview_pid"' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4331/ > /dev/null; then break; fi
+            sleep 1
+          done
+          SHOOT_BASE=http://127.0.0.1:4331 pnpm audit:responsive
+
+      - name: Save quality reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: portfolio-quality
+          path: review/*json
+          if-no-files-found: ignore
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2

@@ -50,6 +50,11 @@ const currentPath = Astro.url.pathname;
     const onScroll = () => bar.classList.toggle('is-scrolled', window.scrollY > 8);
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
+    const measureDock = () => {
+      document.documentElement.style.setProperty('--_tokens---layout--dock', `${Math.ceil(bar.getBoundingClientRect().height)}px`);
+    };
+    new ResizeObserver(measureDock).observe(bar);
+    measureDock();
   }
 
   // ── Desktop chrome: no rail ───────────────────────────────────
@@ -235,7 +240,7 @@ const currentPath = Astro.url.pathname;
   /* Phone and Tablet docking on bottom */
   @media (max-width: 1023.98px) {
     .page-main {
-      padding-bottom: calc(var(--_tokens---layout--bar, 52px) + 24px);
+      padding-bottom: calc(var(--_tokens---layout--dock) + 24px);
     }
 
     .page-breadcrumb {

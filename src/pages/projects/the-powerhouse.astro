@@ -7,7 +7,6 @@ import BookText from '../../components/PowerhouseBookText.astro';
 import PowerhouseImages from '../../components/PowerhouseImages.astro';
 import PowerhouseBookStudies from '../../components/PowerhouseBookStudies.astro';
 import ChapterTwo from '../../components/PowerhouseChapterTwo.astro';
-import Glance from '../../components/PowerhouseGlance.astro';
 import type { StackBar, Card } from '../../lib/powerhouse-glance';
 import data from '../../data/powerhouse-analysis.json';
 import networks from '../../data/powerhouse-networks.json';
@@ -178,7 +177,7 @@ const panelMax = { total: 350e6, ev: 125e6, share: 40 };
 const panelTicks = { total: [0, 100e6, 200e6, 300e6], ev: [0, 40e6, 80e6, 120e6], share: [0, 10, 20, 30, 40] };
 const rankedMax = data.ranked[0].ports;
 
-// "At a glance" for each place (components/PowerhouseGlance.astro). One builder for the US
+// Summary data for each place. One builder for the US
 // and every state, so the four summaries are made the same way from the same sources.
 type RoadRow = { year: number; automobiles: number; buses: number; trucks: number; motorcycles: number; total: number; note?: string };
 type FuelRow = { bev: number; phev: number; fuel: number; hydrogen: number; unknown: number; total: number };
@@ -1523,7 +1522,7 @@ const mindmapBibs = rawBibs.map((b) => ({
                   <div class="ph__mm-bib-card-actions">
                     <button type="button" class="ph__mm-bib-locate" data-mm-locate={b.id} title="Highlight and center on canvas">Locate Map ⊙</button>
                     {b.sections[0] && (
-                      <a href={`#s-${b.sections[0]}`} class="ph__mm-bib-jump" data-mm-jump={b.sections[0]}>
+                      <a href={`#${b.sections[0].startsWith('ch') ? '' : 's-'}${b.sections[0]}`} class="ph__mm-bib-jump" data-mm-jump={b.sections[0]}>
                         View in Book ↗
                       </a>
                     )}
@@ -1590,8 +1589,8 @@ const mindmapBibs = rawBibs.map((b) => ({
      stays black and white, and only data is drawn in colour, in this fixed order of
      categories, like a storage bar. Brighter values in dark mode keep contrast on #111. */
   .ph {
-    --ph-reading-size: clamp(.8125rem, .775rem + .15vw, .9375rem);
-    --ph-reading-leading: 1.43;
+    --ph-reading-size: var(--_tokens---type--reading);
+    --ph-reading-leading: var(--_tokens---leading--reading);
     --ph-reading-gap: clamp(28px, 4.5vw, 54px);
     /* Dusty pastels: soft enough to sit quietly in a black-and-white page, distinct enough
        to tell apart, and each still reads as its colour name. */
@@ -3854,8 +3853,11 @@ const mindmapBibs = rawBibs.map((b) => ({
           },
           onJumpToSection: (sectionId: string) => {
             closeMindmap();
-            const btn = book.querySelector<HTMLButtonElement>(`[data-section="${sectionId}"]`);
-            btn?.click();
+            // Bibliography entries may refer to a whole chapter or its opening,
+            // neither of which has a data-section button.
+            const opening = sectionId.match(/^([1-4])-0$/);
+            const target = opening ? `ch${opening[1]}` : sectionId;
+            jumpToHashInBook(`#${target.startsWith('ch') ? '' : 's-'}${target}`);
           },
           onJumpToHash: (hash: string) => {
             closeMindmap();

@@ -8,7 +8,8 @@ const integrations = [];
 
 if (isDev) {
   const { default: keystatic } = await import('@keystatic/astro');
-  integrations.push(keystatic());
+  const { default: react } = await import('@astrojs/react');
+  integrations.push(react(), keystatic());
 
   // Inline edit mode's save endpoint — dev only, so it never ships to the
   // static production build (which has no server to run it).
@@ -24,6 +25,8 @@ if (isDev) {
 
 export default defineConfig({
   integrations,
+  // Preserve spaces between inline elements across the Astro 7 upgrade.
+  compressHTML: true,
   // Astro does not read PORT on its own, and the dev and preview scripts carry
   // no --port flag, so the launch config's assigned port would be ignored and
   // the server would grab 4321 regardless. Reading it here lets the harness

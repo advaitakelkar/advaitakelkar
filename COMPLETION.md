@@ -814,3 +814,61 @@ Eleven supplied room views edited with the built-in image tool for a cohesive ph
 - Selected family product shot sits beside the introductory text, aligned at the top. Browser verified card navigation, lightbox navigation and closing; production build, lint and diff checks pass.
 - Original artwork remains available in the existing asset folders. Production build passes; alpha channels checked across all 16 outputs. Local preview restarted after production build cleared Astro's development content cache.
 - Adi approved committing and publishing this VANDLS update on 29 October; deployment verification follows below.
+
+
+### 2026-10-31 — Portfolio cleanup and repeatable responsive system (local)
+
+Adi requested a code audit/cleanup, then a consistent system preserving the existing design
+while keeping phone, tablet and desktop reading and navigation usable.
+
+- Removed four confirmed unused components (1,142 lines), two unused imports and the pnpm-store
+  YAML loader workaround. Added direct `js-yaml` 4.3.2 for the editing/sync tools. Retained source
+  images, unused research data and the pre-existing untracked VANDLS/Powerhouse artwork.
+- Added shared reading tokens (16–18px, 1.6 leading), applied to home, About, project prose,
+  Work/academic briefs and Powerhouse reading. Removed conflicting mobile and AI-series overrides.
+- Primary touch controls have a 44px minimum. The bottom dock publishes its measured height;
+  project filters and page clearance follow it. Phone Pages label remains fully visible at 320px.
+- Fixed six Powerhouse bibliography links and the chapter/opening jump handler.
+- `docs/responsive-system.md` explains the contract. `src/data/responsive-contract.json` drives
+  breakpoint linting and the responsive matrix. `pnpm check` covers lint/build/static references;
+  `pnpm audit:responsive` fails on defined layout/reading/control/runtime problems. CI is wired to
+  run both before Firebase deployment, with frozen dependency installation and saved JSON reports.
+- Validation: 95-page production build, all house lints, 144 generated/copied HTML documents and
+  32,885 local references passed; no missing references/fragments or duplicate IDs. Final browser
+  matrix: 17 representative routes × 11 widths (320–1920), 187/187 pass, including fixed-control
+  overlap checks. Verified expanded text, tablet category filtering, phone menu/Escape, VANDLS
+  next view/Escape/focus return, and bibliography-to-Chapter-3 navigation.
+- Limits: tested in Chromium with resized viewports, not physical iOS/Android devices. Automated
+  tests cover registered initial-page states; interactive and visual review remain required.
+  CI itself has not run because these changes have not been pushed. Original ARCHV mirror alt-text
+  omissions remain documented separately.
+- Dependency audit: 63 → 60 reported advisories after the YAML fix (1 critical, 32 high,
+  21 moderate, 6 low). Major Astro/associated dependency remediation is still open; the installed
+  Astro 5 line is flagged for AVIF processing and other advisories. Static hosting does not make
+  build/dev dependencies exempt. No major framework upgrade or security-rule change performed.
+- Local only: no commit, push or deployment. Audit and screenshots are in
+  `/Users/adi/Documents/Codex/2026-10-31/co/outputs/`.
+
+### 2026-10-31 — dependency remediation and authorised publication
+
+- Adi explicitly requested fixing dependencies, retesting every size, committing and publishing.
+  This supersedes the preceding local-only state for the responsive audit changes.
+- Upgraded Astro 5 → 7.4.4, Firebase 13.1.0, Keystatic Astro 6/Core 0.6.9, Mapshaper
+  0.7.101 and Playwright 1.64.1. Refreshed transitive dependencies; three narrowly scoped
+  overrides cover esbuild, Firestore's gRPC and Keystatic's minimatch. No advisory is ignored.
+  Final registry audit: zero advisories across 820 packages. Frozen install has no peer warnings.
+- Migrated collections to src/content.config.ts/YAML glob loaders and preserved HTML whitespace.
+  All 144 HTML paths match the pre-upgrade inventory; 95 generated pages and 32,885 local
+  references pass build/static checks. Historical ARCHV alt omissions remain separately reported.
+- Restored the local editor with a dev-only React renderer and explicit peers. Its schema now
+  accepts the actual statuses and HTML descriptions. Structured presentation data survives saves
+  through Keystatic's preserved fields; gallery/layout data remains authored in YAML.
+  The new audit:editor checks all 73 entries and preservation round-trips. CARLO was opened in
+  the editor; invalid inline-edit IDs return HTTP 400 without writes.
+- Retested 187 layout cases in Chrome through the shared inspector: 17 templates × 11 widths,
+  320–1920 CSS pixels, zero failures. Phone expansion/menu Escape, tablet category filtering,
+  gallery next/Escape/focus restoration, landscape chapter jumps and desktop search pass.
+  Physical-device testing was not performed. Mapshaper transform and Firestore import smoke checks pass.
+- CI now requires the dependency, editor, static and responsive checks before Firebase deploy,
+  and saves JSON evidence. Publishing uses the existing main-branch workflow; verify its run and
+  live result before reporting success. Untracked artwork drafts are excluded from the commit.

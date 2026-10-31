@@ -15,7 +15,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { createRequire } from 'node:module';
+import yaml from 'js-yaml';
 
 const ROOT = path.resolve('.');
 const PROJECTS = path.join(ROOT, 'src/content/projects');
@@ -24,17 +24,6 @@ if (!KEY) {
   console.error('TYPESAFE_API_KEY not set. Run: aihub run typesafe -- pnpm audit:jev');
   process.exit(1);
 }
-
-// js-yaml is not a direct dependency (see AUDIT-2 #2); use pnpm's copy.
-function loadYaml() {
-  const require = createRequire(import.meta.url);
-  try { return require('js-yaml'); } catch {}
-  const store = path.join(ROOT, 'node_modules/.pnpm');
-  const dir = fs.readdirSync(store).find((d) => d.startsWith('js-yaml@'));
-  if (!dir) throw new Error('js-yaml not found; run pnpm install');
-  return require(path.join(store, dir, 'node_modules/js-yaml'));
-}
-const yaml = loadYaml();
 
 const access = fs.readFileSync(path.join(ROOT, 'src/lib/projectAccess.ts'), 'utf8');
 const PUBLIC = new Set(JSON.parse(access.match(/PUBLIC_PROJECT_SLUGS = (\[[^\]]*\])/)[1].replace(/'/g, '"')));

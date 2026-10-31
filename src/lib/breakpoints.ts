@@ -16,26 +16,10 @@
  * the build if a stray value appears.
  */
 
-export const BP = {
-  md: 700,
-  lg: 1024,
-  xl: 1366,
-} as const;
+import contract from '../data/responsive-contract.json';
 
-export const MQ = {
-  /** < 700 — phones */
-  compactDown: '(max-width: 699.98px)',
-  /** >= 700 — tablet portrait and up */
-  mediumUp: '(min-width: 700px)',
-  /** < 1024 — phones and tablet portrait. The old "mobile" branch. */
-  mediumDown: '(max-width: 1023.98px)',
-  /** >= 1024 — tablet landscape and up. The old "desktop" branch. */
-  expandedUp: '(min-width: 1024px)',
-  /** < 1366 — everything below desktop */
-  expandedDown: '(max-width: 1365.98px)',
-  /** >= 1366 — desktop */
-  wideUp: '(min-width: 1366px)',
-} as const;
+export const BP = contract.breakpoints;
+export const MQ = contract.queries;
 
 /** One-shot check. Prefer `watch` for anything that must survive a rotate. */
 export const matches = (q: string): boolean =>

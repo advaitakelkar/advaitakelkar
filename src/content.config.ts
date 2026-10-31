@@ -1,5 +1,7 @@
-import { defineCollection, z, reference } from 'astro:content';
-import { MEDIA_ROLES } from '../lib/mediaRoles';
+import { defineCollection, reference } from 'astro:content';
+import { z } from 'astro/zod';
+import { glob } from 'astro/loaders';
+import { MEDIA_ROLES } from './lib/mediaRoles';
 
 // The discipline axis — WHAT a project is (Architecture, Interior, Research…).
 // Mirrors the `Type` property in the Notion Projects database, one per project.
@@ -7,7 +9,7 @@ import { MEDIA_ROLES } from '../lib/mediaRoles';
 // both in this one list is what grew the filter bar to 17 entries, half of
 // which answered a different question from the other half.
 const tags = defineCollection({
-  type: 'data',
+  loader: glob({ pattern: '**/*.yaml', base: './src/content/tags' }),
   schema: z.object({
     name: z.string(),
   }),
@@ -17,7 +19,7 @@ const tags = defineCollection({
 // `category`, never a peer of it: Notion stores exactly this as the second
 // value of its `Category` multi-select, e.g. ["🏢 Work", "FKD"].
 const studios = defineCollection({
-  type: 'data',
+  loader: glob({ pattern: '**/*.yaml', base: './src/content/studios' }),
   schema: z.object({
     name: z.string(),
     displayName: z.string(),
@@ -32,7 +34,7 @@ const studios = defineCollection({
 });
 
 const categories = defineCollection({
-  type: 'data',
+  loader: glob({ pattern: '**/*.yaml', base: './src/content/categories' }),
   schema: z.object({
     name: z.string(),
     displayName: z.string(),
@@ -51,7 +53,7 @@ const categories = defineCollection({
 // Editable prose for the static pages (home, about). Inline edit mode writes
 // these YAML files; the pages render from them instead of hard-coded strings.
 const pages = defineCollection({
-  type: 'data',
+  loader: glob({ pattern: '**/*.yaml', base: './src/content/pages' }),
   schema: z.object({
     tagline: z.string().optional(),
     intro: z.array(z.string()).optional(),
@@ -65,7 +67,7 @@ const pages = defineCollection({
 });
 
 const projects = defineCollection({
-  type: 'data',
+  loader: glob({ pattern: '**/*.yaml', base: './src/content/projects' }),
   schema: z.object({
     name: z.string(),
     shortName: z.string().optional(),
@@ -264,7 +266,7 @@ const exhibitionPair = z.object({
 });
 
 const exhibitions = defineCollection({
-  type: 'data',
+  loader: glob({ pattern: '**/*.yaml', base: './src/content/exhibitions' }),
   schema: z.object({
     title: z.string(),
     year: z.string().optional(),
