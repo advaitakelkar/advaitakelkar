@@ -8,6 +8,12 @@ Last surveyed: **2026-09-09** — HEAD `be65d53`, `pnpm build` = 80 pages.
 
 ---
 
+## Work image source repair — 31 October 2026
+
+Seven Wadala photographs now use exact higher-resolution originals from F’KD Workshop; seven unmatched views still need larger masters. Karjat’s plan is restored from the native Illustrator source at 2900 × 3700 with factual room notes. Jude’s extra E is removed with a 29 × 50-pixel patch; the rest of the image is pixel-identical. All previous assets remain preserved. See `docs/image-source-repair-2026-10-31.md` for sources, method and validation. Adi authorised testing and publication in the website chat.
+
+---
+
 ## Work articles — editorial redesign, 31 October 2026
 
 Reviewed all 18 Work projects and 231 referenced images. Preserved the top two-column introduction and all main-slide selections. Lower pages now use a three-column editorial system with 2×2 plans/isometrics, 2×1 sections, smaller 1×2/1×1 details, numbered captions and reading notes. All 120 existing lower figures remain; Jude Bakery adds a four-view photo essay. See `docs/work-articles.md`.
