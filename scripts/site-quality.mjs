@@ -1,4 +1,17 @@
 /** Shared DOM checks for the responsive review harness. No page mutation. */
+export function visibleImagesReady() {
+  return [...document.images].filter(img => {
+    const r = img.getBoundingClientRect();
+    if (!img.currentSrc || !r.width || !r.height || r.right <= 0 || r.left >= innerWidth || r.bottom <= 0 || r.top >= innerHeight) return false;
+    for (let node = img; node; node = node.parentElement) {
+      const style = getComputedStyle(node);
+      if (node.hidden || style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;
+      if (node.tagName === 'DETAILS' && !node.open && !node.querySelector('summary')?.contains(img)) return false;
+    }
+    return true;
+  }).every(img => img.complete);
+}
+
 export function inspectPage(contract) {
   const rendered = (el) => {
     if (!el.getBoundingClientRect().width || !el.getBoundingClientRect().height) return false;

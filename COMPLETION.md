@@ -872,3 +872,8 @@ while keeping phone, tablet and desktop reading and navigation usable.
 - CI now requires the dependency, editor, static and responsive checks before Firebase deploy,
   and saves JSON evidence. Publishing uses the existing main-branch workflow; verify its run and
   live result before reporting success. Untracked artwork drafts are excluded from the commit.
+
+- First CI run completed all 187 layout cases without layout failures, but its readiness check
+  incorrectly waited for deliberately hidden homepage carousel images at each width. The check
+  now requires rendered visibility and intersection on both viewport axes; broken visible images
+  still fail the separate integrity check. A corrected workflow run is required before release.

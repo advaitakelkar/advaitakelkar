@@ -24,7 +24,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { inspectPage, qualityFailures } from './site-quality.mjs';
+import { inspectPage, qualityFailures, visibleImagesReady } from './site-quality.mjs';
 
 const contract = JSON.parse(await readFile(new URL('../src/data/responsive-contract.json', import.meta.url), 'utf8'));
 const CHECK = process.argv.includes('--check');
@@ -206,7 +206,9 @@ async function capture(label) {
         if (contract.readySelectors[name]) await page.locator(contract.readySelectors[name]).first().waitFor({ state: 'visible', timeout: 10000 });
         await page.evaluate(() => document.fonts && document.fonts.ready);
         await page.waitForTimeout(500);
-        await page.waitForFunction(() => [...document.images].filter(img => { const r = img.getBoundingClientRect(); return r.top < innerHeight && r.bottom > 0 && img.currentSrc; }).every(img => img.complete), null, { timeout: 10000 }).catch(() => failures.push(`${name}@${width}: visible images did not finish loading`));
+        // Hidden carousel slides may deliberately remain unloaded. Wait only for
+        // rendered images that intersect both axes of the viewport.
+        await page.waitForFunction(visibleImagesReady, null, { timeout: 10000 }).catch(() => failures.push(`${name}@${width}: visible images did not finish loading`));
         const result = await page.evaluate(inspectPage, contract);
         quality[`${name}@${width}`] = result;
         const minimumSamples = contract.minimumReadingSamples[name] ?? 0;
