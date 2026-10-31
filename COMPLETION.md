@@ -8,6 +8,12 @@ Last surveyed: **2026-09-09** — HEAD `be65d53`, `pnpm build` = 80 pages.
 
 ---
 
+## Mobile navigation arrow — 31 October 2026
+
+Corrected the stretched category control in the bottom dock: east-pointing arrow in a fixed 44px circle, with an operable category menu above it on mobile. Mobile menus start closed; Escape restores focus. Checked seven widths (320–1023), expanded 320px layout and Work navigation. `pnpm check` passed; publication uses the full responsive CI gate.
+
+---
+
 ## Work image source repair — 31 October 2026
 
 Seven Wadala photographs now use exact higher-resolution originals from F’KD Workshop; seven unmatched views still need larger masters. Karjat’s plan is restored from the native Illustrator source at 2900 × 3700 with factual room notes. Jude’s extra E is removed with a 29 × 50-pixel patch; the rest of the image is pixel-identical. All previous assets remain preserved. See `docs/image-source-repair-2026-10-31.md` for sources, method and validation. Adi authorised testing and publication in the website chat.
