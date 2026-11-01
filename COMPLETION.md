@@ -8,6 +8,12 @@ Last surveyed: **2026-09-09** — HEAD `be65d53`, `pnpm build` = 80 pages.
 
 ---
 
+## Mobile navigation correction — 31 October 2026
+
+Adi clarified that the right-arrow category control must be removed from the compact dock. The control and category group are now explicitly hidden below 1024px, freeing the row for Back, Home, About, Projects and Pages. This supersedes the preceding mobile category-menu change. Desktop navigation retains its category control.
+
+---
+
 ## Mobile navigation arrow — 31 October 2026
 
 Corrected the stretched category control in the bottom dock: east-pointing arrow in a fixed 44px circle, with an operable category menu above it on mobile. Mobile menus start closed; Escape restores focus. Checked seven widths (320–1023), expanded 320px layout and Work navigation. `pnpm check` passed; publication uses the full responsive CI gate.

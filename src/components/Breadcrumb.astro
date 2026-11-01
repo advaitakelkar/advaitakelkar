@@ -1216,35 +1216,10 @@ if (activeProject) {
     text-overflow: clip;
   }
 }
-/* Direction controls keep a circular slot; destination labels share the rest. */
+/* The compact dock contains destinations and Pages; categories stay desktop-only. */
 @media (max-width: 1023.98px) {
-  .breadcrumb .breadcrumb__category-toggle:not(.is-mark) {
-    display: inline-flex;
-    flex: 0 0 44px;
-    width: 44px;
-    min-width: 44px;
-    height: 44px;
-    min-height: 44px;
-    padding: 0;
-    border-radius: 50%;
-    justify-content: center;
-  }
-  .breadcrumb__category-toggle :global(svg) { --icon-size: 18px; }
-  .breadcrumb__category-toggle[aria-expanded="true"] :global(svg) { transform: rotate(315deg); }
-  .breadcrumb__categories:not([hidden]) {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: calc(100% + 8px);
-    padding: 6px;
-    border: 1px solid var(--_tokens---color--line-soft);
-    border-radius: 4px;
-    background: var(--_tokens---color--bg);
-  }
-  .breadcrumb .breadcrumb__categories .breadcrumb__link { flex: 1 1 auto; min-height: 44px; }
+  .breadcrumb .breadcrumb__category-toggle:not(.is-mark),
+  .breadcrumb .breadcrumb__categories { display: none; }
 }
 /* Keep the Pages label legible in the phone dock after reserving touch space.
    The pill and expanded state already identify this as a menu. */
@@ -1274,7 +1249,6 @@ if (activeProject) {
       toggle.setAttribute('aria-expanded', String(open));
       toggle.setAttribute('aria-label', open ? 'Hide categories' : 'Show categories');
     };
-    if (window.matchMedia('(max-width: 1023.98px)').matches) setOpen(false);
     toggle.addEventListener('click', () => setOpen(group.hidden));
     toggle.parentElement?.addEventListener('keydown', e => {
       if (e.key === 'Escape' && !group.hidden) {
