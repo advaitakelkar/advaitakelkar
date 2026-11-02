@@ -2,10 +2,19 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 /* Width and height of an image in public/, read from its header at build
-   time. Covers the three formats the site ships: WebP, PNG and JPEG. */
+   time. Covers the formats the site ships: WebP, PNG, JPEG and explicit-size SVG. */
 export function imageSize(publicPath: string): { width: number; height: number } | null {
   let b: Buffer;
   try { b = readFileSync(join(process.cwd(), 'public', publicPath)); } catch { return null; }
+  if (publicPath.toLowerCase().endsWith('.svg')) {
+    const tag = b.toString('utf8').split('<svg')[1]?.split('>')[0] ?? '';
+    const dimension = (name: string) => {
+      const value = tag.split(' ' + name + '=')[1];
+      return value ? Number(value.split(value[0])[1]) : 0;
+    };
+    const width = dimension('width'), height = dimension('height');
+    return width > 0 && height > 0 ? { width, height } : null;
+  }
   if (b.toString('ascii', 0, 4) === 'RIFF' && b.toString('ascii', 8, 12) === 'WEBP') {
     const chunk = b.toString('ascii', 12, 16);
     if (chunk === 'VP8X') return { width: 1 + b.readUIntLE(24, 3), height: 1 + b.readUIntLE(27, 3) };

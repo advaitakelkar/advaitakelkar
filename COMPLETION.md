@@ -8,6 +8,66 @@ Last surveyed: **2026-09-09** — HEAD `be65d53`, `pnpm build` = 80 pages.
 
 ---
 
+## Powerhouse architectural programme diagrams — local review, 2 November 2026
+
+Completed 27 reference-based architectural studies after Adi approved the courtyard test and requested centred artwork with more white surroundings. Historical overview is a compact 3 × 2 grid (two columns on phones); eight history studies, five charging settings and 14 programme/framework assets share moderate detail and about 10% sketch character. Abstract is 12–14px beside the larger hypothesis. Original quantitative tables/series are preserved; catalogue title corrected to 23 to match Table 3.1. Full-size viewer is centred and keyboard-verified. PNG/WebP masters, prompts, hashes and contact sheets are saved in the existing Desktop Powerhouse image folder. `pnpm check`, asset verification and focused desktop/phone browser checks passed. See `docs/powerhouse-programme-diagrams-2026-11-02.md`. Local only; no commit, push or publication.
+
+---
+
+## Malad pale plan and two-column story — local review
+
+Adi approved pale v3: muted material colours with all textures retained, a fully black left wall, black cut-wall fills, white schematic kitchen blocks and transparent exterior. Seven vector numbers match the right-hand legend; the desktop plan and legend use a 66/33 split and stacks above its key on smaller screens. SVG dimensions and labels work in the enlarged viewer. Project story now flows in two columns from 700px and one column below it. Originals and generated masters are preserved. Build checks passed. Local only.
+
+---
+
+## Project story is personal experience — local review, 31 October 2026
+
+Adi clarified that Project story records his own experience and responsibilities, distinct from the Brief (design problem) and Abstract (architectural response). SOCIAL Malad now describes growing up near Inorbit, revisiting the mall, starting during COVID as work resumed, the client accepting his first central-bar/terraced-seating idea, and leading his first complete solo project through execution. Brief and Abstract are retained. Local only.
+
+---
+
+## SOCIAL Malad writing example — local review, 31 October 2026
+
+Adi directed the Work-project rewrite: Brief frames the design problem; Abstract explains our architectural response in his studio voice. Applied the shared humanizer skill to SOCIAL Malad as the first example and aligned its longer project story. Adi confirmed that the constraint is the space provided by the mall, not a river view. Local only; other Work project copy awaits review of this example.
+
+---
+
+## Abstract and Brief width — local review, 31 October 2026
+
+Adi requested matching full widths for Abstract and Brief. Both now fill their shared text column rather than using a font-dependent 68ch cap. Abstract remains 12–14px; Brief styling is retained. Local only.
+
+---
+
+## Compact Abstract text — local review, 31 October 2026
+
+Adi requested a 12–14px responsive size for Work-project Abstract body text only. Added an Abstract-specific class and compact reading contract; Brief typography remains unchanged. Local only, pending review with the other unpublished changes.
+
+---
+
+## SOCIAL Vashi realistic renders — local review, 31 October 2026
+
+At Adi’s request, all six Real views were regenerated from the original photographs with cleaner photographic lighting, faithful brick/material character and sparse occupancy (maximum three people). Versioned clean-v2 WebPs were made for all six views; Adi subsequently removed the two fisheye night views from the gallery, leaving four selected main views. Originals and prior edits remain. Updated captions disclose AI-assisted architectural rendering. Plans, illustrations and construction details retain their existing assets. PNG masters and generation/source manifest are in the website chat’s outputs/social-vashi-rerenders. Local only; review before publishing.
+
+---
+
+## Independent navigation pills — local review, 31 October 2026
+
+Adi requested removing the rectangular band behind compact navigation. Removed the breadcrumb row background, border radius and inner padding, retaining individual pill/circle fills and the compact filter gap. Local only, together with the preceding Pages and spacing revisions.
+
+---
+
+## Compact bottom spacing — local review, 31 October 2026
+
+Tightened the gap between the projects filter row and the bottom navigation to 6px. Dock padding is 4px above and at least 6px below, retaining the safe-area inset. Primary controls remain 44px. Build/static checks and nine phone/tablet layout cases passed. Local only; retains the preceding unpublished compact Pages list.
+
+---
+
+## Compact Pages list — local review, 31 October 2026
+
+Adi requested the same Pages list with denser spacing and local review before publication. Secondary list rows are 32px with tighter padding/dividers; the panel uses an opaque theme background for legibility over page content. Primary dock controls retain their 44px targets. The responsive contract tracks the secondary 32px floor separately. No item/order changes. Local only: do not publish until Adi reviews.
+
+---
+
 ## Mobile navigation correction — 31 October 2026
 
 Adi clarified that the right-arrow category control must be removed from the compact dock. The control and category group are now explicitly hidden below 1024px, freeing the row for Back, Home, About, Projects and Pages. This supersedes the preceding mobile category-menu change. Desktop navigation retains its category control.
@@ -904,6 +964,55 @@ while keeping phone, tablet and desktop reading and navigation usable.
   now requires rendered visibility and intersection on both viewport axes; broken visible images
   still fail the separate integrity check. A corrected workflow run is required before release.
 
+## 2026-11-01 — local Malad drawing refinement
+- Drawing/legend split now 2:1 (66/33), stacking below 1024px. Plan numbers use embedded Inter medium and thin vector circular outlines; legend numbers match.
+- Pale isometric re-render preserves textures, restores the complete upper wall corner and includes transparent breathing room. Source master preserved. No commit or publication.
+
+## 2026-11-01 — local Malad terrace concept panels
+- Added three editable SVG block diagrams after the plan: central bar, stepped seating, and circulation/inward views, guided by the approved plan and cutaway. Captions remain HTML. Three columns from 700px, stacked on phones.
+- Architectural diagrams are registered as genuine graphics in the icon lint guard.
+- Validation: pnpm check passed; local browser quality checks passed all 11 contract widths (320–1920px); plan viewer Fit/Detail, Escape and focus return passed. Desktop and phone screenshots saved in the task outputs. No commit or publication.
+
+## 2026-11-01 — detailed concept revision and compact plan labels (local)
+- Supersedes the earlier generic block diagrams: three detailed AI-assisted concept illustrations now use the same orientation and architectural geometry as the approved isometric. Bar, terraces and complete-room stages retain platforms, tables, banquettes, rails and bar frame. Panels open in the shared drawing viewer.
+- Plan numbers are now 12px HTML labels in 20px circular outlines, including the enlarged Fit/Detail viewer. Their size stays fixed while the drawing scales; positions follow the illustrated plan. The right-hand legend uses the same compact labels. The standalone numbered SVG remains available under Open original.
+- Generated PNG masters and prompts retained in task outputs; source isometric untouched. Local only.
+- Detailed revision validation: pnpm check passed; browser quality checks passed all 11 widths (320–1920px), with no broken loaded images. Plan labels measured 12px/20px circles at every width and in desktop/phone viewer Fit/Detail. Concept enlargement, Escape and focus return verified. Screenshots: detailed-concept-panels-local.png, compact-labels-enlarged.png.
+
+## 2026-11-01 — local square bar-detail sheet
+- Replaced the tall bar assembly image with a square 1254px transparent illustration: elevation and plan on the left, isolated bar isometric on the right with one bartender for scale. Pale grey-beige timber and desaturated terrazzo match the approved drawing palette; material textures retained.
+- Original asset preserved. New versioned WebP used by the project and captions updated; generated PNG master and prompts retained in task outputs. Local only.
+- Validation: pnpm check passed; all 11 responsive widths passed, with a square 1×1 frame and loaded 1254×1254 asset at every width. Viewer Fit/Detail and Escape verified. Local review screenshot saved as bar-square-local-viewer.png.
+
+## 2026-11-01 — local combined column / facade / section sheet
+- Combined the column elevation (left), glazed facade elevation (centre) and facade section (far right) into one 2:1 transparent, muted illustration. Column plan removed from the composition.
+- Replaced the facade reference and removed the separate column figure from the project, retaining both source assets. Captions and reading notes describe the combined sheet. Generated master and prompt retained in task outputs. Local only.
+- Validation: pnpm check passed; browser quality checks passed all 11 widths. Combined figure appears once, separate column figure absent. Viewer Fit/Detail and Escape verified. Local screenshot: combined-column-facade-local.png.
+
+## 2026-11-01 — local long section with upper services
+- Added schematic longitudinal ducts, cable trays and wiring within the upper truss zone above the timber ceiling. Occupied restaurant/bar/seating volume remains clear. Existing architecture, material textures and muted illustration style retained; exterior background now transparent.
+- Versioned WebP replaces the long-section reference; source retained. Caption explicitly identifies schematic services and AI assistance. Master PNG and prompt retained in task outputs. Local only.
+- Validation: pnpm check passed; browser quality checks passed all 11 widths. Updated long-section viewer Fit/Detail and Escape verified. Local screenshot: services-section-local.png.
+
+## 2026-11-01 — local cross section with kitchen and mall AHU
+- At Adi's direction, service bays are now on the right: working kitchen with two staff below, large mall AHU above. Ducts, cable trays and wiring run above the timber restaurant ceiling; occupied dining space remains clear.
+- Replaced the cross-section reference with a transparent, versioned illustration in the same muted style; original preserved. Caption/reading notes updated. Generated PNG master and prompt retained in task outputs. Local only.
+- Validation: pnpm check passed; browser quality checks passed all 11 widths. Cross-section viewer Fit/Detail and Escape verified. Local screenshot: kitchen-ahu-section-local.png.
+
+## 2026-11-01 — local wide bar-sheet revision
+- Supersedes square composition: wider 3:2 sheet separates the left elevation/plan from an elongated rectangular bar isometric on the right. Upper suspended frame/infill ghosted; bartender and counter remain legible. Muted textures and true exterior alpha retained.
+- Added optional gallerySpan wide for a two-column 3:2 detail figure, stacking to one phone column; applied only to this bar sheet. Source and prior versions preserved. Master PNG and prompts retained in task outputs. Local only.
+
+## 2026-11-01 — retain original restaurant in cross section (local)
+- Adi requested the original image on the left. The original occupied restaurant crop is now reused directly with proportional resizing; furniture, railings, terraces and perspective are preserved. Upper services and right-hand kitchen/AHU bays retained from the services illustration. Transparent canvas assembled at 1664×832.
+- New versioned asset and composition metadata saved; original and all prior generated versions retained. Local only.
+- Validation for original-restaurant section and wide ghosted bar: pnpm check passed; all 11 browser width checks passed, no broken images. Bar spans two gallery columns from 700px and one phone column. Shared viewer Fit/Detail and Escape verified. Screenshots: original-restaurant-section-local.png, wide-ghosted-bar-local.png.
+
+## 2026-11-01 — cross section keeps original view and left bays (local)
+- Supersedes prior right-hand service-bay arrangement. Adi clarified to keep the original view: kitchen fills the existing lower-left bay, AHU fills upper-left bay, ducts/cables fill the existing shallow band over the restaurant ceiling.
+- The original restaurant crop is retained directly at x430/y278 with proportional width1094, preserving its geometry and furniture. Generated service zones retain original bay arrangement; exterior remains transparent. New v4 asset, caption and reading note installed locally. Source and prior versions retained.
+- Validation: pnpm check passed; all 11 responsive browser widths passed. Cross-section Fit/Detail and Escape verified. Local screenshot: same-view-kitchen-ducts-local.png.
+
 ## 2026-11-02 — Powerhouse diagrams, editorial flow and research review (local)
 - Completed 27 generated architectural programme studies with centred white margins and approximately 10% sketch character. Saved PNG masters, WebPs, prompts and source records in the Desktop Powerhouse package; installed the WebPs locally. Previous artwork preserved. See docs/powerhouse-programme-diagrams-2026-11-02.md.
 - Compact abstract, historical 3×2 overview, centred image viewer, and narrative images interleaved with prose across all four chapters. Editorial reading defaults to two columns; selected complete three-image sequences can use three on wide screens; phones stack. Section 1.1 explicitly uses two columns.
@@ -916,3 +1025,14 @@ while keeping phone, tablet and desktop reading and navigation usable.
 - At Adi’s request, removed 18 entries with no identifiable use in the current four chapters, notes or figure sources. Bibliography reduced from 117 to 99. All 109 notes and every chapter body block are unchanged.
 - Removed entries preserved in the active Codex outputs/Powerhouse removed bibliography entries.md; full pre-change JSON preserved in work/bibliography-cleanup. Earlier audit reports retain original entry numbering and now identify the cleanup.
 - Production build passed. Source/edition mismatches documented in the audit remain unresolved; pruning does not certify the remaining references. No publication.
+
+## 2026-11-02 — Powerhouse published
+- Adi authorised commit, push and publication. Commit 1d5d1f8a5c707f5d8a9568202aa39376385aad11 contains the Powerhouse changes only; unrelated working-tree changes preserved.
+- Exact staged snapshot passed pnpm check and all 363 responsive cases. GitHub deployment 41415777395 succeeded, including Firebase Hosting.
+- Public advaitakelkar.com page verified: 99 bibliography entries, editorial-flow markup present, removed Cooley entry absent, and programmeRings.webp bytes match the committed asset.
+
+## 2026-11-02 — Union Pier urban research and material palette (local)
+- Added a sourced qualitative study of Ansonborough, Lodge Alley/French Quarter, civic precedents, piazzas, resident life and public waterfront continuity. Three original SVGs show proposed spatial principles, explicitly not surveyed historic plans. Research separates historical evidence from design interpretation.
+- Added interactive quarter material selections derived from the canonical BIMCraft library. Twelve additive library materials and five reference-only presets include the reusable 19-selection studio family; no library textures are distributed on the website. Named swatches and role guidance accompany each quarter.
+- Current Rhino material views 37–42 installed in the local gallery/cover. Canonical model saved; geometry/object IDs preserved, 230 building-body checks and all source IDs retained. Model/material reports live in the active Union Pier Codex output package.
+- `pnpm check` passed: breakpoint/glyph/icon lint, editor audit, production build and built-site references/fragments. Desktop/390px/default preview and quarter-selector spot checks completed. Existing historical ARCHV alt warnings are unrelated. No commit, push or publication.

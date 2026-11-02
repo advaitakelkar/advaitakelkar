@@ -59,7 +59,7 @@ export const workStories: Record<string, Partial<Record<'plan' | 'section' | 'il
     section: { title: 'Different levels, shared views', text: 'The bar and terrace sections explain how seating tiers, the interior and the rooftop garden relate vertically. The stepped arrangement gives tables different outlooks toward the room, facade and skyline.' },
   },
   'social-malad': {
-    plan: { title: 'The room turns toward the bar', text: 'The central bar is the organising point for tiered seating and circulation. Seats face inward, giving the room the character of a small theatre for performances, dining and parties.' },
+    plan: { title: 'The room turns toward the bar', text: 'The bar sits at the centre, with terraced seating around it. Follow the numbered key to read the dining areas and the white kitchen blocks.' },
     illustration: { title: 'One venue, several levels of occupation', text: 'The cutaway brings the central bar, raised booths, perimeter seating and overhead structure into one view. It makes the relationship between the shared centre and quieter edges easier to read.' },
     section: { title: 'A raw frame with a planted edge', text: 'Sections describe the bar beneath the steel roof and the differing heights of the surrounding seating. The green wall softens that industrial frame while the glazed facade connects it to the mall beyond.' },
     detail: { title: 'Construction becomes the finish', text: 'Terrazzo, marble fragments, raw wall surfaces and exposed-looking assemblies carry the “work in progress” idea. The bar and column details translate that theme into specific edges, layers and material junctions.' },

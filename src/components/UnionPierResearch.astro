@@ -1,0 +1,89 @@
+---
+import { unionPierResearch, unionPierUrbanPrinciples } from '../data/union-pier-research';
+import materialData from '../data/union-pier-materials.json';
+const swatches = new Map(materialData.swatches.map(m => [m.name, m]));
+const palettes = materialData.palettes.filter(p => p.id !== 'adi-house');
+---
+
+<section class="up-study" id="charleston-study" aria-labelledby="up-study-title">
+  <header class="up-study__heading">
+    <p class="up-eyebrow">Charleston / Urban reading</p>
+    <h2 id="up-study-title">Learn from the grain of the city.</h2>
+    <p class="up-lede">The reference is more than a façade: it is the relationship between a street, a shaded threshold and a private or shared court. Three readings of Charleston guide different parts of Union Pier.</p>
+  </header>
+  <div class="up-precedents">
+    {unionPierResearch.map(study => (
+      <article class="up-precedent" id={study.id}>
+        <div class="up-precedent__title"><span>{study.number}</span><div><h3>{study.title}</h3><p>{study.subtitle}</p></div></div>
+        <img class="up-diagram" src={`/images/union-pier-charleston/study-${study.diagram}.svg`} width="720" height="420" loading="lazy" alt={`${study.title}: schematic interpretation of the proposed spatial sequence, not a surveyed plan`} />
+        <p class="up-diagram-note">Proposed spatial principle · schematic, not to scale</p>
+        <h4>What the research shows</h4><p>{study.evidence}</p>
+        <a class="up-source" href={study.url} target="_blank" rel="noreferrer">{study.source} ↗</a>
+        <h4>What the proposal takes forward</h4><p>{study.proposal}</p>
+      </article>
+    ))}
+  </div>
+  <div class="up-principles">
+    {unionPierUrbanPrinciples.map((principle,i) => <article>
+      <h3><span>0{i+4}</span>{principle.title}</h3>
+      <div><p>{principle.evidence}</p><div class="up-sources">{principle.links.map(([label,url]) => <a class="up-source" href={url} target="_blank" rel="noreferrer">{label} ↗</a>)}</div></div>
+      <p class="up-translation">{principle.proposal}</p>
+    </article>)}
+  </div>
+  <p class="up-method">Qualitative precedent study · sources checked 2 November 2026. The diagrams explain proposed design principles; they are not measured historic blocks. Block dimensions, population, housing tenure and flood performance are not inferred from these references.</p>
+</section>
+
+<section class="up-study up-materials" id="material-palette" aria-labelledby="up-material-title">
+  <header class="up-study__heading">
+    <p class="up-eyebrow">Material language / One family, four characters</p>
+    <h2 id="up-material-title">Warm masonry. Quiet metal. Timber at the water.</h2>
+    <p class="up-lede">A shared studio palette gives the quarters a common vocabulary. Their identities come from the balance of materials, the depth of their edges and the way each building meets the ground.</p>
+  </header>
+  <div class="up-palette-controls" aria-label="Choose a quarter">
+    {palettes.map((p,i) => <button type="button" data-up-palette={p.id} aria-pressed={i===0} aria-controls={`panel-${p.id}`}>{p.name.split(' / ')[0]}</button>)}
+  </div>
+  {palettes.map((p,i) => <div class="up-palette-panel" id={`panel-${p.id}`} data-up-panel={p.id} hidden={i!==0}>
+    <h3>{p.name}</h3><p class="up-palette-intent">{p.intent}</p>
+    <div class="up-material-roles">{p.roles.map(role => <div class="up-material-role">
+      <h4>{role.role}</h4>
+      <div class="up-swatches">{role.materials.map(name => <div class="up-swatch"><span style={`background:${swatches.get(name)?.color}`} aria-hidden="true"></span><p>{name}</p></div>)}</div>
+      <p>{role.guidance}</p>
+    </div>)}</div>
+  </div>)}
+  <p class="up-method">Colours and textures communicate design intent. Final products, coatings, timber species and marine durability remain to be specified. The reusable studio palette uses named materials from one shared library; the swatches shown here are colour references.</p>
+</section>
+
+<script>
+  function initUnionPierPalettes() {
+    document.querySelectorAll<HTMLElement>('.up-materials').forEach(root => {
+      if (root.dataset.ready) return;
+      root.dataset.ready = 'true';
+      root.querySelectorAll<HTMLButtonElement>('[data-up-palette]').forEach(button => {
+        button.addEventListener('click', () => {
+          root.querySelectorAll<HTMLButtonElement>('[data-up-palette]').forEach(b => b.setAttribute('aria-pressed', String(b === button)));
+          root.querySelectorAll<HTMLElement>('[data-up-panel]').forEach(p => p.hidden = p.dataset.upPanel !== button.dataset.upPalette);
+        });
+      });
+    });
+  }
+  initUnionPierPalettes();
+  document.addEventListener('astro:page-load', initUnionPierPalettes);
+</script>
+
+<style>
+  .up-study{scroll-margin-top:78px;padding:48px 0;border-top:1px solid var(--_tokens---color--line-soft);color:var(--_tokens---color--fg);min-width:0}
+  .up-study__heading{max-width:850px;margin-bottom:32px}.up-eyebrow{font-size:12px;letter-spacing:.04em;color:var(--_tokens---color--muted);margin:0 0 16px}
+  h2{font-size:clamp(28px,3vw,44px);font-weight:500;line-height:1.1;letter-spacing:-.035em;margin:0 0 20px}.up-lede{font-size:18px;line-height:1.55;max-width:66ch;margin:0}
+  .up-precedents{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px}.up-precedent{min-width:0}
+  .up-precedent__title{display:flex;gap:12px;min-height:76px}.up-precedent__title>span,.up-principles h3 span{font-size:12px;color:var(--_tokens---color--muted);padding-top:4px}
+  h3{font-size:19px;font-weight:500;line-height:1.25;margin:0 0 8px}.up-precedent__title p{margin:0;font-size:13px;color:var(--_tokens---color--muted)}
+  .up-diagram{display:block;width:100%;height:auto}.up-diagram text{font:8px Arial,sans-serif;fill:#425147;letter-spacing:.7px}.up-diagram-note{font-size:11px!important;color:var(--_tokens---color--muted);margin:8px 0 24px!important}
+  h4{font-size:12px;font-weight:600;margin:24px 0 10px}.up-precedent>p,.up-principles p,.up-material-role>p{font-size:15px;line-height:1.6;margin:0 0 12px}
+  .up-source{display:inline-block;color:inherit;text-underline-offset:3px;font-size:11px;line-height:1.6;overflow-wrap:anywhere}.up-sources{display:grid;gap:4px}
+  .up-principles{margin-top:36px}.up-principles article{display:grid;grid-template-columns:.7fr 1.1fr 1.1fr;gap:28px;padding:25px 0;border-top:1px solid var(--_tokens---color--line-soft)}.up-principles h3{display:flex;gap:12px}
+  .up-translation{border-left:2px solid #9caf88;padding-left:18px}.up-method{font-size:12px;line-height:1.6;color:var(--_tokens---color--muted);max-width:100ch;margin:28px 0 0}
+  .up-palette-controls{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:28px}.up-palette-controls button{font:inherit;font-size:13px;border:1px solid var(--_tokens---color--line-soft);border-radius:0;padding:10px 16px;background:transparent;color:inherit;cursor:pointer}.up-palette-controls button[aria-pressed="true"]{background:#354b3f;color:#fff;border-color:#354b3f}.up-palette-controls button:focus-visible{outline:2px solid #7f9c8e;outline-offset:3px}
+  .up-palette-panel[hidden]{display:none}.up-palette-intent{font-size:15px;line-height:1.6;max-width:75ch;margin:0 0 24px}.up-material-roles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px}.up-material-role h4{margin-top:0}.up-swatches{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:16px}.up-swatch span{display:block;height:66px;border:1px solid #00000012}.up-swatch p{font-size:11px;line-height:1.4;margin:7px 0 0}.up-material-role>p{font-size:13px}
+  @media(max-width: 1023.98px){.up-precedents{grid-template-columns:1fr;gap:32px}.up-precedent{display:grid;grid-template-columns:1fr 1fr;column-gap:24px}.up-precedent__title,.up-precedent>.up-source,.up-precedent>h4,.up-precedent>p:not(.up-diagram-note){grid-column:2}.up-precedent__title{grid-row:1;min-height:0}.up-diagram{grid-column:1;grid-row:1 / span 4}.up-diagram-note{grid-column:1;grid-row:5}.up-principles article{grid-template-columns:1fr 1fr}.up-principles h3{grid-column:1/-1}.up-material-roles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width: 699.98px){.up-study{padding:32px 0}.up-precedent{display:block}.up-precedent__title{margin-bottom:16px}.up-principles article{display:block}.up-principles h3{margin-bottom:18px}.up-translation{margin-top:18px!important}.up-material-roles{gap:18px}.up-lede{font-size:16px}.up-palette-controls button{padding:9px 12px;font-size:12px}}
+</style>

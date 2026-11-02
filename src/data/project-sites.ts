@@ -18,9 +18,9 @@ export const projectSites: Record<string, ProjectSite> = {
   'union-pier-charleston': {
     title: 'City meets waterfront',
     place: 'Union Pier · Charleston, South Carolina',
-    center: [-79.9255881, 32.7843360],
-    pinNote: 'Reference pin identifies Union Pier Terminal. Existing context is shown; the redevelopment masterplan and its exact project boundary are separate drawing layers to be added.',
-    reading: 'Read the relationship between the historic street fabric, the port edge and the Cooper River. Switch to figure–ground to compare the terminal with the city’s smaller blocks.',
+    center: [-79.92676777537747, 32.78498908129294],
+    pinNote: 'Project reference pin supplied by the designer. It locates the Union Pier study area; it is not a surveyed boundary or a registration of the proposed model.',
+    reading: 'Compare Charleston’s street fabric with the port’s larger open ground. Distinct southern, western and northern quarters frame planted courts. A graded park connects the two main lawns to the fixed market promenade and its carved fishing and seating recesses.',
     sources: [{title:'Union Pier · City of Charleston',url:'https://www.charleston-sc.gov/2767/Union-Pier'},{title:'Union Pier Terminal',url:'https://scspa.com/facilities/union-pier-terminal/'}],
   },
   skadoogee: {

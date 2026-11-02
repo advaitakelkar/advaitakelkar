@@ -1,14 +1,17 @@
 ---
 import type { WorkFigure } from '../lib/workMedia';
 interface Props {
-  figure: WorkFigure; label: string; number: number; shape: '2x2' | '2x1' | '1x2' | '1x1';
+  figure: WorkFigure; label: string; number: number; shape: '2x2' | '2x1' | '1x2' | '1x1' | '3x2';
+  markers?: Array<{ number: string; x?: number; y?: number }>;
 }
-const { figure, label, number, shape } = Astro.props;
+const { figure, label, number, shape, markers } = Astro.props;
+const image = markers?.length ? figure.image.replace('-numbered.svg', '-base.svg') : figure.image;
 const source = figure.caption?.match(/AI-(?:assisted|retouched)[^.;]*(?:[.;]|$)/i)?.[0]?.replace(/[.;]$/, '');
 ---
 <figure class="work-figure" data-image={figure.image} data-role={figure.role} data-span={shape}>
-  <button class="work-figure__image" type="button" data-work-image={figure.image} data-caption={figure.alt ?? figure.caption ?? label} data-label={label} aria-label={`Enlarge ${label}`}>
-    <img src={figure.image} width={figure.width} height={figure.height} alt={figure.alt ?? figure.caption ?? label} loading="lazy" decoding="async" />
+  <button class="work-figure__image" type="button" data-work-image={image} data-original={figure.image} data-markers={markers?.length ? JSON.stringify(markers) : undefined} data-caption={figure.alt ?? figure.caption ?? label} data-label={label} aria-label={`Enlarge ${label}`}>
+    <img src={image} width={figure.width} height={figure.height} alt={figure.alt ?? figure.caption ?? label} loading="lazy" decoding="async" />
+    {markers?.map(marker => <span class="work-figure__marker" style={`left:${marker.x}%;top:${marker.y}%`} aria-hidden="true">{marker.number}</span>)}
     <span class="work-figure__enlarge" aria-hidden="true">Enlarge ↗</span>
   </button>
   <figcaption><span class="work-figure__number">{String(number).padStart(2, '0')}</span><span>{label}{source && <small>{source}</small>}</span></figcaption>
@@ -18,9 +21,11 @@ const source = figure.caption?.match(/AI-(?:assisted|retouched)[^.;]*(?:[.;]|$)/
   </details>}
 </figure>
 <style>
+  .work-figure__marker { position: absolute; transform: translate(-50%, -50%); display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border: 1px solid #111; border-radius: 50%; background: #fff; color: #111; font-size: 12px; font-weight: 500; line-height: 1; pointer-events: none; }
   .work-figure { margin: 0; min-width: 0; }
   .work-figure__image { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; border: 0; padding: 0; background: transparent; color: inherit; cursor: zoom-in; aspect-ratio: 1; }
   [data-span="2x1"] .work-figure__image { aspect-ratio: 2; }
+  [data-span="3x2"] .work-figure__image { aspect-ratio: 1.5; }
   [data-span="1x2"] .work-figure__image { aspect-ratio: 0.5; }
   .work-figure__image img { display: block; width: 100%; height: 100%; object-fit: contain; }
   .work-figure__enlarge { position: absolute; right: 8px; bottom: 8px; padding: 6px 8px; border: 1px solid var(--_tokens---color--line-soft); background: var(--_tokens---color--bg); color: var(--_tokens---color--fg); font-size: var(--_tokens---type--micro); opacity: 0; transition: opacity 150ms; }

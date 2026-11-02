@@ -29,3 +29,17 @@ Every figure opens a native modal. Fit shows the whole image. Detail opens at le
 The responsive contract includes all 18 Work routes and the drawing viewer's primary controls. The full site matrix is 33 routes × 11 widths = 363 cases. Run `pnpm check` and the responsive audit before publication, plus manual zoom, Escape, source-note and focus checks.
 
 The 31 October review inspected all 231 referenced Work images via project contact sheets, with native-size checks of GONG and Under the Tree plans. No artwork was regenerated. Higher-resolution exports should replace undersized sources only after checking against the originals; keep the originals intact.
+
+## Writing roles
+
+Brief frames the design problem. Abstract explains the architectural response. Project story is Adi’s first-person account of working on the project: personal context, his role, decisions, process and experience. Use details he supplies; do not invent anecdotes or responsibilities. SOCIAL Malad is the local writing example.
+
+## Wide annotated plan
+
+Figure-label entries can provide `spread: "wide"` plus a numbered `key` of number/title/text items. The wide figure and text use a 66/33 desktop split and stacks above its key below 1024px. Malad uses a transparent illustration embedded in a self-contained SVG with seven vector number markers. Keep the HTML key and SVG numbers aligned. Explicit-size SVG metadata supports the drawing viewer.
+
+Project story uses balanced text columns from 700px, with a single column on phones.
+
+SOCIAL Malad adds `MaladTerraceConcept.astro` after its plan: three AI-assisted concept illustrations with HTML captions, derived from the approved isometric in the same orientation. Keep the central-bar / terraces / connected-room sequence. They stack below 700px and open in the shared drawing viewer.
+
+The annotated plan uses fixed 12px HTML numbers in 20px circles on the page and in the viewer; marker coordinates live alongside its key in the figure-label data. The base SVG keeps the drawing separate from the labels. Open original uses the standalone numbered SVG.
