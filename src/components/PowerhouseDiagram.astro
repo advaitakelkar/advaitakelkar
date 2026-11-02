@@ -1,0 +1,495 @@
+---
+// Explanatory diagrams for Chapters 3 and 4, drawn in the page's own ink and the Powerhouse
+// palette (data in colour, the page black and white). A figure in the chapter JSON names one
+// with `graphic`; the renderer in PowerhouseChapterTwo passes that name here. Drawings are
+// SVG; labels stay HTML so they keep the page's type at every width.
+interface Props { name: string; }
+const { name } = Astro.props;
+
+// Table 3.1 summarised: how many of the 22 programmes suit each stay, setting and access.
+const catalogue = [
+  { title: 'By length of stay', rows: [['20 min', 11], ['1–2 h', 19], ['A night', 6]] },
+  { title: 'By setting', rows: [['Freight corridor', 11], ['City', 20], ['Town', 17]] },
+  { title: 'By access', rows: [['Open to all', 7], ['Set hours', 10], ['Operator', 6]] },
+] as const;
+
+// 3.2: the no-plug test, sorted from Table 3.1 and the section's own list.
+const noPlug = {
+  without: ['Toilets and drinking water', 'Covered plaza and seating', 'Children’s playground', 'Community garden and lawn', 'Cooling and emergency shelter', 'Automated kiosk', 'Grocery or convenience store', 'Parcel and post room', 'Bike hub', 'Laundromat', 'Library reading room', 'Community hall', 'Market hall', 'Repair workshop and tool library', 'Gym', 'Co-working space', 'Health clinic and pharmacy', 'Childcare'],
+  withPlug: ['Waiting lounge', 'Café', 'Food hall', 'Showers', 'Drivers’ rooms'],
+};
+
+// 3.1: Carr’s five needs and what each becomes in a Powerhouse.
+const needs = [
+  { need: 'Comfort', gives: 'Toilets, drinking water, shade and shelter', glyph: 'M6 26h28M8 26V14L20 5l12 9v12M20 12v4M17 18a3 3 0 0 0 6 0' },
+  { need: 'Relaxation', gives: 'Seating away from the bays', glyph: 'M4 20h32M8 20v8M32 20v8M10 20v-6h20v6M14 14v-4h12v4' },
+  { need: 'Passive engagement', gives: 'A view of the life of the place', glyph: 'M4 18c6-8 26-8 32 0c-6 8-26 8-32 0ZM20 18m-4 0a4 4 0 1 0 8 0a4 4 0 1 0-8 0' },
+  { need: 'Active engagement', gives: 'Rooms to meet, eat, play and work', glyph: 'M12 8a3 3 0 1 0 0.1 0M28 8a3 3 0 1 0 0.1 0M6 30v-8a6 6 0 0 1 12 0v8M22 30v-8a6 6 0 0 1 12 0v8M18 22h4' },
+  { need: 'Discovery', gives: 'A programme that changes: market day, exhibition, event', glyph: 'M4 30h32M6 30V16l14-8l14 8v14M12 30v-8h6v8M22 30v-8h6v8M20 8v-4' },
+];
+
+// 4.0: the five steps, and the sections each one draws on.
+const steps = [
+  { step: 'Read the site', from: '3.0 · 3.1 · 4.1', what: 'As a node and as a place' },
+  { step: 'Recognise the setting', from: '2.3 · 3.2 · 4.2', what: 'Corridor, city or town' },
+  { step: 'Arrange the building', from: '1.5 · 2.1 · 2.3 · 2.6 · 3.4 · 3.5', what: 'Charger, programmes, public ground' },
+  { step: 'Plan the day', from: '4.4', what: 'Never empty, always watched' },
+  { step: 'Measure', from: '1.6 · 2.4 · 4.5', what: 'Minutes · share open · programme' },
+];
+
+// 4.4: one building across the day, after Table 4.2. Hours are an example, not a rule.
+const day = [
+  { label: 'Public ground, toilets, waiting room', layer: 'open', spans: [[0, 24]] },
+  { label: 'Café', layer: 'set', spans: [[6, 22]] },
+  { label: 'Market hall', layer: 'set', spans: [[6, 14]] },
+  { label: 'Reading room', layer: 'set', spans: [[10, 20]] },
+  { label: 'Community hall and events', layer: 'set', spans: [[17, 23]] },
+  { label: 'Food hall', layer: 'set', spans: [[11, 24]] },
+  { label: 'Childcare', layer: 'op', spans: [[7, 18]] },
+  { label: 'Clinic and pharmacy', layer: 'op', spans: [[8, 20]] },
+  { label: 'Gym', layer: 'op', spans: [[6, 22]] },
+  { label: 'Drivers’ rooms and showers', layer: 'op', spans: [[0, 24]] },
+];
+const who = [['06–12', 'Commuters, delivery and fleet drivers'], ['12–18', 'Residents, parents, schoolchildren, visitors'], ['18–24', 'Returning commuters, evening visitors'], ['00–06', 'Drivers on required rest, night shifts, fleets']];
+
+// 4.3: the six rules and their sections.
+const rules = [
+  { rule: 'Rings', from: '1.5', draw: 'rings' },
+  { rule: 'Stall on the court', from: '2.3', draw: 'moves' },
+  { rule: 'Two routes', from: '2.1', draw: 'routes' },
+  { rule: 'The U', from: '3.5', draw: 'access' },
+  { rule: 'Energy funds the public', from: '2.6', draw: 'lifespan' },
+  { rule: 'Green ground', from: '3.4', draw: 'green' },
+];
+---
+{name === 'nodePlace' && (
+  <div class="phd phd--nodeplace">
+    <svg viewBox="0 0 560 400" role="img" aria-label="Bertolini’s node–place field. A charging site today sits as an unbalanced node, strong in the network and weak as a place; the Powerhouse moves it along the place axis into balance. A freight corridor sits near the charging site, a city near the stressed corner, a town in the lower middle as a place in need.">
+      <polygon class="band" points="70,330 110,330 500,60 500,100" />
+      <path class="axis" d="M70 40V330H510" />
+      <path class="axis" d="M70 40l-5 8M70 40l5 8M510 330l-8-5M510 330l-8 5" />
+      <text x="40" y="190" class="t t-axis" transform="rotate(-90 40 190)">Node · transport and energy network</text>
+      <text x="290" y="360" class="t t-axis">Place · activity and life around it</text>
+      <text x="110" y="70" class="t t-zone">Unbalanced node</text>
+      <text x="500" y="320" class="t t-zone t-r">Unbalanced place</text>
+      <text x="470" y="56" class="t t-zone t-r">Stressed</text>
+      <text x="84" y="320" class="t t-zone">Dependent</text>
+      <text x="330" y="212" class="t t-zone" transform="rotate(-35 330 212)">Balanced</text>
+      {/* The arrowhead is drawn, not a <marker>: this diagram appears twice on the page and a marker id would duplicate. */}
+      <path class="move" d="M150 112C230 96 300 94 372 100" /><path class="move move-head" d="M363 93l9 7-9 6" />
+      <circle class="today" cx="138" cy="112" r="7" />
+      <text x="152" y="130" class="t">Charging site today</text>
+      <circle class="ph" cx="384" cy="100" r="8" />
+      <text x="398" y="118" class="t t-b">The Powerhouse</text>
+      <circle class="set" cx="166" cy="150" r="5" /><text x="176" y="154" class="t t-s">Freight corridor</text>
+      <circle class="set" cx="458" cy="84" r="5" /><text x="468" y="88" class="t t-s">City</text>
+      <circle class="set" cx="300" cy="252" r="5" /><text x="310" y="256" class="t t-s">Town</text>
+    </svg>
+    <p class="phd__note">After Bertolini (1999) and Chorus and Bertolini (2011). Positions are the thesis’s reading of each setting, not measured values.</p>
+  </div>
+)}
+
+{name === 'fiveNeeds' && (
+  <div class="phd phd--needs">
+    {needs.map((n) => (
+      <div class="phd__need">
+        <svg viewBox="0 0 40 36" aria-hidden="true"><path d={n.glyph} /></svg>
+        <b>{n.need}</b><span>{n.gives}</span>
+      </div>
+    ))}
+    <p class="phd__note">The five needs are Carr, Francis, Rivlin and Stone (1992); the provisions are the thesis’s.</p>
+  </div>
+)}
+
+{name === 'noPlug' && (
+  <div class="phd phd--noplug">
+    <div class="phd__share" role="img" aria-label={`${noPlug.without.length} of 22 programmes work without a single charging session; ${noPlug.withPlug.length} depend on the people the charge brings.`}>
+      <span style={`flex:${noPlug.without.length}`}><b>{noPlug.without.length} of 23</b> work without the plug</span>
+      <span class="is-plug" style={`flex:${noPlug.withPlug.length}`}><b>{noPlug.withPlug.length}</b> need the charge</span>
+    </div>
+    <div class="phd__cols">
+      <div><b>Busy without a single charging session</b><ul>{noPlug.without.map((p) => <li>{p}</li>)}</ul></div>
+      <div><b>Depend on the people the charge brings</b><ul>{noPlug.withPlug.map((p) => <li>{p}</li>)}</ul></div>
+    </div>
+    <p class="phd__note">Sorted from Table 3.1 by the test in section 3.2: would it still be a place if every vehicle left?</p>
+  </div>
+)}
+
+{name === 'groundSection' && (
+  <div class="phd phd--ground">
+    <svg viewBox="0 0 800 250" role="img" aria-label="Two sections of the same charging ground. Left, a dark lot: bare asphalt, full sun, a car at a post and a person in the open, rain running off; the surface reaches 152 degrees Fahrenheit. Right, green ground: trees and a canopy shade the bay, planted ground takes the rain, and the surface stays 10 to 16 degrees cooler.">
+      <g class="half">
+        <circle class="sun" cx="60" cy="40" r="14" /><path class="sun" d="M60 14v8M60 58v8M34 40h8M78 40h8M42 22l6 6M72 52l6 6M78 22l-6 6M48 52l-6 6" />
+        <rect class="asphalt" x="20" y="170" width="350" height="22" />
+        <path class="heat" d="M120 160c4-8-4-14 0-22M160 160c4-8-4-14 0-22M200 160c4-8-4-14 0-22M240 160c4-8-4-14 0-22M280 160c4-8-4-14 0-22" />
+        <path d="M212 170V118h10v52" /><path d="M222 126h12M226 132v38" />
+        <path class="car" d="M110 170v-20l12-18h50l14 18v20Z" /><circle cx="128" cy="170" r="7" /><circle cx="172" cy="170" r="7" />
+        <path d="M300 170v-28M300 142l-8 12M300 142l8 12M292 150l8-6l8 6" /><circle cx="300" cy="134" r="6" />
+        <path class="rain" d="M340 90l-6 14M352 100l-6 14M332 112l-6 14M346 124l-6 14" />
+        <path class="runoff" d="M342 176c10 10 20 10 30 12" marker-end="url(#phd-arrow2)" />
+        <rect class="thermo" x="40" y="80" width="14" height="92" rx="7" /><rect class="thermo-fill" x="43" y="95" width="8" height="74" rx="4" />
+      </g>
+      <g class="half" transform="translate(410 0)">
+        <circle class="sun" cx="60" cy="40" r="14" />
+        <rect class="soil" x="20" y="170" width="350" height="22" />
+        <path class="planted" d="M20 170c30-10 60-10 90 0c30-10 60-10 90 0c30-10 60-10 90 0c20-6 40-8 60-4" />
+        <path class="canopy" d="M90 92h150l10 10H80Z" /><path d="M100 102v68M230 102v68" />
+        <path d="M212 170V118h10v52" /><path d="M222 126h12M226 132v38" />
+        <path class="car" d="M110 170v-20l12-18h50l14 18v20Z" /><circle cx="128" cy="170" r="7" /><circle cx="172" cy="170" r="7" />
+        <path d="M296 170v-30" /><circle class="tree" cx="296" cy="112" r="30" /><path d="M340 170v-24" /><circle class="tree" cx="340" cy="124" r="24" />
+        <path d="M268 170v-26M268 144l-8 12M268 144l8 12" /><circle cx="268" cy="136" r="6" /><path d="M250 170h40" />
+        <path class="rain" d="M330 70l-6 14M352 80l-6 14M312 86l-6 14M336 100l-6 14" />
+        <path class="soak" d="M330 176v18M346 176v18M362 176v18" marker-end="url(#phd-arrow2)" />
+        <rect class="thermo" x="40" y="80" width="14" height="92" rx="7" /><rect class="thermo-fill" x="43" y="128" width="8" height="41" rx="4" />
+      </g>
+      <defs><marker id="phd-arrow2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10" fill="none" stroke="currentColor" stroke-width="1.4" /></marker></defs>
+      <path class="divide" d="M400 20V230" />
+    </svg>
+    <div class="phd__cols phd__cols--labels">
+      <div><b>Dark lot.</b> Asphalt absorbs the sun and reaches 152°F (67°C) at mid-day; rain runs off; the driver waits on one of the hottest surfaces in the city.</div>
+      <div><b>Green ground.</b> Trees and canopies shade the bays; planted, permeable ground takes the rain; the surface stays 10 to 16°F cooler, and people choose to stay.</div>
+    </div>
+    <p class="phd__note">Temperatures from the EPA’s Arizona pilot study (section 3.4). Thermometers are to that comparison, not a scale.</p>
+  </div>
+)}
+
+{name === 'accessLayers' && (
+  <div class="phd phd--access">
+    <svg viewBox="0 0 560 360" role="img" aria-label="Plan diagram of the three access layers as a U. The open court touches the street along the bottom and the charging bays along the left; set-hours rooms wrap the top and right; operated rooms sit at the top with their own doors. The night services, washroom and kiosk, sit on the court’s open edge.">
+      <rect class="site" x="30" y="30" width="500" height="290" />
+      <path class="road" d="M0 340H560" />
+      <rect class="loop" x="40" y="40" width="70" height="280" rx="8" />
+      {[70, 120, 170, 220, 270].map((y) => <rect class="bay" x="112" y={y} width="30" height="34" />)}
+      <text x="75" y="186" class="t t-s" transform="rotate(-90 75 186)">Vehicle loop · bays</text>
+      <rect class="op" x="150" y="40" width="370" height="54" /><path class="door" d="M200 40v-8M300 40v-8M400 40v-8M480 40v-8" />
+      <path class="set" d="M150 100h370v220h-60V160H150Z" />
+      <rect class="open" x="150" y="160" width="310" height="160" rx="36" />
+      <rect class="bay" x="380" y="282" width="34" height="34" /><rect class="bay" x="420" y="282" width="34" height="34" />
+      <text x="396" y="276" class="t t-s t-c">kiosk · washroom</text>
+      <text x="280" y="226" class="t t-b t-c">Open to all</text><text x="280" y="244" class="t t-s t-c">court · shade · seats · water · open to the street</text>
+      <text x="166" y="118" class="t t-s">Set hours · reading room, hall, market, café</text>
+      <text x="166" y="72" class="t t-s">Operator · clinic, gym, childcare, drivers’ rooms</text>
+      <text x="280" y="356" class="t t-s t-c">Street · the way in on foot</text>
+    </svg>
+    <div class="phd__hours" role="img" aria-label="Hours by layer: the open layer never closes; set-hours rooms open roughly seven to twenty-two; operated rooms keep their own hours.">
+      <div><span>Open</span><i class="is-open" style="--a:0;--b:24"></i></div>
+      <div><span>Set hours</span><i class="is-set" style="--a:7;--b:22"></i></div>
+      <div><span>Operator</span><i class="is-op" style="--a:8;--b:20"></i><i class="is-op" style="--a:0;--b:24;opacity:.45"></i></div>
+      <div class="phd__hours-axis"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
+    </div>
+    <p class="phd__note">Section 3.5. The U is open to the street at every hour; hours are an example, and drivers’ rooms are an operated room that never closes.</p>
+  </div>
+)}
+
+{name === 'catalogue' && (
+  <div class="phd phd--catalogue">
+    {catalogue.map((g) => (
+      <div class="phd__group">
+        <b>{g.title}</b>
+        {g.rows.map(([label, n]) => (
+          <div class="phd__bar"><span>{label}</span><div class="phd__track"><i style={`width:${(n / 23) * 100}%`} /></div><em>{n}</em></div>
+        ))}
+      </div>
+    ))}
+    <p class="phd__note">Counts of the 23 programmes in Table 3.1. A programme can suit more than one stay or setting; each has one access.</p>
+  </div>
+)}
+
+{name === 'frameworkSteps' && (
+  <div class="phd phd--steps">
+    <ol>
+      {steps.map((s, i) => (
+        <li><span class="phd__n">{String(i + 1).padStart(2, '0')}</span><b>{s.step}</b><span>{s.what}</span><small>From {s.from}</small></li>
+      ))}
+      <li class="is-out"><b>One Powerhouse</b><span>Designed in Graduate Thesis 01 and 02, and tested against the same steps</span></li>
+    </ol>
+  </div>
+)}
+
+{name === 'threeSettings' && (
+  <div class="phd phd--settings">
+    <div class="phd__setting">
+      <svg viewBox="0 0 220 120" aria-hidden="true">
+        <path class="ground" d="M6 104H214" /><path class="road" d="M6 112H214" />
+        <path class="canopy" d="M14 60h130v6H14Z" /><path d="M22 66v38M70 66v38M118 66v38M138 66v38" />
+        {[28, 76].map((x) => <path class="truck" d={`M${x} 104V86h26v18M${x + 26} 104V92h10v12`} />)}
+        <path class="room" d="M156 104V48h50v56Z" /><path d="M156 76h50M166 56h8M186 56h8M166 84h8M186 84h8" />
+        <path class="green" d="M146 104c4-6 8-6 12 0" />
+      </svg>
+      <b>Freight corridor</b><span>Spread along the road; truck bays under the canopy at the front, rooms for a night set back.</span>
+    </div>
+    <div class="phd__setting">
+      <svg viewBox="0 0 220 120" aria-hidden="true">
+        <path class="ground" d="M6 104H214" /><path class="road" d="M6 112H214" />
+        <path class="room" d="M60 104V28h100v76Z" /><path d="M60 54h100M60 80h100" />
+        <path class="canopy" d="M50 22h120v6H50Z" />
+        {[70, 100, 130].map((x) => <circle class="tree" cx={x + 10} cy="18" r="7" />)}
+        <path class="bay" d="M68 104V90h22v14M98 104V90h22v14" /><path d="M136 100h16M144 92v8" />
+        <path d="M14 104V86h6v18M28 104V86h6v18" /><path class="green" d="M172 104c4-6 8-6 12 0M184 104c4-6 8-6 12 0" />
+      </svg>
+      <b>City</b><span>Compact and stacked; charging, a bike hub and the bus stop below, public rooms above, a roof garden on top.</span>
+    </div>
+    <div class="phd__setting">
+      <svg viewBox="0 0 220 120" aria-hidden="true">
+        <path class="ground" d="M6 104H214" /><path class="road" d="M6 112H214" />
+        <path class="room" d="M40 104V62L100 34l60 28v42Z" /><path class="canopy" d="M30 62L100 28l70 34" /><path d="M64 104V84h18v20M118 104V84h18v20M92 104V80h16v24" />
+        <path class="bay" d="M176 104V92h14v12M194 104V92h14v12" /><path class="canopy" d="M172 86h40v4h-40Z" />
+        <path class="green" d="M10 104c4-8 8-8 12 0M24 104c4-8 8-8 12 0" /><circle class="tree" cx="18" cy="84" r="8" />
+      </svg>
+      <b>Town</b><span>A civic hall first: market, clinic and hall, with a modest row of bays alongside as one service among others.</span>
+    </div>
+    <p class="phd__note">Table 4.1. Drawings identify the three forms and are not to scale.</p>
+  </div>
+)}
+
+{name === 'sixRules' && (
+  <div class="phd phd--rules">
+    {rules.map((r) => (
+      <div class="phd__rule">
+        <svg viewBox="0 0 120 120" aria-hidden="true">
+          {r.draw === 'rings' && <><circle class="ring" cx="60" cy="60" r="52" /><circle class="ring" cx="60" cy="60" r="36" /><circle class="ring" cx="60" cy="60" r="20" /><circle class="core" cx="60" cy="60" r="8" /></>}
+          {r.draw === 'moves' && <><rect class="open" x="36" y="26" width="68" height="74" rx="12" /><rect class="loop" x="8" y="20" width="22" height="88" rx="4" /><path class="bay" d="M30 36h14v14H30M30 56h14v14H30M30 76h14v14H30" /><path d="M44 43h8M44 63h8M44 83h8" /></>}
+          {r.draw === 'routes' && <><path class="loop" d="M18 100V30h30v70" /><path class="walk" d="M64 104V58q0-10 10-10h26" /><path class="walk" d="M64 104V74h28" /><path class="bay" d="M24 40h18M24 56h18M24 72h18" /></>}
+          {r.draw === 'access' && <><path class="op" d="M16 104V16h88v88" /><path class="set" d="M30 104V30h60v74" /><rect class="open" x="42" y="52" width="36" height="52" rx="14" /><path class="road" d="M8 112h104" /><path class="door" d="M40 16v-6M80 16v-6" /></>}
+          {r.draw === 'lifespan' && <><rect class="life life-3" x="14" y="14" width="92" height="92" rx="8" /><rect class="life life-2" x="30" y="30" width="60" height="60" rx="6" /><rect class="life life-1" x="46" y="46" width="28" height="28" rx="4" /></>}
+          {r.draw === 'green' && <><path class="ground" d="M12 96h96" /><path class="soak" d="M30 60v30M60 56v34M90 60v30" /><circle class="tree" cx="34" cy="38" r="14" /><circle class="tree" cx="86" cy="42" r="12" /><path class="planted" d="M12 96c8-8 16-8 24 0c8-8 16-8 24 0c8-8 16-8 24 0c8-8 16-8 24 0" /></>}
+        </svg>
+        <b>{r.rule}</b><small>Section {r.from}</small>
+      </div>
+    ))}
+    <p class="phd__note">The architectural core of the framework: every Powerhouse can be recognised by these, whatever its size, programme or form.</p>
+  </div>
+)}
+
+{name === 'dayClock' && (
+  <div class="phd phd--day">
+    <div class="phd__day-who">
+      {who.map(([h, w]) => <div><b>{h}</b><span>{w}</span></div>)}
+    </div>
+    <div class="phd__day-rows" role="img" aria-label="Opening hours across twenty-four hours: the public ground, toilets, waiting room and drivers’ rooms never close; the café, market, reading room, food hall and community hall take their turns through the day; childcare, clinic and gym keep working hours.">
+      {day.map((d) => (
+        <div class="phd__day-row"><span>{d.label}</span><div class="phd__day-track">{d.spans.map(([a, b]) => <i class={`is-${d.layer}`} style={`--a:${a};--b:${b}`} />)}</div></div>
+      ))}
+      <div class="phd__day-row phd__hours-axis"><span></span><div><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div></div>
+    </div>
+    <div class="phd__legend"><i class="is-open"></i>Open to all<i class="is-set"></i>Set hours<i class="is-op"></i>Operator</div>
+    <p class="phd__note">After Table 4.2, Lynch (1972) and Lefebvre (2004). An example for a mixed site: the rule is only that some public part is always in use.</p>
+  </div>
+)}
+
+{name === 'threeMeasures' && (
+  <div class="phd phd--measures">
+    <div class="phd__measure">
+      <b>Minutes on site</b>
+      <div class="phd__rows" role="img" aria-label="Worked example: the vehicle plugged in for 35 minutes, the person on site for 75, and a visitor with no vehicle staying 50.">
+        <div class="phd__bar"><span>Vehicle plugged in · 35 min</span><div class="phd__track"><i class="is-set" style="width:29%" /></div></div>
+        <div class="phd__bar"><span>Person on site · 75 min</span><div class="phd__track"><i style="width:62%" /></div></div>
+        <div class="phd__bar"><span>Arrived without a vehicle · 50 min</span><div class="phd__track"><i style="width:42%;opacity:.55" /></div></div>
+        <div class="phd__axis"><span>0</span><span>60</span><span>120 min</span></div>
+      </div>
+      <span>Two clocks: the vehicle plugged in, the person from arrival to departure. Working when the second runs past the first, and when people arrive with no vehicle at all.</span>
+    </div>
+    <div class="phd__measure">
+      <b>Share of the site open to all</b>
+      <div class="phd__share phd__share--tall" role="img" aria-label="Worked example: 55 per cent of the site open to all, 25 per cent set hours, 20 per cent operated.">
+        <span style="flex:55"><b>55%</b> open to all</span><span class="is-set" style="flex:25"><b>25%</b> set hours</span><span class="is-op" style="flex:20"><b>20%</b> operator</span>
+      </div>
+      <span>The site plan divided into the three access layers; the measure is the share anyone can use with nothing to buy and no vehicle. It separates a Powerhouse from a forecourt with a shop.</span>
+    </div>
+    <div class="phd__measure">
+      <b>Programme on site</b>
+      <div class="phd__cells" role="img" aria-label="Worked example: 9 of the 23 programmes on site.">{Array.from({ length: 23 }, (_, i) => <i class={i < 9 ? 'is-on' : ''} />)}</div>
+      <div class="phd__rows">
+        <div class="phd__bar"><span>On site · 9 of 23</span><div class="phd__track"><i style="width:41%" /></div></div>
+        <div class="phd__bar"><span>Meet a need the place reading found · 7</span><div class="phd__track"><i style="width:32%" /></div></div>
+        <div class="phd__bar"><span>Work without charging · 7</span><div class="phd__track"><i style="width:32%" /></div></div>
+      </div>
+      <span>Which of the 23 programmes are there, how many meet a need, and how many work without the plug. If the extra time leads only to more retail, the hypothesis fails.</span>
+    </div>
+    <p class="phd__note">Sections 1.6, 2.4, 3.5 and 4.5. Taken by observation, with the timed counts of Whyte and of Gehl and Svarre. The numbers are a worked example, not measurements.</p>
+  </div>
+)}
+
+{name === 'powerCenter' && (
+  <div class="phd phd--inversion">
+    <div class="phd__plan">
+      <svg viewBox="0 0 300 220" role="img" aria-label="Plan of a power center: three big-box stores around a shared parking lot in the centre, each entered from the lot by car; the only way in is the road.">
+        <path class="road" d="M0 206H300" />
+        <rect class="box" x="18" y="14" width="80" height="60" /><rect class="box" x="110" y="14" width="80" height="60" /><rect class="box" x="202" y="14" width="80" height="60" />
+        <rect class="box" x="18" y="86" width="40" height="100" /><rect class="box" x="242" y="86" width="40" height="100" />
+        <rect class="lot" x="66" y="82" width="168" height="104" />
+        {[96, 116, 136, 156].map((y) => <path class="stall" d={`M78 ${y}h144`} />)}
+        {[78, 104, 130, 156, 182, 208].map((x) => <path class="stall" d={`M${x} 90v92`} />)}
+        <path class="door" d="M58 44h8M100 74v8M150 74v8M242 44h-8M200 74v8" />
+        <path class="drive" d="M150 206V186" /><path class="drive" d="M144 196l6-8 6 8" />
+      </svg>
+      <b>Power center</b><span>Lot at the centre, stores at the edge. Each store is a destination entered from the car; nothing stands between them; nothing can be used without buying.</span>
+    </div>
+    <div class="phd__plan">
+      <svg viewBox="0 0 300 220" role="img" aria-label="Plan of a Powerhouse: an open court touching the street at the bottom, charging bays as stalls along its left edge with the vehicle loop behind them, rooms wrapping the top and right as a U, and a pedestrian route straight from the street into the court.">
+        <path class="road" d="M0 206H300" />
+        <rect class="loop" x="12" y="24" width="34" height="170" rx="6" />
+        <path class="set" d="M82 24h200v170h-44V70H82Z" />
+        <path class="op" d="M82 24h200v46" />
+        {[70, 100, 130, 160].map((y) => <rect class="bay" x="48" y={y} width="30" height="22" />)}
+        <rect class="open" x="82" y="70" width="156" height="124" rx="30" />
+        <path class="door" d="M130 24v-6M180 24v-6M230 24v-6" />
+        <path class="walk" d="M160 206V150" /><path class="walkhead" d="M154 158l6-8 6 8" />
+        <path class="drive" d="M29 206V194" /><path class="drive" d="M23 200l6-8 6 8" />
+      </svg>
+      <b>Powerhouse</b><span>Court at the centre, open to the street. The bays are stalls on its edge with the loop behind; the rooms wrap the rest as a U; the way in on foot is a route of its own, and the court can be used with nothing to buy.</span>
+    </div>
+    <div class="phd__inv">
+      <div><b>Centre</b><span>parking → open ground</span></div>
+      <div><b>Edge</b><span>stores → charging bays</span></div>
+      <div><b>Arrival</b><span>by car only → on foot too</span></div>
+      <div><b>Use</b><span>pass through to buy → stay in</span></div>
+    </div>
+    <p class="phd__note">Section 2.3, the ninth case; the four inversions are the rules of 4.3 read against their opposite. Diagrams, not to scale.</p>
+  </div>
+)}
+
+<style>
+  .phd { display:grid;gap:14px;min-width:0;color:var(--_tokens---color--fg);font-size:12px;line-height:1.4; }
+  .phd svg { width:100%;height:auto;fill:none;stroke:currentColor;stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round; }
+  .phd .t { fill:currentColor;stroke:none;font-size:13px; }
+  .phd .t-axis { font-size:11px;opacity:.65; }
+  .phd .t-zone { font-size:11px;letter-spacing:.04em;text-transform:uppercase;opacity:.55; }
+  .phd .t-r { text-anchor:end; } .phd .t-c { text-anchor:middle; }
+  .phd .t-b { font-weight:600; } .phd .t-s { font-size:11px;opacity:.75; }
+  .phd__note { margin:0;font-size:10px;line-height:1.4;color:var(--_tokens---color--muted); }
+  .phd__cols { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 24px; }
+  .phd__cols b { display:block;margin-bottom:6px;font-weight:600; }
+  .phd__cols ul { margin:0;padding:0;list-style:none;columns:2;column-gap:16px;font-size:11px;line-height:1.5; }
+  .phd__cols--labels { font-size:12px; }
+  @media (max-width: 699.98px) { .phd__cols { grid-template-columns:minmax(0,1fr); } .phd__cols ul { columns:1; } }
+
+  /* Node–place */
+  .phd--nodeplace .band { fill:var(--ph-light);fill-opacity:.55;stroke:none; }
+  .phd--nodeplace .axis { stroke-width:1; }
+  .phd--nodeplace .move { stroke:var(--ph-lamp,#d49963);stroke-width:1.6;stroke-dasharray:4 4; }
+  .phd--nodeplace .move-head { stroke-dasharray:none; }
+  .phd--nodeplace .today { fill:var(--ph-dawn,#8091aa);stroke:none; }
+  .phd--nodeplace .ph { fill:var(--ph-lamp,#d49963);stroke:none; }
+  .phd--nodeplace .set { fill:var(--_tokens---color--bg);stroke-width:1.4; }
+
+  /* Five needs */
+  .phd--needs { grid-template-columns:repeat(5,minmax(0,1fr));gap:16px 14px;align-items:start; }
+  .phd--needs .phd__need { display:grid;gap:6px;min-width:0; }
+  .phd--needs svg { width:36px;height:32px;stroke-width:1.6; }
+  .phd--needs b { font-weight:600; } .phd--needs span { font-size:11px;line-height:1.4;color:var(--_tokens---color--fg); }
+  .phd--needs .phd__note { grid-column:1 / -1; }
+  @media (max-width: 1023.98px) { .phd--needs { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+  @media (max-width: 699.98px) { .phd--needs { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+
+  /* No plug */
+  .phd__share { display:flex;height:34px;gap:2px; }
+  .phd__share span { display:flex;align-items:center;min-width:0;padding:0 10px;background:var(--ph-lamp,#d49963);color:#111;font-size:11px;white-space:nowrap;overflow:hidden; }
+  .phd__share span b { margin-right:6px;font-weight:700; }
+  .phd__share .is-plug, .phd__share .is-set { background:var(--ph-light);color:var(--_tokens---color--fg); }
+  .phd__share .is-op { background:var(--_tokens---color--fg);color:var(--_tokens---color--bg); }
+  .phd__share--tall { height:44px; }
+  .phd__rows { display:grid;gap:8px; }
+  .phd__axis { display:flex;justify-content:space-between;font-size:10px;color:var(--_tokens---color--muted); }
+  .phd__cells { display:grid;grid-template-columns:repeat(11,minmax(0,1fr));gap:4px; }
+  .phd__cells i { display:block;aspect-ratio:1;background:var(--ph-light); } .phd__cells i.is-on { background:var(--ph-lamp,#d49963); }
+  .phd__measure .phd__bar { grid-template-columns:minmax(0,1fr); } .phd__measure .phd__bar em { display:none; }
+  .phd__measure > b { font-weight:600; } .phd__measure > span { font-size:11px;line-height:1.4; }
+
+  /* Ground section */
+  .phd--ground .asphalt { fill:var(--ph-asphalt,#1b1714);stroke:none; }
+  .phd--ground .soil { fill:var(--ph-light);stroke:none; }
+  .phd--ground .planted { stroke:var(--ph-green);stroke-width:2; }
+  .phd--ground .tree { fill:var(--ph-green);fill-opacity:.3;stroke:var(--ph-green); }
+  .phd--ground .canopy { fill:var(--ph-lamp,#d49963);fill-opacity:.3; }
+  .phd--ground .sun { stroke:var(--ph-yellow);stroke-width:1.6; }
+  .phd--ground .heat { stroke:var(--ph-red);stroke-width:1.4;opacity:.8; }
+  .phd--ground .rain, .phd--ground .soak, .phd--ground .runoff { stroke:var(--ph-blue);stroke-width:1.6; }
+  .phd--ground .car { fill:var(--ph-light);fill-opacity:.5; }
+  .phd--ground .thermo { stroke-width:1; }
+  .phd--ground .thermo-fill { fill:var(--ph-red);stroke:none; }
+  .phd--ground .divide { stroke-width:1;stroke-dasharray:3 5;opacity:.5; }
+
+  /* Access layers, rules, measures share the layer fills */
+  .phd .site { stroke-width:1; }
+  .phd .loop { fill:var(--ph-grey);fill-opacity:.22;stroke:none; }
+  .phd .bay { fill:none;stroke-width:1; }
+  .phd .open { fill:var(--ph-lamp,#d49963);fill-opacity:.35;stroke:var(--ph-lamp,#d49963);stroke-width:1.4; }
+  .phd .set { fill:var(--ph-light);fill-opacity:.6;stroke-dasharray:4 4; }
+  .phd .op { fill:none;stroke-width:1.4; }
+  .phd .door { stroke-width:2; }
+  .phd__hours { display:grid;gap:6px;font-size:11px; }
+  .phd__hours > div { display:grid;grid-template-columns:72px minmax(0,1fr);align-items:center;gap:10px;position:relative;height:14px; }
+  .phd__hours i, .phd__day-track i { position:absolute;top:0;bottom:0;left:calc(var(--a) / 24 * 100%);width:calc((var(--b) - var(--a)) / 24 * 100%);background:var(--ph-light); }
+  .phd__hours > div { position:relative; } .phd__hours > div i { grid-column:2;left:calc(72px + 10px + (100% - 82px) * var(--a) / 24);width:calc((100% - 82px) * (var(--b) - var(--a)) / 24); }
+  .phd .is-open { background:var(--ph-lamp,#d49963) !important; }
+  .phd .is-set { background:var(--ph-grey) !important;opacity:.55; }
+  .phd .is-op { background:var(--_tokens---color--fg) !important;opacity:.7; }
+  .phd__hours > .phd__hours-axis { display:flex;justify-content:space-between;padding-left:82px;color:var(--_tokens---color--muted);font-size:10px; }
+
+  /* Catalogue counts */
+  .phd--catalogue { grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 28px; }
+  .phd__group { display:grid;gap:8px;min-width:0; }
+  .phd__group > b { font-weight:600; }
+  .phd__bar { display:grid;grid-template-columns:minmax(0,1fr) 24px;gap:2px 8px;align-items:center;font-size:11px; }
+  .phd__bar span { grid-column:1 / -1; }
+  .phd__track { height:10px;background:var(--ph-light); } .phd__track i { display:block;height:100%;background:var(--ph-lamp,#d49963); }
+  .phd__bar em { font-style:normal;font-variant-numeric:tabular-nums;font-weight:600;text-align:right; }
+  .phd--catalogue .phd__note { grid-column:1 / -1; }
+  @media (max-width: 699.98px) { .phd--catalogue { grid-template-columns:minmax(0,1fr); } }
+
+  /* Framework steps */
+  .phd--steps ol { display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin:0;padding:0;list-style:none; }
+  .phd--steps li { position:relative;display:grid;gap:4px;align-content:start;min-width:0;padding:10px;border:1px solid var(--_tokens---color--fg);font-size:11px;line-height:1.35; }
+  .phd--steps li:not(:last-child)::after { content:'→';position:absolute;right:-11px;top:10px;font-size:14px;color:var(--_tokens---color--muted); }
+  .phd--steps li b { font-weight:600;font-size:12px; } .phd--steps li small { font-size:10px;color:var(--_tokens---color--muted); }
+  .phd--steps .phd__n { font-size:10px;letter-spacing:.06em;color:var(--_tokens---color--muted); }
+  .phd--steps .is-out { background:var(--_tokens---color--fg);color:var(--_tokens---color--bg); }
+  @media (max-width: 1023.98px) { .phd--steps ol { grid-template-columns:repeat(3,minmax(0,1fr)); } .phd--steps li::after { display:none; } }
+  @media (max-width: 699.98px) { .phd--steps ol { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+
+  /* Three settings, six rules, measures */
+  .phd--settings, .phd--measures { grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 24px;align-items:start; }
+  .phd__setting, .phd__measure { display:grid;gap:6px;min-width:0; }
+  .phd__setting b, .phd__measure b, .phd__rule b { font-weight:600; }
+  .phd__setting span, .phd__measure span { font-size:11px;line-height:1.4; }
+  .phd--settings .phd__note, .phd--measures .phd__note, .phd--rules .phd__note, .phd--day .phd__note { grid-column:1 / -1; }
+  .phd .ground { opacity:.5;stroke-width:.8; } .phd .road { opacity:.3;stroke-width:3;stroke-dasharray:8 6; }
+  .phd .canopy { fill:var(--ph-lamp,#d49963);fill-opacity:.35; }
+  .phd .room { fill:var(--ph-light);fill-opacity:.5; }
+  .phd .tree { fill:var(--ph-green);fill-opacity:.3;stroke:var(--ph-green); }
+  .phd .green, .phd .planted { stroke:var(--ph-green);stroke-width:1.6; }
+  .phd .truck { fill:var(--ph-light);fill-opacity:.4; }
+  .phd--rules { grid-template-columns:repeat(6,minmax(0,1fr));gap:14px 16px; }
+  .phd__rule { display:grid;gap:4px;min-width:0;font-size:11px; } .phd__rule small { font-size:10px;color:var(--_tokens---color--muted); }
+  .phd .ring { stroke-width:1; } .phd .core { fill:currentColor;stroke:none; } .phd .wall { stroke-width:2; }
+  .phd .walk { stroke-dasharray:3 3; } .phd .soak { stroke:var(--ph-blue);stroke-width:1.4; }
+  .phd .life { stroke-width:1; } .phd .life-1 { fill:var(--ph-red);fill-opacity:.4;stroke:var(--ph-red); } .phd .life-2 { fill:var(--ph-orange);fill-opacity:.25;stroke:var(--ph-orange); } .phd .life-3 { fill:var(--ph-light);fill-opacity:.4; }
+  @media (max-width: 1023.98px) { .phd--rules { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+  @media (max-width: 699.98px) { .phd--settings, .phd--measures { grid-template-columns:minmax(0,1fr); } .phd--rules { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+
+  /* Power center, inverted */
+  .phd--inversion { grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 28px;align-items:start; }
+  .phd__plan { display:grid;gap:6px;min-width:0; } .phd__plan b { font-weight:600; } .phd__plan span { font-size:11px;line-height:1.4; }
+  .phd--inversion .box { fill:var(--ph-light);fill-opacity:.7;stroke-width:1.4; }
+  .phd--inversion .lot { fill:var(--ph-grey);fill-opacity:.28;stroke:none; }
+  .phd--inversion .stall { opacity:.35;stroke-width:.8; }
+  .phd--inversion .drive { stroke-width:1.6; } .phd--inversion .walkhead { stroke-width:1.4;stroke-dasharray:none; }
+  .phd__inv { grid-column:1 / -1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding-top:10px;border-top:1px solid var(--_tokens---color--line-soft);font-size:11px; }
+  .phd__inv div { display:grid;gap:2px; } .phd__inv b { font-weight:600;font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--_tokens---color--muted); }
+  .phd--inversion .phd__note { grid-column:1 / -1; }
+  @media (max-width: 699.98px) { .phd--inversion { grid-template-columns:minmax(0,1fr); } .phd__inv { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+
+  /* Day */
+  .phd__day-who { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;font-size:11px;line-height:1.35; }
+  .phd__day-who div { display:grid;gap:2px;padding:6px 8px;border-top:1px solid var(--_tokens---color--line); } .phd__day-who b { font-weight:600;font-variant-numeric:tabular-nums; }
+  .phd__day-rows { display:grid;gap:5px;font-size:11px; }
+  .phd__day-row { display:grid;grid-template-columns:minmax(0,180px) minmax(0,1fr);gap:10px;align-items:center; }
+  .phd__day-row span { overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+  .phd__day-track { position:relative;height:12px;background:color-mix(in srgb,var(--ph-light) 45%,transparent); }
+  /* The hour axis is a row like the others, so its 00–24 sit under the tracks, not the labels. */
+  .phd__day-rows .phd__hours-axis > div { display:flex;justify-content:space-between;min-width:0;color:var(--_tokens---color--muted);font-size:10px; }
+  .phd__legend { display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-size:10px;color:var(--_tokens---color--muted); }
+  .phd__legend i { width:10px;height:10px;margin-left:8px; } .phd__legend i:first-child { margin-left:0; }
+  @media (max-width: 699.98px) { .phd__day-who { grid-template-columns:repeat(2,minmax(0,1fr)); } .phd__day-row { grid-template-columns:minmax(0,110px) minmax(0,1fr); } }
+</style>

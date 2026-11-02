@@ -53,6 +53,7 @@ const FILLS_PARENT = ['sn-lock__icon'];
  */
 const GRAPHIC_FILES = ['VGWheel.astro', 'admin.astro', 'powerhouse.astro', 'BomMumTimeline.astro',
   'Powerhouse2030Scenario.astro', // charging-setting illustrations inside a data graphic, not UI symbols
+  'PowerhouseDiagram.astro',      // Chapter 3–4 explanatory diagrams: plans, sections, fields, clocks
 ];
 
 /**

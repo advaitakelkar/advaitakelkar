@@ -2,7 +2,7 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import slots from '../data/powerhouse-image-slots.json';
-// Narrative images for Chapters 1–2. A slot shows its image once a file named after
+// Narrative images for Chapters 1–4. A slot shows its image once a file named after
 // its id is in public/powerhouse/images/; until then it shows a placeholder.
 interface Props { section: string; }
 type Slot = { id: string; family: 'today' | 'proposal' | 'archival'; title: string; caption: string; src?: string; medium?: 'sketch' | 'realistic'; fit?: 'full' };
@@ -16,11 +16,11 @@ const credit = { today: 'AI-generated illustration', proposal: 'AI-generated ill
 const kind = { today: 'Today', proposal: 'The Powerhouse', archival: 'Archive' };
 ---
 {items.length > 0 && (
-  <div class:list={['phi', { 'phi--single': items.length === 1 }]} style={`--phi-cols:${items.length}`}>
+  <div class:list={['phi', { 'phi--single': items.length === 1, 'phi--three': items.length === 3 }]} style={`--phi-cols:${items.length}`}>
     {items.map((s) => (
       <figure class:list={['phi__fig', `phi__fig--${s.family}`, { 'phi__fig--sketch': s.medium === 'sketch', 'phi__fig--full': s.fit === 'full' }]} data-image-slot={s.id}>
         {s.src ? (
-          <a class="phi__image-link" href={s.src} target="_blank" rel="noopener" aria-label={`Open full-size image: ${s.title}`}><img src={s.src} alt={s.caption} loading="lazy" decoding="async" /></a>
+          <a class="phi__image-link" href={s.src} target="_blank" rel="noopener" data-phi-open aria-label={`Open full-size image: ${s.title}`}><img src={s.src} alt={s.caption} loading="lazy" decoding="async" sizes="(max-width: 699.98px) calc(100vw - 32px), (max-width: 1023.98px) 50vw, 33vw" /></a>
         ) : (
           <div class="phi__ph" role="img" aria-label={`Image to come: ${s.title}`}>
             <span class="phi__ph-kind">{kind[s.family]}</span>
@@ -39,9 +39,10 @@ const kind = { today: 'Today', proposal: 'The Powerhouse', archival: 'Archive' }
   .phi__fig img,.phi__ph { width:100%;aspect-ratio:3 / 2;object-fit:cover;display:block; }
   /* A single image opens its section as a wide band rather than a tall 3:2 block. */
   .phi--single :is(img,.phi__ph) { aspect-ratio:21 / 9; }
-  .phi__image-link { display:block;min-width:0; }
+  .phi__image-link { display:block;min-width:0;cursor:zoom-in; }
   .phi__image-link:focus-visible { outline:2px solid currentColor;outline-offset:3px; }
-  .phi__fig--sketch img { object-fit:contain;background:#fff; }
+  /* Sketches sit on their own paper: a hairline keeps the white sheet from floating in dark mode. */
+  .phi__fig--sketch img { object-fit:contain;background:#fff;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--_tokens---color--fg) 10%,transparent); }
   .phi--single .phi__fig--sketch img { aspect-ratio:3 / 2; }
   .phi--single .phi__fig--full img { aspect-ratio:auto;height:auto;object-fit:contain;background:#fff; }
   .phi__ph { box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-end;gap:6px;padding:16px;
@@ -53,5 +54,47 @@ const kind = { today: 'Today', proposal: 'The Powerhouse', archival: 'Archive' }
   .phi__ph code { font-size:10px;color:var(--_tokens---color--muted);overflow-wrap:anywhere; }
   .phi figcaption { font-size:12px;line-height:1.45;color:var(--_tokens---color--fg); }
   .phi figcaption span { display:block;margin-top:2px;font-size:10px;color:var(--_tokens---color--muted); }
-  @media (max-width: 699.98px) { .phi { grid-template-columns:minmax(0,1fr);gap:20px; } }
+  /* Tablet: three across is too small to read, so the row becomes a pair and a wide third. */
+  @media (max-width: 1023.98px) {
+    .phi--three { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .phi--three .phi__fig:last-child { grid-column:1 / -1; }
+    .phi--three .phi__fig:last-child img { aspect-ratio:21 / 9; }
+    .phi--three .phi__fig--sketch:last-child img { aspect-ratio:3 / 2; }
+  }
+  @media (max-width: 699.98px) { .phi, .phi--three { grid-template-columns:minmax(0,1fr);gap:20px; } .phi--three .phi__fig:last-child img { aspect-ratio:3 / 2; } }
 </style>
+<style is:global>
+  /* One lightbox for every chapter image, built once by the script below. */
+  .phi-lightbox { max-width:min(96vw,1600px);max-height:96dvh;padding:0;border:0;background:transparent;color:var(--_tokens---color--bg); }
+  .phi-lightbox::backdrop { background:color-mix(in srgb,#111 92%,transparent); }
+  .phi-lightbox img { display:block;max-width:min(96vw,1600px);max-height:calc(96dvh - 56px);width:auto;height:auto;margin:0 auto;object-fit:contain; }
+  .phi-lightbox p { margin:12px 0 0;font-size:12px;line-height:1.45;color:#fff;text-align:center;padding:0 16px; }
+  .phi-lightbox button { position:fixed;top:16px;right:16px;width:44px;height:44px;border:1px solid rgba(255,255,255,.4);border-radius:50%;background:rgba(0,0,0,.4);color:#fff;font-size:18px;cursor:pointer; }
+</style>
+<script>
+  // Chapter images open in place rather than in a new tab: the studies, the typology
+  // sections and the narrative slots all share one dialog. Esc and the backdrop close it.
+  const SEL = 'a.phi__image-link, a.ph2-study, .ph-studies a[href]';
+  let dialog: HTMLDialogElement | null = null;
+  const build = () => {
+    dialog = document.createElement('dialog');
+    dialog.className = 'phi-lightbox';
+    dialog.innerHTML = '<button type="button" aria-label="Close">×</button><img alt=""><p></p>';
+    dialog.querySelector('button')!.addEventListener('click', () => dialog!.close());
+    dialog.addEventListener('click', (e) => { if (e.target === dialog) dialog!.close(); });
+    document.body.append(dialog);
+    return dialog;
+  };
+  document.addEventListener('click', (e) => {
+    const link = (e.target as Element).closest<HTMLAnchorElement>(SEL);
+    if (!link || e.metaKey || e.ctrlKey) return;
+    e.preventDefault();
+    const d = dialog ?? build();
+    const img = link.querySelector('img');
+    // innerText keeps the caption's line break before the credit; it becomes a middle dot.
+    const caption = (link.closest('figure')?.querySelector<HTMLElement>('figcaption')?.innerText ?? img?.alt ?? '').trim().replace(/\s*\n+\s*/g, ' · ');
+    d.querySelector('img')!.src = link.href;
+    d.querySelector('p')!.textContent = caption;
+    d.showModal();
+  });
+</script>

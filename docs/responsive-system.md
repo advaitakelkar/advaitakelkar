@@ -115,3 +115,5 @@ Migration references: [Astro 6](https://docs.astro.build/en/guides/upgrade-to/v6
 ## Work project articles
 
 The lower Work-page layout follows [the Work article system](work-articles.md). The top two-column introduction is retained. All 18 Work pages are included in the shared browser matrix.
+
+Work-project Abstract summaries use a compact 12–14px scale at Adi’s request. The Brief keeps its existing size. Full article prose remains 16–18px. `compactReadingSelectors` and `minimumCompactReadingSize` track the Abstract separately in the responsive contract. The Powerhouse book chapters (`.ph__read-text p`, `.ph__book-body p`) read at 12px, the book’s two-column measure, at Adi’s request on 2 November 2026, and sit on the same compact list; the abstract beside the hypothesis keeps the reading size.

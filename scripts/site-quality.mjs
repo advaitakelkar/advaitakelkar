@@ -23,14 +23,14 @@ export function inspectPage(contract) {
     return true;
   };
   const label = (el) => ({ selector: el.tagName.toLowerCase() + (typeof el.className === 'string' && el.className ? '.' + el.className.trim().split(/\s+/).join('.') : ''), text: (el.getAttribute('aria-label') || el.textContent || '').trim().slice(0, 80) });
-  const reading = [...document.querySelectorAll(contract.readingSelectors.join(','))].filter(rendered).map(el => {
+  const reading = [...document.querySelectorAll([...contract.readingSelectors, ...(contract.compactReadingSelectors ?? [])].join(','))].filter(rendered).map(el => {
     const s = getComputedStyle(el), size = Number(s.fontSize.replace('px', '')), leading = Number(s.lineHeight.replace('px', '')) / size;
-    return { ...label(el), size, leading };
+    return { ...label(el), size, leading, minimum: contract.compactReadingSelectors?.some(selector => el.matches(selector)) ? contract.minimumCompactReadingSize : contract.minimumReadingSize };
   });
   const touch = innerWidth < contract.breakpoints.lg || contract.coarsePointer === true;
   const targets = touch ? [...document.querySelectorAll(contract.touchSelectors.join(','))].filter(rendered).map(el => {
     const r = el.getBoundingClientRect();
-    return { ...label(el), width: r.width, height: r.height };
+    return { ...label(el), width: r.width, height: r.height, minimum: contract.compactTouchSelectors?.some(selector => el.matches(selector)) ? contract.minimumCompactTouchSize : contract.minimumTouchSize };
   }) : [];
   const fixed = [...document.querySelectorAll(contract.fixedControlSelectors.join(','))].filter(el => rendered(el) && getComputedStyle(el).position === 'fixed');
   const overlappingControls = [];
@@ -44,8 +44,8 @@ export function inspectPage(contract) {
     width: innerWidth,
     horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
     readingCount: reading.length,
-    smallReading: reading.filter(x => x.size < contract.minimumReadingSize - .1 || x.leading < contract.minimumReadingLineHeight - .01),
-    smallControls: targets.filter(x => x.width < contract.minimumTouchSize - .5 || x.height < contract.minimumTouchSize - .5),
+    smallReading: reading.filter(x => x.size < x.minimum - .1 || x.leading < contract.minimumReadingLineHeight - .01),
+    smallControls: targets.filter(x => x.width < x.minimum - .5 || x.height < x.minimum - .5),
     brokenImages: [...document.images].filter(el => rendered(el) && el.currentSrc && el.complete && !el.naturalWidth).map(el => el.currentSrc),
     unlabeledControls: [...document.querySelectorAll('button,input:not([type=hidden])')].filter(rendered).filter(el => !el.textContent.trim() && !el.getAttribute('aria-label') && !el.getAttribute('aria-labelledby') && !el.getAttribute('title') && !el.labels?.length).map(label),
   };
