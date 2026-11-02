@@ -4,10 +4,10 @@ import { join } from 'node:path';
 import slots from '../data/powerhouse-image-slots.json';
 // Narrative images for Chapters 1–4. A slot shows its image once a file named after
 // its id is in public/powerhouse/images/; until then it shows a placeholder.
-interface Props { section: string; }
-type Slot = { id: string; family: 'today' | 'proposal' | 'archival'; title: string; caption: string; src?: string; medium?: 'sketch' | 'realistic'; fit?: 'full' };
-const { section } = Astro.props;
-const items = ((slots as Record<string, Slot[]>)[section] || []).map((s) => {
+interface Props { section: string; imageIndex?: number; inline?: boolean; only?: 'diagram'; }
+type Slot = { id: string; family: 'today' | 'proposal' | 'archival'; title: string; caption: string; src?: string; medium?: 'sketch' | 'realistic' | 'diagram'; fit?: 'full' };
+const { section, imageIndex, inline = false, only } = Astro.props;
+const items = ((slots as Record<string, Slot[]>)[section] || []).filter((s,index) => (imageIndex === undefined || index === imageIndex) && (!only || s.medium === only)).map((s) => {
   if (s.src) return s;
   const ext = ['webp', 'jpg', 'png'].find((e) => existsSync(join(process.cwd(), 'public/powerhouse/images', `${s.id}.${e}`)));
   return { ...s, src: ext ? `/powerhouse/images/${s.id}.${ext}` : undefined };
@@ -16,11 +16,11 @@ const credit = { today: 'AI-generated illustration', proposal: 'AI-generated ill
 const kind = { today: 'Today', proposal: 'The Powerhouse', archival: 'Archive' };
 ---
 {items.length > 0 && (
-  <div class:list={['phi', { 'phi--single': items.length === 1, 'phi--three': items.length === 3 }]} style={`--phi-cols:${items.length}`}>
+  <div class:list={['phi', { 'phi--single': items.length === 1, 'phi--inline': inline }]}>
     {items.map((s) => (
-      <figure class:list={['phi__fig', `phi__fig--${s.family}`, { 'phi__fig--sketch': s.medium === 'sketch', 'phi__fig--full': s.fit === 'full' }]} data-image-slot={s.id}>
+      <figure class:list={['phi__fig', `phi__fig--${s.family}`, { 'phi__fig--sketch': s.medium === 'sketch' || s.medium === 'diagram', 'phi__fig--diagram': s.medium === 'diagram', 'phi__fig--full': s.fit === 'full' }]} data-image-slot={s.id}>
         {s.src ? (
-          <a class="phi__image-link" href={s.src} target="_blank" rel="noopener" data-phi-open aria-label={`Open full-size image: ${s.title}`}><img src={s.src} alt={s.caption} loading="lazy" decoding="async" sizes="(max-width: 699.98px) calc(100vw - 32px), (max-width: 1023.98px) 50vw, 33vw" /></a>
+          <a class="phi__image-link" href={s.src} target="_blank" rel="noopener" data-phi-open aria-label={`Open full-size image: ${s.title}`}><img src={s.src} alt={s.caption} loading="lazy" decoding="async" sizes="(max-width: 699.98px) calc(100vw - 32px), 50vw" /></a>
         ) : (
           <div class="phi__ph" role="img" aria-label={`Image to come: ${s.title}`}>
             <span class="phi__ph-kind">{kind[s.family]}</span>
@@ -28,23 +28,24 @@ const kind = { today: 'Today', proposal: 'The Powerhouse', archival: 'Archive' }
             <code>public/powerhouse/images/{s.id}.webp</code>
           </div>
         )}
-        <figcaption><b>{s.title}.</b>{' '}{s.caption}<span>{s.medium === 'sketch' ? (s.family === 'proposal' ? 'AI-generated architectural study, speculative' : 'AI-generated architectural study') : credit[s.family]}</span></figcaption>
+        <figcaption><b>{s.title}.</b>{' '}{s.caption}<span>{s.medium === 'diagram' ? 'AI-generated architectural programme diagram, speculative' : s.medium === 'sketch' ? (s.family === 'proposal' ? 'AI-generated architectural study, speculative' : 'AI-generated architectural study') : credit[s.family]}</span></figcaption>
       </figure>
     ))}
   </div>
 )}
 <style>
-  .phi { display:grid;grid-template-columns:repeat(var(--phi-cols),minmax(0,1fr));gap:16px var(--ph-reading-gap, 40px);margin:0 0 32px; }
+  /* Narrative renders share the reading columns, including single-image sections. */
+  .phi { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:24px var(--ph-reading-gap, 40px);margin:0 0 32px; }
   .phi__fig { margin:0;display:grid;gap:10px;min-width:0; }
   .phi__fig img,.phi__ph { width:100%;aspect-ratio:3 / 2;object-fit:cover;display:block; }
-  /* A single image opens its section as a wide band rather than a tall 3:2 block. */
-  .phi--single :is(img,.phi__ph) { aspect-ratio:21 / 9; }
   .phi__image-link { display:block;min-width:0;cursor:zoom-in; }
   .phi__image-link:focus-visible { outline:2px solid currentColor;outline-offset:3px; }
   /* Sketches sit on their own paper: a hairline keeps the white sheet from floating in dark mode. */
   .phi__fig--sketch img { object-fit:contain;background:#fff;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--_tokens---color--fg) 10%,transparent); }
   .phi--single .phi__fig--sketch img { aspect-ratio:3 / 2; }
   .phi--single .phi__fig--full img { aspect-ratio:auto;height:auto;object-fit:contain;background:#fff; }
+  .phi__fig--diagram { grid-column:1 / -1;width:100%;max-width:960px;margin-inline:auto; }
+  .phi__fig--diagram img { max-height:560px; }
   .phi__ph { box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-end;gap:6px;padding:16px;
     border:1px dashed color-mix(in srgb,var(--_tokens---color--fg) 28%,var(--_tokens---color--bg));
     background:color-mix(in srgb,var(--_tokens---color--fg) 5%,var(--_tokens---color--bg));color:var(--_tokens---color--fg); }
@@ -54,18 +55,16 @@ const kind = { today: 'Today', proposal: 'The Powerhouse', archival: 'Archive' }
   .phi__ph code { font-size:10px;color:var(--_tokens---color--muted);overflow-wrap:anywhere; }
   .phi figcaption { font-size:12px;line-height:1.45;color:var(--_tokens---color--fg); }
   .phi figcaption span { display:block;margin-top:2px;font-size:10px;color:var(--_tokens---color--muted); }
-  /* Tablet: three across is too small to read, so the row becomes a pair and a wide third. */
-  @media (max-width: 1023.98px) {
-    .phi--three { grid-template-columns:repeat(2,minmax(0,1fr)); }
-    .phi--three .phi__fig:last-child { grid-column:1 / -1; }
-    .phi--three .phi__fig:last-child img { aspect-ratio:21 / 9; }
-    .phi--three .phi__fig--sketch:last-child img { aspect-ratio:3 / 2; }
-  }
-  @media (max-width: 699.98px) { .phi, .phi--three { grid-template-columns:minmax(0,1fr);gap:20px; } .phi--three .phi__fig:last-child img { aspect-ratio:3 / 2; } }
+  @media (max-width: 699.98px) { .phi { grid-template-columns:minmax(0,1fr);gap:20px; } }
+  /* In the editorial flow, each image belongs to a text column with its caption. */
+  .phi--inline { display:block;margin:0 0 18px;break-inside:avoid; }
+  .phi--inline .phi__fig { gap:7px;break-inside:avoid; }
+  .phi--inline img { aspect-ratio:auto;height:auto;object-fit:contain; }
+  .phi--inline figcaption { font-size:11px;line-height:1.4; }
 </style>
 <style is:global>
   /* One lightbox for every chapter image, built once by the script below. */
-  .phi-lightbox { max-width:min(96vw,1600px);max-height:96dvh;padding:0;border:0;background:transparent;color:var(--_tokens---color--bg); }
+  .phi-lightbox { inset:0;margin:auto;max-width:min(96vw,1600px);max-height:96dvh;padding:0;border:0;background:transparent;color:var(--_tokens---color--bg); }
   .phi-lightbox::backdrop { background:color-mix(in srgb,#111 92%,transparent); }
   .phi-lightbox img { display:block;max-width:min(96vw,1600px);max-height:calc(96dvh - 56px);width:auto;height:auto;margin:0 auto;object-fit:contain; }
   .phi-lightbox p { margin:12px 0 0;font-size:12px;line-height:1.45;color:#fff;text-align:center;padding:0 16px; }
@@ -94,6 +93,7 @@ const kind = { today: 'Today', proposal: 'The Powerhouse', archival: 'Archive' }
     // innerText keeps the caption's line break before the credit; it becomes a middle dot.
     const caption = (link.closest('figure')?.querySelector<HTMLElement>('figcaption')?.innerText ?? img?.alt ?? '').trim().replace(/\s*\n+\s*/g, ' · ');
     d.querySelector('img')!.src = link.href;
+    d.querySelector('img')!.alt = img?.alt ?? caption;
     d.querySelector('p')!.textContent = caption;
     d.showModal();
   });

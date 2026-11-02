@@ -1,0 +1,39 @@
+---
+import PowerhouseImages from './PowerhouseImages.astro';
+import slots from '../data/powerhouse-image-slots.json';
+interface Props {
+  section: string;
+  paragraphs: string[];
+  allParagraphs?: string[];
+  offset?: number;
+}
+const { section, paragraphs, allParagraphs = paragraphs, offset = 0 } = Astro.props;
+const images = ((slots as Record<string, {medium?:string}[]>)[section] || [])
+  .map((image,index) => ({...image,index})).filter(image => image.medium !== 'diagram');
+const eligible = allParagraphs.map((text,index) => ({text,index})).filter(item => !item.text.startsWith('<figure'));
+const placements = images.map((image,index) => ({
+  imageIndex: image.index,
+  paragraph: eligible[Math.floor(index * eligible.length / images.length)]?.index ?? 0,
+}));
+const localImages = placements.filter(item => item.paragraph >= offset && item.paragraph < offset + paragraphs.length);
+// Most passages stay in two columns; a complete three-image sequence can use three.
+const wideColumns = localImages.length === 3 && paragraphs.length >= 3 ? 3 : 2;
+const isBlock = (text:string) => /^<(figure|h3|p)\b/.test(text);
+---
+<div class="ph-story" data-editorial-flow={section} style={`--ph-story-wide:${wideColumns}`}>
+  {paragraphs.map((paragraph,index) => <>
+    {localImages.filter(item => item.paragraph === offset + index).map(item =>
+      <PowerhouseImages section={section} imageIndex={item.imageIndex} inline />
+    )}
+    {isBlock(paragraph) ? <Fragment set:html={paragraph} /> : <p set:html={paragraph} />}
+  </>)}
+</div>
+<style>
+  .ph-story { width:100%;min-width:0;columns:2;column-gap:var(--ph-reading-gap,40px);column-fill:balance;font-size:var(--ph-reading-size,12px);line-height:var(--ph-reading-leading,1.55);color:var(--_tokens---color--fg);orphans:3;widows:3; }
+  .ph-story :global(p) { margin:0 0 .9em;max-width:none;font-size:inherit;line-height:inherit;orphans:3;widows:3; }
+  .ph-story :global(h3) { margin:0 0 .8em;break-after:avoid; }
+  .ph-story :global(sup) { font-size:.72em;line-height:0;vertical-align:super; }
+  .ph-story :global(sup a) { color:inherit;text-decoration:none;font-variant-numeric:tabular-nums; }
+  @media (min-width: 1366px) { .ph-story { columns:var(--ph-story-wide); } }
+  @media (max-width: 699.98px) { .ph-story { columns:1; } }
+</style>

@@ -903,3 +903,16 @@ while keeping phone, tablet and desktop reading and navigation usable.
   incorrectly waited for deliberately hidden homepage carousel images at each width. The check
   now requires rendered visibility and intersection on both viewport axes; broken visible images
   still fail the separate integrity check. A corrected workflow run is required before release.
+
+## 2026-11-02 — Powerhouse diagrams, editorial flow and research review (local)
+- Completed 27 generated architectural programme studies with centred white margins and approximately 10% sketch character. Saved PNG masters, WebPs, prompts and source records in the Desktop Powerhouse package; installed the WebPs locally. Previous artwork preserved. See docs/powerhouse-programme-diagrams-2026-11-02.md.
+- Compact abstract, historical 3×2 overview, centred image viewer, and narrative images interleaved with prose across all four chapters. Editorial reading defaults to two columns; selected complete three-image sequences can use three on wide screens; phones stack. Section 1.1 explicitly uses two columns.
+- Validation: diagram pass pnpm check; editorial-flow lint, 95-page build and built-site integrity audit passed. All 116 manuscript body blocks and all 110 note callouts preserved; all 58 quantitative tables/series unchanged. Final desktop/390px phone flow spot checks passed. No new full-site responsive matrix was run.
+- Completed advisory review of the four research chapters, 109 notes and 117 bibliography entries; selected primary-source checks, not full-text certification of every source. Manuscript and citations unchanged. Reports: /Users/adi/Documents/Codex/2026-11-01/ene/outputs/Powerhouse four chapter research audit.md and Powerhouse notes and bibliography audit.md.
+- Adi's clarified scope: site-agnostic research before site analysis; eventual one primary design site with comparisons. Charging is the organising reason; a public court can be the physical centre. Energy income must cover free-public-space running/maintenance, while construction may use other funding. These decisions inform the audit; they have not been rewritten into the manuscript.
+- No commit, push, publication or InDesign/PDF synchronization.
+
+## 2026-11-02 — Powerhouse bibliography pruning (local)
+- At Adi’s request, removed 18 entries with no identifiable use in the current four chapters, notes or figure sources. Bibliography reduced from 117 to 99. All 109 notes and every chapter body block are unchanged.
+- Removed entries preserved in the active Codex outputs/Powerhouse removed bibliography entries.md; full pre-change JSON preserved in work/bibliography-cleanup. Earlier audit reports retain original entry numbering and now identify the cleanup.
+- Production build passed. Source/edition mismatches documented in the audit remain unresolved; pruning does not certify the remaining references. No publication.
