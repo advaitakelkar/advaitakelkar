@@ -24,7 +24,7 @@ page clearance and the project filter dock follow it, including safe-area paddin
 
 | Role | Rule |
 | --- | --- |
-| Prose | `--_tokens---type--reading`: fluid 16–18px; never the caption token |
+| Prose | `--_tokens---type--reading`: 14px; never the caption token |
 | Reading rhythm | `--_tokens---leading--reading`: 1.6; typical measure up to 68ch |
 | Headings | Existing fluid heading scales; retain the established hierarchy |
 | Captions and metadata | Existing micro/tag scales; do not use them for paragraphs |
@@ -116,4 +116,4 @@ Migration references: [Astro 6](https://docs.astro.build/en/guides/upgrade-to/v6
 
 The lower Work-page layout follows [the Work article system](work-articles.md). The top two-column introduction is retained. All 18 Work pages are included in the shared browser matrix.
 
-Work-project Abstract summaries use a compact 12–14px scale at Adi’s request. The Brief keeps its existing size. Full article prose remains 16–18px. `compactReadingSelectors` and `minimumCompactReadingSize` track the Abstract separately in the responsive contract. The Powerhouse book chapters (`.ph__read-text p`, `.ph__book-body p`) read at 12px, the book’s two-column measure, at Adi’s request on 2 November 2026, and sit on the same compact list; the abstract beside the hypothesis uses a compact 12–14px scale at Adi’s request on 2 November 2026, preserving the larger hypothesis.
+Work-project Abstract summaries use a compact 12–14px scale at Adi’s request. The Brief keeps its existing size. Full article prose uses 14px at Adi’s request on 4 November 2026. `compactReadingSelectors` and `minimumCompactReadingSize` track the Abstract separately in the responsive contract. The Powerhouse book chapters (`.ph__read-text p`, `.ph__book-body p`) read at 14px at Adi’s request on 4 November 2026, and sit on the same compact list; the abstract beside the hypothesis uses a compact 12–14px scale at Adi’s request on 2 November 2026, preserving the larger hypothesis.

@@ -6,6 +6,10 @@ from what he says, and verifies.
 
 Last surveyed: **2026-09-09** — HEAD `be65d53`, `pnpm build` = 80 pages.
 
+## Powerhouse film and typography — 4 November 2026
+
+Added the v12 90-second film as a 1280px web export with muted autoplay, looping, native controls and reduced-motion handling. Abstract spans two text columns; hypothesis and video share the next row; Mindmap/PDF links and team portraits follow below. The black title includes the film’s circle/lightning mark as the first O. Collapsed headings and pinned earlier headings are compact. Standard site body text and Powerhouse chapter prose use 14px; the reading contract matches. Source film stays in the canonical Drive film folder.
+
 ---
 
 ## Powerhouse architectural programme diagrams — local review, 2 November 2026
