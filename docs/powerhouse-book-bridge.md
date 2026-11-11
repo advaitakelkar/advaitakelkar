@@ -1,7 +1,8 @@
 # Powerhouse book bridge — InDesign ↔ website
 
 Status: **32-page editorial report edition completed on 26 October 2026, at Adi’s request.**
-The current book is `The Powerhouse_Editorial Report_Ch1-4.indd` in the Book folder below.
+**Superseded 5 November 2026:** the current book is the 62-page edition in the InDesign folder below, not the 32-page edition described here. The website text is final.
+The earlier book was `The Powerhouse_Editorial Report_Ch1-4.indd`.
 It contains the current website text, six native tables and native editable diagram and map
 objects. The preceding 35-page four-chapter edition and earlier two-chapter edition are preserved. Chapters share one continuous manuscript story; all chapter notes and the bibliography share a separate reference story at the end. Nothing syncs automatically.
 
@@ -28,8 +29,8 @@ the `.indd` is always the latest export; the site only ever copies it, never edi
 | `src/data/powerhouse-book.json` | The book text as the website reads it. Chapter openings `ch1` … `ch4`, sections `1-1` … `4-6`, and `bibliography`. |
 | `src/components/PowerhouseBookText.astro` | Renders one block; links each `<sup>` to its note. |
 | `src/pages/projects/the-powerhouse.astro` | The `book` array: chapter and section titles, numbers, book pages. |
-| InDesign | `HUB/1 Projects/Academic/MArch/Graduate Thesis/Graduate Seminar/Working/Book/The Powerhouse_Editorial Report_Ch1-4.indd` (current). |
-| PDF | `The Powerhouse_Editorial Report_Ch1-4.pdf` beside the `.indd`; copied by `scripts/sync-powerhouse-pdf.mjs` (`pnpm book:pdf`). |
+| InDesign | `HUB/1 Projects/Academic/MArch/Graduate Thesis/1 The Powerhouse/InDesign/Current Edition - 62 pages/The Powerhouse - Full Book Chapters 1-4 - 2026-11-02.indd` (current). |
+| PDF | `… - Delivery.pdf` beside the `.indd` (web version); copied by `scripts/sync-powerhouse-pdf.mjs` (`pnpm book:pdf`). |
 
 ## Data contract (what must survive a round trip)
 

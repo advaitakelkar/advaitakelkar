@@ -5,10 +5,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import { execFileSync } from 'node:child_process';
 
-const BOOK_DIR = path.join(os.homedir(), 'My Drive/HUB/1 Projects/Academic/MArch/Graduate Thesis/Graduate Seminar/Working/Book');
-const INDD = path.join(BOOK_DIR, 'The Powerhouse_Editorial Report_Ch1-4.indd');
-const src = process.argv[2] || INDD.replace(/\.indd$/, '.pdf');
+const BOOK_DIR = path.join(os.homedir(), 'My Drive/HUB/1 Projects/Academic/MArch/Graduate Thesis/1 The Powerhouse/InDesign/Current Edition - 62 pages');
+const INDD = path.join(BOOK_DIR, 'The Powerhouse - Full Book Chapters 1-4 - 2026-11-02.indd');
+const src = process.argv[2] || INDD.replace(/\.indd$/, ' - Delivery.pdf');
 const root = path.dirname(path.dirname(new URL(import.meta.url).pathname));
 const outPdf = path.join(root, 'public/powerhouse/the-powerhouse-book.pdf');
 const outJson = path.join(root, 'src/data/powerhouse-pdf.json');
@@ -18,7 +19,8 @@ const pdfStat = fs.statSync(src);
 fs.mkdirSync(path.dirname(outPdf), { recursive: true });
 fs.copyFileSync(src, outPdf);
 
-const pages = (fs.readFileSync(src, 'latin1').match(/\/Type\s*\/Page(?!s)/g) || []).length;
+// pdfinfo reads compressed PDFs, where /Type /Page objects are hidden from a text search.
+const pages = Number(execFileSync('pdfinfo', [src], { encoding: 'utf8' }).match(/^Pages:\s+(\d+)/m)?.[1] ?? 0);
 const meta = {
   file: '/powerhouse/the-powerhouse-book.pdf',
   source: path.basename(src),

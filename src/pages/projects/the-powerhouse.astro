@@ -997,7 +997,7 @@ const mindmapBibs = rawBibs.map((b) => ({
       </div>
     </details>
 
-    <details class="ph__fold ph__fold--section" id="s-1-1" data-section-panel="1-1" open>
+    <details class="ph__fold ph__fold--section" id="s-1-1" data-section-panel="1-1">
       <summary class="ph__fold-sum">
         <span class="ph__fold-title">{book[0].sections[0].title}<sup class="ph__section-number">{book[0].sections[0].num}</sup></span>
         <span class="ph__fold-right">
@@ -1579,7 +1579,8 @@ const mindmapBibs = rawBibs.map((b) => ({
   .ph__intro-col { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
   .ph__abstract-text { columns: 2 22rem; column-gap: var(--_tokens---space--small); }
   .ph__hypothesis-film { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: var(--_tokens---space--small); align-items: start; }
-  .ph__film { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; background: #000; }
+  .ph__film { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; background: #000; align-self: center; }
+  @media (min-width: 1024px) { .ph__hypothesis-film { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); } }
   /* Compact abstract lets the hypothesis carry the opening hierarchy. */
   .ph__intro p:not(.ph__kicker) { font-size: clamp(12px, .7rem + .2vw, 14px); line-height: 1.55; margin: 0; max-width: none; color: var(--_tokens---color--fg); }
   .ph__intro p.ph__intro-claim { font-size: var(--_tokens---type--medium); line-height: 1.15; letter-spacing: -.03em; }
@@ -3424,10 +3425,10 @@ const mindmapBibs = rawBibs.map((b) => ({
   .ph__references h2 { font-size:clamp(1.75rem,3vw,2.625rem);font-weight:700;line-height:1.1;margin:0 0 24px; }
   .ph__reference-chapter h3 { font-size:21px;font-weight:700;line-height:1.3;margin-bottom:20px; }
   .ph__references :is(.ph__notes-list,.ph__bib-list) li { margin-bottom:12px; }
-  .ph__fold-title { font-weight:400; }
+  .ph__fold-title { font-weight:500; }
   .ph__ch-title { font-size:clamp(1.75rem,3.2vw,2.625rem);font-weight:600;line-height:1.1;letter-spacing:-.025em; }
-  :is([data-chapter-group="ch1"],[data-chapter-group="ch2"],[data-chapter-group="ch3"],[data-chapter-group="ch4"]) .ph__fold-title { font-size:clamp(1.625rem,1.35rem + .8vw,2rem); }
-  :is([data-chapter-group="ch1"],[data-chapter-group="ch2"],[data-chapter-group="ch3"],[data-chapter-group="ch4"]) .ph__fold:not([open]) > .ph__fold-sum .ph__fold-title { font-size:16px; line-height:1.3; }
+  :is([data-chapter-group="ch1"],[data-chapter-group="ch2"],[data-chapter-group="ch3"],[data-chapter-group="ch4"]) .ph__fold-title { font-size:20px; line-height:1.3; font-weight:500; }
+  :is([data-chapter-group="ch1"],[data-chapter-group="ch2"],[data-chapter-group="ch3"],[data-chapter-group="ch4"]) .ph__fold:not([open]) > .ph__fold-sum .ph__fold-title { font-size:20px; line-height:1.3; font-weight:500; }
   .ph__fold:not([open]) > .ph__fold-sum { padding-block:5px; min-height:32px; }
   @media (min-width: 700px) { .ph__column-turn { break-before:column; } }
   @media (max-width: 699.98px) {
@@ -3445,32 +3446,20 @@ const mindmapBibs = rawBibs.map((b) => ({
     }
     .ph__fold[open] > .ph__fold-sum {
       position:sticky;
-      top:calc(var(--_tokens---layout--bar, 52px) + var(--ph-toc-h, 140px) + var(--ph-chapter-heading-h, 64px) + var(--ph-heading-stack-h, 0px));
+      top:calc(var(--_tokens---layout--bar, 52px) + var(--ph-toc-h, 140px) + var(--ph-chapter-heading-h, 64px));
       z-index:31;
       background:var(--_tokens---color--bg);
     }
     .ph__fold { scroll-margin-top:calc(var(--_tokens---layout--bar, 52px) + var(--ph-toc-h, 140px) + var(--ph-chapter-heading-h, 64px)); }
   }
 
-  :global(.ph__heading-stack) { display:none; }
-  @media (min-width: 1024px) {
-    :global(.ph__heading-stack) { position:fixed;display:flex;flex-direction:column;z-index:33;background:var(--_tokens---color--bg); }
-    :global(.ph__heading-stack button) { display:flex;align-items:center;justify-content:space-between;gap:16px;text-align:left;border:0;background:var(--_tokens---color--bg);color:var(--_tokens---color--muted);padding:3px 0;min-height:28px;font:inherit;cursor:pointer; }
-    :global(.ph__heading-stack .ph__fold-title) { font-size:14px;line-height:1.3; }
-  }
-
-  @media (min-width: 1024px) {
-    .ph__stacked-original > .ph__fold-sum { visibility:hidden; }
-  }
   /* Scrolling content remains faintly visible through the pinned reading layers. */
   @media (min-width: 1024px) {
     .ph__toc,
     .ph__ch-group[open] > .ph__ch-sum,
-    .ph__fold[open] > .ph__fold-sum,
-    :global(.ph__heading-stack) {
+    .ph__fold[open] > .ph__fold-sum {
       background:color-mix(in srgb, var(--_tokens---color--bg) 90%, transparent);
     }
-    :global(.ph__heading-stack button) { background:transparent; }
   }
 
 </style>
@@ -3693,8 +3682,13 @@ const mindmapBibs = rawBibs.map((b) => ({
     chapterBtns.forEach((b) =>
       b.addEventListener('click', () => {
         const ch = b.dataset.chapter!;
-        onlyChapter(book.querySelector<HTMLDetailsElement>(`[data-chapter-group="${ch}"]`));
-        goTo(book.querySelector<HTMLElement>(`[data-chapter-head="${ch}"]`), ch.replace('ch', '') + '-0');
+        const group = book.querySelector<HTMLDetailsElement>(`[data-chapter-group="${ch}"]`);
+        group?.querySelectorAll<HTMLDetailsElement>('details.ph__fold').forEach(fold => { fold.open = false; });
+        openSections = openSections.filter(fold => fold.open);
+        onlyChapter(group);
+        index?.removeAttribute('open');
+        setCurrent(ch.replace('ch', '') + '-0');
+        jump(group || book.querySelector<HTMLElement>(`[data-chapter-head="${ch}"]`));
       })
     );
     sectionBtns.forEach((b) =>
@@ -3704,18 +3698,19 @@ const mindmapBibs = rawBibs.map((b) => ({
         goTo(target, sid);
       })
     );
+    chGroups.forEach(group => {
+      group.querySelector(':scope > summary')?.addEventListener('click', () => {
+        if (!group.open) {
+          group.querySelectorAll<HTMLDetailsElement>('details.ph__fold').forEach(fold => { fold.open = false; });
+          openSections = openSections.filter(fold => fold.open);
+        }
+      });
+    });
     chGroups.forEach((group) =>
       group.addEventListener('toggle', () => {
         if (group.open && group.dataset.chapterGroup) {
           onlyChapter(group);
           const chNum = group.dataset.chapterGroup.replace('ch', '');
-          const openFoldInGroup = group.querySelector<HTMLDetailsElement>('details.ph__fold[open]');
-          if (!openFoldInGroup) {
-            const firstFold = group.querySelector<HTMLDetailsElement>('details.ph__fold');
-            if (firstFold) openSection(firstFold);
-          } else {
-            openSection(openFoldInGroup);
-          }
           const activeFold = group.querySelector<HTMLDetailsElement>('details.ph__fold[open]');
           setCurrent(activeFold?.dataset.sectionPanel || `${chNum}-0`);
           if (!jumping) {
@@ -3738,53 +3733,6 @@ const mindmapBibs = rawBibs.map((b) => ({
         }
       })
     );
-
-    // Chapter openings and sections in document order.
-    // Accumulate preceding subsection headings above the section being read.
-    const headingStack = document.createElement('nav');
-    headingStack.className = 'ph__heading-stack';
-    headingStack.setAttribute('aria-label', 'Earlier subsections');
-    book.append(headingStack);
-    let stackKey = '';
-    const syncHeadingStack = () => {
-      if (!matchMedia('(min-width: 1024px)').matches) {
-        headingStack.replaceChildren();
-        book.querySelectorAll('.ph__stacked-original').forEach(el => el.classList.remove('ph__stacked-original'));
-        stackKey = '';
-        book.style.setProperty('--ph-heading-stack-h', '0px');
-        return;
-      }
-      const group = chGroups.find(g => g.open);
-      const chapterHeading = group?.querySelector<HTMLElement>(':scope > .ph__ch-sum');
-      if (!group || !chapterHeading) return;
-      const chapterRect = chapterHeading.getBoundingClientRect();
-      const folds = [...group.querySelectorAll<HTMLDetailsElement>('details.ph__fold[data-section-panel]')];
-      const passed = folds.filter(fold => fold.getBoundingClientRect().bottom <= chapterRect.bottom + headingStack.offsetHeight + 4);
-      book.querySelectorAll('.ph__stacked-original').forEach(el => el.classList.remove('ph__stacked-original'));
-      passed.forEach(fold => fold.classList.add('ph__stacked-original'));
-      const key = passed.map(fold => fold.id).join('|');
-      if (key !== stackKey) {
-        stackKey = key;
-        headingStack.replaceChildren(...passed.map(fold => {
-          const button = document.createElement('button');
-          button.type = 'button';
-          const title = fold.querySelector('.ph__fold-title');
-          if (title) button.append(title.cloneNode(true));
-          button.addEventListener('click', () => goTo(fold, fold.dataset.sectionPanel!));
-          return button;
-        }));
-      }
-      const firstHeading = folds[0]?.querySelector('summary')?.getBoundingClientRect();
-      if (firstHeading) {
-        headingStack.style.left = `${firstHeading.left}px`;
-        headingStack.style.width = `${firstHeading.width}px`;
-      }
-      headingStack.style.top = `${chapterRect.bottom}px`;
-      book.style.setProperty('--ph-heading-stack-h', `${headingStack.offsetHeight}px`);
-    };
-    addEventListener('scroll', syncHeadingStack, { passive: true });
-    addEventListener('resize', syncHeadingStack);
-    syncHeadingStack();
 
     const markers: [HTMLElement, string][] = sectionPanels.map((el) => [
       el,

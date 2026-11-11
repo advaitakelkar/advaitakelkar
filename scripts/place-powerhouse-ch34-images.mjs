@@ -1,5 +1,5 @@
 // Place Powerhouse chapter renders (Chapters 1–4) from a folder into the site.
-//   node scripts/place-powerhouse-ch34-images.mjs "~/Desktop/Powerhouse Ch3-4 Images"
+//   node scripts/place-powerhouse-ch34-images.mjs "~/Desktop/Powerhouse/Images/Chapters 3-4"
 // A file is matched to a slot by the slot id in its name (ch1, 1-2-penn, 3-1-a …); the newest
 // file for a slot wins. The archival photographs of 2.3 (2-3-a … 2-3-d) are never replaced. Each is resized to 1536 px wide and written as webp beside the others
 // in public/powerhouse/images/version2/, where powerhouse-image-slots.json already points.

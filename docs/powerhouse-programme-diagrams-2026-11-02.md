@@ -21,7 +21,7 @@ The catalogue heading now correctly states 23 programmes, matching the existing 
 
 ## Files and validation
 
-Canonical masters: `/Users/adi/Desktop/Powerhouse Ch3-4 Images/Architectural Programme Diagrams/`.
+Canonical masters: `/Users/adi/Desktop/Powerhouse/Images/Chapters 3-4/Architectural Programme Diagrams/`.
 Website exports: `public/powerhouse/images/programme-diagrams/`.
 Diagram labels and reading keys: `src/data/powerhouse-programme-diagrams.json`.
 
