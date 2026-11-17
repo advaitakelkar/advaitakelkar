@@ -1,0 +1,104 @@
+---
+import renders from '../data/union-pier-renders.json';
+import { chapters, blockNotes } from '../data/union-pier-documentation';
+import UnionPierFigure from './UnionPierFigure.astro';
+const sections = chapters.map(chapter => {
+  const images = renders.filter(image => chapter.groups.includes(image.group)).sort((a,b) => {
+    const leads = chapter.id === 'sections' ? ['SP01', 'X02', 'SP02', 'SP03', 'SP04', 'SP05', 'SP06'] : [];
+    const rank = (code: string) => leads.includes(code) ? leads.indexOf(code) : 100;
+    return rank(a.code)-rank(b.code);
+  });
+  const paired = chapter.id === 'blocks' || chapter.id === 'transformation';
+  const items = paired
+    ? [...new Set(images.map(image => image.code))].map(code => ({
+        code, note: blockNotes[code] ?? '',
+        images: images.filter(image => image.code === code).sort((a,b) => {
+          const rank = (group: string) => group.startsWith('A Before') || group === 'B Block studies' ? 0 : 1;
+          return rank(a.group)-rank(b.group);
+        })
+      }))
+    : images.map(image => ({ code:image.code, note:'', images:[image] }));
+  return { ...chapter, images, items, paired };
+});
+---
+<article class="up-documentation" id="project-documentation" aria-labelledby="up-doc-title">
+  <header class="up-doc-intro">
+    <p class="up-doc-kicker">Union Pier / Project documentation</p>
+    <h2 id="up-doc-title">A city meets its harbour.</h2>
+    <p class="up-doc-lede">A waterfront neighbourhood organized around shared gardens, inhabited streets and a public route to the water.</p>
+    <p class="up-doc-copy">This academic design study moves from the scale of Charleston’s peninsula to the depth of a street, a court and a shaded pavilion. The documentation follows that progression through {renders.length} selected views and drawings.</p>
+    <nav class="up-doc-index" aria-label="Union Pier documentation chapters">
+      {sections.map(section => <a href={`#up-${section.id}`}><span>{section.number}</span>{section.label}</a>)}
+    </nav>
+  </header>
+  {sections.map(section => <section class="up-doc-chapter" id={`up-${section.id}`} aria-labelledby={`up-${section.id}-title`}>
+    <header class="up-doc-chapter-heading">
+      <p class="up-doc-kicker">{section.number} / {section.label}</p>
+      <h2 id={`up-${section.id}-title`}>{section.title}</h2>
+      <div class="up-doc-prose">{section.paragraphs.map(paragraph => <p>{paragraph}</p>)}</div>
+    </header>
+    <div class:list={['up-doc-grid', {'up-doc-grid--pairs': section.paired}]}>
+      {section.items.slice(0,2).map(item => <div class:list={['up-doc-item', {'up-doc-item--pair': section.paired}]}>
+        {item.note && <p class="up-doc-pair-note">{item.note}</p>}
+        {item.images.map(image => <UnionPierFigure image={image} label={section.id === 'transformation' ? (image.group.startsWith('A Before') ? 'Before / reconstructed' : 'Proposed') : undefined} />)}
+      </div>)}
+    </div>
+    {section.items.length > 2 && <details class="up-doc-more">
+      <summary>View the complete {section.label.toLowerCase()} set <span>{section.images.length} images</span></summary>
+      <div class:list={['up-doc-grid', {'up-doc-grid--pairs': section.paired}]}>
+        {section.items.slice(2).map(item => <div class:list={['up-doc-item', {'up-doc-item--pair': section.paired}]}>
+          {item.note && <p class="up-doc-pair-note">{item.note}</p>}
+          {item.images.map(image => <UnionPierFigure image={image} label={section.id === 'transformation' ? (image.group.startsWith('A Before') ? 'Before / reconstructed' : 'Proposed') : undefined} />)}
+        </div>)}
+      </div>
+    </details>}
+  </section>)}
+  <aside class="up-doc-method">
+    <h3>About the drawings</h3>
+    <p class="up-doc-copy">Independent M.Arch design study, separate from the official Union Pier redevelopment. The presentation combines model-derived views with AI-assisted architectural rendering. Before aerials interpret Google Earth references; cut-plan interiors and landscape details communicate design intent. These images are not construction documents or verified evidence of coastal, structural or accessibility performance.</p>
+  </aside>
+  <dialog class="up-doc-viewer" aria-label="Union Pier drawing viewer">
+    <div class="up-doc-viewer-bar"><button type="button" data-up-prev aria-label="Previous drawing">Previous</button><button type="button" data-up-next aria-label="Next drawing">Next</button><a data-up-full target="_blank" rel="noopener">Open full size</a><button type="button" data-up-close aria-label="Close drawing viewer">Close</button></div>
+    <div class="up-doc-viewer-image"><img data-up-image alt="Selected Union Pier drawing" /></div>
+    <p data-up-viewer-caption aria-live="polite"></p>
+  </dialog>
+</article>
+<script>
+  function initUnionPierDocumentation() {
+    document.querySelectorAll<HTMLElement>('.up-documentation').forEach(root => {
+      if (root.dataset.ready) return;
+      root.dataset.ready = 'true';
+      const links = [...root.querySelectorAll<HTMLAnchorElement>('[data-up-open]')];
+      const dialog = root.querySelector<HTMLDialogElement>('dialog')!;
+      const image = dialog.querySelector<HTMLImageElement>('[data-up-image]')!;
+      const full = dialog.querySelector<HTMLAnchorElement>('[data-up-full]')!;
+      const caption = dialog.querySelector<HTMLElement>('[data-up-viewer-caption]')!;
+      let current = 0, opener: HTMLAnchorElement | null = null;
+      const show = (index: number) => {
+        current = (index + links.length) % links.length;
+        const link = links[current];
+        image.src = link.href;image.alt = link.dataset.upCaption ?? '';
+        full.href = link.href;caption.textContent = `${current+1} / ${links.length} — ${link.dataset.upCaption}`;
+      };
+      links.forEach((link,index) => link.addEventListener('click',event => {
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();opener=link;show(index);dialog.showModal();
+      }));
+      dialog.querySelector('[data-up-prev]')!.addEventListener('click',()=>show(current-1));
+      dialog.querySelector('[data-up-next]')!.addEventListener('click',()=>show(current+1));
+      dialog.querySelector('[data-up-close]')!.addEventListener('click',()=>dialog.close());
+      dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.close();});
+      dialog.addEventListener('keydown',event=>{
+        if(event.key==='ArrowRight'){event.preventDefault();show(current+1);}
+        if(event.key==='ArrowLeft'){event.preventDefault();show(current-1);}
+      });
+      dialog.addEventListener('close',()=>opener?.focus());
+    });
+  }
+  initUnionPierDocumentation();
+  document.addEventListener('astro:page-load',initUnionPierDocumentation);
+</script>
+<style>
+  .up-documentation{min-width:0;color:var(--_tokens---color--fg);margin-top:48px}h2{font-size:clamp(28px,3.5vw,48px);line-height:1.12;font-weight:500;letter-spacing:-.035em;margin:0 0 24px;max-width:25ch}.up-doc-kicker{font-size:12px;line-height:1.5;color:var(--_tokens---color--muted);margin:0 0 18px}.up-doc-lede{font-size:clamp(18px,2vw,24px);line-height:1.45;max-width:55ch;margin:0 0 24px}.up-doc-copy,.up-doc-prose p,.up-doc-pair-note{font-size:var(--_tokens---type--reading,14px);line-height:1.65;max-width:68ch;margin:0 0 20px}.up-doc-index{display:flex;flex-wrap:wrap;gap:8px;margin:32px 0 48px}.up-doc-index a{display:flex;gap:10px;align-items:center;min-height:44px;padding:10px 15px;border:1px solid var(--_tokens---color--line-soft);border-radius:24px;text-decoration:none;color:inherit;font-size:13px}.up-doc-index span{font-size:11px;color:var(--_tokens---color--muted)}.up-doc-index a:hover{background:var(--_tokens---color--fg);color:var(--_tokens---color--bg)}.up-doc-index a:hover span{color:inherit}.up-doc-chapter{padding:48px 0;border-top:1px solid var(--_tokens---color--line-soft);scroll-margin-top:100px}.up-doc-prose{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:30px;margin-bottom:16px}.up-doc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:32px 24px}.up-doc-grid--pairs{grid-template-columns:minmax(0,1fr)}.up-doc-item{min-width:0}.up-doc-item--pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 24px}.up-doc-pair-note{grid-column:1/-1;margin-bottom:0}.up-doc-more{margin-top:30px}.up-doc-more summary{cursor:pointer;min-height:44px;padding:14px 0;border-top:1px solid var(--_tokens---color--line-soft);font-size:14px;line-height:1.6}.up-doc-more summary span{font-size:12px;color:var(--_tokens---color--muted);margin-left:12px}.up-doc-more[open] summary{margin-bottom:24px}.up-doc-method{border-top:1px solid var(--_tokens---color--line-soft);padding:32px 0}.up-doc-method h3{font-size:18px;font-weight:500;margin:0 0 16px}.up-doc-viewer{inset:0;box-sizing:border-box;width:96vw;max-width:1800px;max-height:94dvh;border:1px solid #555;padding:16px;background:#171717;color:#fff}.up-doc-viewer::backdrop{background:#000d}.up-doc-viewer-bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}.up-doc-viewer-bar button,.up-doc-viewer-bar a{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;border:1px solid #777;border-radius:3px;padding:8px 14px;background:transparent;color:white;font:inherit;font-size:13px;text-decoration:none;cursor:pointer}.up-doc-viewer-image{overflow:auto;text-align:center}.up-doc-viewer-image img{display:block;width:auto;height:auto;max-width:100%;max-height:calc(94dvh - 170px);object-fit:contain;margin:auto}.up-doc-viewer p{font-size:12px;line-height:1.5;margin:12px 0 0}.up-documentation a:focus-visible,.up-documentation button:focus-visible,.up-documentation summary:focus-visible{outline:2px solid currentColor;outline-offset:4px}
+  @media(max-width: 699.98px){.up-doc-prose,.up-doc-grid,.up-doc-item--pair{grid-template-columns:minmax(0,1fr)}.up-doc-prose{gap:0}.up-doc-chapter{padding:32px 0}.up-doc-item--pair{gap:24px}.up-doc-index{margin-bottom:32px}.up-doc-viewer{padding:10px}.up-doc-viewer-bar{gap:6px}.up-doc-viewer-bar button,.up-doc-viewer-bar a{padding:8px 10px}}
+</style>

@@ -47,7 +47,7 @@ pnpm preview --host 127.0.0.1 --port 4331
 SHOOT_BASE=http://127.0.0.1:4331 pnpm audit:responsive
 ```
 
-The browser matrix has 33 routes (including every Work project) and 11 widths: 320, 390, 699, 700, 834,
+The browser matrix has 35 routes (including every Work project) and 11 widths: 320, 390, 699, 700, 834,
 1023, 1024, 1280, 1366, 1600 and 1920 CSS pixels. The adjacent widths catch breakpoint
 boundary failures. Add a route whenever a new template or substantial interaction lands.
 

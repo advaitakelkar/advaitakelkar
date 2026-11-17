@@ -1,0 +1,15 @@
+---
+interface Render { id: string; code: string; title: string; group: string; src: string; thumb: string; width: number; height: number; }
+interface Props { image: Render; label?: string; }
+const { image, label } = Astro.props;
+const kind = label ?? (image.group === 'B Block plans' ? 'Cut plan' : image.group === 'B Block studies' ? 'Axonometric study' : '');
+---
+<figure class="up-doc-figure" id={`drawing-${image.id}`}>
+  <a href={image.src} data-up-open data-up-caption={`${image.code} · ${kind ? kind + ' · ' : ''}${image.title}`} aria-label={`Open ${image.code}: ${image.title}`}>
+    <img src={image.thumb} srcset={`${image.thumb} 720w, ${image.src} ${image.width}w`} sizes="(max-width: 699.98px) 100vw, 50vw" width={image.width} height={image.height} loading="lazy" decoding="async" alt={`${kind ? kind + ': ' : ''}${image.title}`} />
+  </a>
+  <figcaption><span>{image.code}{kind && ` / ${kind}`}</span>{image.title}</figcaption>
+</figure>
+<style>
+  figure{margin:0;min-width:0}a{display:block;cursor:zoom-in}a:focus-visible{outline:2px solid currentColor;outline-offset:4px}img{display:block;width:100%;height:auto;object-fit:contain;background:white;border:1px solid var(--_tokens---color--line-soft)}figcaption{font-size:12px;line-height:1.5;padding-top:10px;color:var(--_tokens---color--fg)}figcaption span{display:block;font-size:11px;color:var(--_tokens---color--muted);margin-bottom:3px}
+</style>
