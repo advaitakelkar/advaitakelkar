@@ -1,57 +1,107 @@
 ---
 import renders from '../data/union-pier-renders.json';
 import { chapters, blockNotes } from '../data/union-pier-documentation';
-import UnionPierFigure from './UnionPierFigure.astro';
-const sections = chapters.map(chapter => {
-  const images = renders.filter(image => chapter.groups.includes(image.group)).sort((a,b) => {
-    const leads = chapter.id === 'sections' ? ['SP01', 'X02', 'SP02', 'SP03', 'SP04', 'SP05', 'SP06'] : [];
-    const rank = (code: string) => leads.includes(code) ? leads.indexOf(code) : 100;
-    return rank(a.code)-rank(b.code);
-  });
-  const paired = chapter.id === 'blocks' || chapter.id === 'transformation';
-  const items = paired
-    ? [...new Set(images.map(image => image.code))].map(code => ({
-        code, note: blockNotes[code] ?? '',
-        images: images.filter(image => image.code === code).sort((a,b) => {
-          const rank = (group: string) => group.startsWith('A Before') || group === 'B Block studies' ? 0 : 1;
-          return rank(a.group)-rank(b.group);
-        })
-      }))
-    : images.map(image => ({ code:image.code, note:'', images:[image] }));
-  return { ...chapter, images, items, paired };
-});
+import Icon from './Icon.astro';
+
+const byId = new Map(renders.map(render => [render.id, render]));
+const used = chapters.flatMap(chapter => chapter.sets.flatMap(set => set.slides.flat()));
+const unknown = used.filter(id => !byId.has(id));
+const repeated = used.filter((id, index) => used.indexOf(id) !== index);
+const unused = renders.filter(render => !used.includes(render.id)).map(render => render.id);
+if (unknown.length || repeated.length || unused.length) {
+  throw new Error(`Union Pier documentation is out of step with its renders — unknown: [${unknown}] repeated: [${repeated}] unused: [${unused}]`);
+}
+
+const GAP = 12;
+const kindOf = (image: (typeof renders)[number]) =>
+  image.group.startsWith('A Before') ? 'Existing'
+  : image.group.startsWith('A Proposed') ? 'Proposed / same frame'
+  : image.group === 'A Aerials' ? 'Proposed'
+  : image.group === 'B Key plans' ? 'Key plan'
+  : image.group.startsWith('E Site analysis') ? 'Existing'
+  : image.group === 'B Block plans' ? 'Cut plan'
+  : image.group === 'B Block studies' ? 'Axonometric'
+  : '';
+const titleOf = (image: (typeof renders)[number]) => image.title.replace(/ - (BEFORE existing port|cut plan|key plan)$/, '');
+
+const sections = chapters.map(chapter => ({
+  ...chapter,
+  sets: chapter.sets.map(set => {
+    const slides = set.slides.map(ids => {
+      const images = ids.map(id => {
+        const image = byId.get(id)!;
+        return { ...image, ratio: image.width / image.height, kind: kindOf(image), label: titleOf(image) };
+      });
+      const codes = [...new Set(images.map(image => image.code))];
+      return {
+        images,
+        ratio: images.reduce((sum, image) => sum + image.ratio, 0),
+        gaps: (images.length - 1) * GAP,
+        tag: codes.length > 1 ? `${codes[0]}–${codes.at(-1)}` : codes[0],
+        note: codes.length === 1 ? blockNotes[codes[0]] : undefined
+      };
+    });
+    return {
+      ...set, slides,
+      /* The stage takes the set's typical proportion (the median slide), so
+         one portrait among landscapes stands inside the stage instead of
+         stretching it and leaving a band under every other drawing. */
+      ratio: slides.map(slide => slide.ratio).sort((x, y) => x - y)[Math.floor((slides.length - 1) / 2)],
+      ratioCompact: Math.min(...slides.flatMap(slide => slide.images.map(image => image.ratio))),
+      count: slides.reduce((sum, slide) => sum + slide.images.length, 0)
+    };
+  })
+}));
 ---
 <article class="up-documentation" id="project-documentation" aria-labelledby="up-doc-title">
   <header class="up-doc-intro">
-    <p class="up-doc-kicker">Union Pier / Project documentation</p>
-    <h2 id="up-doc-title">A city meets its harbour.</h2>
-    <p class="up-doc-lede">A waterfront neighbourhood organized around shared gardens, inhabited streets and a public route to the water.</p>
-    <p class="up-doc-copy">This academic design study moves from the scale of Charleston’s peninsula to the depth of a street, a court and a shaded pavilion. The documentation follows that progression through {renders.length} selected views and drawings.</p>
+    <h2 class="up-doc-kicker" id="up-doc-title">Project documentation · {renders.length} drawings in {sections.length} chapters</h2>
     <nav class="up-doc-index" aria-label="Union Pier documentation chapters">
       {sections.map(section => <a href={`#up-${section.id}`}><span>{section.number}</span>{section.label}</a>)}
     </nav>
   </header>
   {sections.map(section => <section class="up-doc-chapter" id={`up-${section.id}`} aria-labelledby={`up-${section.id}-title`}>
     <header class="up-doc-chapter-heading">
-      <p class="up-doc-kicker">{section.number} / {section.label}</p>
-      <h2 id={`up-${section.id}-title`}>{section.title}</h2>
-      <div class="up-doc-prose">{section.paragraphs.map(paragraph => <p>{paragraph}</p>)}</div>
+      <div>
+        <p class="up-doc-kicker">{section.number} / {section.label}</p>
+        <h3 id={`up-${section.id}-title`}>{section.title}</h3>
+      </div>
+      <p class="up-doc-copy">{section.text}</p>
     </header>
-    <div class:list={['up-doc-grid', {'up-doc-grid--pairs': section.paired}]}>
-      {section.items.slice(0,2).map(item => <div class:list={['up-doc-item', {'up-doc-item--pair': section.paired}]}>
-        {item.note && <p class="up-doc-pair-note">{item.note}</p>}
-        {item.images.map(image => <UnionPierFigure image={image} label={section.id === 'transformation' ? (image.group.startsWith('A Before') ? 'Before / reconstructed' : 'Proposed') : undefined} />)}
-      </div>)}
-    </div>
-    {section.items.length > 2 && <details class="up-doc-more">
-      <summary>View the complete {section.label.toLowerCase()} set <span>{section.images.length} images</span></summary>
-      <div class:list={['up-doc-grid', {'up-doc-grid--pairs': section.paired}]}>
-        {section.items.slice(2).map(item => <div class:list={['up-doc-item', {'up-doc-item--pair': section.paired}]}>
-          {item.note && <p class="up-doc-pair-note">{item.note}</p>}
-          {item.images.map(image => <UnionPierFigure image={image} label={section.id === 'transformation' ? (image.group.startsWith('A Before') ? 'Before / reconstructed' : 'Proposed') : undefined} />)}
+    {section.sets.map(set => <div
+      class:list={['up-sl', { 'up-sl--full': set.full, 'up-sl--single': set.slides.length === 1 }]}
+      style={`--A:${set.ratio.toFixed(4)};--Ac:${set.ratioCompact.toFixed(4)}`}
+      data-up-slider role="group" aria-roledescription="carousel" aria-label={`${section.label}${set.title ? `: ${set.title}` : ''}`}>
+      {set.title && <p class="up-sl-title">{set.title}</p>}
+      <div class="up-sl-track" data-up-track tabindex="0">
+        {set.slides.map((slide, slideIndex) => <div class="up-sl-slide" data-up-slide style={`--s:${slide.ratio.toFixed(4)};--gaps:${slide.gaps}px`}>
+          <div class="up-sl-row">
+            {slide.images.map(image => <figure class="up-sl-figure" id={`drawing-${image.id}`} data-up-figure data-up-slide-index={slideIndex} style={`--a:${image.ratio.toFixed(4)}`}>
+              <a href={image.src} data-up-open data-up-caption={`${image.code} · ${image.kind ? image.kind + ' · ' : ''}${image.label}`} aria-label={`Open ${image.code}: ${image.kind ? image.kind + ', ' : ''}${image.label}`}>
+                <img src={image.src} srcset={`${image.thumb} 720w, ${image.src} ${image.width}w`} sizes={`(max-width: 1023.98px) 100vw, ${Math.max(20, Math.round(78 * image.ratio / slide.ratio))}vw`} width={image.width} height={image.height} loading="lazy" decoding="async" alt={`${image.kind ? image.kind + ': ' : ''}${image.label}`} />
+              </a>
+              <figcaption><span>{image.code}{image.kind && ` / ${image.kind}`}</span>{image.label}</figcaption>
+            </figure>)}
+          </div>
+          {slide.note && <p class="up-sl-note">{slide.note}</p>}
         </div>)}
       </div>
-    </details>}
+      {set.slides.length > 1 || set.count > 1 ? <div class="up-sl-bar">
+        <button type="button" class="up-sl-btn" data-up-step="-1" aria-label="Previous drawing"><Icon name="chevron" dir="w" /></button>
+        <span class="up-sl-count" data-up-count aria-live="polite">01 / {String(set.slides.length).padStart(2, '0')}</span>
+        <button type="button" class="up-sl-btn" data-up-step="1" aria-label="Next drawing"><Icon name="chevron" dir="e" /></button>
+        <div class="up-sl-rail">
+          {set.slides.map((slide, slideIndex) => <button type="button" data-up-goto={slideIndex} aria-label={`Show ${slide.tag}`}>{slide.tag}</button>)}
+        </div>
+      </div> : null}
+    </div>)}
+    {section.columns && <div class="up-doc-columns" style={`--n:${section.columns.length}`}>
+      {section.columns.map(column => <div class="up-doc-column">
+        <h4>{column.head}{column.sub && <span>{column.sub}</span>}</h4>
+        <ul>{column.items.map(item => <li>{item.label && <b>{item.label}</b>}{item.text}</li>)}</ul>
+      </div>)}
+    </div>}
+    {section.columnsNote && <p class="up-doc-columns-note">{section.columnsNote}</p>}
   </section>)}
   <aside class="up-doc-method">
     <h3>About the drawings</h3>
@@ -68,6 +118,74 @@ const sections = chapters.map(chapter => {
     document.querySelectorAll<HTMLElement>('.up-documentation').forEach(root => {
       if (root.dataset.ready) return;
       root.dataset.ready = 'true';
+
+      /* ── Sliders ──────────────────────────────────────────────────────
+         From 1024 up a slide is the unit: drawings that belong together sit
+         side by side. Below it every drawing is its own stop, so a pair is
+         two swipes rather than two thumbnails. Either way each stop is one
+         track-width wide, which is what makes the index a plain division. */
+      const compact = matchMedia('(max-width: 1023.98px)');
+      const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+      root.querySelectorAll<HTMLElement>('[data-up-slider]').forEach(slider => {
+        const track = slider.querySelector<HTMLElement>('[data-up-track]')!;
+        const figures = [...slider.querySelectorAll<HTMLElement>('[data-up-figure]')];
+        const slides = [...slider.querySelectorAll<HTMLElement>('[data-up-slide]')];
+        const count = slider.querySelector<HTMLElement>('[data-up-count]');
+        const rail = [...slider.querySelectorAll<HTMLButtonElement>('[data-up-goto]')];
+        const steps = [...slider.querySelectorAll<HTMLButtonElement>('[data-up-step]')];
+        const stops = () => compact.matches ? figures.length : slides.length;
+        const index = () => Math.max(0, Math.min(stops() - 1, Math.round(track.scrollLeft / Math.max(1, track.clientWidth))));
+        const two = (n: number) => String(n).padStart(2, '0');
+        const paint = () => {
+          const at = index();
+          if (count) count.textContent = `${two(at + 1)} / ${two(stops())}`;
+          const slideAt = compact.matches ? Number(figures[at].dataset.upSlideIndex) : at;
+          rail.forEach((button, i) => {
+            const on = i === slideAt;
+            button.toggleAttribute('data-active', on);
+            if (on) button.setAttribute('aria-current', 'true'); else button.removeAttribute('aria-current');
+          });
+          steps.forEach(button => { button.disabled = Number(button.dataset.upStep) < 0 ? at === 0 : at === stops() - 1; });
+          /* The track is as tall as the stop on screen, not the tallest one in
+             the set — otherwise one portrait leaves a band under every
+             landscape beside it and pushes the controls away from the drawing. */
+          const stop = compact.matches ? figures[at] : slides[at];
+          if (stop.offsetHeight) track.style.height = `${stop.offsetHeight}px`;
+        };
+        const go = (to: number) => {
+          const at = Math.max(0, Math.min(stops() - 1, to));
+          track.scrollTo({ left: at * track.clientWidth, behavior: reduced.matches ? 'auto' : 'smooth' });
+        };
+        steps.forEach(button => button.addEventListener('click', () => go(index() + Number(button.dataset.upStep))));
+        rail.forEach((button, i) => button.addEventListener('click', () => {
+          go(compact.matches ? figures.findIndex(figure => Number(figure.dataset.upSlideIndex) === i) : i);
+        }));
+        /* Arrow keys belong to the slider while focus is inside it; stopped
+           here so the page's own Left/Right does not change project. */
+        slider.addEventListener('keydown', event => {
+          if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+          if (stops() < 2) return;
+          event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
+          go(index() + (event.key === 'ArrowRight' ? 1 : -1));
+        });
+        let frame = 0;
+        track.addEventListener('scroll', () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(paint); }, { passive: true });
+        compact.addEventListener('change', () => { track.scrollLeft = 0; paint(); });
+        /* Width only: the track's own height change must not re-seat a scroll in flight. */
+        let width = track.clientWidth, at = 0;
+        track.addEventListener('scrollend', () => { at = index(); });
+        new ResizeObserver(() => {
+          if (track.clientWidth === width) return;
+          width = track.clientWidth; track.scrollLeft = Math.min(at, stops() - 1) * width; paint();
+        }).observe(track);
+        /* A caption that wraps after fonts land makes its stop taller than the
+           height first measured; follow it rather than clip the last line. */
+        const grown = new ResizeObserver(() => paint());
+        figures.forEach(figure => grown.observe(figure));
+        paint();
+      });
+
+      /* ── Viewer ───────────────────────────────────────────────────────── */
       const links = [...root.querySelectorAll<HTMLAnchorElement>('[data-up-open]')];
       const dialog = root.querySelector<HTMLDialogElement>('dialog')!;
       const image = dialog.querySelector<HTMLImageElement>('[data-up-image]')!;
@@ -89,8 +207,8 @@ const sections = chapters.map(chapter => {
       dialog.querySelector('[data-up-close]')!.addEventListener('click',()=>dialog.close());
       dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.close();});
       dialog.addEventListener('keydown',event=>{
-        if(event.key==='ArrowRight'){event.preventDefault();show(current+1);}
-        if(event.key==='ArrowLeft'){event.preventDefault();show(current-1);}
+        if(event.key==='ArrowRight'){event.preventDefault();event.stopPropagation();show(current+1);}
+        if(event.key==='ArrowLeft'){event.preventDefault();event.stopPropagation();show(current-1);}
       });
       dialog.addEventListener('close',()=>opener?.focus());
     });
@@ -99,6 +217,84 @@ const sections = chapters.map(chapter => {
   document.addEventListener('astro:page-load',initUnionPierDocumentation);
 </script>
 <style>
-  .up-documentation{min-width:0;color:var(--_tokens---color--fg);margin-top:48px}h2{font-size:clamp(28px,3.5vw,48px);line-height:1.12;font-weight:500;letter-spacing:-.035em;margin:0 0 24px;max-width:25ch}.up-doc-kicker{font-size:12px;line-height:1.5;color:var(--_tokens---color--muted);margin:0 0 18px}.up-doc-lede{font-size:clamp(18px,2vw,24px);line-height:1.45;max-width:55ch;margin:0 0 24px}.up-doc-copy,.up-doc-prose p,.up-doc-pair-note{font-size:var(--_tokens---type--reading,14px);line-height:1.65;max-width:68ch;margin:0 0 20px}.up-doc-index{display:flex;flex-wrap:wrap;gap:8px;margin:32px 0 48px}.up-doc-index a{display:flex;gap:10px;align-items:center;min-height:44px;padding:10px 15px;border:1px solid var(--_tokens---color--line-soft);border-radius:24px;text-decoration:none;color:inherit;font-size:13px}.up-doc-index span{font-size:11px;color:var(--_tokens---color--muted)}.up-doc-index a:hover{background:var(--_tokens---color--fg);color:var(--_tokens---color--bg)}.up-doc-index a:hover span{color:inherit}.up-doc-chapter{padding:48px 0;border-top:1px solid var(--_tokens---color--line-soft);scroll-margin-top:100px}.up-doc-prose{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:30px;margin-bottom:16px}.up-doc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:32px 24px}.up-doc-grid--pairs{grid-template-columns:minmax(0,1fr)}.up-doc-item{min-width:0}.up-doc-item--pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 24px}.up-doc-pair-note{grid-column:1/-1;margin-bottom:0}.up-doc-more{margin-top:30px}.up-doc-more summary{cursor:pointer;min-height:44px;padding:14px 0;border-top:1px solid var(--_tokens---color--line-soft);font-size:14px;line-height:1.6}.up-doc-more summary span{font-size:12px;color:var(--_tokens---color--muted);margin-left:12px}.up-doc-more[open] summary{margin-bottom:24px}.up-doc-method{border-top:1px solid var(--_tokens---color--line-soft);padding:32px 0}.up-doc-method h3{font-size:18px;font-weight:500;margin:0 0 16px}.up-doc-viewer{inset:0;box-sizing:border-box;width:96vw;max-width:1800px;max-height:94dvh;border:1px solid #555;padding:16px;background:#171717;color:#fff}.up-doc-viewer::backdrop{background:#000d}.up-doc-viewer-bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}.up-doc-viewer-bar button,.up-doc-viewer-bar a{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;border:1px solid #777;border-radius:3px;padding:8px 14px;background:transparent;color:white;font:inherit;font-size:13px;text-decoration:none;cursor:pointer}.up-doc-viewer-image{overflow:auto;text-align:center}.up-doc-viewer-image img{display:block;width:auto;height:auto;max-width:100%;max-height:calc(94dvh - 170px);object-fit:contain;margin:auto}.up-doc-viewer p{font-size:12px;line-height:1.5;margin:12px 0 0}.up-documentation a:focus-visible,.up-documentation button:focus-visible,.up-documentation summary:focus-visible{outline:2px solid currentColor;outline-offset:4px}
-  @media(max-width: 699.98px){.up-doc-prose,.up-doc-grid,.up-doc-item--pair{grid-template-columns:minmax(0,1fr)}.up-doc-prose{gap:0}.up-doc-chapter{padding:32px 0}.up-doc-item--pair{gap:24px}.up-doc-index{margin-bottom:32px}.up-doc-viewer{padding:10px}.up-doc-viewer-bar{gap:6px}.up-doc-viewer-bar button,.up-doc-viewer-bar a{padding:8px 10px}}
+  .up-documentation{min-width:0;color:var(--_tokens---color--fg);margin-top:48px}
+  .up-doc-kicker{font-size:11px;font-weight:var(--_tokens---weight--base,400);line-height:1.5;letter-spacing:.02em;color:var(--_tokens---color--muted);margin:0 0 8px}
+  .up-doc-copy{font-size:var(--_tokens---type--reading,14px);line-height:1.6;max-width:68ch;margin:0}
+  .up-doc-index{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 32px}
+  .up-doc-index a{display:flex;gap:8px;align-items:center;min-height:44px;padding:8px 14px;border:1px solid var(--_tokens---color--line-soft);border-radius:var(--_tokens---radius--pill,999px);text-decoration:none;color:inherit;font-size:12px;transition:background-color var(--_tokens---motion--fast) ease,color var(--_tokens---motion--fast) ease}
+  .up-doc-index span{font-size:10px;color:var(--_tokens---color--muted)}
+  .up-doc-chapter{padding:32px 0 40px;border-top:1px solid var(--_tokens---color--line-soft);scroll-margin-top:72px}
+  .up-doc-columns{display:grid;grid-template-columns:repeat(auto-fit,minmax(11rem,1fr));gap:24px 20px;margin-top:20px;padding-top:16px;border-top:1px solid var(--_tokens---color--line)}
+  .up-doc-column h4{margin:0 0 8px;font-size:var(--_tokens---type--micro);font-weight:600;letter-spacing:-.01em}
+  .up-doc-column h4 span{display:block;font-weight:400;color:var(--_tokens---color--muted)}
+  .up-doc-column ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+  .up-doc-column li{font-size:var(--_tokens---type--micro);line-height:1.45;color:var(--_tokens---color--fg)}
+  .up-doc-column li b{display:inline-block;min-width:4.2em;margin-right:6px;font-weight:600;font-variant-numeric:tabular-nums}
+  .up-doc-columns-note{margin:14px 0 0;font-size:var(--_tokens---type--ultrathin);line-height:1.5;color:var(--_tokens---color--muted);max-width:80ch}
+  .up-doc-chapter-heading{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:8px 32px;align-items:start;margin-bottom:24px}
+  .up-doc-chapter-heading h3{font-size:clamp(18px,1rem + .55vw,24px);line-height:1.2;font-weight:500;letter-spacing:-.02em;margin:0;max-width:22ch}
+  .up-doc-method{border-top:1px solid var(--_tokens---color--line-soft);padding:28px 0}
+  .up-doc-method h3{font-size:14px;font-weight:500;margin:0 0 10px}
+
+  /* ── Slider ─────────────────────────────────────────────────────────────
+     The stage height is arithmetic, not a measured box: the container's
+     width over the set's ratio, capped to the window. Each slide then takes
+     the height that fits both the stage and its own ratio, and every drawing
+     in it is that height times its own ratio — so drawings side by side share
+     a height, nothing is cropped, and a 3:1 site section runs the full width. */
+  .up-sl{container-type:inline-size;--cap:max(320px,calc(100vh - 230px));--gap:12px;min-width:0;margin-top:24px}
+  .up-sl--full{--cap:9999px}
+  .up-sl-title{font-size:11px;line-height:1.5;color:var(--_tokens---color--muted);margin:0 0 10px}
+  .up-sl-track{display:flex;align-items:flex-start;overflow-x:auto;overflow-y:hidden;transition:height var(--_tokens---motion--base) ease;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;scrollbar-width:none}
+  .up-sl-track::-webkit-scrollbar{display:none}
+  .up-sl-slide{flex:0 0 100%;min-width:0;scroll-snap-align:start;scroll-snap-stop:always;--h:min(var(--cap),calc(100cqw / var(--A)),calc((100cqw - var(--gaps)) / var(--s)))}
+  .up-sl-row{display:flex;justify-content:center;align-items:flex-start;gap:var(--gap)}
+  .up-sl-figure{margin:0;min-width:0;flex:0 0 auto;width:calc(var(--h) * var(--a))}
+  .up-sl-figure a{display:block;cursor:zoom-in}
+  .up-sl-figure img{display:block;width:100%;height:auto;aspect-ratio:var(--a);object-fit:contain;background:var(--_tokens---color--line-soft)}
+  .up-sl-figure figcaption{font-size:11px;line-height:1.45;padding-top:8px;color:var(--_tokens---color--fg)}
+  .up-sl-figure figcaption span{display:block;font-size:10px;color:var(--_tokens---color--muted);margin-bottom:2px}
+  .up-sl-note{font-size:var(--_tokens---type--reading,14px);line-height:1.6;max-width:68ch;margin:14px auto 0;text-align:center}
+  .up-sl-bar{display:flex;align-items:center;gap:8px;margin-top:12px;min-width:0}
+  .up-sl-btn{--icon-size:14px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:44px;height:44px;border:1px solid var(--_tokens---color--line-soft);border-radius:50%;background:transparent;color:inherit;cursor:pointer;transition:background-color var(--_tokens---motion--fast) ease,color var(--_tokens---motion--fast) ease,opacity var(--_tokens---motion--fast) ease}
+  .up-sl-btn:disabled{opacity:.3;cursor:default}
+  .up-sl-count{flex:0 0 auto;min-width:7ch;text-align:center;font-size:11px;font-variant-numeric:tabular-nums;color:var(--_tokens---color--muted)}
+  .up-sl-rail{display:flex;gap:4px;min-width:0;margin-left:8px;overflow-x:auto;scrollbar-width:none}
+  .up-sl-rail::-webkit-scrollbar{display:none}
+  .up-sl-rail button{flex:0 0 auto;min-height:32px;padding:4px 10px;border:1px solid var(--_tokens---color--line-soft);border-radius:var(--_tokens---radius--pill,999px);background:transparent;color:var(--_tokens---color--muted);font:inherit;font-size:10px;letter-spacing:.02em;white-space:nowrap;cursor:pointer;transition:background-color var(--_tokens---motion--fast) ease,color var(--_tokens---motion--fast) ease}
+  .up-sl-rail button[data-active]{background:var(--_tokens---color--fg);color:var(--_tokens---color--bg);border-color:transparent}
+
+  .up-doc-viewer{inset:0;box-sizing:border-box;width:96vw;max-width:1800px;max-height:94dvh;border:1px solid #555;padding:16px;background:#171717;color:#fff}
+  .up-doc-viewer::backdrop{background:#000d}
+  .up-doc-viewer-bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+  .up-doc-viewer-bar button,.up-doc-viewer-bar a{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;border:1px solid #777;border-radius:3px;padding:8px 14px;background:transparent;color:white;font:inherit;font-size:13px;text-decoration:none;cursor:pointer}
+  .up-doc-viewer-image{overflow:auto;text-align:center}
+  .up-doc-viewer-image img{display:block;width:auto;height:auto;max-width:100%;max-height:calc(94dvh - 170px);object-fit:contain;margin:auto}
+  .up-doc-viewer p{font-size:12px;line-height:1.5;margin:12px 0 0}
+  .up-documentation a:focus-visible,.up-documentation button:focus-visible,.up-sl-track:focus-visible{outline:2px solid currentColor;outline-offset:3px}
+
+  /* One slide needs no controls — until it dissolves into several stops below 1024. */
+  @media (min-width: 1024px){.up-sl--single .up-sl-bar{display:none}}
+  @media (hover: hover){
+    .up-doc-index a:hover{background:var(--_tokens---color--fg);color:var(--_tokens---color--bg)}
+    .up-doc-index a:hover span{color:inherit}
+    .up-sl-btn:not(:disabled):hover,.up-sl-rail button:hover{background:var(--_tokens---color--fg);color:var(--_tokens---color--bg)}
+  }
+  /* Below 1024 every drawing is its own stop: the slide dissolves and each
+     figure takes the track's width, sized by its own ratio. */
+  @media (max-width: 1023.98px){
+    .up-doc-chapter{padding:28px 0 32px}
+    .up-doc-chapter-heading{grid-template-columns:minmax(0,1fr);margin-bottom:16px}
+    .up-sl{--cap:max(240px,calc(100svh - 260px));margin-top:16px}
+    .up-sl--full{--cap:9999px}
+    .up-sl-slide,.up-sl-row{display:contents}
+    .up-sl-figure{flex:0 0 100%;width:auto;scroll-snap-align:start;scroll-snap-stop:always;--h:min(var(--cap),calc(100cqw / var(--a)))}
+    .up-sl-figure a{width:calc(var(--h) * var(--a));margin-inline:auto}
+    .up-sl-figure figcaption{width:calc(var(--h) * var(--a));margin-inline:auto}
+    .up-sl-note{display:none}
+    .up-sl-rail button{min-height:44px}
+    .up-doc-viewer{padding:10px}
+    .up-doc-viewer-bar{gap:6px}
+    .up-doc-viewer-bar button,.up-doc-viewer-bar a{padding:8px 10px}
+  }
 </style>

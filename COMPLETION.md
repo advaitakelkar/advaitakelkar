@@ -6,6 +6,18 @@ from what he says, and verifies.
 
 Last surveyed: **2026-09-09** — HEAD `be65d53`, `pnpm build` = 80 pages.
 
+## Union Pier location, history and site analysis — local review, 20 November 2026
+
+From Adi's earlier Prism H2O boards: three location circles, a 5 x 2 historical timeline board with dated events, six existing site analysis maps with a SWOT panel, plans turned harbour-up, Abstract and Brief in two columns, chapters reordered (103 drawings, 11 chapters). Checks and audits pass. Still to do: six proposed analysis maps, the long site section, plan restyle to the old numbered key, layered Photoshop files. Local only, not committed.
+
+---
+
+## Union Pier matched aerials and key plans — local review, 20 November 2026
+
+Adi asked for before/proposed aerials in the same frame, with the existing aerial fixed and existing buildings untouched. A01, A05 and A06 proposals were generated into the existing aerials and composited outside-site pixel-exact; A03/A04 already matched. Block axonometrics switched to the Indian Miniature finals, each beside a squared-up key plan (B01 finished, B02–B09 straightened cut plans for now). Masterplan reordered: city plan, site plan, ground floor plan. OpenStreetMap panel removed from this project. Ground floor plan with land use added (95 drawings); checks and audits pass. Still to do: eight key plans (skipped for now at Adi's request), Adi's review. Local only, not committed. Details in `docs/union-pier-documentation.md`.
+
+---
+
 ## Powerhouse film and typography — 4 November 2026
 
 Added the v12 90-second film as a 1280px web export with muted autoplay, looping, native controls and reduced-motion handling. Abstract spans two text columns; hypothesis and video share the next row; Mindmap/PDF links and team portraits follow below. The black title includes the film’s circle/lightning mark as the first O. Collapsed headings and pinned earlier headings are compact. Standard site body text and Powerhouse chapter prose use 14px; the reading contract matches. Source film stays in the canonical Drive film folder.
@@ -1072,3 +1084,10 @@ while keeping phone, tablet and desktop reading and navigation usable.
 - Preserved all 178 current image placements, original asset files, source attribution and the four-to-two-to-one studio sequence. Unattributed reference imagery is not credited as the team's proposal.
 - Minimal Habersham-only reading surface: no chapter-card shadows, restrained text navigation, larger headings, comfortable prose measure and spacing, two-column drawing studies and single-column phone layouts. Studio-wide credits are collapsible; proposal authors remain visible.
 - pnpm check and focused browser checks passed. Reviewed 320, 390, 834 and 1366px, reference expansion, separate viewer collections, previous/next and arrow keys, Escape/Close, focus return, keyboard credit disclosure and repeated stage navigation. No horizontal overflow, script errors or broken loaded images. No push or deployment.
+
+### 2026-11-17 — Union Pier as one narrative in sliders (local)
+
+- At Adi's request the documentation was rebuilt: eight chapters, one paragraph each, and every one of the 91 audited renders on the page in a slider. The "view the complete set" disclosures are gone. Chapter order unchanged (city, before/proposed, masterplan, blocks, parks, sections, the walk, details); Sections splits into street sections, section perspectives and site sections.
+- Sections and wide drawings run the full content width; site plan + ground plan are an uncapped full-width pair; pairs (before/proposed, axonometric/cut plan, existing/proposed, peninsula studies) sit side by side from 1024px and become separate stops below it. Chapter titles reduced from 28–48px to 18–24px; the 24px lede removed; prose stays on the 14px reading token.
+- Narrative and slide order live in `src/data/union-pier-documentation.ts`; the component fails the build if a render is missing or repeated. `UnionPierFigure.astro` removed (folded in). `scripts/audit-union-pier.mjs` and `docs/union-pier-documentation.md` updated to the slider structure.
+- Local only; no commit, push or publication.

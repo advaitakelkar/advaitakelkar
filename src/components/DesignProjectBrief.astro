@@ -1,11 +1,11 @@
 ---
 import ProjectPeople from './ProjectPeople.astro';
 import ProjectSiteMap from './ProjectSiteMap.astro';
-interface Props { abstract: string; hypothesis?: string; brief?: string; prominent?: boolean; siteProjectId?: string; people?: string[]; faculty?: string[] }
-const { abstract, hypothesis, brief, prominent = false, siteProjectId, people = [], faculty = [] } = Astro.props;
+interface Props { abstract: string; hypothesis?: string; brief?: string; prominent?: boolean; siteProjectId?: string; sideBySide?: boolean; people?: string[]; faculty?: string[] }
+const { abstract, hypothesis, brief, prominent = false, siteProjectId, sideBySide = false, people = [], faculty = [] } = Astro.props;
 ---
 
-<section class:list={["design-brief", {"design-brief--mapped": siteProjectId, "design-brief--fullwidth": prominent}]} aria-label="Design proposition">
+<section class:list={["design-brief", {"design-brief--mapped": siteProjectId, "design-brief--fullwidth": prominent, "design-brief--pair": sideBySide && !siteProjectId}]} aria-label="Design proposition">
   <div class="design-brief__left">
   <div class="design-brief__abstract">
     <h2>Abstract</h2>
@@ -35,5 +35,10 @@ const { abstract, hypothesis, brief, prominent = false, siteProjectId, people = 
     .design-brief--mapped :global(.site-map) { display:flex; flex-direction:column; min-height:0; }
     .design-brief--mapped :global(.site-map__stage) { flex:1; aspect-ratio:auto; min-height:0; }
     .design-brief { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 48px; }
+    /* Abstract and Brief as two columns of one row; the people run under both. */
+    .design-brief--pair .design-brief__left { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px 48px; align-items: start; }
+    .design-brief.design-brief--pair .design-brief__abstract { grid-column: auto; }
+    .design-brief--pair .design-brief__claim-block { margin-top: 0; }
+    .design-brief--pair .design-brief__left > :global(:nth-child(n+3)) { grid-column: 1 / -1; }
   }
 </style>
